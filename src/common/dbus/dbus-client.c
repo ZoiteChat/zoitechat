@@ -1,4 +1,4 @@
-/* dbus-client.c - HexChat command-line options for D-Bus
+/* dbus-client.c - ZoiteChat command-line options for D-Bus
  * Copyright (C) 2006 Claessens Xavier
  *
  * This program is free software; you can redistribute it and/or modify
@@ -24,11 +24,11 @@
 #include "dbus-client.h"
 #include <stdlib.h>
 #include <gio/gio.h>
-#include "hexchat.h"
-#include "hexchatc.h"
+#include "zoitechat.h"
+#include "zoitechatc.h"
 
-#define DBUS_REMOTE_PATH "/org/hexchat/Remote"
-#define DBUS_REMOTE_INTERFACE "org.hexchat.plugin"
+#define DBUS_REMOTE_PATH "/org/zoitechat/Remote"
+#define DBUS_REMOTE_INTERFACE "org.zoitechat.plugin"
 
 #define DBUS_SERVICE_DBUS "org.freedesktop.DBus"
 #define DBUS_PATH_DBUS "/org/freedesktop/DBus"
@@ -54,7 +54,7 @@ new_param_variant (const char *arg)
 }
 
 void
-hexchat_remote (void)
+zoitechat_remote (void)
 /* TODO: dbus_g_connection_unref (connection) are commented because it makes
  * dbus to crash. Fixed in dbus >=0.70 ?!?
  * https://launchpad.net/distros/ubuntu/+source/dbus/+bug/54375
@@ -64,7 +64,7 @@ hexchat_remote (void)
 	GDBusProxy *dbus = NULL;
 	GVariant *ret;
 	GDBusProxy *remote_object = NULL;
-	gboolean hexchat_running;
+	gboolean zoitechat_running;
 	GError *error = NULL;
 	char *command = NULL;
 	guint i;
@@ -83,7 +83,7 @@ hexchat_remote (void)
 		return;
 	}
 
-	/* Checks if HexChat is already running */
+	/* Checks if ZoiteChat is already running */
 	dbus = g_dbus_proxy_new_sync (connection,
 								  G_DBUS_PROXY_FLAGS_NONE,
 								  NULL,
@@ -102,18 +102,18 @@ hexchat_remote (void)
 	if (!ret)
 	{
 		write_error (_("Failed to complete NameHasOwner"), &error);
-		hexchat_running = FALSE;
+		zoitechat_running = FALSE;
 	}
 	else
 	{
 		GVariant *child = g_variant_get_child_value (ret, 0);
-		hexchat_running = g_variant_get_boolean (child);
+		zoitechat_running = g_variant_get_boolean (child);
 		g_variant_unref (ret);
 		g_variant_unref (child);
 	}
 	g_object_unref (dbus);
 
-	if (!hexchat_running) {
+	if (!zoitechat_running) {
 		g_object_unref (connection);
 		return;
 	}
@@ -129,7 +129,7 @@ hexchat_remote (void)
 
 	if (!remote_object)
 	{
-		write_error("Failed to connect to HexChat", &error);
+		write_error("Failed to connect to ZoiteChat", &error);
 		g_object_unref (connection);
 		exit (0);
 	}
