@@ -223,6 +223,14 @@ static const struct defaultserver def[] =
 
 	{"MIXXnet",		0},
 	{0,			"irc.mixxnet.net"},
+	
+	{"Newnet", 0, 0, 0, LOGIN_SASL, 0, TRUE},
+	{0,			"irc.netnet.net"},
+    {0,			"australia-au.newnet.net"},
+    {0,			"beauharnois-ca.newnet.net"},
+    {0,			"vancouver-ca.newnet.net"},
+    {0,			"gravelines-fr.newnet.net"},
+    {0,			"sao-paulo.newnet.net"},
 
 	{"Oceanius", 0, 0, 0, LOGIN_SASL},
 	/* Self signed */
@@ -305,9 +313,6 @@ static const struct defaultserver def[] =
 	{"Techtronix",	0, 0, 0, LOGIN_SASL, 0, TRUE},
 	{0,			"irc.techtronix.net"},
 	
-	{"TechNet", 0, 0, 0, LOGIN_SASL, 0, TRUE},
-	{0,			"irc.technet.chat"},
-	
 	{"tilde.chat", 0, 0, 0, LOGIN_SASL, 0, TRUE},
 	{0,			"irc.tilde.chat"},
 
@@ -326,10 +331,15 @@ static const struct defaultserver def[] =
 #endif	
 
 	{"UnderNet", 0, 0, 0, LOGIN_CUSTOM, "MSG x@channels.undernet.org login %u %p"},
-	{0,			"irc.undernet.org"},
+	{0,			"us.undernet.org"},
 
 	{"Xertion", 0, 0, 0, LOGIN_SASL, 0, TRUE},
 	{0,			"irc.xertion.org"},
+
+	{"Zoite", 0, 0, 0, LOGIN_SASL, 0, TRUE},
+	{0,			"irc.zoite.net"},
+    {0,			"penumbra.newnet.net"},
+    {0,			"hedy.newnet.net"},
 
 	{0,0}
 };
