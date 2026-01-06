@@ -1,8 +1,8 @@
 {
-  "app-id": "io.github.Hexchat",
+  "app-id": "io.github.Zoitechat",
   "branch": "stable",
   "runtime": "org.gnome.Platform",
-  "runtime-version": "40",
+  "runtime-version": "49",
   "sdk": "org.gnome.Sdk",
   "command": "zoitechat",
   "finish-args": [
@@ -17,7 +17,7 @@
     "--talk-name=org.mpris.MediaPlayer2.*"
   ],
   "add-extensions": {
-    "io.github.Hexchat.Plugin": {
+    "io.github.Zoitechat.Plugin": {
       "version": "20.08",
       "directory": "extensions",
       "add-ld-path": "lib",
