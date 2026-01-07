@@ -225,7 +225,7 @@ static const struct defaultserver def[] =
 	{0,			"irc.mixxnet.net"},
 	
 	{"Newnet", 0, 0, 0, LOGIN_SASL, 0, TRUE},
-	{0,			"irc.netnet.net"},
+	{0,			"irc.newnet.net"},
     {0,			"australia-au.newnet.net"},
     {0,			"beauharnois-ca.newnet.net"},
     {0,			"vancouver-ca.newnet.net"},
