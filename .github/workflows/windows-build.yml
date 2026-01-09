@@ -1,4 +1,5 @@
 name: Windows Build
+
 on:
   push:
     branches:
@@ -22,7 +23,7 @@ jobs:
       fail-fast: false
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
       - name: Install Dependencies
         run: |
@@ -64,12 +65,12 @@ jobs:
           move ..\zoitechat-build .\
         shell: cmd
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v4
         with:
           name: Installer ${{ matrix.arch }}
           path: ZoiteChat*.exe
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v4
         with:
-          name: Build Files ${{ matrix.arch  }}
+          name: Build Files ${{ matrix.arch }}
           path: zoitechat-build
