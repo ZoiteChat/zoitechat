@@ -11,7 +11,7 @@ jobs:
   flatpak_build:
     runs-on: ubuntu-latest
     container:
-      image: bilelmoussaoui/flatpak-github-actions:gnome-49
+      image: bilelmoussaoui/flatpak-github-actions:gnome-46
       options: --privileged
     steps:
     - uses: actions/checkout@v2
