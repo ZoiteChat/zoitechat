@@ -1,0 +1,14 @@
+#!/usr/bin/make -f
+
+export DH_VERBOSE=1
+
+%:
+	dh $@ --buildsystem=meson
+
+override_dh_auto_configure:
+	dh_auto_configure -- \
+		-Dinstall-plugin-metainfo=false \
+		-Dwith-lua=lua53
+
+override_dh_installchangelogs:
+	dh_installchangelogs debian/changelog.txt

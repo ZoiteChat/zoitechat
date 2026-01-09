@@ -1,0 +1,126 @@
+Source: zoitechat
+Section: net
+Priority: optional
+Maintainer: ZoiteChat Maintainers <zoitechat@users.noreply.github.com>
+Build-Depends:
+ debhelper-compat (= 13),
+ gettext,
+ iso-codes,
+ libcanberra-dev,
+ libdbus-glib-1-dev,
+ libglib2.0-dev,
+ libgtk2.0-dev,
+ liblua5.3-dev,
+ libpci-dev,
+ libperl-dev,
+ libssl-dev,
+ meson,
+ python3-cffi,
+ python3-dev
+Standards-Version: 4.6.0
+Rules-Requires-Root: no
+Vcs-Git: https://github.com/zoitechat/zoitechat.git
+Vcs-Browser: https://github.com/zoitechat/zoitechat
+Homepage: https://zoitechat.github.io
+
+Package: zoitechat
+Architecture: any
+Depends:
+ zoitechat-common (= ${binary:Version}),
+ ${misc:Depends},
+ ${shlibs:Depends}
+Recommends:
+ ca-certificates,
+ zoitechat-lua,
+ zoitechat-perl,
+ zoitechat-plugins,
+ libglib2.0-bin
+Suggests:
+ zoitechat-python3,
+ zoitechat-otr,
+ unifont
+Description: IRC client for GNOME (fork of HexChat 2.17.0 base)
+ ZoiteChat is a graphical IRC client with a GTK+ GUI. Features include Python,
+ Perl and Lua scripting support, a plugin API, multiple server/channel
+ windows, spell checking, multiple authentication methods including SASL, and
+ customizable notifications. For more information on IRC, see
+ http://irchelp.org/.
+
+Package: zoitechat-common
+Architecture: all
+Multi-Arch: foreign
+Provides: irc-client
+Depends: ${misc:Depends}
+Recommends:
+ ca-certificates,
+ zoitechat-lua,
+ zoitechat-perl,
+ zoitechat-plugins,
+ libglib2.0-bin
+Suggests:
+ zoitechat,
+ zoitechat-python3,
+ zoitechat-otr,
+ unifont
+Description: Common data files for ZoiteChat
+ This package includes architecture-independent files for ZoiteChat, such as
+ translations, desktop integration, and shared data.
+
+Package: zoitechat-perl
+Architecture: any
+Multi-Arch: same
+Depends:
+ zoitechat (= ${binary:Version}),
+ ${misc:Depends},
+ ${shlibs:Depends}
+Description: Perl plugin for ZoiteChat
+ This package contains the Perl plugin for ZoiteChat. It is split out from the
+ main package because it is optional.
+
+Package: zoitechat-python3
+Architecture: any
+Multi-Arch: same
+Depends:
+ zoitechat (= ${binary:Version}),
+ python3-cffi-backend,
+ ${misc:Depends},
+ ${shlibs:Depends}
+Description: Python 3 plugin for ZoiteChat
+ This package contains the Python 3 plugin for ZoiteChat. It is split out from
+ the main package because it is optional.
+ .
+ Known issue: the Python plugin may freeze the client in some builds.
+
+Package: zoitechat-lua
+Architecture: any
+Multi-Arch: same
+Depends:
+ zoitechat (= ${binary:Version}),
+ ${misc:Depends},
+ ${shlibs:Depends}
+Description: Lua plugin for ZoiteChat
+ This package contains the Lua plugin for ZoiteChat. It is split out from the
+ main package because it is optional.
+
+Package: zoitechat-plugins
+Architecture: any
+Multi-Arch: same
+Depends:
+ zoitechat (= ${binary:Version}),
+ ${misc:Depends},
+ ${shlibs:Depends}
+Suggests: pciutils
+Description: Extra plugins for ZoiteChat
+ This package contains optional plugins (e.g. FiSHLiM, Sysinfo, Do At and
+ Checksum). These are split out from the main package because they are not
+ required for core functionality.
+
+Package: zoitechat-dev
+Architecture: any
+Multi-Arch: same
+Depends:
+ zoitechat-common (= ${binary:Version}),
+ ${misc:Depends}
+Description: Development files for ZoiteChat plugins
+ This package contains zoitechat-plugin.h and zoitechat-plugin.pc, which
+ facilitate building binary plugins for ZoiteChat.

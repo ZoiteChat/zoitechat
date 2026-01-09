@@ -1,0 +1,491 @@
+zoitechat (2.17.0-0) stable; urgency=medium
+
+  * Initial ZoiteChat packaging (forked from HexChat's Debian packaging).
+  * Rename packages/binaries to zoitechat.
+  * Move Python plugin package to Suggests (known to be unstable in Flatpak builds).
+
+ -- ZoiteChat Maintainers <zoitechat@users.noreply.github.com>  Wed, 07 Jan 2026 00:00:00 +0000
+
+hexchat (2.16.2-1) unstable; urgency=medium
+
+  * Update watch file for new github tarball location
+  * New upstream version 2.16.2
+  * Update copyright file
+  * Update copyright years also for Debian packaging
+  * Drop patch 0001-Be-even-more-picky-about-invalid-URLs.patch: upstream
+  * Add three patches from <pabs>:
+    - Add-channel-context-menu-item-to-close-the-channel,
+    - Automatically-reconnect-when-there-is-a-TLS-error,
+    - Do-not-insert-an-extra-space-on-all-lines-when-loading-scrollback-with-colours
+
+ -- Gianfranco Costamagna <locutusofborg@debian.org>  Sat, 09 Mar 2024 11:51:16 +0100
+
+hexchat (2.16.1-2) unstable; urgency=medium
+
+  [ Gianfranco Costamagna ]
+  * Team upload
+
+  [ Debian Janitor ]
+  * Drop versioned constraint on python3-dev.
+
+  [ Sudip Mukherjee ]
+  * Fix hexchat crash for specific links. (LP: #2029314)
+    + This is an upstream cherry-pick
+
+ -- Gianfranco Costamagna <locutusofborg@debian.org>  Wed, 06 Mar 2024 07:30:56 +0100
+
+hexchat (2.16.1-1) unstable; urgency=medium
+
+  * New upstream version 2.16.1.
+  * Drop all patches, applied upstream.
+
+ -- Mattia Rizzolo <mattia@debian.org>  Fri, 22 Apr 2022 21:52:27 +0200
+
+hexchat (2.16.0-4) unstable; urgency=medium
+
+  * d/copyright: bump copyright year
+  * Add some patches from upstream, while waiting for the new release:
+    + Fix build with OpenSSL 3.
+    + Improve the fishlim tests.
+    + Fix the URL opening to not double-encode already encoded URLs.
+
+ -- Mattia Rizzolo <mattia@debian.org>  Mon, 17 Jan 2022 13:26:58 +0100
+
+hexchat (2.16.0-3) unstable; urgency=medium
+
+  * Increase the tests timeout even more.
+
+ -- Mattia Rizzolo <mattia@debian.org>  Sun, 31 Oct 2021 17:45:43 +0100
+
+hexchat (2.16.0-2) unstable; urgency=medium
+
+  * Add patch to increase the tests timeout.
+  * Update our copy of the upstream changelog.
+  * Recommends:hexchat-lua from hexchat.  Closes: #996172
+    Thanks to Jesse Rhodes <jesse@sney.ca> for the patch!
+
+ -- Mattia Rizzolo <mattia@debian.org>  Fri, 15 Oct 2021 14:20:31 +0200
+
+hexchat (2.16.0-1) unstable; urgency=medium
+
+  [ Mattia Rizzolo ]
+  * New upstream version 2.16.0.
+    + Drop all patches applied upstream.
+    + Refresh the patches tweaking the default channels/networks.
+  * Refresh the upstream signing key.
+  * Update copyright.
+  * Drop our patch renaming the Python plugin into Python3.
+    There doesn't seem to be any transition needed.
+  * d/control:
+    + Drop Build-Depends on libnotify-dev and libproxy-dev,
+      not used anymore starting with v2.16.
+    + Have hexchat-python3 Depend on python3-cffi-backend;
+      seems like I missed this dependency since v2.14.3-4.
+    + Bump Standards-Version to 4.6.0, no changes needed.
+
+  [ Debian Janitor ]
+  * Remove constraints unnecessary since buster:
+    * Build-Depends: Drop versioned constraint on meson.
+
+ -- Mattia Rizzolo <mattia@debian.org>  Mon, 04 Oct 2021 17:12:52 +0200
+
+hexchat (2.14.3-6) unstable; urgency=medium
+
+  * Add Recommends:ca-certificates.
+  * Add patches from upstream to add Libera.Chat to the network list.
+  * Adapt default servers patches for the upstream changes.
+  * Ubuntu default server:  LP: #1933681
+    + Change from Freenode to Libera.Chat.
+    + Pre-select the "join channel" button, like we do in Debian.
+
+ -- Mattia Rizzolo <mattia@debian.org>  Wed, 26 May 2021 14:55:10 +0200
+
+hexchat (2.14.3-5) unstable; urgency=medium
+
+  * Bump copyright for 2021.
+  * Apply patch from upstream to fix font height calculation with Pango>=1.44.
+    LP: #1920974
+
+ -- Mattia Rizzolo <mattia@debian.org>  Sat, 02 Jan 2021 16:31:39 +0100
+
+hexchat (2.14.3-4) unstable; urgency=medium
+
+  [ Debian Janitor ]
+  * Set upstream metadata fields: Bug-Submit.
+
+  [ Mattia Rizzolo ]
+  * Bump Standards-Version to 4.5.1, no changes needed.
+  * Bump debhelper compat version to 13.
+    + Drop dh_missing override, now that --fail-missing is the default.
+  * Add a patch series from upstream to refactor the whole Python plugin,
+    using CFFI.  This fixes support for Python 3.9.  Closes: #975393
+    + Replace my naive patch to fix the build with Python 3.8, using instead
+      the fix that comes from upstream.
+    + Install the new files produced by cffi.
+    + Add new Build-Depends python3-cffi.
+
+ -- Mattia Rizzolo <mattia@debian.org>  Wed, 16 Dec 2020 22:03:57 +0100
+
+hexchat (2.14.3-3) unstable; urgency=medium
+
+  * Add patch to use the new -embed variant of python3.pc.
+    Fix linking with Python 3.8.  LP: #1866081
+  * Swap the Recommends:hwdata with Recommends:pci.ids.  Closes: #953300
+  * Bump Standards-Version to 4.5.0, no changes needed.
+
+ -- Mattia Rizzolo <mattia@debian.org>  Wed, 11 Mar 2020 17:08:25 +0100
+
+hexchat (2.14.3-2) unstable; urgency=medium
+
+  [ Gianfranco Costamagna ]
+  * Refresh the Ubuntu servlist patch.
+
+  [ Mattia Rizzolo ]
+  * Import patch from upstream (from James Clarke) to properly prioritize
+    MODE commands, that were delaying PINGs in some cases.
+
+  [ Debian Janitor ]
+  * Set upstream metadata fields: Bug-Database, Repository,
+    Repository-Browse.
+
+ -- Mattia Rizzolo <mattia@debian.org>  Thu, 02 Jan 2020 09:46:24 +0100
+
+hexchat (2.14.3-1) unstable; urgency=medium
+
+  * New upstream version 2.14.3.
+    + Drop patches applied upstream.
+  * d/control:
+    + Bump build-dependency on meson to >= 0.40.
+    + Bump Standards-Version to 4.4.1, no changes needed.
+  * Update the boundled upstream docs.
+
+ -- Mattia Rizzolo <mattia@debian.org>  Tue, 31 Dec 2019 15:24:45 +0100
+
+hexchat (2.14.2-5) unstable; urgency=medium
+
+  * Stop building the Python2 plugin.  Closes: #936697
+    Simplify the patch used to build py2 and py3; we need to keep it because
+    we used to rename the 'python' plugin to 'python3'.  We should check if
+    some kind of transition should be done to go back to the upstream
+    defaults.
+  * d/control:
+    + Drop a bunch of old Breaks/Replaces that shouldn't be needed anymore.
+    + Bump Standards-Version to 4.4.0, no changes needed.
+    + Bump debhelper compat level to 12, no changes needed.
+
+ -- Mattia Rizzolo <mattia@debian.org>  Sat, 31 Aug 2019 11:57:51 +0200
+
+hexchat (2.14.2-4) unstable; urgency=medium
+
+  * Add a patch to fix a probable crash while unloading the Python plugin
+    when using Python 3.7.  LP: #1830246; Closes: #921208
+
+ -- Mattia Rizzolo <mattia@debian.org>  Sat, 25 May 2019 11:48:26 +0200
+
+hexchat (2.14.2-3) unstable; urgency=medium
+
+  [ Ondřej Nový ]
+  * d/copyright: Change Format URL to correct one.
+
+  [ Mattia Rizzolo ]
+  * Move the patches tweaking the default servers out of d/patches, and inject
+    them through d/rules.  The ctte decided that vendored series files are not
+    allowed in the Debian archive, see #904302.  Closes: #915350
+
+ -- Mattia Rizzolo <mattia@debian.org>  Mon, 03 Dec 2018 14:17:35 +0100
+
+hexchat (2.14.2-2) unstable; urgency=medium
+
+  * Add patch to fix FTBFS on !linux.
+  * d/control: Use the new debhelper-compat(=11) build-dep and drop d/compat.
+
+ -- Mattia Rizzolo <mattia@debian.org>  Sun, 23 Sep 2018 20:38:39 +0200
+
+hexchat (2.14.2-1) unstable; urgency=medium
+
+  * New upstream version 2.14.2.
+  * d/patches:
+    + Drop patches applied upstream.
+    + Refresh remaining patches.
+  * d/control: Bump Standards-Version to 4.2.1, no changes needed.
+
+ -- Mattia Rizzolo <mattia@debian.org>  Sat, 01 Sep 2018 22:28:20 +0200
+
+hexchat (2.14.1-2) unstable; urgency=medium
+
+  * Add some patches from upstream:
+    + upstream/0003-Remove-shift-click-to-close-tab-binding.patch
+      - LP: #1756402
+    + upstream/0004-build-Add-metainfo-files-for-addons.patch
+    + upstream/0005-build-Fix-id-in-plugin-metainfo-files.patch
+    + upstream/0006-build-Correctly-set-plugin-licenses.patch
+    + upstream/0007-build-Re-add-support-for-the-legacy-perl-api.patch
+    + upstream/0008-Deiconify-window-on-tray-click.-Closes-2136.patch
+  * Fixup our py2+py3 patch after the above patches have been applied.
+  * Install the new metainfo files representing the various plugins.
+
+ -- Mattia Rizzolo <mattia@debian.org>  Tue, 20 Mar 2018 16:10:27 +0100
+
+hexchat (2.14.1-1) unstable; urgency=medium
+
+  * New upstream version 2.14.1.
+  * Drop all patches applied upstream.
+
+ -- Mattia Rizzolo <mattia@debian.org>  Wed, 14 Mar 2018 03:35:41 +0100
+
+hexchat (2.14.0-1) unstable; urgency=medium
+
+  * New upstream version 2.14.0.  Closes: #892085
+  * Refresh patches:
+    + drop 4c178782a779f013fafab476506f7d4dae372b8a.patch, applied upstream.
+    + Rewrite the local patch used to build for both python2 and python3 after
+      the change of build system upstream.
+    + Add all the commits from upstream after the release:
+      - 0003-build-Remove-pie-from-global-ldflags.patch
+      - 0004-Fix-fscanf-usage-without-size-limit.patch
+      - 0005-fix-typo-in-comment.patch
+      - 0006-Revert-xtext-Always-use-Pango-to-get-correct-glyph-w.patch
+  * d/control:
+    + Update build dependencies for the new upstream:
+      - New build-deps: gettext, iso-codes, liblua5.3-dev, meson (>= 0.38).
+      - Drop build-deps: dh-lua, intltool, libtool.
+      - Drop version restriction from libgtk2.0-dev (>= 2.10.0).
+    + Set Rules-Requires-Root:no.
+  * d/changelog.txt: Update from upstream.
+  * d/hexchat.install: Slightly update the paths.
+  * d/rules:
+    + Drop override_dh_install not needed anymore with meson.
+    + Explicitly build with lua 5.3.  The new build system defaults on luajit
+      only now.
+  * d/copyright: Update.
+
+ -- Mattia Rizzolo <mattia@debian.org>  Wed, 14 Mar 2018 02:36:37 +0100
+
+hexchat (2.12.4-6) unstable; urgency=medium
+
+  * d/control:
+    + Move packaging to salsa.debian.org.
+    + Replace recomendency on gvfs-bin to libglib2.0-bin.  Closes: #877746
+    + Bump Standards-Version to 4.1.3, no changes needed.
+  * d/copyright: Bump copyright years for debian/*.
+  * d/rules: Replace dh_install --fail-missing by dh_missing.
+  * d/watch: Use HTTPS.
+  * Bump debhelper compat level to 11.
+
+ -- Mattia Rizzolo <mattia@debian.org>  Sat, 24 Feb 2018 18:26:41 +0100
+
+hexchat (2.12.4-5) unstable; urgency=medium
+
+  * Add a short description to the previous changelog entry on how to manually
+    preserve the scrollback that would otherwise get lost.
+  * Remove the patch also for Ubuntu (fixing FTBFS there).
+  * d/control:
+    + Add a bunch of Multi-Arch:same notation, suggested by the M-A hinter.
+    + Remove the transitional package hexchat-python.
+
+ -- Mattia Rizzolo <mattia@debian.org>  Sat, 15 Jul 2017 18:34:27 +0200
+
+hexchat (2.12.4-4) unstable; urgency=medium
+
+  * Stop reverting upstream commit 15600f405f2d5bda6ccf0dd73957395716e0d4d3.
+    This means users will lose their scrollback right after updating, but
+    that's what upstream did and we have no real reasons to undefinitely
+    diverge from them just to wait for a nicer fix.
+    Closes: #852275; CVE-2016-2087
+    For users who care about their scrollback, it's enough to manually rename
+    the directories in ~/.config/hexchat/scrollback to all-lowercase characters
+    before restarting hexchat after the update.
+  * d/control: Bump Standards-Version to 4.0.0, no changes needed
+  * d/copyright: bump my copyright year for debian/ to cover 2017
+
+ -- Mattia Rizzolo <mattia@debian.org>  Fri, 14 Jul 2017 16:12:32 +0200
+
+hexchat (2.12.4-3) unstable; urgency=medium
+
+  * Demote hexchat-otr from Recommends to Suggests.
+    It reportely causes noise and problems for unexperienced users, and it's
+    a mostly unmaintained plugin, so don't install it by default.
+
+ -- Mattia Rizzolo <mattia@debian.org>  Tue, 30 May 2017 21:50:09 +0200
+
+hexchat (2.12.4-2) unstable; urgency=medium
+
+  * Also apply patch 4c178782a779f013fafab476506f7d4dae372b8a.patch on ubuntu.
+  * d/p/0001-Debian-server-defaults.patch: Add missing braces around the `if`.
+    Thanks to Lauri Alanko <la@iki.fi> for the patch.  Closes: #779892
+
+ -- Mattia Rizzolo <mattia@debian.org>  Thu, 26 Jan 2017 09:54:41 +0100
+
+hexchat (2.12.4-1) unstable; urgency=medium
+
+  * New upstream version 2.12.4.
+  * d/copyright: update (removal of the doat plugin).
+  * d/watch: improve:
+    + Bump version to 4.
+    + Use substitution strings @ANY_VERSION@ and @ARCHIVE_EXT@.
+    + Ignore version 2.12.4-repack by mangling it into 2.12.4.
+  * d/control: mark hexchat-dev and hexchat-lua as Multi-Arch:same.
+  * d/patches/:
+    + openssl/*: drop, applied upstream.
+    + clean.patch: drop, applied upstream.
+    + 4c178782a779f013fafab476506f7d4dae372b8a.patch: include from upstream to
+      work around a gdk-pixbuf bug which would prevent the hexchat icon from
+      being displayed in panels/systrays.  Closes: #848615
+  * d/rules: add a 'udoc' target to update the bundled copy of upstream doc.
+  * Update upstream documentation.
+  * d/hexchat-plugins.install: upstream converted the 'doat' plugin into an
+    internal command, so stop trying to install the plugin.
+
+ -- Mattia Rizzolo <mattia@debian.org>  Mon, 26 Dec 2016 01:16:19 +0100
+
+hexchat (2.12.3-4) unstable; urgency=medium
+
+  * Re-enable Lua support everywhere now that #845929 is fixed.
+
+ -- Mattia Rizzolo <mattia@debian.org>  Mon, 19 Dec 2016 12:47:31 +0100
+
+hexchat (2.12.3-3) unstable; urgency=medium
+
+  * Actually disable Lua support when building.
+
+ -- Mattia Rizzolo <mattia@debian.org>  Mon, 05 Dec 2016 16:03:26 +0100
+
+hexchat (2.12.3-2) unstable; urgency=medium
+
+  * Temporary restrict the build of hexchat-lua to the architectures where lua
+    is usable right now (see #845929).
+
+ -- Mattia Rizzolo <mattia@debian.org>  Mon, 05 Dec 2016 14:02:40 +0100
+
+hexchat (2.12.3-1) unstable; urgency=medium
+
+  [ Jesse Rhodes ]
+  * Add hexchat-dev package for .pc and .h files.
+  * Include dbus service file in hexchat-common.
+
+  [ Mattia Rizzolo ]
+  * Take over maintenance from Jasse Rhodes.
+    Thank you for all your work these years!  Closes: #844574
+  * debian/control:
+    + wrap-and-sort -ast.
+    + Bump Standards-Version to 3.9.8, no changes needed.
+    + Add proper Breaks/Replaces for the hexchat-dev addition-
+    + Have hexchat-plugins recommend hwdata for the sysinfo plugin.
+      Closes: #845940
+    + Have hexchat recommend the hexchat-otr plugin.
+      Thanks to Petter Reinholdtsen <pere@hungry.com> for the suggestion
+    + Bump the Breaks/Replaces of hexchat-plugins against hexchat;
+      hexchat-plugin.pc has been moved from hexchat to hexchat-plugins
+      in 2.12.0-1.  LP: #1586239
+    + Set appropriate Breaks/Replaces to cope with the Ubuntu delta and
+      make the package syncable.
+    + Mark hexchat-common as Multi-Arch:foreign (from the m-a hinter).
+  * debian/rules:
+    + Remove huge override_dh_auto_clean: if anything of that is needed,
+      it should be done on the upstream side.
+    + Remove *.la files before running dh_install.
+    + Use dh_install --fail-missing.
+  * Package the Lua plugin.  Closes: #834491
+  * Update upstream changelog for 2.13.2.
+  * Use dh_installchangelogs to install the upstream changelog, instead of
+    manually compressing in rules and the install with d/*.docs.
+  * Let the upstream build system put the manpage in place, instead of copying
+    it of our own.
+  * Add patch to properly clean the upstream sources and make possible to build
+    the package twice in a row.
+  * Bump debhelper compat level to 10.
+    + --with autoreconf is now default.
+  * debian/copyright:
+    + Make it DEP-5 compliant.
+    + Update.
+  * Drop nearly all lintian overrides; they are either fixed or unused.
+
+ -- Mattia Rizzolo <mattia@debian.org>  Thu, 01 Dec 2016 18:30:03 +0100
+
+hexchat (2.12.3-0.1) unstable; urgency=medium
+
+  * Non-maintainer upload, with maintainer ACK.
+
+  [ Jesse Rhodes ]
+  * Fixed vcs-git url.
+
+  [ Mattia Rizzolo ]
+  * Imported Upstream version 2.12.3.  Closes: #836809
+  * Refresh patches
+  * d/rules: disable LUA bindings, as they would require a new binary package.
+  * Add several patches from upstream to add support to OpenSSL 1.1.0.
+    Closes: #828339
+  * Revert upstream commit 15600f405f2d5bda6ccf0dd73957395716e0d4d3, which
+    would cause users to lose their scrollback.
+
+ -- Mattia Rizzolo <mattia@debian.org>  Sun, 27 Nov 2016 13:41:25 +0100
+
+hexchat (2.12.0-2) unstable; urgency=medium
+
+  * Removed patch correcting for missing translations,
+    as translations are no longer missing
+  * Removed patch correcting spelling error that would break
+    some scripts and themes
+  * Updated ubuntu server/channel defaults
+
+ -- Jesse Rhodes <drubo@drubo.net>  Wed, 30 Mar 2016 11:44:04 -0600
+
+hexchat (2.12.0-1) unstable; urgency=medium
+
+  * New upstream release
+  * Iceweasel no longer called Firefox in url dialog
+  * Building both python2 and python3 plugins
+  * Including hexchat-plugin.pc (Closes: 801767)
+
+ -- Jesse Rhodes <drubo@drubo.net>  Fri, 25 Mar 2016 10:54:57 -0600
+
+hexchat (2.10.2-1) unstable; urgency=medium
+
+  * New upstream release
+  * Includes upstream fixes for POODLE vulnerability
+    (CVE-2014-3566)
+  * Split plugins into modular packages rather than having all
+    binaries in the main hexchat package
+
+ -- Jesse Rhodes <drubo@drubo.net>  Fri, 28 Nov 2014 18:35:39 -0700
+
+hexchat (2.10.1-2) unstable; urgency=medium
+
+  * Fix ubuntu_defaults.patch (LP: #1390851)
+  * Disable SSLv3
+
+ -- Jesse Rhodes <drubo@drubo.net>  Sun, 16 Nov 2014 11:47:12 -0700
+
+hexchat (2.10.1-1) unstable; urgency=medium
+
+  * New upstream release
+  * No longer build-depend on libsexy-dev
+  * URL handler dialog now labeled Iceweasel rather than Firefox
+
+ -- Jesse Rhodes <drubo@drubo.net>  Mon, 18 Aug 2014 21:18:55 -0600
+
+hexchat (2.10.0-1) unstable; urgency=medium
+
+  * New upstream release
+  * Removed patches for issues fixed by upstream
+  * Added default servers and recommended channels for debian
+    and ubuntu (LP: #1294415)
+  * Upstream commit fa955a0f fixes xdcc segfault (Closes: #745764)
+
+ -- Jesse Rhodes <drubo@drubo.net>  Sun, 01 Jun 2014 16:45:22 -0600
+
+hexchat (2.9.6.1-2) unstable; urgency=low
+
+  * Now using dh-autoreconf instead of autotools-dev (Closes: #739630)
+  * Added gvfs-bin as Recommends so default url handlers work
+    (Closes: #740006)
+  * Added unifont as Suggests for unicode symbol support
+  * Included png,svg icons in package
+
+ -- Jesse Rhodes <drubo@drubo.net>  Tue, 25 Feb 2014 16:45:42 -0700
+
+hexchat (2.9.6.1-1) unstable; urgency=low
+
+  * Initial release (Closes: #702075)
+
+ -- Jesse Rhodes <drubo@drubo.net>  Mon, 03 Feb 2014 19:09:17 -0700

@@ -1,0 +1,40 @@
+Description: Changed default network to OFTC,
+ suggests to join #debian on OFTC and Freenode
+
+diff --git a/src/common/servlist.c b/src/common/servlist.c
+index a203e702..22fcd92b 100644
+--- a/src/common/servlist.c
++++ b/src/common/servlist.c
+@@ -902,7 +902,7 @@ servlist_load_defaults (void)
+ {
+ 	int i = 0, j = 0;
+ 	ircnet *net = NULL;
+-	guint def_hash = g_str_hash ("Libera.Chat");
++	guint def_hash = g_str_hash ("OFTC");
+ 
+ 	while (1)
+ 	{
+diff --git a/src/fe-gtk/joind.c b/src/fe-gtk/joind.c
+index ce3cbcae..7f6b1116 100644
+--- a/src/fe-gtk/joind.c
++++ b/src/fe-gtk/joind.c
+@@ -247,10 +247,18 @@ joind_show_dialog (server *serv)
+ 							G_CALLBACK (joind_ok_cb), serv);
+ 							
+ 	if (serv->network)
++	{
++		if (g_ascii_strcasecmp(((ircnet*)serv->network)->name, "OFTC") == 0)
++		{
++			gtk_entry_set_text (GTK_ENTRY (entry1), "#debian");
++			gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON(radiobutton2), TRUE);
++		}
+ 		if (g_ascii_strcasecmp(((ircnet*)serv->network)->name, "Libera.Chat") == 0)
+ 		{
+-			gtk_entry_set_text (GTK_ENTRY (entry1), "#hexchat");
++			gtk_entry_set_text (GTK_ENTRY (entry1), "#debian");
++			gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON(radiobutton2), TRUE);
+ 		}
++	}
+ 
+ 	gtk_widget_grab_focus (okbutton1);
+ 	gtk_widget_show_all (dialog1);

@@ -1,0 +1,6 @@
+# intentional typo as example for autoreplace function
+zoitechat: spelling-error-in-binary usr/bin/zoitechat teh the
+# upstream will not correct misspelled variable names
+zoitechat: spelling-error-in-binary usr/bin/zoitechat hilight highlight
+# fixing this spelling error would break scripting/theming
+zoitechat: spelling-error-in-binary usr/bin/zoitechat Conection Connection

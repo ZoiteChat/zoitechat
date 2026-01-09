@@ -1,0 +1,43 @@
+Description: Changed default channel to join from #hexchat to #ubuntu
+ Also adds a "Ubuntu servers" entry, same as connecting to libera.chat.
+
+diff --git a/src/common/servlist.c b/src/common/servlist.c
+index a203e702..18a6c4b3 100644
+--- a/src/common/servlist.c
++++ b/src/common/servlist.c
+@@ -206,6 +206,9 @@ static const struct defaultserver def[] =
+ 	{"Libera.Chat", 0, 0, 0, LOGIN_SASL, 0, TRUE},
+ 	{0,			"irc.libera.chat"},
+ 	
++	{"Ubuntu Servers (Libera.Chat)", 0, 0, 0, LOGIN_SASL, 0, TRUE},
++	{0,			"irc.libera.chat"},
++
+ #ifdef USE_OPENSSL
+ 	{"LibertaCasa", 0, 0, 0, LOGIN_SASL, 0, TRUE},
+ 	{0,			"irc.liberta.casa"},
+@@ -902,7 +905,7 @@ servlist_load_defaults (void)
+ {
+ 	int i = 0, j = 0;
+ 	ircnet *net = NULL;
+-	guint def_hash = g_str_hash ("Libera.Chat");
++	guint def_hash = g_str_hash ("Ubuntu Servers (Libera.Chat)");
+ 
+ 	while (1)
+ 	{
+diff --git a/src/fe-gtk/joind.c b/src/fe-gtk/joind.c
+index ce3cbcae..e94e562a 100644
+--- a/src/fe-gtk/joind.c
++++ b/src/fe-gtk/joind.c
+@@ -247,9 +247,10 @@ joind_show_dialog (server *serv)
+ 							G_CALLBACK (joind_ok_cb), serv);
+ 							
+ 	if (serv->network)
+-		if (g_ascii_strcasecmp(((ircnet*)serv->network)->name, "Libera.Chat") == 0)
++		if (g_ascii_strcasecmp(((ircnet*)serv->network)->name, "Ubuntu Servers (Libera.Chat)") == 0)
+ 		{
+-			gtk_entry_set_text (GTK_ENTRY (entry1), "#hexchat");
++			gtk_entry_set_text (GTK_ENTRY (entry1), "#ubuntu");
++			gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON(radiobutton2), TRUE);
+ 		}
+ 
+ 	gtk_widget_grab_focus (okbutton1);
