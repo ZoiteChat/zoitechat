@@ -1,23 +1,14 @@
 #!/usr/bin/make -f
 
 export DH_VERBOSE=1
-git_checkout = $(shell if [ -d .git ]; then echo true ; else echo false ; fi)
-
 
 %:
 	dh $@ --buildsystem=meson
 
-override_dh_auto_configure: patch
-	dh_auto_configure -- -Dinstall-plugin-metainfo=true -Dwith-lua=lua53
+override_dh_auto_configure:
+	dh_auto_configure -- \
+		-Dinstall-plugin-metainfo=false \
+		-Dwith-lua=lua53
 
 override_dh_installchangelogs:
 	dh_installchangelogs debian/changelog.txt
-
-
-udoc:
-ifeq ($(git_checkout),true)
-	wget https://github.com/Zoitechat/documentation/raw/master/changelog.rst -O debian/changelog.txt
-	wget https://github.com/Zoitechat/documentation/raw/master/plugins.rst -O debian/plugins.txt
-else
-	$(error you are running this outside of a git checkout; this is not what the maintainer expects)
-endif
