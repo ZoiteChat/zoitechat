@@ -33,6 +33,7 @@
 #include "fe-gtk.h"
 #include "gtkutil.h"
 #include "maingui.h"
+#include "chanview.h"
 #include "palette.h"
 #include "pixmaps.h"
 #include "menu.h"
@@ -339,6 +340,17 @@ static const setting color_settings[] =
 	{ST_TOGGLE, N_("Topic"), P_OFFINTNL(hex_text_stripcolor_topic), 0, 0, 0},
 
 	{ST_END, 0, 0, 0, 0, 0}
+};
+
+static const setting dark_mode_setting =
+{
+	ST_TOGGLE,
+	N_("Enable dark mode for chat views"),
+	P_OFFINTNL(hex_gui_dark_mode),
+	N_("Makes the chat buffer, channel list, and user list use a dark background/foreground.\n"
+	   "This only changes the stock background/foreground colors. If you've customized them, your palette wins."),
+	0,
+	0
 };
 
 static const char *const dccaccept[] =
@@ -1570,6 +1582,7 @@ setup_create_color_page (void)
 	setup_create_other_colorR (_("Away user:"), COL_AWAY, 10, tab);
 	setup_create_other_color (_("Highlight:"), COL_HILIGHT, 11, tab);
 	setup_create_other_colorR (_("Spell checker:"), COL_SPELL, 11, tab);
+	setup_create_toggleL (tab, 13, &dark_mode_setting);
 
 	setup_create_header (tab, 15, N_("Color Stripping"));
 
@@ -2048,9 +2061,24 @@ static void
 setup_apply_to_sess (session_gui *gui)
 {
 	mg_update_xtext (gui->xtext);
+	chanview_apply_theme ((chanview *) gui->chanview);
 
 	if (prefs.hex_gui_ulist_style)
 		gtk_widget_set_style (gui->user_tree, input_style);
+
+	if (prefs.hex_gui_ulist_style || prefs.hex_gui_dark_mode)
+	{
+		gtk_widget_modify_base (gui->user_tree, GTK_STATE_NORMAL, &colors[COL_BG]);
+		if (prefs.hex_gui_dark_mode)
+			gtk_widget_modify_text (gui->user_tree, GTK_STATE_NORMAL, &colors[COL_FG]);
+		else
+			gtk_widget_modify_text (gui->user_tree, GTK_STATE_NORMAL, NULL);
+	}
+	else
+	{
+		gtk_widget_modify_base (gui->user_tree, GTK_STATE_NORMAL, NULL);
+		gtk_widget_modify_text (gui->user_tree, GTK_STATE_NORMAL, NULL);
+	}
 
 	if (prefs.hex_gui_input_style)
 	{
@@ -2168,6 +2196,7 @@ setup_apply (struct zoitechatprefs *pr)
 	int do_ulist = FALSE;
 	int do_layout = FALSE;
 	int do_identd = FALSE;
+	int old_dark_mode = prefs.hex_gui_dark_mode;
 
 	if (strcmp (pr->hex_text_background, prefs.hex_text_background) != 0)
 		new_pix = TRUE;
@@ -2237,6 +2266,20 @@ setup_apply (struct zoitechatprefs *pr)
 	}
 
 	memcpy (&prefs, pr, sizeof (prefs));
+
+	/*
+	 * "Dark mode" is mostly about the chat views. Be conservative: only adjust
+	 * the stock Foreground/Background colors so user palettes keep winning.
+	 *
+	 * IMPORTANT: don't short-circuit this call.
+	 * We MUST run palette_apply_dark_mode() when the toggle changes, otherwise
+	 * the preference flips but the palette stays the same (aka: "nothing happens").
+	 */
+	{
+		gboolean pal_changed = palette_apply_dark_mode (prefs.hex_gui_dark_mode);
+		if (prefs.hex_gui_dark_mode != old_dark_mode || pal_changed)
+			color_change = TRUE;
+	}
 
 #ifdef WIN32
 	/* merge hex_font_main and hex_font_alternative into hex_font_normal */

@@ -182,6 +182,7 @@ cv_tree_init (chanview *cv)
 
 	((treeview *)cv)->tree = GTK_TREE_VIEW (view);
 	((treeview *)cv)->scrollw = win;
+	chanview_apply_theme (cv);
 	gtk_widget_show (view);
 }
 

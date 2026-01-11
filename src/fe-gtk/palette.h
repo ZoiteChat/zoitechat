@@ -38,4 +38,15 @@ void palette_alloc (GtkWidget * widget);
 void palette_load (void);
 void palette_save (void);
 
+/*
+ * Apply ZoiteChat's built-in "dark mode" background/foreground overrides.
+ *
+ * This is intentionally conservative: it only adjusts the palette if the
+ * colors are still at ZoiteChat's stock defaults, so user-customized palettes
+ * continue to take precedence.
+ *
+ * Returns TRUE if any palette entries were changed.
+ */
+gboolean palette_apply_dark_mode (gboolean enable);
+
 #endif

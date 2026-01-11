@@ -317,6 +317,7 @@ void
 fe_init (void)
 {
 	palette_load ();
+	palette_apply_dark_mode (prefs.hex_gui_dark_mode);
 	key_init ();
 	pixmaps_init ();
 

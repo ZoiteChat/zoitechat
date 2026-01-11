@@ -28,6 +28,7 @@
 #include "maingui.h"
 #include "gtkutil.h"
 #include "chanview.h"
+#include "palette.h"
 
 /* treeStore columns */
 #define COL_NAME 0		/* (char *) */
@@ -102,6 +103,37 @@ static int cv_find_number_of_chan (chanview *cv, chan *find_ch);
 
 
 /* ==== ABSTRACT CHANVIEW ==== */
+
+void
+chanview_apply_theme (chanview *cv)
+{
+	GtkWidget *w;
+	treeview *tv;
+
+	if (cv == NULL)
+		return;
+
+	/* Only the tree implementation has a GtkTreeView we can explicitly style. */
+	if (cv->func_init != cv_tree_init)
+		return;
+
+	tv = (treeview *) cv;
+	if (tv->tree == NULL)
+		return;
+
+	w = GTK_WIDGET (tv->tree);
+	if (prefs.hex_gui_dark_mode)
+	{
+		gtk_widget_modify_base (w, GTK_STATE_NORMAL, &colors[COL_BG]);
+		gtk_widget_modify_text (w, GTK_STATE_NORMAL, &colors[COL_FG]);
+	}
+	else
+	{
+		/* Revert back to theme defaults. */
+		gtk_widget_modify_base (w, GTK_STATE_NORMAL, NULL);
+		gtk_widget_modify_text (w, GTK_STATE_NORMAL, NULL);
+	}
+}
 
 static char *
 truncate_tab_name (char *name, int max)

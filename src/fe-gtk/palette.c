@@ -169,3 +169,86 @@ palette_save (void)
 		close (fh);
 	}
 }
+
+static gboolean
+palette_color_eq (const GdkColor *a, const GdkColor *b)
+{
+	return a->red == b->red && a->green == b->green && a->blue == b->blue;
+}
+
+gboolean
+palette_apply_dark_mode (gboolean enable)
+{
+	/*
+	 * Stock ZoiteChat defaults from this file (keep them in sync with the
+	 * colors[] initializer above):
+	 *   - Foreground: 0x2512/0x29e8/0x2b85
+	 *   - Background: 0xfae0/0xfae0/0xf8c4
+	 */
+	static const GdkColor light_fg = {0, 0x2512, 0x29e8, 0x2b85};
+	static const GdkColor light_bg = {0, 0xfae0, 0xfae0, 0xf8c4};
+
+	/* Common legacy "defaults" seen in the wild (pure black/white). */
+	static const GdkColor legacy_light_fg = {0, 0x0000, 0x0000, 0x0000};
+	static const GdkColor legacy_light_bg = {0, 0xffff, 0xffff, 0xffff};
+
+	/* A readable "dark" preset (roughly #D4D4D4 on #1E1E1E). */
+	static const GdkColor dark_fg = {0, 0xd4d4, 0xd4d4, 0xd4d4};
+	static const GdkColor dark_bg = {0, 0x1e1e, 0x1e1e, 0x1e1e};
+
+	gboolean changed = FALSE;
+
+	if (enable)
+	{
+		if (palette_color_eq (&colors[COL_FG], &light_fg) ||
+			 palette_color_eq (&colors[COL_FG], &legacy_light_fg))
+		{
+			colors[COL_FG].red = dark_fg.red;
+			colors[COL_FG].green = dark_fg.green;
+			colors[COL_FG].blue = dark_fg.blue;
+			changed = TRUE;
+		}
+		if (palette_color_eq (&colors[COL_BG], &light_bg) ||
+			 palette_color_eq (&colors[COL_BG], &legacy_light_bg))
+		{
+			colors[COL_BG].red = dark_bg.red;
+			colors[COL_BG].green = dark_bg.green;
+			colors[COL_BG].blue = dark_bg.blue;
+			changed = TRUE;
+		}
+	}
+	else
+	{
+		if (palette_color_eq (&colors[COL_FG], &dark_fg))
+		{
+			/*
+			 * Revert to a predictable light default. Most users who hit this toggle
+			 * are coming from black-on-white palettes.
+			 */
+			colors[COL_FG].red = legacy_light_fg.red;
+			colors[COL_FG].green = legacy_light_fg.green;
+			colors[COL_FG].blue = legacy_light_fg.blue;
+			changed = TRUE;
+		}
+		if (palette_color_eq (&colors[COL_BG], &dark_bg))
+		{
+			colors[COL_BG].red = legacy_light_bg.red;
+			colors[COL_BG].green = legacy_light_bg.green;
+			colors[COL_BG].blue = legacy_light_bg.blue;
+			changed = TRUE;
+		}
+	}
+
+	/* Ensure the new colors have pixels allocated in the current colormap. */
+	if (changed)
+	{
+		GdkColormap *cmap = gdk_colormap_get_system ();
+		if (cmap)
+		{
+			gdk_colormap_alloc_color (cmap, &colors[COL_FG], TRUE, TRUE);
+			gdk_colormap_alloc_color (cmap, &colors[COL_BG], TRUE, TRUE);
+		}
+	}
+
+	return changed;
+}

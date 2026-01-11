@@ -131,6 +131,7 @@ struct zoitechatprefs
 	unsigned int hex_gui_tab_dialogs;
 	unsigned int hex_gui_tab_dots;
 	unsigned int hex_gui_tab_icons;
+	unsigned int hex_gui_dark_mode;
 	unsigned int hex_gui_tab_scrollchans;
 	unsigned int hex_gui_tab_server;
 	unsigned int hex_gui_tab_sort;

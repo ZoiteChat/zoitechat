@@ -48,6 +48,13 @@ gboolean chan_remove (chan *ch, gboolean force);
 gboolean chan_is_collapsed (chan *ch);
 chan * chan_get_parent (chan *ch);
 
+/*
+ * Apply ZoiteChat's optional "dark mode" styling to the channel list.
+ *
+ * This is a no-op for implementations that don't have a tree view.
+ */
+void chanview_apply_theme (chanview *cv);
+
 #define FOCUS_NEW_ALL 1
 #define FOCUS_NEW_ONLY_ASKED 2
 #define FOCUS_NEW_NONE 0
