@@ -13,6 +13,14 @@ jobs:
       image: debian:bookworm
 
     steps:
+      - name: Install git (required for checkout + submodules)
+        run: |
+          set -eux
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            ca-certificates git openssh-client
+
       - uses: actions/checkout@v4
         with:
           submodules: true
@@ -24,19 +32,16 @@ jobs:
           export DEBIAN_FRONTEND=noninteractive
           apt-get update
           apt-get install -y --no-install-recommends \
-            ca-certificates git \
             devscripts equivs fakeroot dpkg-dev
 
       - name: Install Build-Depends from debian/control
         run: |
           set -eux
-          # Creates & installs a dummy package that pulls in Build-Depends
           mk-build-deps -i -r -t "apt-get -y --no-install-recommends" debian/control
 
       - name: Build .deb packages (no signing)
         run: |
           set -eux
-          # Many Debian builds hate running as root. CI loves running as root. Compromise.
           useradd -m builder
           chown -R builder:builder "$GITHUB_WORKSPACE"
           su - builder -s /bin/bash -c "cd '$GITHUB_WORKSPACE' && dpkg-buildpackage -us -uc -b"
