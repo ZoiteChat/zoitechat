@@ -1,4 +1,4 @@
-name: Debian Packages
+name: Debian Build
 
 on:
   push:
@@ -7,71 +7,54 @@ on:
     branches: [master]
 
 jobs:
-  debian_packages:
+  debian_build:
     runs-on: ubuntu-24.04
     container:
       image: debian:bookworm
 
     steps:
-      - name: Install git (required for checkout + submodules)
+      - name: Install base tooling (git + deps)
         run: |
           set -eux
           export DEBIAN_FRONTEND=noninteractive
           apt-get update
           apt-get install -y --no-install-recommends \
-            ca-certificates git openssh-client
-
+                git ca-certificates \
+                build-essential pkg-config meson ninja-build cmake \
+                gettext \
+                libcanberra-dev libdbus-glib-1-dev libglib2.0-dev libgtk2.0-dev \
+                libluajit-5.1-dev libpci-dev libperl-dev libssl-dev \
+                python3-dev python3-cffi mono-devel desktop-file-utils
       - uses: actions/checkout@v4
         with:
           submodules: true
-          fetch-depth: 0
 
-      - name: Install Debian packaging tooling
+      - name: Configure
         run: |
           set -eux
-          export DEBIAN_FRONTEND=noninteractive
-          apt-get update
-          apt-get install -y --no-install-recommends \
-            devscripts equivs fakeroot dpkg-dev
-
-      - name: Enable deb-src + install HexChat build-deps
+          rm -rf build
+          meson setup build \
+            -Dtext-frontend=true \
+            -Dtheme-manager=true \
+            -Dauto_features=enabled
+        # If configure fails, show the project's actual option names in the log.
+      - name: Show Meson options (on failure)
+        if: failure()
         run: |
           set -eux
-          export DEBIAN_FRONTEND=noninteractive
+          meson configure build || true
 
-          # Enable source repositories (needed for `apt-get build-dep`)
-          cat >/etc/apt/sources.list.d/deb-src.list <<'EOF'
-          deb-src http://deb.debian.org/debian bookworm main
-          deb-src http://deb.debian.org/debian bookworm-updates main
-          deb-src http://deb.debian.org/debian-security bookworm-security main
-          EOF
-
-          apt-get update
-
-          # Pull HexChat's build dependencies from Debian packaging
-          apt-get build-dep -y --no-install-recommends hexchat
-
-      - name: Install Build-Depends from this repo's debian/control
+      - name: Build
         run: |
           set -eux
-          mk-build-deps -i -r -t "apt-get -y --no-install-recommends" debian/control
+          ninja -C build
 
-      - name: Build .deb packages (no signing)
+      - name: Test
         run: |
           set -eux
-          useradd -m builder
-          chown -R builder:builder "$GITHUB_WORKSPACE"
-          su - builder -s /bin/bash -c "cd '$GITHUB_WORKSPACE' && dpkg-buildpackage -us -uc -b"
+          ninja -C build test
 
-      - name: List built artifacts
+      - name: Install
         run: |
           set -eux
-          ls -lah ..
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: debian-packages
-          path: |
-            ../*.deb
-            ../*.buildinfo
-            ../*.changes
+          ninja -C build install
