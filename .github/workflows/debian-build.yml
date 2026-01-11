@@ -15,6 +15,7 @@ jobs:
     steps:
       - name: Install base tooling (git + deps)
         run: |
+          set -eux
           export DEBIAN_FRONTEND=noninteractive
           apt-get update
           apt-get install -y --no-install-recommends \
@@ -29,13 +30,31 @@ jobs:
           submodules: true
 
       - name: Configure
-        run: meson setup build -Dtext=true -Dtheme-manager=true -Dauto_features=enabled
+        run: |
+          set -eux
+          rm -rf build
+          meson setup build \
+            -Dtext-frontend=true \
+            -Dtheme-manager=true \
+            -Dauto_features=enabled
+        # If configure fails, show the project's actual option names in the log.
+      - name: Show Meson options (on failure)
+        if: failure()
+        run: |
+          set -eux
+          meson configure build || true
 
       - name: Build
-        run: ninja -C build
+        run: |
+          set -eux
+          ninja -C build
 
       - name: Test
-        run: ninja -C build test
+        run: |
+          set -eux
+          ninja -C build test
 
       - name: Install
-        run: ninja -C build install
+        run: |
+          set -eux
+          ninja -C build install
