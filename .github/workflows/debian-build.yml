@@ -53,5 +53,3 @@ jobs:
             ../*.deb
             ../*.buildinfo
             ../*.changes
-
-          ninja -C build install
