@@ -1,4 +1,4 @@
-name: Debian Build
+name: Debian Packages
 
 on:
   push:
@@ -7,54 +7,51 @@ on:
     branches: [master]
 
 jobs:
-  debian_build:
+  debian_packages:
     runs-on: ubuntu-24.04
     container:
       image: debian:bookworm
 
     steps:
-      - name: Install base tooling (git + deps)
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+          fetch-depth: 0
+
+      - name: Install Debian packaging tooling
         run: |
           set -eux
           export DEBIAN_FRONTEND=noninteractive
           apt-get update
           apt-get install -y --no-install-recommends \
-                git ca-certificates \
-                build-essential pkg-config meson ninja-build cmake \
-                gettext \
-                libcanberra-dev libdbus-glib-1-dev libglib2.0-dev libgtk2.0-dev \
-                libluajit-5.1-dev libpci-dev libperl-dev libssl-dev \
-                python3-dev python3-cffi mono-devel desktop-file-utils
-      - uses: actions/checkout@v4
+            ca-certificates git \
+            devscripts equivs fakeroot dpkg-dev
+
+      - name: Install Build-Depends from debian/control
+        run: |
+          set -eux
+          # Creates & installs a dummy package that pulls in Build-Depends
+          mk-build-deps -i -r -t "apt-get -y --no-install-recommends" debian/control
+
+      - name: Build .deb packages (no signing)
+        run: |
+          set -eux
+          # Many Debian builds hate running as root. CI loves running as root. Compromise.
+          useradd -m builder
+          chown -R builder:builder "$GITHUB_WORKSPACE"
+          su - builder -s /bin/bash -c "cd '$GITHUB_WORKSPACE' && dpkg-buildpackage -us -uc -b"
+
+      - name: List built artifacts
+        run: |
+          set -eux
+          ls -lah ..
+
+      - uses: actions/upload-artifact@v4
         with:
-          submodules: true
+          name: debian-packages
+          path: |
+            ../*.deb
+            ../*.buildinfo
+            ../*.changes
 
-      - name: Configure
-        run: |
-          set -eux
-          rm -rf build
-          meson setup build \
-            -Dtext-frontend=true \
-            -Dtheme-manager=true \
-            -Dauto_features=enabled
-        # If configure fails, show the project's actual option names in the log.
-      - name: Show Meson options (on failure)
-        if: failure()
-        run: |
-          set -eux
-          meson configure build || true
-
-      - name: Build
-        run: |
-          set -eux
-          ninja -C build
-
-      - name: Test
-        run: |
-          set -eux
-          ninja -C build test
-
-      - name: Install
-        run: |
-          set -eux
           ninja -C build install
