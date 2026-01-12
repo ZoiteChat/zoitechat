@@ -1,0 +1,69 @@
+name: Windows ARM64 (MSYS2)
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  windows_arm64:
+    runs-on: windows-11-arm
+    defaults:
+      run:
+        shell: msys2 {0}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: CLANGARM64
+          update: true
+          install: >-
+            git
+            gettext
+            libxml2
+            mingw-w64-clang-aarch64-toolchain
+            mingw-w64-clang-aarch64-meson
+            mingw-w64-clang-aarch64-ninja
+            mingw-w64-clang-aarch64-pkgconf
+            mingw-w64-clang-aarch64-python-cffi
+            mingw-w64-clang-aarch64-gtk2
+            mingw-w64-clang-aarch64-gtk-update-icon-cache
+            mingw-w64-clang-aarch64-luajit
+            mingw-w64-clang-aarch64-desktop-file-utils
+
+      - name: Configure
+        run: |
+          set -euxo pipefail
+          rm -rf build package
+          meson setup build \
+            -Dtext-frontend=true \
+            -Ddbus=disabled \
+            -Dwith-upd=false \
+            -Dwith-perl=false
+
+      - name: Build
+        run: |
+          set -euxo pipefail
+          ninja -C build
+
+      - name: Test
+        run: |
+          set -euxo pipefail
+          ninja -C build test
+
+      - name: Stage install (portable zip)
+        run: |
+          set -euxo pipefail
+          DESTDIR="$PWD/package" ninja -C build install
+          cd package
+          # bsdtar exists on GitHub runners; makes a normal zip
+          bsdtar -acf ../zoitechat-windows-arm64.zip .
+          cd ..
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: zoitechat-windows-arm64
+          path: zoitechat-windows-arm64.zip
