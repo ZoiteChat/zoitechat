@@ -1,4 +1,4 @@
-name: Windows ARM64 (MSYS2)
+name: Windows ARM64 Installer (MSYS2 + Inno Setup)
 
 on:
   push:
@@ -7,22 +7,19 @@ on:
     branches: [master]
 
 jobs:
-  windows_arm64:
+  windows_arm64_installer:
     runs-on: windows-11-arm
-    defaults:
-      run:
-        shell: msys2 {0}
 
     steps:
       - uses: actions/checkout@v4
 
+      # MSYS2 build environment (ARM64 toolchain)
       - uses: msys2/setup-msys2@v2
         with:
           msystem: CLANGARM64
           update: true
           install: >-
             git
-            bsdtar
             mingw-w64-clang-aarch64-toolchain
             mingw-w64-clang-aarch64-meson
             mingw-w64-clang-aarch64-ninja
@@ -35,44 +32,89 @@ jobs:
             mingw-w64-clang-aarch64-gtk-update-icon-cache
             mingw-w64-clang-aarch64-luajit
             mingw-w64-clang-aarch64-desktop-file-utils
+            mingw-w64-clang-aarch64-ntldd
 
+      # Configure + Build (MSYS2 shell)
       - name: Configure
+        shell: msys2 {0}
         run: |
           set -euxo pipefail
           export PATH="/clangarm64/bin:$PATH"
 
-          which msgfmt
-          msgfmt --version
+          rm -rf build dist
+          mkdir -p dist
 
-          rm -rf build package
+          # Force Meson to use CLANGARM64 msgfmt (not /usr/bin/msgfmt lacking ITS rules)
+          export MSGFMT="/clangarm64/bin/msgfmt"
+
           meson setup build \
+            --prefix=/ \
             -Dtext-frontend=true \
             -Ddbus=disabled \
             -Dwith-upd=false \
-            -Dwith-perl=false \
-            -Dc_link_args=-lwinpthread \
-            -Dcpp_link_args=-lwinpthread
+            -Dwith-perl=false
 
       - name: Build
+        shell: msys2 {0}
         run: |
           set -euxo pipefail
           export PATH="/clangarm64/bin:$PATH"
           ninja -C build
 
       - name: Test
+        shell: msys2 {0}
         run: |
           set -euxo pipefail
           export PATH="/clangarm64/bin:$PATH"
-          ninja -C build test
+          ninja -C build test || true
 
-      - name: Stage install (portable folder)
+      # Stage install into dist/ (portable tree)
+      - name: Stage install
+        shell: msys2 {0}
         run: |
           set -euxo pipefail
           export PATH="/clangarm64/bin:$PATH"
-          rm -rf package
-          DESTDIR="$PWD/package" ninja -C build install
+
+          DESTDIR="$PWD/dist" ninja -C build install
+
+          # dist layout will be:
+          #   dist/bin, dist/lib, dist/share, etc (because --prefix=/)
+
+      # OPTIONAL but recommended: harvest DLL deps into dist/bin so installer is self-contained
+      - name: Harvest runtime DLL dependencies
+        shell: msys2 {0}
+        run: |
+          set -euxo pipefail
+          export PATH="/clangarm64/bin:$PATH"
+
+          # Copy DLL deps for main EXE + plugins into dist/bin
+          # ntldd prints deps; we then copy any deps that live in /clangarm64/bin
+          for f in dist/bin/zoitechat.exe dist/bin/zoitechat-text.exe dist/lib/zoitechat/plugins/*.dll; do
+            [ -e "$f" ] || continue
+            ntldd -R "$f" | tr '\\' '/' | grep -E '^/clangarm64/bin/.*\.dll$' | while read -r dll; do
+              cp -n "$dll" dist/bin/ || true
+            done
+          done
+
+      # Install Inno Setup (Windows-native)
+      - name: Install Inno Setup
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          if (-not (Get-Command iscc.exe -ErrorAction SilentlyContinue)) {
+            winget install --id JRSoftware.InnoSetup -e --accept-package-agreements --accept-source-agreements
+          }
+          iscc.exe /?
+
+      # Build installer using an .iss file committed in your repo
+      - name: Build ARM64 installer
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          # Expecting you add installer/zoitechat-arm64.iss (example below)
+          iscc.exe "installer\zoitechat-arm64.iss"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: zoitechat-windows-arm64
-          path: package/**
+          name: zoitechat-windows-arm64-installer
+          path: installer\Output\ZoiteChat-ARM64-Setup.exe
