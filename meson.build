@@ -1,5 +1,5 @@
 project('zoitechat', 'c',
-  version: '2.17.1',
+  version: '2.17.2',
   meson_version: '>= 0.47.0',
   default_options: [
     'c_std=gnu89',

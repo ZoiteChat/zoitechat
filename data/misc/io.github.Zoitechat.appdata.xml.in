@@ -25,9 +25,17 @@
     <id>zoitechat.desktop</id>
   </provides>
   <releases>
+    <release date="2026-01-13" version="2.17.2">
+      <description>
+        <p>This is a release with small fixes:</p>
+        <ul>
+          <li>Changes to Auto Replace. Will make matches in almost any scenario, Pasted, typed, beginning, end or middle of words/scentences etc.</li>
+          </ul>
+      </description>
+    </release>
     <release date="2026-01-12" version="2.17.1">
       <description>
-        <p>This is a pre-release with small improvements and fixes:</p>
+        <p>This is a release with small improvements and fixes:</p>
         <ul>
           <li>First implementation of dark mode.</li>
           </ul>
