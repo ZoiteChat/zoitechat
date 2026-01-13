@@ -1470,8 +1470,10 @@ setup_color_ok_cb (GtkWidget *button, GtkWidget *dialog)
 	/* is this line correct?? */
 	gdk_colormap_free_colors (gtk_widget_get_colormap (button), &old_color, 1);
 
-	/* Keep a copy of the user's palette so we can restore it after dark mode. */
-	if (!prefs.hex_gui_dark_mode)
+	/* Persist custom colors for the palette the user is editing. */
+	if (setup_prefs.hex_gui_dark_mode)
+		palette_dark_set_color ((int)(col - colors), col);
+	else
 		palette_user_set_color ((int)(col - colors), col);
 
 	gtk_widget_destroy (dialog);

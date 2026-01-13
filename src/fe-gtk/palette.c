@@ -93,6 +93,10 @@ GdkColor colors[] = {
 static GdkColor user_colors[MAX_COL + 1];
 static gboolean user_colors_valid = FALSE;
 
+/* Dark palette snapshot (saved separately so dark mode can have its own custom palette). */
+static GdkColor dark_user_colors[MAX_COL + 1];
+static gboolean dark_user_colors_valid = FALSE;
+
 /* ZoiteChat's curated dark palette (applies when prefs.hex_gui_dark_mode is enabled). */
 static const GdkColor dark_colors[MAX_COL + 1] = {
 	/* mIRC colors 0-15 */
@@ -160,6 +164,27 @@ palette_user_set_color (int idx, const GdkColor *col)
 }
 
 void
+palette_dark_set_color (int idx, const GdkColor *col)
+{
+	if (!col)
+		return;
+	if (idx < 0 || idx > MAX_COL)
+		return;
+
+	if (!dark_user_colors_valid)
+	{
+		/* Start from the currently active palette (should be dark when editing dark mode). */
+		memcpy (dark_user_colors, colors, sizeof (dark_user_colors));
+		dark_user_colors_valid = TRUE;
+	}
+
+	dark_user_colors[idx].red = col->red;
+	dark_user_colors[idx].green = col->green;
+	dark_user_colors[idx].blue = col->blue;
+	dark_user_colors[idx].pixel = 0;
+}
+
+void
 palette_alloc (GtkWidget * widget)
 {
 	int i;
@@ -183,6 +208,7 @@ palette_load (void)
 	struct stat st;
 	char *cfg;
 	guint16 red, green, blue;
+	gboolean dark_found = FALSE;
 
 	fh = zoitechat_open_file ("colors.conf", O_RDONLY, 0, 0);
 	if (fh != -1)
@@ -191,65 +217,136 @@ palette_load (void)
 		cfg = g_malloc0 (st.st_size + 1);
 		read (fh, cfg, st.st_size);
 
-		/* mIRC colors 0-31 are here */
+		/* Light palette (default behavior): mIRC colors 0-31. */
 		for (i = 0; i < 32; i++)
 		{
 			g_snprintf (prefname, sizeof prefname, "color_%d", i);
-			cfg_get_color (cfg, prefname, &red, &green, &blue);
-			colors[i].red = red;
-			colors[i].green = green;
-			colors[i].blue = blue;
+			if (cfg_get_color (cfg, prefname, &red, &green, &blue))
+			{
+				colors[i].red = red;
+				colors[i].green = green;
+				colors[i].blue = blue;
+			}
 		}
 
-		/* our special colors are mapped at 256+ */
-		for (i = 256, j = 32; j < MAX_COL+1; i++, j++)
+		/* Light palette: our special colors are mapped at 256+. */
+		for (i = 256, j = 32; j < MAX_COL + 1; i++, j++)
 		{
 			g_snprintf (prefname, sizeof prefname, "color_%d", i);
-			cfg_get_color (cfg, prefname, &red, &green, &blue);
-			colors[j].red = red;
-			colors[j].green = green;
-			colors[j].blue = blue;
+			if (cfg_get_color (cfg, prefname, &red, &green, &blue))
+			{
+				colors[j].red = red;
+				colors[j].green = green;
+				colors[j].blue = blue;
+			}
 		}
+
+		/* Dark palette: start from curated defaults and optionally override from colors.conf. */
+		memcpy (dark_user_colors, dark_colors, sizeof (dark_user_colors));
+
+		for (i = 0; i < 32; i++)
+		{
+			g_snprintf (prefname, sizeof prefname, "dark_color_%d", i);
+			if (cfg_get_color (cfg, prefname, &red, &green, &blue))
+			{
+				dark_user_colors[i].red = red;
+				dark_user_colors[i].green = green;
+				dark_user_colors[i].blue = blue;
+				dark_found = TRUE;
+			}
+		}
+
+		for (i = 256, j = 32; j < MAX_COL + 1; i++, j++)
+		{
+			g_snprintf (prefname, sizeof prefname, "dark_color_%d", i);
+			if (cfg_get_color (cfg, prefname, &red, &green, &blue))
+			{
+				dark_user_colors[j].red = red;
+				dark_user_colors[j].green = green;
+				dark_user_colors[j].blue = blue;
+				dark_found = TRUE;
+			}
+		}
+
+		dark_user_colors_valid = dark_found;
+
 		g_free (cfg);
 		close (fh);
 	}
 
-	/* Snapshot the user's palette for dark mode toggling. */
+	/* Snapshot the user's (light) palette for dark mode toggling. */
 	memcpy (user_colors, colors, sizeof (user_colors));
 	user_colors_valid = TRUE;
 }
+
 
 void
 palette_save (void)
 {
 	int i, j, fh;
 	char prefname[256];
-	const GdkColor *outpal = colors;
+	const GdkColor *lightpal = colors;
+	const GdkColor *darkpal = NULL;
 
-	/* Don't clobber the user's colors.conf with the dark palette. */
+	/* If we're currently in dark mode, keep colors.conf's legacy keys as the user's light palette. */
 	if (prefs.hex_gui_dark_mode && user_colors_valid)
-		outpal = user_colors;
+		lightpal = user_colors;
+
+	/* If we're currently in light mode, ensure the snapshot stays in sync. */
+	if (!prefs.hex_gui_dark_mode)
+	{
+		memcpy (user_colors, colors, sizeof (user_colors));
+		user_colors_valid = TRUE;
+	}
+
+	/* If dark mode is enabled but we haven't snapshotted a custom dark palette yet, capture it now. */
+	if (prefs.hex_gui_dark_mode && !dark_user_colors_valid)
+	{
+		memcpy (dark_user_colors, colors, sizeof (dark_user_colors));
+		dark_user_colors_valid = TRUE;
+	}
+
+	if (dark_user_colors_valid)
+		darkpal = dark_user_colors;
+	else if (prefs.hex_gui_dark_mode)
+		darkpal = colors; /* current dark palette (likely defaults) */
 
 	fh = zoitechat_open_file ("colors.conf", O_TRUNC | O_WRONLY | O_CREAT, 0600, XOF_DOMODE);
 	if (fh != -1)
 	{
-		/* mIRC colors 0-31 are here */
+		/* Light palette (legacy keys) */
 		for (i = 0; i < 32; i++)
 		{
 			g_snprintf (prefname, sizeof prefname, "color_%d", i);
-			cfg_put_color (fh, outpal[i].red, outpal[i].green, outpal[i].blue, prefname);
+			cfg_put_color (fh, lightpal[i].red, lightpal[i].green, lightpal[i].blue, prefname);
 		}
 
-		/* our special colors are mapped at 256+ */
-		for (i = 256, j = 32; j < MAX_COL+1; i++, j++)
+		for (i = 256, j = 32; j < MAX_COL + 1; i++, j++)
 		{
 			g_snprintf (prefname, sizeof prefname, "color_%d", i);
-			cfg_put_color (fh, outpal[j].red, outpal[j].green, outpal[j].blue, prefname);
+			cfg_put_color (fh, lightpal[j].red, lightpal[j].green, lightpal[j].blue, prefname);
+		}
+
+		/* Dark palette (new keys) */
+		if (darkpal)
+		{
+			for (i = 0; i < 32; i++)
+			{
+				g_snprintf (prefname, sizeof prefname, "dark_color_%d", i);
+				cfg_put_color (fh, darkpal[i].red, darkpal[i].green, darkpal[i].blue, prefname);
+			}
+
+			for (i = 256, j = 32; j < MAX_COL + 1; i++, j++)
+			{
+				g_snprintf (prefname, sizeof prefname, "dark_color_%d", i);
+				cfg_put_color (fh, darkpal[j].red, darkpal[j].green, darkpal[j].blue, prefname);
+			}
 		}
 
 		close (fh);
 	}
 }
+
 
 static gboolean
 palette_color_eq (const GdkColor *a, const GdkColor *b)
@@ -275,7 +372,12 @@ palette_apply_dark_mode (gboolean enable)
 	}
 
 	if (enable)
-		memcpy (colors, dark_colors, sizeof (colors));
+	{
+		if (dark_user_colors_valid)
+			memcpy (colors, dark_user_colors, sizeof (colors));
+		else
+			memcpy (colors, dark_colors, sizeof (colors));
+	}
 	else
 		memcpy (colors, user_colors, sizeof (colors));
 
