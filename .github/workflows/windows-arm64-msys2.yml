@@ -26,7 +26,6 @@ jobs:
             mingw-w64-clang-aarch64-gettext-tools
             mingw-w64-clang-aarch64-libxml2
             mingw-w64-clang-aarch64-winpthreads
-            mingw-w64-clang-aarch64-python-cffi
             mingw-w64-clang-aarch64-gtk2
             mingw-w64-clang-aarch64-gtk-update-icon-cache
             mingw-w64-clang-aarch64-luajit
@@ -38,20 +37,56 @@ jobs:
         run: |
           set -euxo pipefail
           export PATH="/clangarm64/bin:$PATH"
-          export MSGFMT="/clangarm64/bin/msgfmt"
-          export LDFLAGS="-lwinpthread ${LDFLAGS:-}"
 
-          rm -rf build dist
+          # Make gettext XML ITS rules resolvable (defensive; avoids /usr/bin/msgfmt nonsense)
+          export MSGFMT="/clangarm64/bin/msgfmt"
+          export GETTEXTDATADIR="/clangarm64/share/gettext"
+
+          rm -rf build dist rel
           mkdir -p dist
 
           meson setup build \
-            --prefix=/ \
             -Dtext-frontend=true \
             -Ddbus=disabled \
             -Dwith-upd=false \
             -Dwith-perl=false \
             -Dc_link_args=-lwinpthread \
             -Dcpp_link_args=-lwinpthread
+
+          # If the project exposes a Meson option to disable python, do it on ARM64.
+          # (Your python plugin currently dies on missing pthread_* symbols.)
+          python - <<'PY'
+          import json, subprocess
+
+          def pick_disable(opt):
+              t = opt.get("type")
+              if t == "boolean":
+                  return "false"
+              if t == "combo":
+                  choices = opt.get("choices") or []
+                  lowered = [c.lower() for c in choices]
+                  for want in ("disabled", "false", "no", "off"):
+                      if want in lowered:
+                          return choices[lowered.index(want)]
+              return None
+
+          opts = json.loads(subprocess.check_output(["meson", "introspect", "build", "--buildoptions"], text=True))
+          candidates = [o for o in opts if "python" in (o.get("name","").lower())]
+          if not candidates:
+              print("No Meson build options containing 'python' found; leaving as-is.")
+              raise SystemExit(0)
+
+          for o in candidates:
+              name = o.get("name","")
+              val = pick_disable(o)
+              if not val:
+                  continue
+              print(f"Disabling python-related option: {name} -> {val}")
+              subprocess.check_call(["meson", "configure", "build", f"-D{name}={val}"])
+              break
+          else:
+              print("Found python-ish options, but none had a clear disable value; leaving as-is.")
+          PY
 
       - name: Build
         shell: msys2 {0}
@@ -72,10 +107,11 @@ jobs:
         run: |
           set -euxo pipefail
           export PATH="/clangarm64/bin:$PATH"
+
           DESTDIR="$PWD/dist" ninja -C build install
 
-          # show where stuff actually landed (helps debugging packaging)
-          find dist -maxdepth 6 -type f \( -iname 'zoitechat*.exe' -o -iname '*.dll' \) -print || true
+          echo "Installed files (debug):"
+          find dist -maxdepth 8 -type f \( -iname 'zoitechat*.exe' -o -iname '*.dll' \) -print || true
 
       - name: Harvest runtime DLL dependencies
         shell: msys2 {0}
@@ -84,32 +120,40 @@ jobs:
           export PATH="/clangarm64/bin:$PATH"
           shopt -s nullglob
 
-          # Find installed EXEs and plugin DLLs
-          mapfile -t targets < <(find dist -type f \( -iname 'zoitechat*.exe' -o -ipath '*/plugins/*.dll' \) || true)
+          # Find installed EXEs and plugin DLLs (anywhere under dist/)
+          mapfile -t targets < <(find dist -type f \( -iname 'zoitechat*.exe' -o -ipath '*/plugins/*.dll' \) 2>/dev/null || true)
 
           if [ "${#targets[@]}" -eq 0 ]; then
             echo "No installed binaries/plugins found under dist/ (skipping dep harvest)"
             exit 0
           fi
 
-          # Prefer the directory that contains zoitechat.exe; otherwise fallback to dist/bin
-          mainexe="$(printf '%s\n' "${targets[@]}" | sed 's|\\|/|g' | grep -iE '/zoitechat\.exe$' | head -n1 || true)"
+          # Prefer directory containing zoitechat.exe as the runtime "bin" directory
+          mainexe="$(printf '%s\n' "${targets[@]}" | grep -iE '/zoitechat\.exe$' | head -n1 || true)"
           if [ -n "$mainexe" ]; then
             bindir="$(dirname "$mainexe")"
           else
-            bindir="dist/bin"
-            mkdir -p "$bindir"
+            # fallback: directory of first exe
+            firstexe="$(printf '%s\n' "${targets[@]}" | grep -iE '\.exe$' | head -n1 || true)"
+            bindir="$(dirname "$firstexe")"
           fi
 
           echo "Using bindir: $bindir"
           printf '%s\n' "${targets[@]}"
 
           for f in "${targets[@]}"; do
+            # ntldd can return non-zero; do not let it kill the job.
+            deps="$(ntldd -R "$f" 2>/dev/null || true)"
+            if [ -z "$deps" ]; then
+              continue
+            fi
+
+            # pull absolute DLL paths (first column) and copy those coming from clangarm64 runtime
             while IFS= read -r dll; do
               [ -n "$dll" ] || continue
               cp -n "$dll" "$bindir/" || true
             done < <(
-              ntldd -R "$f" 2>/dev/null \
+              printf '%s\n' "$deps" \
                 | tr '\\' '/' \
                 | awk '{print $1}' \
                 | grep -E '^/clangarm64/(bin|lib)/.*\.dll$' \
@@ -117,57 +161,130 @@ jobs:
             )
           done
 
-      - name: Install Inno Setup (real ISCC, not the Chocolatey shim)
+      - name: Prepare Inno Setup source tree (rel/)
+        shell: msys2 {0}
+        run: |
+          set -euxo pipefail
+          export PATH="/clangarm64/bin:$PATH"
+          shopt -s nullglob
+
+          rm -rf rel
+          mkdir -p rel
+
+          # Locate install root by finding zoitechat.exe, then walking up to its parent directory.
+          app_exe="$(find dist -type f -iname 'zoitechat.exe' | head -n1 || true)"
+          if [ -z "$app_exe" ]; then
+            echo "zoitechat.exe not found under dist/; cannot build installer."
+            find dist -maxdepth 8 -type f -print || true
+            exit 1
+          fi
+
+          bin_dir="$(dirname "$app_exe")"
+          install_root="$(cd "$bin_dir/.." && pwd)"
+
+          echo "bin_dir: $bin_dir"
+          echo "install_root: $install_root"
+
+          # Copy the whole installed prefix into rel/, so your ARM .iss can reference bin/, share/, lib/, etc.
+          cp -a "$install_root/." rel/
+
+          echo "rel/ contents (debug):"
+          find rel -maxdepth 5 -type f \( -iname 'zoitechat*.exe' -o -iname '*.dll' -o -iname '*.xml' -o -iname '*.desktop' \) -print || true
+
+      - name: Install Inno Setup (find real ISCC.exe)
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
 
-          function Find-Iscc {
-            $candidates = @(
-              "$env:ProgramFiles(x86)\Inno Setup 6\ISCC.exe",
-              "$env:ProgramFiles\Inno Setup 6\ISCC.exe"
-            )
-            foreach ($p in $candidates) {
-              if (Test-Path $p) { return $p }
-            }
-            return $null
-          }
-
-          $iscc = Find-Iscc
-
-          if (-not $iscc) {
-            if (Get-Command winget -ErrorAction SilentlyContinue) {
+          # Try winget first (nice when it works)
+          try {
+            if (-not (Get-Command winget.exe -ErrorAction SilentlyContinue)) {
+              Write-Host "winget not found; skipping winget install attempt."
+            } else {
               winget install --id JRSoftware.InnoSetup -e --accept-package-agreements --accept-source-agreements
             }
-            $iscc = Find-Iscc
+          } catch {
+            Write-Host "winget install failed (continuing): $($_.Exception.Message)"
           }
 
-          if (-not $iscc) {
-            if (Get-Command choco.exe -ErrorAction SilentlyContinue) {
-              choco install innosetup -y --no-progress
-            }
-            $iscc = Find-Iscc
+          # Ensure Chocolatey exists (GitHub runners usually have it, but ARM runners are special snowflakes)
+          if (-not (Get-Command choco.exe -ErrorAction SilentlyContinue)) {
+            Write-Host "Chocolatey not found; installing..."
+            Set-ExecutionPolicy Bypass -Scope Process -Force
+            [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
+            iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
           }
 
+          # Install Inno Setup via choco (idempotent)
+          choco install innosetup -y --no-progress | Out-Host
+
+          $candidates = @()
+
+          # 1) Common install paths
+          $pf = ${env:ProgramFiles}
+          $pfx86 = ${env:ProgramFiles(x86)}
+          if ($pf)   { $candidates += (Join-Path $pf   "Inno Setup 6\ISCC.exe") }
+          if ($pfx86){ $candidates += (Join-Path $pfx86 "Inno Setup 6\ISCC.exe") }
+
+          # 2) Registry uninstall keys often have InstallLocation
+          $regKeys = @(
+            "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Inno Setup 6_is1",
+            "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Inno Setup 6_is1"
+          )
+          foreach ($k in $regKeys) {
+            try {
+              $loc = (Get-ItemProperty -Path $k -ErrorAction Stop).InstallLocation
+              if ($loc) { $candidates += (Join-Path $loc "ISCC.exe") }
+            } catch {}
+          }
+
+          # 3) Chocolatey tool locations (avoid the shim in choco\bin)
+          $chocoRoot = ${env:ChocolateyInstall}
+          if ($chocoRoot -and (Test-Path $chocoRoot)) {
+            $candidates += (Get-ChildItem -Path (Join-Path $chocoRoot "lib") -Recurse -Filter "ISCC.exe" -ErrorAction SilentlyContinue |
+              Where-Object { $_.FullName -notmatch '\\chocolatey\\bin\\' } |
+              Select-Object -ExpandProperty FullName -First 10)
+          }
+
+          # 4) Last resort: whatever is on PATH (might be a shim, might work)
+          try {
+            $cmd = Get-Command iscc.exe -ErrorAction Stop
+            $candidates += $cmd.Source
+          } catch {}
+
+          $iscc = $candidates | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
           if (-not $iscc) {
-            throw "ISCC.exe not found after install attempts. Checked Program Files Inno Setup paths."
+            Write-Host "Checked candidates:"
+            $candidates | ForEach-Object { Write-Host " - $_" }
+            throw "ISCC.exe not found after install attempts."
           }
 
           Write-Host "Using ISCC:" $iscc
-          & $iscc /?
+          & $iscc /? | Out-Host
 
-          "ISCC=$iscc" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          # Export for next step
+          "ISCC_PATH=$iscc" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
       - name: Build ARM64 installer
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
-          if (-not (Test-Path "installer\zoitechat-arm64.iss")) {
-            throw "Missing installer\zoitechat-arm64.iss in repo"
+
+          $iscc = $env:ISCC_PATH
+          if (-not $iscc -or -not (Test-Path $iscc)) {
+            throw "ISCC_PATH missing or invalid."
           }
-          & "$env:ISCC" "installer\zoitechat-arm64.iss"
+
+          if (-not (Test-Path "installer\zoitechat-arm64.iss")) {
+            Write-Host "Repo layout:"
+            Get-ChildItem -Recurse -Depth 3 | Select-Object FullName | Out-Host
+            throw "installer\zoitechat-arm64.iss not found."
+          }
+
+          # Compile. Your ARM .iss should point SourceDir to ..\rel (prepared above).
+          & $iscc "installer\zoitechat-arm64.iss" | Out-Host
 
       - uses: actions/upload-artifact@v4
         with:
           name: zoitechat-windows-arm64-installer
-          path: installer\Output\ZoiteChat-ARM64-Setup.exe
+          path: installer\Output\*.exe
