@@ -2,9 +2,10 @@ name: Windows ARM64 Installer (MSYS2 + Inno Setup)
 
 on:
   push:
-    branches: [master]
+    branches: [main, master]
   pull_request:
-    branches: [master]
+    branches: [main, master]
+  workflow_dispatch: {}
 
 jobs:
   windows_arm64_installer:
@@ -43,7 +44,6 @@ jobs:
           export MSGFMT="/clangarm64/bin/msgfmt"
           export GETTEXTDATADIR="/clangarm64/share/gettext"
 
-          # Defensive: ensure python + cffi exist even if the setup action had a bad day
           pacman -S --noconfirm --needed mingw-w64-clang-aarch64-python mingw-w64-clang-aarch64-python-cffi
 
           rm -rf build dist
@@ -63,7 +63,6 @@ jobs:
 
           /clangarm64/bin/python.exe -c "import sys, cffi; print('python:', sys.version); print('cffi:', cffi.__version__)"
 
-          # Export app version from Meson for the Inno script defines
           APPVER="$(meson introspect build --projectinfo | /clangarm64/bin/python.exe -c 'import json,sys; print(json.load(sys.stdin)[\"version\"])')"
           echo "APPVER=$APPVER" >> "$GITHUB_ENV"
           echo "Meson APPVER=$APPVER"
@@ -222,13 +221,10 @@ jobs:
           }
 
           $projectDir = (Resolve-Path "win32\installer").Path
-          # double trailing backslash avoids Windows arg-quoting weirdness, and still works as a path
           $projectDirArg = ($projectDir.TrimEnd('\') + "\\")
           "PROJECTDIR=$projectDirArg" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
           $text = Get-Content $issIn -Raw
-
-          # Comment out the IDP include (it isn't present on the runner; and IDP plugin support on ARM64 is not reliable)
           $text = [regex]::Replace($text, '^\s*#include\s+<idp\.iss>\s*$', '; CI: idp.iss disabled for ARM64 builds', 'Multiline')
 
           if ($text -notmatch '; CI: IDP STUBS') {
@@ -264,8 +260,6 @@ begin
 end;
 
 "@
-
-            # Inject stubs immediately after the [Code] header (so [Setup] stays first)
             $text = [regex]::Replace($text, '(\[Code\]\s*\r?\n)', "`$1$stub", 'Singleline')
           }
 
@@ -288,12 +282,8 @@ end;
             throw "Patched CI script missing: $iss"
           }
 
-          if (-not $env:APPVER) {
-            throw "APPVER missing (Meson version export failed)."
-          }
-          if (-not $env:PROJECTDIR) {
-            throw "PROJECTDIR missing."
-          }
+          if (-not $env:APPVER) { throw "APPVER missing (Meson version export failed)." }
+          if (-not $env:PROJECTDIR) { throw "PROJECTDIR missing." }
 
           & $iscc "/DAPPARCH=arm64" "/DAPPVER=$env:APPVER" "/DPROJECTDIR=$env:PROJECTDIR" $iss | Out-Host
           if ($LASTEXITCODE -ne 0) {
