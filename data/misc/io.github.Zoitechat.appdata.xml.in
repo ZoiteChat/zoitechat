@@ -25,6 +25,14 @@
     <id>zoitechat.desktop</id>
   </provides>
   <releases>
+    <release date="2026-01-12" version="2.17.1">
+      <description>
+        <p>This is a pre-release with small improvements and fixes:</p>
+        <ul>
+          <li>First implementation of dark mode.</li>
+          </ul>
+      </description>
+    </release>
     <release date="2026-01-06" version="2.17.0">
       <description>
         <p>This is a minor release with small improvements and fixes:</p>
