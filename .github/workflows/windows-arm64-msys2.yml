@@ -13,7 +13,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # MSYS2 build environment (ARM64 toolchain)
       - uses: msys2/setup-msys2@v2
         with:
           msystem: CLANGARM64
@@ -39,16 +38,11 @@ jobs:
         run: |
           set -euxo pipefail
           export PATH="/clangarm64/bin:$PATH"
+          export MSGFMT="/clangarm64/bin/msgfmt"
+          export LDFLAGS="-lwinpthread ${LDFLAGS:-}"
 
           rm -rf build dist
           mkdir -p dist
-
-          # Ensure Meson uses the CLANGARM64 gettext tooling (has ITS data)
-          export MSGFMT="/clangarm64/bin/msgfmt"
-
-          # Belt + suspenders: make sure the linker sees winpthreads
-          export LIBRARY_PATH="/clangarm64/lib:${LIBRARY_PATH:-}"
-          export LDFLAGS="-lwinpthread ${LDFLAGS:-}"
 
           meson setup build \
             --prefix=/ \
@@ -80,17 +74,36 @@ jobs:
           export PATH="/clangarm64/bin:$PATH"
           DESTDIR="$PWD/dist" ninja -C build install
 
+          # show where stuff actually landed (helps debugging packaging)
+          find dist -maxdepth 4 -type f \( -name 'zoitechat*.exe' -o -name '*.dll' \) -print || true
+
       - name: Harvest runtime DLL dependencies
         shell: msys2 {0}
         run: |
           set -euxo pipefail
           export PATH="/clangarm64/bin:$PATH"
+          shopt -s nullglob
 
-          # Copy DLL deps for EXEs + plugins into dist/bin
-          for f in dist/bin/zoitechat.exe dist/bin/zoitechat-text.exe dist/lib/zoitechat/plugins/*.dll; do
-            [ -e "$f" ] || continue
+          # Find installed EXEs and plugin DLLs no matter where prefix placed them
+          mapfile -t targets < <(find dist -type f \( -name 'zoitechat*.exe' -o -path '*/plugins/*.dll' \))
+
+          # If nothing found, don't fail the job, just skip
+          if [ "${#targets[@]}" -eq 0 ]; then
+            echo "No installed binaries/plugins found under dist/ (skipping dep harvest)"
+            exit 0
+          fi
+
+          # Put runtime DLLs beside the executables (common Windows expectation)
+          # Prefer dist/**/bin if it exists, otherwise create dist/bin
+          bindir="$(find dist -type d -name bin | head -n1 || true)"
+          if [ -z "$bindir" ]; then
+            bindir="dist/bin"
+            mkdir -p "$bindir"
+          fi
+
+          for f in "${targets[@]}"; do
             ntldd -R "$f" | tr '\\' '/' | grep -E '^/clangarm64/bin/.*\.dll$' | while read -r dll; do
-              cp -n "$dll" dist/bin/ || true
+              cp -n "$dll" "$bindir/" || true
             done
           done
 
@@ -101,12 +114,16 @@ jobs:
           if (-not (Get-Command iscc.exe -ErrorAction SilentlyContinue)) {
             winget install --id JRSoftware.InnoSetup -e --accept-package-agreements --accept-source-agreements
           }
-          iscc.exe /?
+
+          $iscc = (Get-Command iscc.exe).Source
+          Write-Host "Inno Setup compiler:" $iscc
+          (Get-Item $iscc).VersionInfo | Select-Object ProductVersion, FileVersion | Format-List
 
       - name: Build ARM64 installer
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
+          # update this path to wherever you commit the ARM64 .iss
           iscc.exe "installer\zoitechat-arm64.iss"
 
       - uses: actions/upload-artifact@v4
