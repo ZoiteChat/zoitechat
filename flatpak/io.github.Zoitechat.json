@@ -42,6 +42,9 @@
     {
       "name": "lgi",
       "buildsystem": "meson",
+      "config-opts": [
+        "-Dtests=false"
+      ],
       "sources": [
         {
           "type": "git",
