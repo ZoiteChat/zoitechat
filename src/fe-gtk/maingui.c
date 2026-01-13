@@ -3002,6 +3002,8 @@ mg_create_entry (session *sess, GtkWidget *box)
 	gtk_entry_set_max_length (GTK_ENTRY (gui->input_box), 0);
 	g_signal_connect (G_OBJECT (entry), "activate",
 							G_CALLBACK (mg_inputbox_cb), gui);
+	g_signal_connect (G_OBJECT (entry), "changed",
+							G_CALLBACK (key_check_replace_on_change), NULL);
 	gtk_container_add (GTK_CONTAINER (hbox), entry);
 
 	gtk_widget_set_name (entry, "zoitechat-inputbox");

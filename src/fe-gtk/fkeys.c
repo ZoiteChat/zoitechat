@@ -23,6 +23,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <ctype.h>
+#include <stddef.h>
 
 #ifdef WIN32
 #include <io.h>
@@ -53,6 +54,7 @@
 #include "fkeys.h"
 
 static void replace_handle (GtkWidget * wid);
+void key_check_replace_on_change (GtkEditable *editable, gpointer data);
 void key_action_tab_clean (void);
 
 /***************** Key Binding Code ******************/
@@ -1773,71 +1775,94 @@ key_action_put_history (GtkWidget * wid, GdkEventKey * ent, char *d1,
 static void
 replace_handle (GtkWidget *t)
 {
-	const char *text, *postfix_pnt;
+	const char *text;
 	struct popup *pop;
 	GSList *list = replace_list;
-	char word[256];
-	char postfix[256];
-	char outbuf[4096];
-	int c, len, xlen;
+	glong cursor_pos;
+	const char *cursor_ptr;
+	const char *match_start;
+	GString *buf;
+	gboolean matched;
+	size_t replacement_len;
+	size_t match_len;
+	ptrdiff_t cursor_byte_offset;
+	ptrdiff_t match_start_offset;
+	ptrdiff_t match_end_offset;
+	ptrdiff_t new_cursor_offset;
+	const char *best_match;
+	size_t best_len;
+	struct popup *best_pop;
 
 	text = SPELL_ENTRY_GET_TEXT (t);
 
-	len = strlen (text);
-	if (len < 1)
+	if (!text || text[0] == '\0')
 		return;
 
-	for (c = len - 1; c > 0; c--)
-	{
-		if (text[c] == ' ')
-			break;
-	}
-	if (text[c] == ' ')
-		c++;
-	xlen = c;
-	if (len - c >= (sizeof (word) - 12))
-		return;
-	if (len - c < 1)
-		return;
-	memcpy (word, &text[c], len - c);
-	word[len - c] = 0;
-	len = strlen (word);
-	if (word[0] == '\'' && word[len] == '\'')
-		return;
-	postfix_pnt = NULL;
-	for (c = 0; c < len; c++)
-	{
-		if (word[c] == '\'')
-		{
-			postfix_pnt = &word[c + 1];
-			word[c] = 0;
-			break;
-		}
-	}
-
-	if (postfix_pnt != NULL)
-	{
-		if (strlen (postfix_pnt) > sizeof (postfix) - 12)
-			return;
-		strcpy (postfix, postfix_pnt);
-	}
+	cursor_pos = SPELL_ENTRY_GET_POS (t);
+	cursor_ptr = g_utf8_offset_to_pointer (text, cursor_pos);
+	matched = FALSE;
+	match_start = NULL;
+	match_len = 0;
+	best_match = NULL;
+	best_len = 0;
+	best_pop = NULL;
 	while (list)
 	{
 		pop = (struct popup *) list->data;
-		if (strcmp (pop->name, word) == 0)
+		if (pop->name[0] != '\0')
 		{
-			memcpy (outbuf, text, xlen);
-			outbuf[xlen] = 0;
-			if (postfix_pnt == NULL)
-				g_snprintf (word, sizeof (word), "%s", pop->cmd);
-			else
-				g_snprintf (word, sizeof (word), "%s%s", pop->cmd, postfix);
-			g_strlcat (outbuf, word, sizeof(outbuf));
-			SPELL_ENTRY_SET_TEXT (t, outbuf);
-			SPELL_ENTRY_SET_POS (t, -1);
-			return;
+			size_t pop_len = strlen (pop->name);
+			const char *found = strstr (text, pop->name);
+
+			if (found && (!best_match || found < best_match))
+			{
+				best_match = found;
+				best_len = pop_len;
+				best_pop = pop;
+			}
 		}
 		list = list->next;
 	}
+
+	if (best_match)
+	{
+		match_start = best_match;
+		match_len = best_len;
+		pop = best_pop;
+		matched = TRUE;
+	}
+
+	if (!matched)
+		return;
+
+	replacement_len = strlen (pop->cmd);
+	cursor_byte_offset = cursor_ptr - text;
+	match_start_offset = match_start - text;
+	match_end_offset = match_start_offset + (ptrdiff_t) match_len;
+	if (cursor_byte_offset <= match_start_offset)
+		new_cursor_offset = cursor_byte_offset;
+	else if (cursor_byte_offset >= match_end_offset)
+		new_cursor_offset = cursor_byte_offset + ((ptrdiff_t) replacement_len - (ptrdiff_t) match_len);
+	else
+		new_cursor_offset = match_start_offset + (ptrdiff_t) replacement_len;
+	buf = g_string_sized_new (strlen (text) + 32);
+	g_string_append_len (buf, text, match_start - text);
+	g_string_append (buf, pop->cmd);
+	g_string_append (buf, match_start + match_len);
+	SPELL_ENTRY_SET_TEXT (t, buf->str);
+	SPELL_ENTRY_SET_POS (t, len_to_offset (buf->str, new_cursor_offset));
+	g_string_free (buf, TRUE);
 }
 
+void
+key_check_replace_on_change (GtkEditable *editable, gpointer data)
+{
+	static gboolean replace_in_progress = FALSE;
+
+	if (replace_in_progress)
+		return;
+
+	replace_in_progress = TRUE;
+	replace_handle (GTK_WIDGET (editable));
+	replace_in_progress = FALSE;
+}
