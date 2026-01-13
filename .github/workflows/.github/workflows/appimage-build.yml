@@ -1,0 +1,77 @@
+name: ZoiteChat AppImage Build
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  appimage_build:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Install build dependencies
+        run: |
+          set -eux
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential pkg-config meson ninja-build cmake \
+            gettext \
+            libcanberra-dev libdbus-glib-1-dev libglib2.0-dev libgtk2.0-dev \
+            libluajit-5.1-dev libpci-dev libperl-dev libssl-dev \
+            python3-dev python3-cffi mono-devel desktop-file-utils \
+            patchelf file curl
+
+      - name: Configure
+        run: |
+          set -eux
+          rm -rf build
+          meson setup build \
+            --prefix=/usr \
+            -Dtext-frontend=true \
+            -Dtheme-manager=true \
+            -Dauto_features=enabled
+
+      - name: Build
+        run: |
+          set -eux
+          ninja -C build
+
+      - name: Install to AppDir
+        run: |
+          set -eux
+          rm -rf AppDir
+          DESTDIR="${PWD}/AppDir" ninja -C build install
+
+      - name: Build AppImage
+        env:
+          APPIMAGE_EXTRACT_AND_RUN: 1
+        run: |
+          set -eux
+          curl -L -o linuxdeploy-x86_64.AppImage \
+            https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+          curl -L -o linuxdeploy-plugin-gtk-x86_64.AppImage \
+            https://github.com/linuxdeploy/linuxdeploy-plugin-gtk/releases/download/continuous/linuxdeploy-plugin-gtk-x86_64.AppImage
+          chmod +x linuxdeploy-x86_64.AppImage linuxdeploy-plugin-gtk-x86_64.AppImage
+
+          VERSION="$(git describe --tags --always)"
+          ./linuxdeploy-x86_64.AppImage \
+            --appdir AppDir \
+            --desktop-file AppDir/usr/share/applications/io.github.Zoitechat.desktop \
+            --icon-file AppDir/usr/share/icons/hicolor/48x48/apps/io.github.Zoitechat.png \
+            --plugin gtk \
+            --output appimage
+
+          appimage_path=$(ls -1 *.AppImage | grep -v linuxdeploy | head -n 1)
+          mv "$appimage_path" "Zoitechat-${VERSION}-x86_64.AppImage"
+
+      - name: Upload AppImage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: zoitechat-appimage
+          path: Zoitechat-*-x86_64.AppImage
