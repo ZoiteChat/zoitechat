@@ -1,0 +1,25 @@
+{
+  "name": "python3",
+  "buildsystem": "simple",
+  "build-commands": [
+    "./configure --prefix=/app --enable-shared --with-ensurepip=install",
+    "make -j${FLATPAK_BUILDER_N_JOBS}",
+    "make install"
+  ],
+  "cleanup": [
+    "/bin/2to3",
+    "/bin/idle3",
+    "/bin/pydoc3",
+    "/bin/python3-config",
+    "/lib/python3.12/test",
+    "/lib/python3.12/ensurepip/_bundled",
+    "/share/man"
+  ],
+  "sources": [
+    {
+      "type": "archive",
+      "url": "https://github.com/python/cpython/archive/refs/tags/v3.12.4.tar.gz",
+      "sha256": "9fe6e3672a17a4d9c9ff95aed286115cf196c53eade7d7d864c05bdce0a04f2d"
+    }
+  ]
+}

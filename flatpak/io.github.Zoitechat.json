@@ -5,6 +5,9 @@
   "runtime-version": "49",
   "sdk": "org.gnome.Sdk",
   "command": "zoitechat",
+  "environment": {
+    "PYTHONHOME": "/app"
+  },
   "finish-args": [
     "--share=ipc",
     "--socket=x11",
@@ -33,6 +36,7 @@
     "shared-modules/dbus-glib/dbus-glib.json",
     "shared-modules/lua5.3/lua-5.3.5.json",
     "shared-modules/libcanberra/libcanberra.json",
+    "python3.json",
     "python3-cffi.json",
     {
       "name": "lgi",
