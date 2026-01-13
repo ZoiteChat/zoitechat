@@ -2,10 +2,9 @@ name: Windows ARM64 Installer (MSYS2 + Inno Setup)
 
 on:
   push:
-    branches: [main, master]
+    branches: [master]
   pull_request:
-    branches: [main, master]
-  workflow_dispatch: {}
+    branches: [master]
 
 jobs:
   windows_arm64_installer:
@@ -44,9 +43,7 @@ jobs:
           export MSGFMT="/clangarm64/bin/msgfmt"
           export GETTEXTDATADIR="/clangarm64/share/gettext"
 
-          pacman -S --noconfirm --needed mingw-w64-clang-aarch64-python mingw-w64-clang-aarch64-python-cffi
-
-          rm -rf build dist
+          rm -rf build dist rel
           mkdir -p dist
 
           meson setup build \
@@ -62,10 +59,6 @@ jobs:
             -Dcpp_link_args="-pthread -lwinpthread"
 
           /clangarm64/bin/python.exe -c "import sys, cffi; print('python:', sys.version); print('cffi:', cffi.__version__)"
-
-          APPVER="$(meson introspect build --projectinfo | /clangarm64/bin/python.exe -c 'import json,sys; print(json.load(sys.stdin)[\"version\"])')"
-          echo "APPVER=$APPVER" >> "$GITHUB_ENV"
-          echo "Meson APPVER=$APPVER"
 
       - name: Build
         shell: msys2 {0}
@@ -86,7 +79,6 @@ jobs:
         run: |
           set -euxo pipefail
           export PATH="/clangarm64/bin:$PATH"
-
           DESTDIR="$PWD/dist" ninja -C build install
 
           echo "Installed files (debug):"
@@ -100,7 +92,6 @@ jobs:
           shopt -s nullglob
 
           mapfile -t targets < <(find dist -type f \( -iname 'zoitechat*.exe' -o -ipath '*/plugins/*.dll' \) 2>/dev/null || true)
-
           if [ "${#targets[@]}" -eq 0 ]; then
             echo "No installed binaries/plugins found under dist/ (skipping dep harvest)"
             exit 0
@@ -131,32 +122,28 @@ jobs:
             )
           done
 
-      - name: Prepare Inno Setup source tree (win32/rel)
+      - name: Prepare Inno Setup source tree (rel/)
         shell: msys2 {0}
         run: |
           set -euxo pipefail
           export PATH="/clangarm64/bin:$PATH"
 
-          rm -rf win32/rel
-          mkdir -p win32/rel
+          rm -rf rel
+          mkdir -p rel
 
           app_exe="$(find dist -type f -iname 'zoitechat.exe' | head -n1 || true)"
           if [ -z "$app_exe" ]; then
             echo "zoitechat.exe not found under dist/; cannot build installer."
-            find dist -maxdepth 8 -type f -print || true
             exit 1
           fi
 
           bin_dir="$(dirname "$app_exe")"
           install_root="$(cd "$bin_dir/.." && pwd)"
 
-          echo "app_exe: $app_exe"
-          echo "install_root: $install_root"
+          cp -a "$install_root/." rel/
 
-          cp -a "$install_root/." win32/rel/
-
-          echo "win32/rel contents (debug):"
-          find win32/rel -maxdepth 5 -type f \( -iname 'zoitechat*.exe' -o -iname '*.dll' \) -print || true
+          echo "rel/ contents (debug):"
+          find rel -maxdepth 5 -type f \( -iname 'zoitechat*.exe' -o -iname '*.dll' \) -print || true
 
       - name: Install Inno Setup (find real ISCC.exe)
         shell: pwsh
@@ -170,20 +157,20 @@ jobs:
             iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
           }
 
+          # Force reinstall so we get real binaries in expected locations on these odd runners
           choco install innosetup -y --force --no-progress | Out-Host
 
           $candidates = @()
 
           $pf = ${env:ProgramFiles}
           $pfx86 = ${env:ProgramFiles(x86)}
-          if ($pf)    { $candidates += (Join-Path $pf    "Inno Setup 6\ISCC.exe") }
+          if ($pf)    { $candidates += (Join-Path $pf   "Inno Setup 6\ISCC.exe") }
           if ($pfx86) { $candidates += (Join-Path $pfx86 "Inno Setup 6\ISCC.exe") }
 
           $chocoRoot = ${env:ChocolateyInstall}
           if ($chocoRoot -and (Test-Path $chocoRoot)) {
             $candidates += (Join-Path $chocoRoot "lib\innosetup\tools\ISCC.exe")
             $candidates += (Get-ChildItem -Path (Join-Path $chocoRoot "lib\innosetup") -Recurse -Filter "ISCC.exe" -ErrorAction SilentlyContinue |
-              Where-Object { $_.FullName -notmatch '\\chocolatey\\bin\\' } |
               Select-Object -ExpandProperty FullName -First 10)
           }
 
@@ -210,26 +197,23 @@ jobs:
 
           "ISCC_PATH=$iscc" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
-      - name: Patch ARM64 .iss for CI (disable missing idp.iss)
+      - name: Provide idp.iss stub for CI (unblocks preprocessing)
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
+          $dir = "win32\installer"
+          if (-not (Test-Path $dir)) { throw "Missing installer dir: $dir" }
 
-          $issIn  = "win32\installer\zoitechat-arm64.iss"
-          if (-not (Test-Path $issIn)) {
-            throw "Missing: $issIn"
-          }
+          $stubPath = Join-Path $dir "idp.iss"
 
-          $projectDir = (Resolve-Path "win32\installer").Path
-          $projectDirArg = ($projectDir.TrimEnd('\') + "\\")
-          "PROJECTDIR=$projectDirArg" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          # Only create in CI; don't overwrite if you later commit the real plugin file.
+          if (-not (Test-Path $stubPath)) {
+            @"
+; idp.iss CI stub (no-op).
+; This exists only so '#include <idp.iss>' in the .iss can be resolved on GitHub runners.
+; If you ship the real Inno Download Plugin, replace/remove this file.
 
-          $text = Get-Content $issIn -Raw
-          $text = [regex]::Replace($text, '^\s*#include\s+<idp\.iss>\s*$', '; CI: idp.iss disabled for ARM64 builds', 'Multiline')
-
-          if ($text -notmatch '; CI: IDP STUBS') {
-            $stub = @"
-; CI: IDP STUBS (no-op on ARM64 CI)
+[Code]
 procedure idpDownloadAfter(PageID: Integer);
 begin
 end;
@@ -258,14 +242,12 @@ function idpDownloadFiles: Boolean;
 begin
   Result := True;
 end;
+"@ | Set-Content -Path $stubPath -Encoding ASCII
 
-"@
-            $text = [regex]::Replace($text, '(\[Code\]\s*\r?\n)', "`$1$stub", 'Singleline')
+            Write-Host "Wrote CI stub:" $stubPath
+          } else {
+            Write-Host "idp.iss already exists; leaving it alone."
           }
-
-          $issOut = "win32\installer\zoitechat-arm64.ci.iss"
-          Set-Content -Path $issOut -Value $text -Encoding UTF8
-          Write-Host "Wrote patched CI script: $issOut"
 
       - name: Build ARM64 installer
         shell: pwsh
@@ -277,34 +259,17 @@ end;
             throw "ISCC_PATH missing or invalid."
           }
 
-          $iss = "win32\installer\zoitechat-arm64.ci.iss"
-          if (-not (Test-Path $iss)) {
-            throw "Patched CI script missing: $iss"
+          if (-not (Test-Path "win32\installer\zoitechat-arm64.iss")) {
+            throw "win32\installer\zoitechat-arm64.iss not found."
           }
 
-          if (-not $env:APPVER) { throw "APPVER missing (Meson version export failed)." }
-          if (-not $env:PROJECTDIR) { throw "PROJECTDIR missing." }
-
-          & $iscc "/DAPPARCH=arm64" "/DAPPVER=$env:APPVER" "/DPROJECTDIR=$env:PROJECTDIR" $iss | Out-Host
+          # Ensure '<idp.iss>' resolves from win32\installer
+          & $iscc "/Iwin32\installer" "win32\installer\zoitechat-arm64.iss" | Out-Host
           if ($LASTEXITCODE -ne 0) {
             throw "ISCC failed with exit code $LASTEXITCODE"
           }
 
-          $exe = Get-ChildItem -Path "win32" -Recurse -Filter "*.exe" |
-            Where-Object { $_.Name -match 'Setup' -or $_.Name -match 'Installer' } |
-            Sort-Object LastWriteTime -Descending |
-            Select-Object -First 1
-
-          if (-not $exe) {
-            Write-Host "win32 tree (debug):"
-            Get-ChildItem -Path "win32" -Recurse -Depth 4 | Select-Object FullName | Out-Host
-            throw "Installer exe not found under win32/"
-          }
-
-          Write-Host "Installer built:" $exe.FullName
-          "INSTALLER_EXE=$($exe.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
-
       - uses: actions/upload-artifact@v4
         with:
           name: zoitechat-windows-arm64-installer
-          path: ${{ env.INSTALLER_EXE }}
+          path: win32\installer\Output\*.exe
