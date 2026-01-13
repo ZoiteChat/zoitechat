@@ -913,7 +913,7 @@ servlist_load_defaults (void)
 {
 	int i = 0, j = 0;
 	ircnet *net = NULL;
-	guint def_hash = g_str_hash ("Libera.Chat");
+	guint def_hash = g_str_hash ("Zoite");
 
 	while (1)
 	{
