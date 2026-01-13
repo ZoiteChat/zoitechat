@@ -5,6 +5,9 @@
   "runtime-version": "49",
   "sdk": "org.gnome.Sdk",
   "command": "zoitechat",
+  "build-options": {
+    "cflags": "-Wno-deprecated-declarations"
+  },
   "environment": {
     "PYTHONHOME": "/app"
   },
