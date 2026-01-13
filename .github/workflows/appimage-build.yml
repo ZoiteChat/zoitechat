@@ -1,4 +1,4 @@
-name: ZoiteChat AppImage Build
+name: AppImage Build
 
 on:
   push:
