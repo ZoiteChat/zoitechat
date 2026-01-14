@@ -1,0 +1,62 @@
+name: OpenBSD Package
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  openbsd_package:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Build OpenBSD package
+        uses: vmactions/openbsd-vm@v1
+        with:
+          release: '7.4'
+          usesh: true
+          run: |
+            set -eux
+            pkg_add \
+              git \
+              meson ninja pkgconf gmake \
+              gettext-tools \
+              glib2 gtk+2 dbus-glib libcanberra \
+              luajit openssl
+            cd "$GITHUB_WORKSPACE"
+            rm -rf build staging artifacts
+            meson setup build \
+              -Dtext-frontend=true \
+              -Dtheme-manager=true \
+              -Dplugin=false \
+              -Dauto_features=enabled
+            ninja -C build
+            DESTDIR="$PWD/staging" ninja -C build install
+
+            version="$(meson introspect --projectinfo build | sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')"
+            pkg_name="zoitechat-${version}"
+            plist="$PWD/openbsd-plist"
+
+            {
+              echo "@name ${pkg_name}"
+              echo "@comment OpenBSD package built by GitHub Actions"
+              echo "@cwd /usr/local"
+              find "$PWD/staging/usr/local" -type f -o -type l | sort | sed "s#^$PWD/staging/usr/local/##"
+              find "$PWD/staging/usr/local" -mindepth 1 -type d | sort -r | sed "s#^$PWD/staging/usr/local#@dir #"
+            } > "$plist"
+
+            pkg_create -p /usr/local -f "$plist" -U "$PWD/${pkg_name}.tgz"
+            mkdir -p "$PWD/artifacts"
+            mv "$PWD/${pkg_name}.tgz" "$PWD/artifacts/"
+
+      - name: Upload OpenBSD package
+        uses: actions/upload-artifact@v4
+        with:
+          name: openbsd-package
+          path: artifacts/*.tgz
