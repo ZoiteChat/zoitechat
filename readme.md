@@ -5,6 +5,7 @@
 [![AppImage Build](https://github.com/ZoiteChat/zoitechat/actions/workflows/appimage-build.yml/badge.svg)](https://github.com/ZoiteChat/zoitechat/actions/workflows/appimage-build.yml)
 [![Windows Build](https://github.com/ZoiteChat/zoitechat/actions/workflows/windows-build.yml/badge.svg)](https://github.com/ZoiteChat/zoitechat/actions/workflows/windows-build.yml)
 [![MSYS2 Build](https://github.com/ZoiteChat/zoitechat/actions/workflows/msys-build.yml/badge.svg)](https://github.com/ZoiteChat/zoitechat/actions/workflows/msys-build.yml)
+[![OpenBSD Build](https://github.com/ZoiteChat/zoitechat/actions/workflows/openbsd-build.yml/badge.svg)](https://github.com/ZoiteChat/zoitechat/actions/workflows/openbsd-build.yml)
 
 ZoiteChat is an HexChat based IRC client for Windows and UNIX-like operating systems.  
 See [IRCHelp.org](http://irchelp.org) for information about IRC in general.  
