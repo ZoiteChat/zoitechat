@@ -77,8 +77,8 @@ jobs:
             desc="$work/DESCR"
 
             cat >"$desc" <<'EOF'
-ZoiteChat is an IRC client (HexChat-derived) with a GTK UI and optional tools.
-EOF
+            ZoiteChat is an IRC client (HexChat-derived) with a GTK UI and optional tools.
+            EOF
 
             {
               echo "@name ${pkg_name}"
