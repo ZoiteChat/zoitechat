@@ -344,8 +344,8 @@ fe_notify_ask (char *nick, char *networks)
 	char buf[256];
 
 	dialog = gtk_dialog_new_with_buttons (msg, NULL, 0,
-										GTK_STOCK_CANCEL, GTK_RESPONSE_REJECT,
-										GTK_STOCK_OK, GTK_RESPONSE_ACCEPT,
+										_("_Cancel"), GTK_RESPONSE_REJECT,
+										_("_OK"), GTK_RESPONSE_ACCEPT,
 										NULL);
 	if (parent_window)
 		gtk_window_set_transient_for (GTK_WINDOW (dialog), GTK_WINDOW (parent_window));

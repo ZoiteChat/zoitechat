@@ -512,29 +512,76 @@ fe_get_bool (char *title, char *prompt, void *callback, void *userdata)
 	gtk_widget_show_all (dialog);
 }
 
+/* Convert GTK stock IDs to icon names for GTK3 compatibility */
+static const char *
+stock_to_icon_name (const char *stock)
+{
+	if (!stock)
+		return NULL;
+	
+	if (strcmp (stock, GTK_STOCK_ABOUT) == 0) return "help-about";
+	if (strcmp (stock, GTK_STOCK_ADD) == 0) return "list-add";
+	if (strcmp (stock, GTK_STOCK_APPLY) == 0) return "gtk-apply";
+	if (strcmp (stock, GTK_STOCK_CANCEL) == 0) return "gtk-cancel";
+	if (strcmp (stock, GTK_STOCK_CLEAR) == 0) return "edit-clear";
+	if (strcmp (stock, GTK_STOCK_CLOSE) == 0) return "window-close";
+	if (strcmp (stock, GTK_STOCK_CONNECT) == 0) return "network-wired";
+	if (strcmp (stock, GTK_STOCK_COPY) == 0) return "edit-copy";
+	if (strcmp (stock, GTK_STOCK_DELETE) == 0) return "edit-delete";
+	if (strcmp (stock, GTK_STOCK_DIALOG_ERROR) == 0) return "dialog-error";
+	if (strcmp (stock, GTK_STOCK_DISCONNECT) == 0) return "network-offline";
+	if (strcmp (stock, GTK_STOCK_FIND) == 0) return "edit-find";
+	if (strcmp (stock, GTK_STOCK_GO_BACK) == 0) return "go-previous";
+	if (strcmp (stock, GTK_STOCK_GO_FORWARD) == 0) return "go-next";
+	if (strcmp (stock, GTK_STOCK_HELP) == 0) return "help-browser";
+	if (strcmp (stock, GTK_STOCK_INDEX) == 0) return "gtk-index";
+	if (strcmp (stock, GTK_STOCK_JUMP_TO) == 0) return "go-jump";
+	if (strcmp (stock, GTK_STOCK_JUSTIFY_LEFT) == 0) return "format-justify-left";
+	if (strcmp (stock, GTK_STOCK_MEDIA_PLAY) == 0) return "media-playback-start";
+	if (strcmp (stock, GTK_STOCK_NETWORK) == 0) return "network-workgroup";
+	if (strcmp (stock, GTK_STOCK_NEW) == 0) return "document-new";
+	if (strcmp (stock, GTK_STOCK_NO) == 0) return "gtk-no";
+	if (strcmp (stock, GTK_STOCK_OK) == 0) return "gtk-ok";
+	if (strcmp (stock, GTK_STOCK_OPEN) == 0) return "document-open";
+	if (strcmp (stock, GTK_STOCK_PREFERENCES) == 0) return "preferences-system";
+	if (strcmp (stock, GTK_STOCK_QUIT) == 0) return "application-exit";
+	if (strcmp (stock, GTK_STOCK_REDO) == 0) return "edit-redo";
+	if (strcmp (stock, GTK_STOCK_REFRESH) == 0) return "view-refresh";
+	if (strcmp (stock, GTK_STOCK_REMOVE) == 0) return "list-remove";
+	if (strcmp (stock, GTK_STOCK_REVERT_TO_SAVED) == 0) return "document-revert";
+	if (strcmp (stock, GTK_STOCK_SAVE) == 0) return "document-save";
+	if (strcmp (stock, GTK_STOCK_SAVE_AS) == 0) return "document-save-as";
+	if (strcmp (stock, GTK_STOCK_SPELL_CHECK) == 0) return "tools-check-spelling";
+	if (strcmp (stock, GTK_STOCK_YES) == 0) return "gtk-yes";
+	
+	/* Fallback to a generic icon */
+	return "image-missing";
+}
+
 GtkWidget *
 gtkutil_button (GtkWidget *box, char *stock, char *tip, void *callback,
 					 void *userdata, char *labeltext)
 {
 	GtkWidget *wid, *img, *bbox;
+	const char *icon_name = stock_to_icon_name (stock);
 
 	wid = gtk_button_new ();
 
 	if (labeltext)
 	{
 		gtk_button_set_label (GTK_BUTTON (wid), labeltext);
-		gtk_button_set_image (GTK_BUTTON (wid), gtk_image_new_from_stock (stock, GTK_ICON_SIZE_MENU));
+		gtk_button_set_image (GTK_BUTTON (wid), gtk_image_new_from_icon_name (icon_name, GTK_ICON_SIZE_MENU));
 		gtk_button_set_use_underline (GTK_BUTTON (wid), TRUE);
 		if (box)
 			gtk_container_add (GTK_CONTAINER (box), wid);
 	}
 	else
 	{
-		bbox = gtk_hbox_new (0, 0);
+		bbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
 		gtk_container_add (GTK_CONTAINER (wid), bbox);
 		gtk_widget_show (bbox);
 
-		img = gtk_image_new_from_stock (stock, GTK_ICON_SIZE_MENU);
+		img = gtk_image_new_from_icon_name (icon_name, GTK_ICON_SIZE_MENU);
 		gtk_container_add (GTK_CONTAINER (bbox), img);
 		gtk_widget_show (img);
 		gtk_box_pack_start (GTK_BOX (box), wid, 0, 0, 0);

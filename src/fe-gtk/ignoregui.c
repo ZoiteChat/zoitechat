@@ -360,7 +360,7 @@ ignore_gui_open ()
 	frame = gtk_frame_new (_("Ignore Stats:"));
 	gtk_widget_show (frame);
 
-	stat_box = gtk_hbox_new (0, 2);
+	stat_box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 2);
 	gtk_container_set_border_width (GTK_CONTAINER (stat_box), 6);
 	gtk_container_add (GTK_CONTAINER (frame), stat_box);
 	gtk_widget_show (stat_box);

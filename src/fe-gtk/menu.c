@@ -1412,15 +1412,16 @@ menu_join (GtkWidget * wid, gpointer none)
 	dialog = gtk_dialog_new_with_buttons (_("Join Channel"),
 									GTK_WINDOW (parent_window), 0,
 									_("Retrieve channel list"), GTK_RESPONSE_HELP,
-									GTK_STOCK_CANCEL, GTK_RESPONSE_REJECT,
-									GTK_STOCK_OK, GTK_RESPONSE_ACCEPT,
+									_("_Cancel"), GTK_RESPONSE_REJECT,
+									_("_OK"), GTK_RESPONSE_ACCEPT,
 									NULL);
-	gtk_box_set_homogeneous (GTK_BOX (GTK_DIALOG (dialog)->vbox), TRUE);
+	gtk_box_set_homogeneous (GTK_BOX (gtk_dialog_get_content_area (GTK_DIALOG (dialog))), TRUE);
 	gtk_window_set_position (GTK_WINDOW (dialog), GTK_WIN_POS_MOUSE);
-	hbox = gtk_hbox_new (TRUE, 0);
+	hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
+	gtk_box_set_homogeneous (GTK_BOX (hbox), TRUE);
 
 	entry = gtk_entry_new ();
-	GTK_ENTRY (entry)->editable = 0;	/* avoid auto-selection */
+	gtk_editable_set_editable (GTK_EDITABLE (entry), FALSE);	/* avoid auto-selection */
 	gtk_entry_set_text (GTK_ENTRY (entry), "#");
 	g_signal_connect (G_OBJECT (entry), "activate",
 						 	G_CALLBACK (menu_join_entry_cb), dialog);
@@ -1432,7 +1433,7 @@ menu_join (GtkWidget * wid, gpointer none)
 	g_signal_connect (G_OBJECT (dialog), "response",
 						   G_CALLBACK (menu_join_cb), entry);
 
-	gtk_container_add (GTK_CONTAINER (GTK_DIALOG (dialog)->vbox), hbox);
+	gtk_container_add (GTK_CONTAINER (gtk_dialog_get_content_area (GTK_DIALOG (dialog))), hbox);
 
 	gtk_widget_show_all (dialog);
 
@@ -1890,13 +1891,62 @@ menu_set_fullscreen (session_gui *gui, int full)
 	g_signal_handlers_unblock_by_func (G_OBJECT (item), menu_fullscreen_toggle, NULL);
 }
 
+/* Convert GTK stock IDs to icon names for GTK3 compatibility */
+static const char *
+stock_to_icon_name (const char *stock)
+{
+	if (!stock)
+		return NULL;
+	
+	if (strcmp (stock, GTK_STOCK_ABOUT) == 0) return "help-about";
+	if (strcmp (stock, GTK_STOCK_ADD) == 0) return "list-add";
+	if (strcmp (stock, GTK_STOCK_APPLY) == 0) return "gtk-apply";
+	if (strcmp (stock, GTK_STOCK_CANCEL) == 0) return "gtk-cancel";
+	if (strcmp (stock, GTK_STOCK_CLEAR) == 0) return "edit-clear";
+	if (strcmp (stock, GTK_STOCK_CLOSE) == 0) return "window-close";
+	if (strcmp (stock, GTK_STOCK_CONNECT) == 0) return "network-wired";
+	if (strcmp (stock, GTK_STOCK_COPY) == 0) return "edit-copy";
+	if (strcmp (stock, GTK_STOCK_DELETE) == 0) return "edit-delete";
+	if (strcmp (stock, GTK_STOCK_DIALOG_ERROR) == 0) return "dialog-error";
+	if (strcmp (stock, GTK_STOCK_DISCONNECT) == 0) return "network-offline";
+	if (strcmp (stock, GTK_STOCK_FIND) == 0) return "edit-find";
+	if (strcmp (stock, GTK_STOCK_GO_BACK) == 0) return "go-previous";
+	if (strcmp (stock, GTK_STOCK_GO_FORWARD) == 0) return "go-next";
+	if (strcmp (stock, GTK_STOCK_HELP) == 0) return "help-browser";
+	if (strcmp (stock, GTK_STOCK_INDEX) == 0) return "gtk-index";
+	if (strcmp (stock, GTK_STOCK_JUMP_TO) == 0) return "go-jump";
+	if (strcmp (stock, GTK_STOCK_JUSTIFY_LEFT) == 0) return "format-justify-left";
+	if (strcmp (stock, GTK_STOCK_MEDIA_PLAY) == 0) return "media-playback-start";
+	if (strcmp (stock, GTK_STOCK_NETWORK) == 0) return "network-workgroup";
+	if (strcmp (stock, GTK_STOCK_NEW) == 0) return "document-new";
+	if (strcmp (stock, GTK_STOCK_NO) == 0) return "gtk-no";
+	if (strcmp (stock, GTK_STOCK_OK) == 0) return "gtk-ok";
+	if (strcmp (stock, GTK_STOCK_OPEN) == 0) return "document-open";
+	if (strcmp (stock, GTK_STOCK_PREFERENCES) == 0) return "preferences-system";
+	if (strcmp (stock, GTK_STOCK_QUIT) == 0) return "application-exit";
+	if (strcmp (stock, GTK_STOCK_REDO) == 0) return "edit-redo";
+	if (strcmp (stock, GTK_STOCK_REFRESH) == 0) return "view-refresh";
+	if (strcmp (stock, GTK_STOCK_REMOVE) == 0) return "list-remove";
+	if (strcmp (stock, GTK_STOCK_REVERT_TO_SAVED) == 0) return "document-revert";
+	if (strcmp (stock, GTK_STOCK_SAVE) == 0) return "document-save";
+	if (strcmp (stock, GTK_STOCK_SAVE_AS) == 0) return "document-save-as";
+	if (strcmp (stock, GTK_STOCK_SPELL_CHECK) == 0) return "tools-check-spelling";
+	if (strcmp (stock, GTK_STOCK_YES) == 0) return "gtk-yes";
+	
+	/* Fallback to a generic icon */
+	return "image-missing";
+}
+
 GtkWidget *
 create_icon_menu (char *labeltext, void *stock_name, int is_stock)
 {
 	GtkWidget *item, *img;
 
 	if (is_stock)
-		img = gtk_image_new_from_stock (stock_name, GTK_ICON_SIZE_MENU);
+	{
+		const char *icon_name = stock_to_icon_name (stock_name);
+		img = gtk_image_new_from_icon_name (icon_name, GTK_ICON_SIZE_MENU);
+	}
 	else
 		img = gtk_image_new_from_pixbuf (*((GdkPixbuf **)stock_name));
 	item = gtk_image_menu_item_new_with_mnemonic (labeltext);

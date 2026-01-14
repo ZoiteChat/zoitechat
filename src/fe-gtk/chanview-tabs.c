@@ -289,9 +289,9 @@ cv_tabs_init (chanview *cv)
 	GtkWidget *button;
 
 	if (cv->vertical)
-		outer = gtk_vbox_new (0, 0);
+		outer = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
 	else
-		outer = gtk_hbox_new (0, 0);
+		outer = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
 	((tabview *)cv)->outer = outer;
 	g_signal_connect (G_OBJECT (outer), "size_allocate",
 							G_CALLBACK (cv_tabs_sizealloc), cv);
@@ -308,9 +308,9 @@ cv_tabs_init (chanview *cv)
 	gtk_widget_show (viewport);
 
 	if (cv->vertical)
-		box = gtk_vbox_new (FALSE, 0);
+		box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
 	else
-		box = gtk_hbox_new (FALSE, 0);
+		box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
 	((tabview *)cv)->inner = box;
 	gtk_container_add (GTK_CONTAINER (viewport), box);
 	gtk_widget_show (box);
@@ -318,7 +318,7 @@ cv_tabs_init (chanview *cv)
 	/* if vertical, the buttons can be side by side */
 	if (cv->vertical)
 	{
-		hbox = gtk_hbox_new (FALSE, 0);
+		hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
 		gtk_box_pack_start (GTK_BOX (outer), hbox, 0, 0, 0);
 		gtk_widget_show (hbox);
 	}
@@ -486,12 +486,12 @@ tab_add_real (chanview *cv, GtkWidget *tab, chan *ch)
 	if (cv->vertical)
 	{
 		/* vertical */
-		box = gtk_vbox_new (FALSE, 0);
+		box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
 		sep = gtk_hseparator_new ();
 	} else
 	{
 		/* horiz */
-		box = gtk_hbox_new (FALSE, 0);
+		box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
 		sep = gtk_vseparator_new ();
 	}
 

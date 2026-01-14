@@ -822,7 +822,7 @@ chanlist_opengui (server *serv, int do_refresh)
 							GTK_SHRINK | GTK_FILL, GTK_SHRINK | GTK_FILL, 0, 0);
 	gtk_widget_show (wid);
 
-	hbox = gtk_hbox_new (0, 0);
+	hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
 	gtk_box_set_spacing (GTK_BOX (hbox), 9);
 	gtk_table_attach (GTK_TABLE (table), hbox, 1, 2, 3, 4,
 							GTK_FILL, GTK_FILL, 0, 0);
@@ -865,7 +865,7 @@ chanlist_opengui (server *serv, int do_refresh)
 							GTK_SHRINK | GTK_FILL, GTK_SHRINK | GTK_FILL, 0, 0);
 	gtk_widget_show (wid);
 
-	hbox = gtk_hbox_new (0, 0);
+	hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
 	gtk_box_set_spacing (GTK_BOX (hbox), 12);
 	gtk_table_attach (GTK_TABLE (table), hbox, 1, 2, 2, 3,
 							GTK_FILL, GTK_FILL, 0, 0);

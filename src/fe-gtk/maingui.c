@@ -1221,7 +1221,8 @@ mg_open_quit_dialog (gboolean minimize_button)
 							(GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL),
 							(GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 0);
 	gtk_label_set_use_markup (GTK_LABEL (label), TRUE);
-	gtk_misc_set_alignment (GTK_MISC (label), 0, 0.5);
+	gtk_widget_set_halign (label, GTK_ALIGN_START);
+	gtk_widget_set_valign (label, GTK_ALIGN_CENTER);
 
 	dialog_action_area1 = gtk_dialog_get_action_area (GTK_DIALOG (dialog));
 	gtk_widget_show (dialog_action_area1);
@@ -1235,13 +1236,13 @@ mg_open_quit_dialog (gboolean minimize_button)
 		gtk_dialog_add_action_widget (GTK_DIALOG (dialog), button, 1);
 	}
 
-	button = gtk_button_new_from_stock ("gtk-cancel");
+	button = gtk_button_new_with_mnemonic (_("_Cancel"));
 	gtk_widget_show (button);
 	gtk_dialog_add_action_widget (GTK_DIALOG (dialog), button,
 											GTK_RESPONSE_CANCEL);
 	gtk_widget_grab_focus (button);
 
-	button = gtk_button_new_from_stock ("gtk-quit");
+	button = gtk_button_new_with_mnemonic (_("_Quit"));
 	gtk_widget_show (button);
 	gtk_dialog_add_action_widget (GTK_DIALOG (dialog), button, 0);
 
@@ -2173,7 +2174,7 @@ mg_create_topicbar (session *sess, GtkWidget *box)
 	GtkWidget *hbox, *topic, *bbox;
 	session_gui *gui = sess->gui;
 
-	gui->topic_bar = hbox = gtk_hbox_new (FALSE, 0);
+	gui->topic_bar = hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
 	gtk_box_pack_start (GTK_BOX (box), hbox, 0, 0, 0);
 
 	if (!gui->is_tab)
@@ -2189,11 +2190,11 @@ mg_create_topicbar (session *sess, GtkWidget *box)
 	if (prefs.hex_gui_input_style)
 		mg_apply_entry_style (topic);
 
-	gui->topicbutton_box = bbox = gtk_hbox_new (FALSE, 0);
+	gui->topicbutton_box = bbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
 	gtk_box_pack_start (GTK_BOX (hbox), bbox, 0, 0, 0);
 	mg_create_chanmodebuttons (gui, bbox);
 
-	gui->dialogbutton_box = bbox = gtk_hbox_new (FALSE, 0);
+	gui->dialogbutton_box = bbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
 	gtk_box_pack_start (GTK_BOX (hbox), bbox, 0, 0, 0);
 	mg_create_dialogbuttons (bbox);
 }
@@ -2334,9 +2335,9 @@ mg_create_textarea (session *sess, GtkWidget *box)
 		{"HEXCHAT_USERLIST", GTK_TARGET_SAME_APP, 75 }
 	};
 
-	vbox = gtk_vbox_new (FALSE, 0);
+	vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
 	gtk_container_add (GTK_CONTAINER (box), vbox);
-	inbox = gtk_hbox_new (FALSE, 2);
+	inbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 2);
 	gtk_container_add (GTK_CONTAINER (vbox), inbox);
 
 	frame = gtk_frame_new (NULL);
@@ -2385,7 +2386,7 @@ mg_create_infoframe (GtkWidget *box)
 	gtk_frame_set_shadow_type ((GtkFrame*)frame, GTK_SHADOW_OUT);
 	gtk_container_add (GTK_CONTAINER (box), frame);
 
-	hbox = gtk_hbox_new (0, 0);
+	hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
 	gtk_container_add (GTK_CONTAINER (frame), hbox);
 
 	label = gtk_label_new (NULL);
@@ -2399,12 +2400,12 @@ mg_create_meters (session_gui *gui, GtkWidget *parent_box)
 {
 	GtkWidget *infbox, *wid, *box;
 
-	gui->meter_box = infbox = box = gtk_vbox_new (0, 1);
+	gui->meter_box = infbox = box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 1);
 	gtk_box_pack_start (GTK_BOX (parent_box), box, 0, 0, 0);
 
 	if ((prefs.hex_gui_lagometer & 2) || (prefs.hex_gui_throttlemeter & 2))
 	{
-		infbox = gtk_hbox_new (0, 0);
+		infbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
 		gtk_box_pack_start (GTK_BOX (box), infbox, 0, 0, 0);
 	}
 
@@ -2465,7 +2466,7 @@ mg_create_userlist (session_gui *gui, GtkWidget *box)
 {
 	GtkWidget *frame, *ulist, *vbox;
 
-	vbox = gtk_vbox_new (0, 1);
+	vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 1);
 	gtk_container_add (GTK_CONTAINER (box), vbox);
 
 	frame = gtk_frame_new (NULL);
@@ -2577,13 +2578,13 @@ mg_create_center (session *sess, session_gui *gui, GtkWidget *box)
 	gtk_notebook_set_show_border (GTK_NOTEBOOK (book), FALSE);
 	gtk_paned_pack1 (GTK_PANED (gui->hpane_right), book, TRUE, TRUE);
 
-	hbox = gtk_hbox_new (FALSE, 0);
+	hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
 	gtk_paned_pack1 (GTK_PANED (gui->vpane_right), hbox, FALSE, TRUE);
 	mg_create_userlist (gui, hbox);
 
 	gui->user_box = hbox;
 
-	vbox = gtk_vbox_new (FALSE, 3);
+	vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 3);
 	gtk_notebook_append_page (GTK_NOTEBOOK (book), vbox, NULL);
 	mg_create_topicbar (sess, vbox);
 
@@ -2917,7 +2918,7 @@ mg_create_search(session *sess, GtkWidget *box)
 	GtkWidget *entry, *label, *next, *previous, *highlight, *matchcase, *regex, *close;
 	session_gui *gui = sess->gui;
 
-	gui->shbox = gtk_hbox_new(FALSE, 5);
+	gui->shbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 5);
 	gtk_box_pack_start(GTK_BOX(box), gui->shbox, FALSE, FALSE, 0);
 
 	close = gtk_button_new ();
@@ -2982,10 +2983,10 @@ mg_create_entry (session *sess, GtkWidget *box)
 	GtkWidget *hbox, *but, *entry;
 	session_gui *gui = sess->gui;
 
-	hbox = gtk_hbox_new (FALSE, 0);
+	hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
 	gtk_box_pack_start (GTK_BOX (box), hbox, 0, 0, 0);
 
-	gui->nick_box = gtk_hbox_new (FALSE, 0);
+	gui->nick_box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
 	gtk_box_pack_start (GTK_BOX (hbox), gui->nick_box, 0, 0, 0);
 
 	gui->nick_label = but = gtk_button_new_with_label (sess->server->nick);
@@ -3132,7 +3133,7 @@ mg_create_irctab (session *sess, GtkWidget *table)
 	GtkWidget *vbox;
 	session_gui *gui = sess->gui;
 
-	vbox = gtk_vbox_new (FALSE, 0);
+	vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
 	gtk_table_attach (GTK_TABLE (table), vbox, 1, 2, 2, 3,
 						   GTK_EXPAND | GTK_FILL, GTK_EXPAND | GTK_FILL, 0, 0);
 	mg_create_center (sess, gui, vbox);
@@ -3453,7 +3454,7 @@ fe_dlgbuttons_update (session *sess)
 
 	gtk_widget_destroy (gui->dialogbutton_box);
 
-	gui->dialogbutton_box = box = gtk_hbox_new (0, 0);
+	gui->dialogbutton_box = box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
 	gtk_box_pack_start (GTK_BOX (gui->topic_bar), box, 0, 0, 0);
 	gtk_box_reorder_child (GTK_BOX (gui->topic_bar), box, 3);
 	mg_create_dialogbuttons (box);
@@ -3606,7 +3607,7 @@ mg_create_generic_tab (char *name, char *title, int force_toplevel,
 	if (force_toplevel || !prefs.hex_gui_tab_utils)
 	{
 		win = gtkutil_window_new (title, name, width, height, 2);
-		vbox = gtk_vbox_new (0, 0);
+		vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
 		*vbox_ret = vbox;
 		gtk_container_add (GTK_CONTAINER (win), vbox);
 		gtk_widget_show (vbox);
@@ -3616,7 +3617,7 @@ mg_create_generic_tab (char *name, char *title, int force_toplevel,
 		return win;
 	}
 
-	vbox = gtk_vbox_new (0, 2);
+	vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 2);
 	g_object_set_data (G_OBJECT (vbox), "w", GINT_TO_POINTER (width));
 	g_object_set_data (G_OBJECT (vbox), "h", GINT_TO_POINTER (height));
 	gtk_container_set_border_width (GTK_CONTAINER (vbox), 3);
@@ -3630,7 +3631,7 @@ mg_create_generic_tab (char *name, char *title, int force_toplevel,
 
 /*	if (link_buttons)
 	{
-		hbox = gtk_hbox_new (FALSE, 0);
+		hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
 		gtk_box_pack_start (GTK_BOX (vbox), hbox, 0, 0, 0);
 		mg_create_link_buttons (hbox, ch);
 		gtk_widget_show (hbox);

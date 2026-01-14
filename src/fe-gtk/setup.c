@@ -852,7 +852,7 @@ setup_create_spin (GtkWidget *table, int row, const setting *set)
 	gtk_table_attach (GTK_TABLE (table), align, 3, 4, row, row + 1,
 							GTK_EXPAND | GTK_FILL, GTK_SHRINK | GTK_FILL, 0, 0);
 
-	rbox = gtk_hbox_new (0, 0);
+	rbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
 	gtk_container_add (GTK_CONTAINER (align), rbox);
 
 	wid = gtk_spin_button_new_with_range (0, set->extra, 1);
@@ -972,7 +972,7 @@ setup_create_radio (GtkWidget *table, int row, const setting *set)
 	gtk_table_attach (GTK_TABLE (table), wid, 2, 3, row, row + 1,
 							GTK_SHRINK | GTK_FILL, GTK_SHRINK | GTK_FILL, LABEL_INDENT, 0);
 
-	hbox = gtk_hbox_new (0, 0);
+	hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
 	gtk_table_attach (GTK_TABLE (table), hbox, 3, 4, row, row + 1,
 							GTK_SHRINK | GTK_FILL, GTK_SHRINK | GTK_FILL, 0, 0);
 
@@ -1091,7 +1091,7 @@ setup_create_menu (GtkWidget *table, int row, const setting *set)
 	g_signal_connect (G_OBJECT (cbox), "changed",
 							G_CALLBACK (setup_menu_cb), (gpointer)set);
 
-	box = gtk_hbox_new (0, 0);
+	box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
 	gtk_box_pack_start (GTK_BOX (box), cbox, 0, 0, 0);
 	gtk_table_attach (GTK_TABLE (table), box, 3, 4, row, row + 1,
 							GTK_EXPAND | GTK_FILL, GTK_SHRINK | GTK_FILL, 0, 0);
@@ -1575,7 +1575,7 @@ setup_create_color_page (void)
 	GtkWidget *tab, *box, *label;
 	int i;
 
-	box = gtk_vbox_new (FALSE, 0);
+	box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
 	gtk_container_set_border_width (GTK_CONTAINER (box), 6);
 
 	tab = gtk_table_new (9, 2, FALSE);
@@ -1820,11 +1820,11 @@ setup_create_sound_page (void)
 	GtkWidget *sound_play;
 	GtkTreeSelection *sel;
 
-	vbox1 = gtk_vbox_new (FALSE, 0);
+	vbox1 = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
 	gtk_container_set_border_width (GTK_CONTAINER (vbox1), 6);
 	gtk_widget_show (vbox1);
 
-	vbox2 = gtk_vbox_new (FALSE, 0);
+	vbox2 = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
 	gtk_widget_show (vbox2);
 	gtk_container_add (GTK_CONTAINER (vbox1), vbox2);
 
@@ -1900,7 +1900,7 @@ setup_add_page (const char *title, GtkWidget *book, GtkWidget *tab)
 	GtkScrolledWindow *sw;
 	char buf[128];
 
-	vvbox = gtk_vbox_new (FALSE, 0);
+	vvbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
 
 	/* label */
 	label = gtk_label_new (NULL);
@@ -2378,11 +2378,11 @@ setup_window_open (void)
 	g_snprintf(buf, sizeof(buf), _("Preferences - %s"), _(DISPLAY_NAME));
 	win = gtkutil_window_new (buf, "prefs", 0, 600, 2);
 
-	vbox = gtk_vbox_new (FALSE, 5);
+	vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 5);
 	gtk_container_set_border_width (GTK_CONTAINER (vbox), 6);
 	gtk_container_add (GTK_CONTAINER (win), vbox);
 
-	hbox = gtk_hbox_new (FALSE, 4);
+	hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 4);
 	gtk_container_add (GTK_CONTAINER (vbox), hbox);
 
 	setup_create_tree (hbox, setup_create_pages (hbox));
