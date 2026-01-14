@@ -30,9 +30,8 @@ export GTK_DATA_PREFIX="$bundle_res"
 export GTK_EXE_PREFIX="$bundle_res"
 export GTK_PATH="$bundle_res"
 
-export GTK2_RC_FILES="$bundle_etc/gtk-2.0/gtkrc"
-export GTK_IM_MODULE_FILE="$bundle_etc/gtk-2.0/gtk.immodules"
-export GDK_PIXBUF_MODULE_FILE="$bundle_etc/gtk-2.0/gdk-pixbuf.loaders"
+export GTK_IM_MODULE_FILE="$bundle_etc/gtk-3.0/gtk.immodules"
+export GDK_PIXBUF_MODULE_FILE="$bundle_etc/gtk-3.0/gdk-pixbuf.loaders"
 export PANGO_LIBDIR="$bundle_lib"
 export PANGO_SYSCONFDIR="$bundle_etc"
 
