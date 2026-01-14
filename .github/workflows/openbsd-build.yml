@@ -29,7 +29,7 @@ jobs:
               meson ninja pkgconf gmake \
               gettext-tools \
               glib2 gtk+2 dbus-glib libcanberra \
-              luajit openssl
+              luajit mono libgdiplus openssl
             cd "$GITHUB_WORKSPACE"
             rm -rf build staging artifacts
             meson setup build \
