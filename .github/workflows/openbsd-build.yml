@@ -1,0 +1,118 @@
+name: OpenBSD Package
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  openbsd_package:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Build OpenBSD package
+        uses: vmactions/openbsd-vm@v1
+        with:
+          release: '7.5'
+          usesh: true
+          sync: rsync
+          run: |
+            set -eux
+
+            rdate -n pool.ntp.org
+            export PKG_PATH="https://ftp.openbsd.org/pub/OpenBSD/7.5/packages/$(uname -m)/"
+
+            pkg_add -U \
+              git \
+              meson ninja pkgconf gmake \
+              gettext-tools \
+              glib2 gtk+2 dbus-glib libcanberra \
+              luajit mono libgdiplus openssl
+
+            work="$(mktemp -d /tmp/zoitechat.XXXXXX)"
+            trap 'rm -rf "$work"' EXIT
+
+            rsync -a --delete "$GITHUB_WORKSPACE"/ "$work/src/"
+            cd "$work/src"
+
+            rm -rf build
+            meson setup build \
+              --prefix=/usr/local \
+              -Dtext-frontend=true \
+              -Dtheme-manager=true \
+              -Dplugin=false \
+              -Dauto_features=enabled
+
+            ninja -C build
+
+            staging="$work/staging"
+            rm -rf "$staging"
+            mkdir -p "$staging"
+
+            # Staged install
+            DESTDIR="$staging" meson install -C build --no-rebuild
+
+            # If these exist, something ignored DESTDIR (install scripts are leaking)
+            ls -l /usr/local/bin/zoitechat /usr/local/bin/thememan 2>/dev/null || true
+
+            sync
+            sleep 1
+            sync
+
+            # Freeze staged tree so pkg_create doesn't see moving targets
+            snap="$work/staging-snap"
+            rm -rf "$snap"
+            mkdir -p "$snap"
+            (cd "$staging" && pax -rw -pe . "$snap")
+
+            version="$(meson introspect --projectinfo build | sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')"
+            pkg_name="zoitechat-${version}"
+            pkg_file="${pkg_name}.tgz"
+            plist="$work/openbsd-plist"
+            desc="$work/DESCR"
+
+            cat >"$desc" <<'EOF'
+            ZoiteChat is an IRC client (HexChat-derived) with a GTK UI and optional tools.
+            EOF
+
+            {
+              echo "@cwd /usr/local"
+
+              # Files + symlinks
+              find "$snap/usr/local" \( -type f -o -type l \) -print \
+                | LC_ALL=C sort \
+                | sed "s#^$snap/usr/local/##"
+
+              # Directories (reverse so children removed first)
+              find "$snap/usr/local" -mindepth 1 -type d -print \
+                | LC_ALL=C sort -r \
+                | sed "s#^$snap/usr/local/##" \
+                | sed 's#^#@dir #'
+            } > "$plist"
+
+            # OpenBSD pkg_create: COMMENT is set via -D COMMENT=... (mandatory), no -c flag exists.
+            # Create the .tgz in $work so we can copy it back out.
+            cd "$work"
+            pkg_create \
+              -B "$snap" \
+              -p /usr/local \
+              -f "$plist" \
+              -d "$desc" \
+              -D "COMMENT=ZoiteChat IRC client" \
+              -D "FULLPKGPATH=net/zoitechat" \
+              "$pkg_file"
+
+            mkdir -p "$GITHUB_WORKSPACE/artifacts"
+            cp "$work/$pkg_file" "$GITHUB_WORKSPACE/artifacts/"
+
+      - name: Upload OpenBSD package
+        uses: actions/upload-artifact@v4
+        with:
+          name: openbsd-package
+          path: artifacts/*.tgz
