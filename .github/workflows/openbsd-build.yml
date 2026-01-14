@@ -73,37 +73,43 @@ jobs:
 
             version="$(meson introspect --projectinfo build | sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')"
             pkg_name="zoitechat-${version}"
+            pkg_file="${pkg_name}.tgz"
             plist="$work/openbsd-plist"
             desc="$work/DESCR"
 
             cat >"$desc" <<'EOF'
-            ZoiteChat is an IRC client (HexChat-derived) with a GTK UI and optional tools.
-            EOF
+ZoiteChat is an IRC client (HexChat-derived) with a GTK UI and optional tools.
+EOF
 
             {
-              echo "@name ${pkg_name}"
               echo "@cwd /usr/local"
 
+              # Files + symlinks
               find "$snap/usr/local" \( -type f -o -type l \) -print \
                 | LC_ALL=C sort \
                 | sed "s#^$snap/usr/local/##"
 
+              # Directories (reverse so children removed first)
               find "$snap/usr/local" -mindepth 1 -type d -print \
                 | LC_ALL=C sort -r \
                 | sed "s#^$snap/usr/local/##" \
                 | sed 's#^#@dir #'
             } > "$plist"
 
+            # OpenBSD pkg_create: COMMENT is set via -D COMMENT=... (mandatory), no -c flag exists.
+            # Create the .tgz in $work so we can copy it back out.
+            cd "$work"
             pkg_create \
               -B "$snap" \
               -p /usr/local \
               -f "$plist" \
-              -c "ZoiteChat IRC client" \
               -d "$desc" \
-              "$work/${pkg_name}.tgz"
+              -D "COMMENT=ZoiteChat IRC client" \
+              -D "FULLPKGPATH=net/zoitechat" \
+              "$pkg_file"
 
             mkdir -p "$GITHUB_WORKSPACE/artifacts"
-            cp "$work/${pkg_name}.tgz" "$GITHUB_WORKSPACE/artifacts/"
+            cp "$work/$pkg_file" "$GITHUB_WORKSPACE/artifacts/"
 
       - name: Upload OpenBSD package
         uses: actions/upload-artifact@v4
