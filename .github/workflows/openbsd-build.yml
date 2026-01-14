@@ -23,7 +23,7 @@ jobs:
           usesh: true
           run: |
             set -eux
-            export PKG_PATH="https://cdn.openbsd.org/pub/OpenBSD/7.5/packages/$(uname -m)/"
+            export PKG_PATH="https://ftp.openbsd.org/pub/OpenBSD/7.5/packages/$(uname -m)/"
             pkg_add -U \
               git \
               meson ninja pkgconf gmake \
