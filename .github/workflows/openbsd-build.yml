@@ -1,4 +1,4 @@
-name: OpenBSD Package
+name: OpenBSD Build
 
 on:
   push:
