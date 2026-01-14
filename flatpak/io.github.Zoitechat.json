@@ -53,7 +53,7 @@
         "-Ddbus-service-use-appid=true",
         "-Dwith-perl=false",
         "-Dwith-python=false",
-        "-Dwith-lua=true"
+        "-Dwith-lua=lua"
       ],
       "build-options": {
         "cflags": "-Wno-error=missing-include-dirs"
