@@ -21,42 +21,70 @@ jobs:
         with:
           release: '7.5'
           usesh: true
-          sync: true
+          sync: rsync   # IMPORTANT: don't use `true`
           run: |
             set -eux
+
+            # Keep time sane
             rdate -n pool.ntp.org
+
             export PKG_PATH="https://ftp.openbsd.org/pub/OpenBSD/7.5/packages/$(uname -m)/"
+
             pkg_add -U \
               git \
               meson ninja pkgconf gmake \
               gettext-tools \
               glib2 gtk+2 dbus-glib libcanberra \
               luajit mono libgdiplus openssl
-            cd "$GITHUB_WORKSPACE"
-            rm -rf build staging artifacts
+
+            # Build on local disk (NOT the synced/mounted workspace)
+            work="$(mktemp -d /tmp/zoitechat.XXXXXX)"
+            trap 'rm -rf "$work"' EXIT
+            rsync -a --delete "$GITHUB_WORKSPACE"/ "$work/src/"
+            cd "$work/src"
+
+            rm -rf build
             meson setup build \
+              --prefix=/usr/local \
               -Dtext-frontend=true \
               -Dtheme-manager=true \
               -Dplugin=false \
               -Dauto_features=enabled
+
             ninja -C build
-            DESTDIR="$PWD/staging" ninja -C build install
+
+            staging="$work/staging"
+            rm -rf "$staging"
+            DESTDIR="$staging" ninja -C build install
+
+            # Force flush in case the FS is weird
+            sync
 
             version="$(meson introspect --projectinfo build | sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')"
             pkg_name="zoitechat-${version}"
-            plist="$PWD/openbsd-plist"
+            plist="$work/openbsd-plist"
 
             {
               echo "@name ${pkg_name}"
               echo "@comment OpenBSD package built by GitHub Actions"
               echo "@cwd /usr/local"
-              find "$PWD/staging/usr/local" -type f -o -type l | sort | sed "s#^$PWD/staging/usr/local/##"
-              find "$PWD/staging/usr/local" -mindepth 1 -type d | sort -r | sed "s#^$PWD/staging/usr/local/##" | sed 's#^#@dir #'
+
+              # Files + symlinks
+              find "$staging/usr/local" \( -type f -o -type l \) -print \
+                | LC_ALL=C sort \
+                | sed "s#^$staging/usr/local/##"
+
+              # Directories (reverse so children removed first)
+              find "$staging/usr/local" -mindepth 1 -type d -print \
+                | LC_ALL=C sort -r \
+                | sed "s#^$staging/usr/local/##" \
+                | sed 's#^#@dir #'
             } > "$plist"
 
-            pkg_create -B "$PWD/staging" -p /usr/local -f "$plist" -U "$PWD/${pkg_name}.tgz"
-            mkdir -p "$PWD/artifacts"
-            mv "$PWD/${pkg_name}.tgz" "$PWD/artifacts/"
+            pkg_create -B "$staging" -p /usr/local -f "$plist" -U "$work/${pkg_name}.tgz"
+
+            mkdir -p "$GITHUB_WORKSPACE/artifacts"
+            cp "$work/${pkg_name}.tgz" "$GITHUB_WORKSPACE/artifacts/"
 
       - name: Upload OpenBSD package
         uses: actions/upload-artifact@v4
