@@ -52,7 +52,7 @@ jobs:
               find "$PWD/staging/usr/local" -mindepth 1 -type d | sort -r | sed "s#^$PWD/staging/usr/local/##" | sed 's#^#@dir #'
             } > "$plist"
 
-            pkg_create -p /usr/local -f "$plist" -U "$PWD/${pkg_name}.tgz"
+            pkg_create -B "$PWD/staging" -p /usr/local -f "$plist" -U "$PWD/${pkg_name}.tgz"
             mkdir -p "$PWD/artifacts"
             mv "$PWD/${pkg_name}.tgz" "$PWD/artifacts/"
 
