@@ -24,6 +24,7 @@ jobs:
           sync: true
           run: |
             set -eux
+            ntpd -s
             export PKG_PATH="https://ftp.openbsd.org/pub/OpenBSD/7.5/packages/$(uname -m)/"
             pkg_add -U \
               git \
