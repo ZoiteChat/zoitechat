@@ -21,13 +21,11 @@ jobs:
         with:
           release: '7.5'
           usesh: true
-          sync: rsync   # IMPORTANT: don't use `true`
+          sync: rsync
           run: |
             set -eux
 
-            # Keep time sane
             rdate -n pool.ntp.org
-
             export PKG_PATH="https://ftp.openbsd.org/pub/OpenBSD/7.5/packages/$(uname -m)/"
 
             pkg_add -U \
@@ -37,9 +35,9 @@ jobs:
               glib2 gtk+2 dbus-glib libcanberra \
               luajit mono libgdiplus openssl
 
-            # Build on local disk (NOT the synced/mounted workspace)
             work="$(mktemp -d /tmp/zoitechat.XXXXXX)"
             trap 'rm -rf "$work"' EXIT
+
             rsync -a --delete "$GITHUB_WORKSPACE"/ "$work/src/"
             cd "$work/src"
 
@@ -55,33 +53,54 @@ jobs:
 
             staging="$work/staging"
             rm -rf "$staging"
-            DESTDIR="$staging" ninja -C build install
+            mkdir -p "$staging"
 
-            # Force flush in case the FS is weird
+            # Staged install
+            DESTDIR="$staging" meson install -C build --no-rebuild
+
+            # If these exist, something ignored DESTDIR (install scripts are leaking)
+            ls -l /usr/local/bin/zoitechat /usr/local/bin/thememan 2>/dev/null || true
+
             sync
+            sleep 1
+            sync
+
+            # Freeze staged tree so pkg_create doesn't see moving targets
+            snap="$work/staging-snap"
+            rm -rf "$snap"
+            mkdir -p "$snap"
+            (cd "$staging" && pax -rw -pe . "$snap")
 
             version="$(meson introspect --projectinfo build | sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')"
             pkg_name="zoitechat-${version}"
             plist="$work/openbsd-plist"
+            desc="$work/DESCR"
+
+            cat >"$desc" <<'EOF'
+ZoiteChat is an IRC client (HexChat-derived) with a GTK UI and optional tools.
+EOF
 
             {
               echo "@name ${pkg_name}"
-              echo "@comment OpenBSD package built by GitHub Actions"
               echo "@cwd /usr/local"
 
-              # Files + symlinks
-              find "$staging/usr/local" \( -type f -o -type l \) -print \
+              find "$snap/usr/local" \( -type f -o -type l \) -print \
                 | LC_ALL=C sort \
-                | sed "s#^$staging/usr/local/##"
+                | sed "s#^$snap/usr/local/##"
 
-              # Directories (reverse so children removed first)
-              find "$staging/usr/local" -mindepth 1 -type d -print \
+              find "$snap/usr/local" -mindepth 1 -type d -print \
                 | LC_ALL=C sort -r \
-                | sed "s#^$staging/usr/local/##" \
+                | sed "s#^$snap/usr/local/##" \
                 | sed 's#^#@dir #'
             } > "$plist"
 
-            pkg_create -B "$staging" -p /usr/local -f "$plist" -U "$work/${pkg_name}.tgz"
+            pkg_create \
+              -B "$snap" \
+              -p /usr/local \
+              -f "$plist" \
+              -c "ZoiteChat IRC client" \
+              -d "$desc" \
+              "$work/${pkg_name}.tgz"
 
             mkdir -p "$GITHUB_WORKSPACE/artifacts"
             cp "$work/${pkg_name}.tgz" "$GITHUB_WORKSPACE/artifacts/"
