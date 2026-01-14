@@ -105,8 +105,8 @@ jobs:
 
           ./linuxdeploy-x86_64.AppImage \
             --appdir AppDir \
-            --desktop-file AppDir/usr/share/applications/io.github.Zoitechat.desktop \
-            --icon-file AppDir/usr/share/icons/hicolor/48x48/apps/io.github.Zoitechat.png \
+            --desktop-file AppDir/usr/share/applications/net.zoite.Zoitechat.desktop \
+            --icon-file AppDir/usr/share/icons/hicolor/48x48/apps/net.zoite.Zoitechat.png \
             --custom-apprun ./AppRun \
             --plugin gtk \
             --output appimage

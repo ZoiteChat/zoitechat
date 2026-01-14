@@ -1,5 +1,5 @@
 {
-  "app-id": "io.github.Zoitechat",
+  "app-id": "net.zoite.Zoitechat",
   "branch": "stable",
   "runtime": "org.gnome.Platform",
   "runtime-version": "49",
@@ -17,7 +17,7 @@
     "--talk-name=org.mpris.MediaPlayer2.*"
   ],
   "add-extensions": {
-    "io.github.Zoitechat.Plugin": {
+    "net.zoite.Zoitechat.Plugin": {
       "version": "20.08",
       "directory": "extensions",
       "add-ld-path": "lib",

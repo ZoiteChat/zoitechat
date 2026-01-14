@@ -33,52 +33,52 @@ msgstr ""
 "Language: pl\n"
 "Plural-Forms: nplurals=4; plural=(n==1 ? 0 : (n%10>=2 && n%10<=4) && (n%100<12 || n%100>14) ? 1 : n!=1 && (n%10>=0 && n%10<=1) || (n%10>=5 && n%10<=9) || (n%100>=12 && n%100<=14) ? 2 : 3);\n"
 
-#: data/misc/io.github.Zoitechat.appdata.xml.in:4
-#: data/misc/io.github.Zoitechat.appdata.xml.in:5
-#: data/misc/io.github.Zoitechat.desktop.in.in:3
+#: data/misc/net.zoite.Zoitechat.appdata.xml.in:4
+#: data/misc/net.zoite.Zoitechat.appdata.xml.in:5
+#: data/misc/net.zoite.Zoitechat.desktop.in.in:3
 msgid "ZoiteChat"
 msgstr "ZoiteChat"
 
-#: data/misc/io.github.Zoitechat.appdata.xml.in:9
-#: data/misc/io.github.Zoitechat.desktop.in.in:4
+#: data/misc/net.zoite.Zoitechat.appdata.xml.in:9
+#: data/misc/net.zoite.Zoitechat.desktop.in.in:4
 msgid "IRC Client"
 msgstr "Klient IRC"
 
-#: data/misc/io.github.Zoitechat.appdata.xml.in:11
+#: data/misc/net.zoite.Zoitechat.appdata.xml.in:11
 msgid ""
 "ZoiteChat is an easy to use yet extensible IRC Client. It allows you to "
 "securely join multiple networks and talk to users privately or in channels "
 "using a customizable interface. You can even transfer files."
 msgstr "ZoiteChat jest prostym, lecz dowolnie poszerzalnym klientem IRC. Pozwala na bezpieczne dołączenie do wielu sieci i rozmawianie z użytkownikami prywatnie bądź na kanałach. Można nawet przesyłać pliki."
 
-#: data/misc/io.github.Zoitechat.appdata.xml.in:12
+#: data/misc/net.zoite.Zoitechat.appdata.xml.in:12
 msgid ""
 "ZoiteChat supports features such as: DCC, SASL, proxies, spellcheck, alerts, "
 "logging, custom themes, and Python/Perl scripts."
 msgstr "ZoiteChat wspiera takie funkcje, jak: DCC, SASL, serwery proxy, sprawdzanie pisowni, alerty, logi, własne motywy i skrypty w Pythonie/Perlu."
 
-#: data/misc/io.github.Zoitechat.appdata.xml.in:22
+#: data/misc/net.zoite.Zoitechat.appdata.xml.in:22
 msgid "Main Chat Window"
 msgstr "Główne okno czatu"
 
-#: data/misc/io.github.Zoitechat.desktop.in.in:5
+#: data/misc/net.zoite.Zoitechat.desktop.in.in:5
 msgid "Chat with other people online"
 msgstr "Rozmawiaj z innymi ludźmi przez internet"
 
-#: data/misc/io.github.Zoitechat.desktop.in.in:6
+#: data/misc/net.zoite.Zoitechat.desktop.in.in:6
 msgid "IM;Chat;"
 msgstr "IM;Chat;"
 
-#: data/misc/io.github.Zoitechat.desktop.in.in:8
-#: data/misc/io.github.Zoitechat.ThemeManager.desktop.in:5
+#: data/misc/net.zoite.Zoitechat.desktop.in.in:8
+#: data/misc/net.zoite.Zoitechat.ThemeManager.desktop.in:5
 msgid "zoitechat"
 msgstr "zoitechat"
 
-#: data/misc/io.github.Zoitechat.desktop.in.in:19
+#: data/misc/net.zoite.Zoitechat.desktop.in.in:19
 msgid "Open Safe Mode"
 msgstr "Otwórz tryb bezpieczny"
 
-#: data/misc/io.github.Zoitechat.ThemeManager.desktop.in:3
+#: data/misc/net.zoite.Zoitechat.ThemeManager.desktop.in:3
 msgid "ZoiteChat Theme Manager"
 msgstr "Menedżer motywów ZoiteChat"
 

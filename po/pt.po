@@ -23,52 +23,52 @@ msgstr ""
 "Language: pt\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: data/misc/io.github.Zoitechat.appdata.xml.in:4
-#: data/misc/io.github.Zoitechat.appdata.xml.in:5
-#: data/misc/io.github.Zoitechat.desktop.in.in:3
+#: data/misc/net.zoite.Zoitechat.appdata.xml.in:4
+#: data/misc/net.zoite.Zoitechat.appdata.xml.in:5
+#: data/misc/net.zoite.Zoitechat.desktop.in.in:3
 msgid "ZoiteChat"
 msgstr "ZoiteChat"
 
-#: data/misc/io.github.Zoitechat.appdata.xml.in:9
-#: data/misc/io.github.Zoitechat.desktop.in.in:4
+#: data/misc/net.zoite.Zoitechat.appdata.xml.in:9
+#: data/misc/net.zoite.Zoitechat.desktop.in.in:4
 msgid "IRC Client"
 msgstr "Cliente de IRC"
 
-#: data/misc/io.github.Zoitechat.appdata.xml.in:11
+#: data/misc/net.zoite.Zoitechat.appdata.xml.in:11
 msgid ""
 "ZoiteChat is an easy to use yet extensible IRC Client. It allows you to "
 "securely join multiple networks and talk to users privately or in channels "
 "using a customizable interface. You can even transfer files."
 msgstr "O ZoiteChat é um Cliente de IRC fácil de usar, mas também fácil de expandir. Ele permite que te juntes de forma segura a várias redes e que fales com outros utilizadores em privado ou em canais através de uma interface personalizável. Se quiseres, podes até transferir ficheiros!"
 
-#: data/misc/io.github.Zoitechat.appdata.xml.in:12
+#: data/misc/net.zoite.Zoitechat.appdata.xml.in:12
 msgid ""
 "ZoiteChat supports features such as: DCC, SASL, proxies, spellcheck, alerts, "
 "logging, custom themes, and Python/Perl scripts."
 msgstr "O ZoiteChat suporta funcionalidades como: DCC, SASL, proxies, verificação de erros ortográficos, alertas, registos, temas personalizados, e scripts em Python/Perl."
 
-#: data/misc/io.github.Zoitechat.appdata.xml.in:22
+#: data/misc/net.zoite.Zoitechat.appdata.xml.in:22
 msgid "Main Chat Window"
 msgstr "Janela de Chat Principal"
 
-#: data/misc/io.github.Zoitechat.desktop.in.in:5
+#: data/misc/net.zoite.Zoitechat.desktop.in.in:5
 msgid "Chat with other people online"
 msgstr "Conversa com outras pessoas online"
 
-#: data/misc/io.github.Zoitechat.desktop.in.in:6
+#: data/misc/net.zoite.Zoitechat.desktop.in.in:6
 msgid "IM;Chat;"
 msgstr "IM;Chat;"
 
-#: data/misc/io.github.Zoitechat.desktop.in.in:8
-#: data/misc/io.github.Zoitechat.ThemeManager.desktop.in:5
+#: data/misc/net.zoite.Zoitechat.desktop.in.in:8
+#: data/misc/net.zoite.Zoitechat.ThemeManager.desktop.in:5
 msgid "zoitechat"
 msgstr "zoitechat"
 
-#: data/misc/io.github.Zoitechat.desktop.in.in:19
+#: data/misc/net.zoite.Zoitechat.desktop.in.in:19
 msgid "Open Safe Mode"
 msgstr "Abrir Modo Seguro"
 
-#: data/misc/io.github.Zoitechat.ThemeManager.desktop.in:3
+#: data/misc/net.zoite.Zoitechat.ThemeManager.desktop.in:3
 msgid "ZoiteChat Theme Manager"
 msgstr "Gestor de Temas do ZoiteChat"
 

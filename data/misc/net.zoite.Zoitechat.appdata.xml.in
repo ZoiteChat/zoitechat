@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop-application">
-  <id>io.github.Zoitechat</id>
+  <id>net.zoite.Zoitechat</id>
   <name>ZoiteChat</name>
-  <launchable type="desktop-id">io.github.Zoitechat.desktop</launchable>
+  <launchable type="desktop-id">net.zoite.Zoitechat.desktop</launchable>
   <developer_name>ZoiteChat</developer_name>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-2.0+</project_license>
@@ -12,12 +12,12 @@
     <p>ZoiteChat is an easy to use yet extensible IRC Client based on Hexchat. It allows you to securely join multiple networks and talk to users privately or in channels using a customizable interface. You can even transfer files.</p>
     <p>ZoiteChat supports features such as: DCC, SASL, proxies, spellcheck, alerts, logging, custom themes, and Python/Perl scripts.</p>
   </description>
-  <url type="homepage">http://zoitechat.github.io</url>
+  <url type="homepage">http://zoitechat.zoite.net</url>
   <url type="bugtracker">https://github.com/zoitechat/zoitechat</url>
-  <url type="help">https://hexchat.readthedocs.io/en/latest/</url>
+  <url type="help">https://zoitechat.zoite.net/docs</url>
   <screenshots>
     <screenshot type="default">
-      <image>https://zoitechat.github.io/assets/ZoiteChat.png</image>
+      <image>https://zoitechat.zoite.net/assets/ZoiteChat.png</image>
       <caption>Main Chat Window</caption>
     </screenshot>
   </screenshots>
@@ -127,7 +127,7 @@
       <description>
         <p>This is largely a bug fix release though it has some large behind the scenes changes:</p>
         <ul>
-          <li>Rename data files to use *io.github.Zoitechat* name</li>
+          <li>Rename data files to use *net.zoite.Zoitechat* name</li>
           <li>Add option (irc_reconnect_rejoin) to disable auto-rejoin on reconnect</li>
           <li>Add ability to set custom tray icon separate of app icon</li>
           <li>Fix Enchant 2.0+ support</li>

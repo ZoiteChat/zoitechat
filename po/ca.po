@@ -24,52 +24,52 @@ msgstr ""
 "Language: ca\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: data/misc/io.github.Zoitechat.appdata.xml.in:4
-#: data/misc/io.github.Zoitechat.appdata.xml.in:5
-#: data/misc/io.github.Zoitechat.desktop.in.in:3
+#: data/misc/net.zoite.Zoitechat.appdata.xml.in:4
+#: data/misc/net.zoite.Zoitechat.appdata.xml.in:5
+#: data/misc/net.zoite.Zoitechat.desktop.in.in:3
 msgid "ZoiteChat"
 msgstr "ZoiteChat"
 
-#: data/misc/io.github.Zoitechat.appdata.xml.in:9
-#: data/misc/io.github.Zoitechat.desktop.in.in:4
+#: data/misc/net.zoite.Zoitechat.appdata.xml.in:9
+#: data/misc/net.zoite.Zoitechat.desktop.in.in:4
 msgid "IRC Client"
 msgstr "Client IRC"
 
-#: data/misc/io.github.Zoitechat.appdata.xml.in:11
+#: data/misc/net.zoite.Zoitechat.appdata.xml.in:11
 msgid ""
 "ZoiteChat is an easy to use yet extensible IRC Client. It allows you to "
 "securely join multiple networks and talk to users privately or in channels "
 "using a customizable interface. You can even transfer files."
 msgstr "ZoiteChat és un client IRC extensible i fàcil d'utilitzar. Et permet unir-te a múltiples xarxes amb seguretat i parlar amb altres usuaris en privat o en canals utilitzant una interfície personalitzable. Fins i tot pots transferir fitxers."
 
-#: data/misc/io.github.Zoitechat.appdata.xml.in:12
+#: data/misc/net.zoite.Zoitechat.appdata.xml.in:12
 msgid ""
 "ZoiteChat supports features such as: DCC, SASL, proxies, spellcheck, alerts, "
 "logging, custom themes, and Python/Perl scripts."
 msgstr "ZoiteChat té suport per: DCC, SASL, proxis, correcció d'escriptura, notificacions, registre, temes personalitzats i scripts en Python o Perl."
 
-#: data/misc/io.github.Zoitechat.appdata.xml.in:22
+#: data/misc/net.zoite.Zoitechat.appdata.xml.in:22
 msgid "Main Chat Window"
 msgstr "Finestra de xat principal"
 
-#: data/misc/io.github.Zoitechat.desktop.in.in:5
+#: data/misc/net.zoite.Zoitechat.desktop.in.in:5
 msgid "Chat with other people online"
 msgstr "Xategeu amb altres persones en línia"
 
-#: data/misc/io.github.Zoitechat.desktop.in.in:6
+#: data/misc/net.zoite.Zoitechat.desktop.in.in:6
 msgid "IM;Chat;"
 msgstr "MI;Xat;"
 
-#: data/misc/io.github.Zoitechat.desktop.in.in:8
-#: data/misc/io.github.Zoitechat.ThemeManager.desktop.in:5
+#: data/misc/net.zoite.Zoitechat.desktop.in.in:8
+#: data/misc/net.zoite.Zoitechat.ThemeManager.desktop.in:5
 msgid "zoitechat"
 msgstr "zoitechat"
 
-#: data/misc/io.github.Zoitechat.desktop.in.in:19
+#: data/misc/net.zoite.Zoitechat.desktop.in.in:19
 msgid "Open Safe Mode"
 msgstr "Obre el mode segur"
 
-#: data/misc/io.github.Zoitechat.ThemeManager.desktop.in:3
+#: data/misc/net.zoite.Zoitechat.ThemeManager.desktop.in:3
 msgid "ZoiteChat Theme Manager"
 msgstr "Gestor de temes d'ZoiteChat"
 

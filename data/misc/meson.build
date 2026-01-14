@@ -5,8 +5,8 @@ desktop_utils = find_program('desktop-file-validate', required: false)
 if get_option('gtk-frontend')
   if get_option('install-appdata')
     zoitechat_appdata = i18n.merge_file(
-      input: 'io.github.Zoitechat.appdata.xml.in',
-      output: 'io.github.Zoitechat.appdata.xml',
+      input: 'net.zoite.Zoitechat.appdata.xml.in',
+      output: 'net.zoite.Zoitechat.appdata.xml',
       po_dir: '../../po',
       install: true,
       install_dir: metainfodir
@@ -14,7 +14,7 @@ if get_option('gtk-frontend')
 
     appstream_util = find_program('appstream-util', required: false)
     if appstream_util.found()
-      test('Validate io.github.Zoitechat.appdata.xml', appstream_util,
+      test('Validate net.zoite.Zoitechat.appdata.xml', appstream_util,
         args: ['validate-relax', zoitechat_appdata]
       )
     endif
@@ -28,14 +28,14 @@ if get_option('gtk-frontend')
   endif
 
   desktop_file = configure_file(
-    input: 'io.github.Zoitechat.desktop.in.in',
-    output: 'io.github.Zoitechat.desktop.in',
+    input: 'net.zoite.Zoitechat.desktop.in.in',
+    output: 'net.zoite.Zoitechat.desktop.in',
     configuration: desktop_conf
   )
 
   zoitechat_desktop = i18n.merge_file(
     input: desktop_file,
-    output: 'io.github.Zoitechat.desktop',
+    output: 'net.zoite.Zoitechat.desktop',
     po_dir: '../../po',
     type: 'desktop',
     install: true,
@@ -43,7 +43,7 @@ if get_option('gtk-frontend')
   )
 
   if desktop_utils.found()
-    test('Validate io.github.Zoitechat.desktop', desktop_utils,
+    test('Validate net.zoite.Zoitechat.desktop', desktop_utils,
       args: [zoitechat_desktop]
     )
   endif
@@ -51,8 +51,8 @@ endif
 
 if get_option('theme-manager')
   htm_desktop = i18n.merge_file(
-    input: 'io.github.Zoitechat.ThemeManager.desktop.in',
-    output: 'io.github.Zoitechat.ThemeManager.desktop',
+    input: 'net.zoite.Zoitechat.ThemeManager.desktop.in',
+    output: 'net.zoite.Zoitechat.ThemeManager.desktop',
     po_dir: '../../po',
     type: 'desktop',
     install: true,
@@ -60,12 +60,12 @@ if get_option('theme-manager')
   )
 
   if desktop_utils.found()
-    test('Validate io.github.Zoitechat.ThemeManager.desktop', desktop_utils,
+    test('Validate net.zoite.Zoitechat.ThemeManager.desktop', desktop_utils,
       args: [htm_desktop]
     )
   endif
 
-  install_data('io.github.Zoitechat.ThemeManager.xml',
+  install_data('net.zoite.Zoitechat.ThemeManager.xml',
     install_dir: join_paths(get_option('datadir'), 'mime/packages')
   )
 endif
@@ -118,8 +118,8 @@ if get_option('plugin')
     conf.set('LICENSE', metainfo[2])
 
     configure_file(
-      input: 'io.github.Zoitechat.Plugin.metainfo.xml.in',
-      output: 'io.github.Zoitechat.Plugin.@0@.metainfo.xml'.format(name),
+      input: 'net.zoite.Zoitechat.Plugin.metainfo.xml.in',
+      output: 'net.zoite.Zoitechat.Plugin.@0@.metainfo.xml'.format(name),
       configuration: conf,
       install_dir: get_option('install-plugin-metainfo') ? metainfodir : '',
     )

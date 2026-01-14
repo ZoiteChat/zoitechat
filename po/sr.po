@@ -20,52 +20,52 @@ msgstr ""
 "Language: sr\n"
 "Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 
-#: data/misc/io.github.Zoitechat.appdata.xml.in:4
-#: data/misc/io.github.Zoitechat.appdata.xml.in:5
-#: data/misc/io.github.Zoitechat.desktop.in.in:3
+#: data/misc/net.zoite.Zoitechat.appdata.xml.in:4
+#: data/misc/net.zoite.Zoitechat.appdata.xml.in:5
+#: data/misc/net.zoite.Zoitechat.desktop.in.in:3
 msgid "ZoiteChat"
 msgstr "ХексЧет"
 
-#: data/misc/io.github.Zoitechat.appdata.xml.in:9
-#: data/misc/io.github.Zoitechat.desktop.in.in:4
+#: data/misc/net.zoite.Zoitechat.appdata.xml.in:9
+#: data/misc/net.zoite.Zoitechat.desktop.in.in:4
 msgid "IRC Client"
 msgstr "ИРЦ клијент"
 
-#: data/misc/io.github.Zoitechat.appdata.xml.in:11
+#: data/misc/net.zoite.Zoitechat.appdata.xml.in:11
 msgid ""
 "ZoiteChat is an easy to use yet extensible IRC Client. It allows you to "
 "securely join multiple networks and talk to users privately or in channels "
 "using a customizable interface. You can even transfer files."
 msgstr ""
 
-#: data/misc/io.github.Zoitechat.appdata.xml.in:12
+#: data/misc/net.zoite.Zoitechat.appdata.xml.in:12
 msgid ""
 "ZoiteChat supports features such as: DCC, SASL, proxies, spellcheck, alerts, "
 "logging, custom themes, and Python/Perl scripts."
 msgstr ""
 
-#: data/misc/io.github.Zoitechat.appdata.xml.in:22
+#: data/misc/net.zoite.Zoitechat.appdata.xml.in:22
 msgid "Main Chat Window"
 msgstr ""
 
-#: data/misc/io.github.Zoitechat.desktop.in.in:5
+#: data/misc/net.zoite.Zoitechat.desktop.in.in:5
 msgid "Chat with other people online"
 msgstr "Ћаскајте са пријатељима онлајн"
 
-#: data/misc/io.github.Zoitechat.desktop.in.in:6
+#: data/misc/net.zoite.Zoitechat.desktop.in.in:6
 msgid "IM;Chat;"
 msgstr "ИМ;Ћаскање;"
 
-#: data/misc/io.github.Zoitechat.desktop.in.in:8
-#: data/misc/io.github.Zoitechat.ThemeManager.desktop.in:5
+#: data/misc/net.zoite.Zoitechat.desktop.in.in:8
+#: data/misc/net.zoite.Zoitechat.ThemeManager.desktop.in:5
 msgid "zoitechat"
 msgstr ""
 
-#: data/misc/io.github.Zoitechat.desktop.in.in:19
+#: data/misc/net.zoite.Zoitechat.desktop.in.in:19
 msgid "Open Safe Mode"
 msgstr "Отвори у Сигурном моду"
 
-#: data/misc/io.github.Zoitechat.ThemeManager.desktop.in:3
+#: data/misc/net.zoite.Zoitechat.ThemeManager.desktop.in:3
 msgid "ZoiteChat Theme Manager"
 msgstr "ХексЧет Избор Теме"
 

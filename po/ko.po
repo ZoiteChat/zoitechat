@@ -21,52 +21,52 @@ msgstr ""
 "Language: ko\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 
-#: data/misc/io.github.Zoitechat.appdata.xml.in:4
-#: data/misc/io.github.Zoitechat.appdata.xml.in:5
-#: data/misc/io.github.Zoitechat.desktop.in.in:3
+#: data/misc/net.zoite.Zoitechat.appdata.xml.in:4
+#: data/misc/net.zoite.Zoitechat.appdata.xml.in:5
+#: data/misc/net.zoite.Zoitechat.desktop.in.in:3
 msgid "ZoiteChat"
 msgstr "헥스채트"
 
-#: data/misc/io.github.Zoitechat.appdata.xml.in:9
-#: data/misc/io.github.Zoitechat.desktop.in.in:4
+#: data/misc/net.zoite.Zoitechat.appdata.xml.in:9
+#: data/misc/net.zoite.Zoitechat.desktop.in.in:4
 msgid "IRC Client"
 msgstr "IRC 클라이언트"
 
-#: data/misc/io.github.Zoitechat.appdata.xml.in:11
+#: data/misc/net.zoite.Zoitechat.appdata.xml.in:11
 msgid ""
 "ZoiteChat is an easy to use yet extensible IRC Client. It allows you to "
 "securely join multiple networks and talk to users privately or in channels "
 "using a customizable interface. You can even transfer files."
 msgstr "헥스채트는 사용하기 쉽고 확장성이 뛰어난 IRC 클라이언트 입니다. 여러 네트워크에 안전하게 참여할 수 있으며, 여러분이 직접 유연하게 꾸밀 수 있는 인터페이스를 사용하여 다른 사람과 개인적으로 대화하거나 대화방에서 대화할 수 있습니다. 게다가 파일도 보낼 수 있습니다."
 
-#: data/misc/io.github.Zoitechat.appdata.xml.in:12
+#: data/misc/net.zoite.Zoitechat.appdata.xml.in:12
 msgid ""
 "ZoiteChat supports features such as: DCC, SASL, proxies, spellcheck, alerts, "
 "logging, custom themes, and Python/Perl scripts."
 msgstr "핵스채트는 DCC, SASL, 프록시 서버, 철자 검사, 경고, 기록, 사용자 정의 테마, 파이썬/펄 스크립트 같은 기능을 지원합니다."
 
-#: data/misc/io.github.Zoitechat.appdata.xml.in:22
+#: data/misc/net.zoite.Zoitechat.appdata.xml.in:22
 msgid "Main Chat Window"
 msgstr "주 대화 창"
 
-#: data/misc/io.github.Zoitechat.desktop.in.in:5
+#: data/misc/net.zoite.Zoitechat.desktop.in.in:5
 msgid "Chat with other people online"
 msgstr "온라인에 있는 여러 사람과 대화합니다"
 
-#: data/misc/io.github.Zoitechat.desktop.in.in:6
+#: data/misc/net.zoite.Zoitechat.desktop.in.in:6
 msgid "IM;Chat;"
 msgstr "IM;인스턴트 메신저;Chat;대화;"
 
-#: data/misc/io.github.Zoitechat.desktop.in.in:8
-#: data/misc/io.github.Zoitechat.ThemeManager.desktop.in:5
+#: data/misc/net.zoite.Zoitechat.desktop.in.in:8
+#: data/misc/net.zoite.Zoitechat.ThemeManager.desktop.in:5
 msgid "zoitechat"
 msgstr "zoitechat"
 
-#: data/misc/io.github.Zoitechat.desktop.in.in:19
+#: data/misc/net.zoite.Zoitechat.desktop.in.in:19
 msgid "Open Safe Mode"
 msgstr "공개 안전 모드"
 
-#: data/misc/io.github.Zoitechat.ThemeManager.desktop.in:3
+#: data/misc/net.zoite.Zoitechat.ThemeManager.desktop.in:3
 msgid "ZoiteChat Theme Manager"
 msgstr "핵스채트 테마 관리자"
 

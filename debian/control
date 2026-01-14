@@ -21,7 +21,7 @@ Standards-Version: 4.6.0
 Rules-Requires-Root: no
 Vcs-Git: https://github.com/zoitechat/zoitechat.git
 Vcs-Browser: https://github.com/zoitechat/zoitechat
-Homepage: https://zoitechat.github.io
+Homepage: https://zoitechat.zoite.net
 
 Package: zoitechat
 Architecture: any
