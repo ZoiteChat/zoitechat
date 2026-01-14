@@ -49,7 +49,7 @@ jobs:
               echo "@comment OpenBSD package built by GitHub Actions"
               echo "@cwd /usr/local"
               find "$PWD/staging/usr/local" -type f -o -type l | sort | sed "s#^$PWD/staging/usr/local/##"
-              find "$PWD/staging/usr/local" -mindepth 1 -type d | sort -r | sed "s#^$PWD/staging/usr/local#@dir #"
+              find "$PWD/staging/usr/local" -mindepth 1 -type d | sort -r | sed "s#^$PWD/staging/usr/local/##" | sed 's#^#@dir #'
             } > "$plist"
 
             pkg_create -p /usr/local -f "$plist" -U "$PWD/${pkg_name}.tgz"
