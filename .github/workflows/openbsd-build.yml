@@ -19,11 +19,12 @@ jobs:
       - name: Build OpenBSD package
         uses: vmactions/openbsd-vm@v1
         with:
-          release: '7.4'
+          release: '7.5'
           usesh: true
           run: |
             set -eux
-            pkg_add \
+            export PKG_PATH="https://cdn.openbsd.org/pub/OpenBSD/7.5/packages/$(uname -m)/"
+            pkg_add -U \
               git \
               meson ninja pkgconf gmake \
               gettext-tools \
