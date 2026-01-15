@@ -88,7 +88,7 @@ Name: "langs\lua"; Description: "Lua"; Types: normal custom; Flags: disablenouni
 
 ; These are kept for consistency, but hidden on ARM64 unless you later ship ARM64 installers for them.
 Name: "langs\perl"; Description: "Perl (requires Perl 5.20)"; Types: custom; Flags: disablenouninstallwarning; Check: not IsArm64
-Name: "langs\python"; Description: "Python (requires Python 3.8)"; Types: custom; Flags: disablenouninstallwarning; Check: not IsArm64
+Name: "langs\python"; Description: "Python (requires Python 3.14.2)"; Types: custom; Flags: disablenouninstallwarning; Check: not IsArm64
 
 [Tasks]
 Name: portable; Description: "Yes"; GroupDescription: "Portable Mode: Stores configuration files within install directory for portable drives."; Flags: unchecked
