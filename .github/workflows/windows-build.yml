@@ -27,7 +27,7 @@ jobs:
 
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.14'
+          python-version: '3.14.2'
           architecture: ${{ matrix.arch }}
 
       - name: Install Dependencies
@@ -52,17 +52,17 @@ jobs:
           Invoke-WebRequest https://github.com/zoitechat/gvsbuild/releases/download/zoitechat-2.17.0/perl-5.20.0-${{ matrix.arch }}.7z -OutFile deps\perl-${{ matrix.arch }}.7z
           & 7z.exe x deps\perl-${{ matrix.arch }}.7z -oC:\gtk-build\perl-5.20\${{ matrix.platform }}
 
-          New-Item -Path "C:\gtk-build\python-3.8" -ItemType Directory -Force | Out-Null
+          New-Item -Path "C:\gtk-build\python-3.14.2" -ItemType Directory -Force | Out-Null
 
           $pyRoot = $env:pythonLocation
           if (-not $pyRoot) {
             $pyRoot = & python -c "import sys; print(sys.prefix)"
           }
 
-          $target = "C:\gtk-build\python-3.8\${{ matrix.platform }}"
+          $target = "C:\gtk-build\python-3.14.2\${{ matrix.platform }}"
           if (Test-Path $target) { Remove-Item $target -Recurse -Force }
 
-          New-Item -Path "C:\gtk-build\python-3.8" -Name "${{ matrix.platform }}" -ItemType Junction -Value $pyRoot | Out-Null
+          New-Item -Path "C:\gtk-build\python-3.14.2" -Name "${{ matrix.platform }}" -ItemType Junction -Value $pyRoot | Out-Null
 
           python -m pip install --upgrade pip
           python -m pip install cffi
@@ -72,9 +72,9 @@ jobs:
         run: |
           call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\VsDevCmd.bat"
 
-          set "PYTHON_DIR=C:\gtk-build\python-3.8\${{ matrix.platform }}"
-          if not exist "%PYTHON_DIR%\libs\python38.lib" (
-            echo Missing %PYTHON_DIR%\libs\python38.lib
+          set "PYTHON_DIR=C:\gtk-build\python-3.14.2\${{ matrix.platform }}"
+          if not exist "%PYTHON_DIR%\libs\python314.lib" (
+            echo Missing %PYTHON_DIR%\libs\python314.lib
             dir "%PYTHON_DIR%\libs"
             exit /b 1
           )
