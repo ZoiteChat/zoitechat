@@ -7,7 +7,7 @@
 		<YourDepsPath>c:\gtk-build\gtk</YourDepsPath>
 		<YourGendefPath>c:\gtk-build\gendef</YourGendefPath>
 		<YourPerlPath>c:\gtk-build\perl-5.20</YourPerlPath>
-		<YourPython3Path>c:\gtk-build\python-3.8</YourPython3Path>
+		<YourPython3Path>c:\gtk-build\python-3.14</YourPython3Path>
 		<YourWinSparklePath>c:\gtk-build\WinSparkle</YourWinSparklePath>
 
 		<!-- YOU SHOULDN'T TOUCH ANYTHING BELOW -->
@@ -22,7 +22,7 @@
 		<PerlPath>$(YourPerlPath)\$(PlatformName)</PerlPath>
 		<PerlLib>perl520</PerlLib>
 		<Python3Path>$(YourPython3Path)\$(PlatformName)</Python3Path>
-		<Python3Lib>python38</Python3Lib>
+		<Python3Lib>python314</Python3Lib>
 		<Python3Output>hcpython3</Python3Output>
 		<LuaInclude>$(DepsRoot)\include\luajit-2.1</LuaInclude>
 		<LuaOutput>hclua</LuaOutput>
