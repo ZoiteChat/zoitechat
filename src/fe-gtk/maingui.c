@@ -2907,6 +2907,23 @@ mg_apply_emoji_primary_widget (GtkWidget *widget)
         pango_font_description_free (desc);
 }
 
+static void
+mg_apply_emoji_primary_widget_with_child (GtkWidget *widget)
+{
+        GtkWidget *child;
+
+        if (!widget)
+                return;
+
+        mg_apply_emoji_primary_widget (widget);
+        if (!GTK_IS_BIN (widget))
+                return;
+
+        child = gtk_bin_get_child (GTK_BIN (widget));
+        if (child)
+                mg_apply_emoji_primary_widget (child);
+}
+
 /* ------------------------------------------------------------------------- *
  * Emoji picker (optional UI sugar)
  * ------------------------------------------------------------------------- */
@@ -2963,9 +2980,7 @@ mg_create_emoji_menu (session_gui *gui)
                 g_signal_connect (G_OBJECT (item), "activate", G_CALLBACK (mg_emoji_insert_cb), gui);
 
                 /* Prefer emoji fonts for the label itself */
-                mg_apply_emoji_primary_widget (item);
-                if (gtk_bin_get_child (GTK_BIN (item)))
-                        mg_apply_emoji_primary_widget (gtk_bin_get_child (GTK_BIN (item)));
+                mg_apply_emoji_primary_widget_with_child (item);
 
                 gtk_menu_attach (GTK_MENU (menu), item, col, col + 1, row, row + 1);
                 gtk_widget_show (item);
@@ -3218,7 +3233,7 @@ mg_create_entry (session *sess, GtkWidget *box)
         gtk_button_set_relief (GTK_BUTTON (emoji_button), GTK_RELIEF_NONE);
         gtk_widget_set_can_focus (emoji_button, FALSE);
         gtk_widget_set_tooltip_text (emoji_button, _("Insert emoji"));
-        mg_apply_emoji_primary_widget (emoji_button);
+        mg_apply_emoji_primary_widget_with_child (emoji_button);
         g_signal_connect (G_OBJECT (emoji_button), "clicked", G_CALLBACK (mg_emoji_button_cb), gui);
         gtk_box_pack_start (GTK_BOX (hbox), emoji_button, FALSE, FALSE, 4);
 }
