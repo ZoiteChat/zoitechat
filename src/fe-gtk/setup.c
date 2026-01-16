@@ -22,6 +22,9 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+#include <gio/gio.h>
+#include <glib/gstdio.h>
+
 #include "../common/zoitechat.h"
 #include "../common/cfgfiles.h"
 #include "../common/fe.h"
@@ -58,6 +61,14 @@ static GSList *color_selector_widgets;
 static GtkWidget *dark_mode_toggle_widget;
 static GtkWidget *cancel_button;
 static GtkWidget *font_dialog = NULL;
+void setup_apply_real (int new_pix, int do_ulist, int do_layout, int do_identd);
+
+typedef struct
+{
+	GtkWidget *combo;
+	GtkWidget *apply_button;
+	GtkWidget *status_label;
+} setup_theme_ui;
 
 enum
 {
@@ -1622,7 +1633,7 @@ setup_create_color_page (void)
 	g_signal_connect (G_OBJECT (dark_mode_toggle_widget), "toggled",
 					G_CALLBACK (setup_dark_mode_ui_toggle_cb), NULL);
 	setup_color_selectors_set_sensitive (TRUE);
-setup_create_header (tab, 15, N_("Color Stripping"));
+	setup_create_header (tab, 15, N_("Color Stripping"));
 
 	/* label = gtk_label_new (_("Strip colors from:"));
 	gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
@@ -1633,6 +1644,230 @@ setup_create_header (tab, 15, N_("Color Stripping"));
 	{
 		setup_create_toggleL (tab, i + 16, &color_settings[i]);
 	}
+
+	return box;
+}
+
+static void
+setup_theme_show_message (GtkMessageType message_type, const char *primary)
+{
+	GtkWidget *dialog;
+
+	dialog = gtk_message_dialog_new (GTK_WINDOW (setup_window), GTK_DIALOG_MODAL,
+											 message_type, GTK_BUTTONS_CLOSE, "%s", primary);
+	gtk_dialog_run (GTK_DIALOG (dialog));
+	gtk_widget_destroy (dialog);
+}
+
+static gboolean
+setup_theme_copy_file (const char *src, const char *dest, GError **error)
+{
+	GFile *src_file;
+	GFile *dest_file;
+	gboolean success;
+
+	src_file = g_file_new_for_path (src);
+	dest_file = g_file_new_for_path (dest);
+	success = g_file_copy (src_file, dest_file, G_FILE_COPY_OVERWRITE, NULL, NULL, NULL, error);
+	g_object_unref (src_file);
+	g_object_unref (dest_file);
+
+	return success;
+}
+
+static void
+setup_theme_populate (setup_theme_ui *ui)
+{
+	char *themes_dir;
+	GDir *dir;
+	const char *name;
+	GtkTreeModel *model;
+	GtkTreeIter iter;
+	int count;
+
+	model = gtk_combo_box_get_model (GTK_COMBO_BOX (ui->combo));
+	while (gtk_tree_model_get_iter_first (model, &iter))
+		gtk_combo_box_text_remove (GTK_COMBO_BOX_TEXT (ui->combo), 0);
+
+	themes_dir = g_build_filename (get_xdir (), "themes", NULL);
+	if (!g_file_test (themes_dir, G_FILE_TEST_IS_DIR))
+		g_mkdir_with_parents (themes_dir, 0700);
+
+	dir = g_dir_open (themes_dir, 0, NULL);
+	if (dir)
+	{
+		while ((name = g_dir_read_name (dir)))
+		{
+			char *path = g_build_filename (themes_dir, name, NULL);
+			if (g_file_test (path, G_FILE_TEST_IS_DIR))
+				gtk_combo_box_text_append_text (GTK_COMBO_BOX_TEXT (ui->combo), name);
+			g_free (path);
+		}
+		g_dir_close (dir);
+	}
+
+	count = gtk_tree_model_iter_n_children (gtk_combo_box_get_model (GTK_COMBO_BOX (ui->combo)), NULL);
+	if (count > 0)
+		gtk_combo_box_set_active (GTK_COMBO_BOX (ui->combo), 0);
+
+	gtk_widget_set_sensitive (ui->apply_button, count > 0);
+	gtk_label_set_text (GTK_LABEL (ui->status_label),
+							  count > 0 ? _("Select a theme to apply.") : _("No themes found."));
+
+	g_free (themes_dir);
+}
+
+static void
+setup_theme_refresh_cb (GtkWidget *button, gpointer user_data)
+{
+	setup_theme_ui *ui = user_data;
+
+	setup_theme_populate (ui);
+}
+
+static void
+setup_theme_selection_changed (GtkComboBox *combo, gpointer user_data)
+{
+	setup_theme_ui *ui = user_data;
+	gboolean has_selection = gtk_combo_box_get_active (combo) >= 0;
+
+	gtk_widget_set_sensitive (ui->apply_button, has_selection);
+}
+
+static void
+setup_theme_apply_cb (GtkWidget *button, gpointer user_data)
+{
+	setup_theme_ui *ui = user_data;
+	GtkWidget *dialog;
+	gint response;
+	char *theme;
+	char *theme_dir = NULL;
+	char *colors_src = NULL;
+	char *colors_dest = NULL;
+	char *events_src = NULL;
+	char *events_dest = NULL;
+	GError *error = NULL;
+
+	theme = gtk_combo_box_text_get_active_text (GTK_COMBO_BOX_TEXT (ui->combo));
+	if (!theme)
+		return;
+
+	dialog = gtk_message_dialog_new (GTK_WINDOW (setup_window), GTK_DIALOG_MODAL,
+											 GTK_MESSAGE_WARNING, GTK_BUTTONS_OK_CANCEL,
+											 "%s", _("Applying a theme will overwrite your current colors and event settings.\nContinue?"));
+	response = gtk_dialog_run (GTK_DIALOG (dialog));
+	gtk_widget_destroy (dialog);
+
+	if (response != GTK_RESPONSE_OK)
+	{
+		g_free (theme);
+		return;
+	}
+
+	theme_dir = g_build_filename (get_xdir (), "themes", theme, NULL);
+	colors_src = g_build_filename (theme_dir, "colors.conf", NULL);
+	colors_dest = g_build_filename (get_xdir (), "colors.conf", NULL);
+
+	if (!g_file_test (colors_src, G_FILE_TEST_IS_REGULAR))
+	{
+		setup_theme_show_message (GTK_MESSAGE_ERROR, _("This theme is missing a colors.conf file."));
+		goto cleanup;
+	}
+
+	if (!setup_theme_copy_file (colors_src, colors_dest, &error))
+	{
+		setup_theme_show_message (GTK_MESSAGE_ERROR, error ? error->message : _("Failed to apply theme."));
+		g_clear_error (&error);
+		goto cleanup;
+	}
+
+	events_src = g_build_filename (theme_dir, "pevents.conf", NULL);
+	events_dest = g_build_filename (get_xdir (), "pevents.conf", NULL);
+
+	if (g_file_test (events_src, G_FILE_TEST_IS_REGULAR))
+	{
+		if (!setup_theme_copy_file (events_src, events_dest, &error))
+		{
+			setup_theme_show_message (GTK_MESSAGE_ERROR, error ? error->message : _("Failed to apply event settings."));
+			g_clear_error (&error);
+			goto cleanup;
+		}
+	}
+	else if (g_file_test (events_dest, G_FILE_TEST_EXISTS))
+	{
+		g_unlink (events_dest);
+	}
+
+	palette_load ();
+	palette_apply_dark_mode (prefs.hex_gui_dark_mode);
+	color_change = TRUE;
+	setup_apply_real (0, TRUE, FALSE, FALSE);
+
+	setup_theme_show_message (GTK_MESSAGE_INFO, _("Theme applied. Some changes may require a restart to take full effect."));
+
+cleanup:
+	g_free (events_dest);
+	g_free (events_src);
+	g_free (colors_dest);
+	g_free (colors_src);
+	g_free (theme_dir);
+	g_free (theme);
+}
+
+static GtkWidget *
+setup_create_theme_page (void)
+{
+	setup_theme_ui *ui;
+	GtkWidget *box;
+	GtkWidget *label;
+	GtkWidget *hbox;
+	GtkWidget *button_box;
+	char *themes_dir;
+	char *markup;
+
+	ui = g_new0 (setup_theme_ui, 1);
+
+	box = gtk_vbox_new (FALSE, 6);
+	gtk_container_set_border_width (GTK_CONTAINER (box), 6);
+
+	themes_dir = g_build_filename (get_xdir (), "themes", NULL);
+	markup = g_markup_printf_escaped (_("Theme files are loaded from <tt>%s</tt>."), themes_dir);
+	label = gtk_label_new (NULL);
+	gtk_label_set_markup (GTK_LABEL (label), markup);
+	gtk_label_set_line_wrap (GTK_LABEL (label), TRUE);
+	gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
+	gtk_box_pack_start (GTK_BOX (box), label, FALSE, FALSE, 0);
+	g_free (markup);
+	g_free (themes_dir);
+
+	hbox = gtk_hbox_new (FALSE, 6);
+	gtk_box_pack_start (GTK_BOX (box), hbox, FALSE, FALSE, 0);
+
+	ui->combo = gtk_combo_box_text_new ();
+	gtk_box_pack_start (GTK_BOX (hbox), ui->combo, TRUE, TRUE, 0);
+	g_signal_connect (G_OBJECT (ui->combo), "changed",
+							G_CALLBACK (setup_theme_selection_changed), ui);
+
+	button_box = gtk_hbox_new (FALSE, 6);
+	gtk_box_pack_start (GTK_BOX (hbox), button_box, FALSE, FALSE, 0);
+
+	ui->apply_button = gtk_button_new_with_mnemonic (_("_Apply Theme"));
+	gtk_box_pack_start (GTK_BOX (button_box), ui->apply_button, FALSE, FALSE, 0);
+	g_signal_connect (G_OBJECT (ui->apply_button), "clicked",
+							G_CALLBACK (setup_theme_apply_cb), ui);
+
+	label = gtk_button_new_with_mnemonic (_("_Refresh"));
+	gtk_box_pack_start (GTK_BOX (button_box), label, FALSE, FALSE, 0);
+	g_signal_connect (G_OBJECT (label), "clicked",
+							G_CALLBACK (setup_theme_refresh_cb), ui);
+
+	ui->status_label = gtk_label_new (NULL);
+	gtk_misc_set_alignment (GTK_MISC (ui->status_label), 0.0, 0.5);
+	gtk_box_pack_start (GTK_BOX (box), ui->status_label, FALSE, FALSE, 0);
+
+	setup_theme_populate (ui);
+
+	g_object_set_data_full (G_OBJECT (box), "setup-theme-ui", ui, g_free);
 
 	return box;
 }
@@ -1923,27 +2158,32 @@ setup_add_page (const char *title, GtkWidget *book, GtkWidget *tab)
 	gtk_notebook_append_page (GTK_NOTEBOOK (book), GTK_WIDGET(sw), NULL);
 }
 
-static const char *const cata[] =
+static const char *const cata_interface[] =
 {
-	N_("Interface"),
-		N_("Appearance"),
-		N_("Input box"),
-		N_("User list"),
-		N_("Channel switcher"),
-		N_("Colors"),
-		NULL,
-	N_("Chatting"),
-		N_("General"),
-		N_("Alerts"),
-		N_("Sounds"),
-		N_("Logging"),
-		N_("Advanced"),
-		NULL,
-	N_("Network"),
-		N_("Network setup"),
-		N_("File transfers"),
-		N_("Identd"),
-		NULL,
+	N_("Appearance"),
+	N_("Input box"),
+	N_("User list"),
+	N_("Channel switcher"),
+	N_("Themes"),
+	N_("Colors"),
+	NULL
+};
+
+static const char *const cata_chatting[] =
+{
+	N_("General"),
+	N_("Alerts"),
+	N_("Sounds"),
+	N_("Logging"),
+	N_("Advanced"),
+	NULL
+};
+
+static const char *const cata_network[] =
+{
+	N_("Network setup"),
+	N_("File transfers"),
+	N_("Identd"),
 	NULL
 };
 
@@ -1955,38 +2195,39 @@ setup_create_pages (GtkWidget *box)
 
 	book = gtk_notebook_new ();
 
-	setup_add_page (cata[1], book, setup_create_page (appearance_settings));
-	setup_add_page (cata[2], book, setup_create_page (inputbox_settings));
-	setup_add_page (cata[3], book, setup_create_page (userlist_settings));
-	setup_add_page (cata[4], book, setup_create_page (tabs_settings));
-	setup_add_page (cata[5], book, setup_create_color_page ());
+	setup_add_page (cata_interface[0], book, setup_create_page (appearance_settings));
+	setup_add_page (cata_interface[1], book, setup_create_page (inputbox_settings));
+	setup_add_page (cata_interface[2], book, setup_create_page (userlist_settings));
+	setup_add_page (cata_interface[3], book, setup_create_page (tabs_settings));
+	setup_add_page (cata_interface[4], book, setup_create_theme_page ());
+	setup_add_page (cata_interface[5], book, setup_create_color_page ());
 
-	setup_add_page (cata[8], book, setup_create_page (general_settings));
+	setup_add_page (cata_chatting[0], book, setup_create_page (general_settings));
 
 	if (!gtkutil_tray_icon_supported (win) && !notification_backend_supported ())
 	{
-		setup_add_page (cata[9], book, setup_create_page (alert_settings_unityandnonotifications));
+		setup_add_page (cata_chatting[1], book, setup_create_page (alert_settings_unityandnonotifications));
 	}
 	else if (!gtkutil_tray_icon_supported (win))
 	{
-		setup_add_page (cata[9], book, setup_create_page (alert_settings_unity));
+		setup_add_page (cata_chatting[1], book, setup_create_page (alert_settings_unity));
 	}
 	else if (!notification_backend_supported ())
 	{
-		setup_add_page (cata[9], book, setup_create_page (alert_settings_nonotifications));
+		setup_add_page (cata_chatting[1], book, setup_create_page (alert_settings_nonotifications));
 	}
 	else
 	{
-		setup_add_page (cata[9], book, setup_create_page (alert_settings));
+		setup_add_page (cata_chatting[1], book, setup_create_page (alert_settings));
 	}
 
-	setup_add_page (cata[10], book, setup_create_sound_page ());
-	setup_add_page (cata[11], book, setup_create_page (logging_settings));
-	setup_add_page (cata[12], book, setup_create_page (advanced_settings));
+	setup_add_page (cata_chatting[2], book, setup_create_sound_page ());
+	setup_add_page (cata_chatting[3], book, setup_create_page (logging_settings));
+	setup_add_page (cata_chatting[4], book, setup_create_page (advanced_settings));
 
-	setup_add_page (cata[15], book, setup_create_page (network_settings));
-	setup_add_page (cata[16], book, setup_create_page (filexfer_settings));
-	setup_add_page (cata[17], book, setup_create_page (identd_settings));
+	setup_add_page (cata_network[0], book, setup_create_page (network_settings));
+	setup_add_page (cata_network[1], book, setup_create_page (filexfer_settings));
+	setup_add_page (cata_network[2], book, setup_create_page (identd_settings));
 
 	gtk_notebook_set_show_tabs (GTK_NOTEBOOK (book), FALSE);
 	gtk_notebook_set_show_border (GTK_NOTEBOOK (book), FALSE);
@@ -2039,27 +2280,40 @@ setup_create_tree (GtkWidget *box, GtkWidget *book)
 
 	model = gtk_tree_store_new (2, G_TYPE_STRING, G_TYPE_INT);
 
-	i = 0;
 	page = 0;
-	do
+
+	gtk_tree_store_append (model, &iter, NULL);
+	gtk_tree_store_set (model, &iter, 0, _("Interface"), 1, -1, -1);
+	for (i = 0; cata_interface[i]; i++)
 	{
-		gtk_tree_store_append (model, &iter, NULL);
-		gtk_tree_store_set (model, &iter, 0, _(cata[i]), 1, -1, -1);
-		i++;
+		gtk_tree_store_append (model, &child_iter, &iter);
+		gtk_tree_store_set (model, &child_iter, 0, _(cata_interface[i]), 1, page, -1);
+		if (page == last_selected_page)
+			sel_iter = gtk_tree_iter_copy (&child_iter);
+		page++;
+	}
 
-		do
-		{
-			gtk_tree_store_append (model, &child_iter, &iter);
-			gtk_tree_store_set (model, &child_iter, 0, _(cata[i]), 1, page, -1);
-			if (page == last_selected_page)
-				sel_iter = gtk_tree_iter_copy (&child_iter);
-			page++;
-			i++;
-		} while (cata[i]);
+	gtk_tree_store_append (model, &iter, NULL);
+	gtk_tree_store_set (model, &iter, 0, _("Chatting"), 1, -1, -1);
+	for (i = 0; cata_chatting[i]; i++)
+	{
+		gtk_tree_store_append (model, &child_iter, &iter);
+		gtk_tree_store_set (model, &child_iter, 0, _(cata_chatting[i]), 1, page, -1);
+		if (page == last_selected_page)
+			sel_iter = gtk_tree_iter_copy (&child_iter);
+		page++;
+	}
 
-		i++;
-
-	} while (cata[i]);
+	gtk_tree_store_append (model, &iter, NULL);
+	gtk_tree_store_set (model, &iter, 0, _("Network"), 1, -1, -1);
+	for (i = 0; cata_network[i]; i++)
+	{
+		gtk_tree_store_append (model, &child_iter, &iter);
+		gtk_tree_store_set (model, &child_iter, 0, _(cata_network[i]), 1, page, -1);
+		if (page == last_selected_page)
+			sel_iter = gtk_tree_iter_copy (&child_iter);
+		page++;
+	}
 
 	tree = gtk_tree_view_new_with_model (GTK_TREE_MODEL (model));
 	g_object_unref (G_OBJECT (model));

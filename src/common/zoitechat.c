@@ -42,6 +42,7 @@
 #include "ignore.h"
 #include "zoitechat-plugin.h"
 #include "inbound.h"
+#include "hct.h"
 #include "plugin.h"
 #include "plugin-identd.h"
 #include "plugin-timer.h"
@@ -95,6 +96,7 @@ int arg_dont_autoconnect = FALSE;
 int arg_skip_plugins = FALSE;
 char *arg_url = NULL;
 char **arg_urls = NULL;
+static GSList *arg_hct_files = NULL;
 char *arg_command = NULL;
 gint arg_existing = FALSE;
 
@@ -417,6 +419,54 @@ zoitechat_reinit_timers (void)
 	}
 }
 
+static char *
+zoitechat_normalize_arg_path (const char *arg)
+{
+	if (g_str_has_prefix (arg, "file://"))
+		return g_filename_from_uri (arg, NULL, NULL);
+
+	return g_strdup (arg);
+}
+
+static void
+zoitechat_collect_hct_files (void)
+{
+	GPtrArray *remaining;
+	guint i;
+
+	if (!arg_urls)
+		return;
+
+	remaining = g_ptr_array_new_with_free_func (g_free);
+
+	for (i = 0; i < g_strv_length (arg_urls); i++)
+	{
+		char *path = zoitechat_normalize_arg_path (arg_urls[i]);
+
+		if (path && zoitechat_hct_is_file (path))
+		{
+			arg_hct_files = g_slist_append (arg_hct_files, path);
+		}
+		else
+		{
+			g_ptr_array_add (remaining, g_strdup (arg_urls[i]));
+			g_free (path);
+		}
+	}
+
+	g_strfreev (arg_urls);
+
+	if (remaining->len == 0)
+	{
+		g_ptr_array_free (remaining, TRUE);
+		arg_urls = NULL;
+		return;
+	}
+
+	g_ptr_array_add (remaining, NULL);
+	arg_urls = (char **) g_ptr_array_free (remaining, FALSE);
+}
+
 /* executed when the first irc window opens */
 
 static void
@@ -451,7 +501,36 @@ irc_init (session *sess)
 		handle_command (sess, buf, FALSE);
 		g_free (buf);
 	}
-	
+
+	if (arg_hct_files != NULL)
+	{
+		GSList *node = arg_hct_files;
+		while (node)
+		{
+			char *theme_name = NULL;
+			GError *error = NULL;
+			int result = zoitechat_import_hct (node->data, &theme_name, &error);
+
+			if (result == 0 && theme_name)
+			{
+				char *msg = g_strdup_printf (_("Imported theme \"%s\"."), theme_name);
+				fe_message (msg, FE_MSG_INFO);
+				g_free (msg);
+			}
+			else if (error)
+			{
+				fe_message (error->message, FE_MSG_ERROR);
+				g_clear_error (&error);
+			}
+
+			g_free (theme_name);
+			g_free (node->data);
+			node = node->next;
+		}
+		g_slist_free (arg_hct_files);
+		arg_hct_files = NULL;
+	}
+
 	if (arg_urls != NULL)
 	{
 		guint i;
@@ -953,6 +1032,7 @@ xchat_init (void)
 						defaultconf_urlhandlers);
 
 	servlist_init ();							/* load server list */
+	zoitechat_collect_hct_files ();
 
 	/* if we got a URL, don't open the server list GUI */
 	if (!prefs.hex_gui_slist_skip && !arg_url && !arg_urls)

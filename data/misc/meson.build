@@ -47,25 +47,8 @@ if get_option('gtk-frontend')
       args: [zoitechat_desktop]
     )
   endif
-endif
 
-if get_option('theme-manager')
-  htm_desktop = i18n.merge_file(
-    input: 'net.zoite.Zoitechat.ThemeManager.desktop.in',
-    output: 'net.zoite.Zoitechat.ThemeManager.desktop',
-    po_dir: '../../po',
-    type: 'desktop',
-    install: true,
-    install_dir: appdir
-  )
-
-  if desktop_utils.found()
-    test('Validate net.zoite.Zoitechat.ThemeManager.desktop', desktop_utils,
-      args: [htm_desktop]
-    )
-  endif
-
-  install_data('net.zoite.Zoitechat.ThemeManager.xml',
+  install_data('net.zoite.Zoitechat.xml',
     install_dir: join_paths(get_option('datadir'), 'mime/packages')
   )
 endif
