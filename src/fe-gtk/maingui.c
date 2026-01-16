@@ -78,7 +78,6 @@ enum
 
 static void mg_apply_emoji_fallback_widget (GtkWidget *widget);
 static void mg_apply_emoji_primary_widget (GtkWidget *widget);
-static gchar *mg_font_string_with_emoji_fallback (const gchar *font_string);
 static void mg_emoji_button_cb (GtkWidget *widget, session_gui *gui);
 static GtkWidget *mg_create_emoji_menu (session_gui *gui);
 static void mg_emoji_insert_cb (GtkMenuItem *item, session_gui *gui);
@@ -2311,7 +2310,7 @@ void
 mg_update_xtext (GtkWidget *wid)
 {
         GtkXText *xtext = GTK_XTEXT (wid);
-        gchar *font_with_emoji;
+        const gchar *font_name;
 
         gtk_xtext_set_palette (xtext, colors);
         gtk_xtext_set_max_lines (xtext, prefs.hex_text_max_lines);
@@ -2321,15 +2320,14 @@ mg_update_xtext (GtkWidget *wid)
         gtk_xtext_set_show_separator (xtext, prefs.hex_text_indent ? prefs.hex_text_show_sep : 0);
         gtk_xtext_set_indent (xtext, prefs.hex_text_indent);
 
-        /* Ensure emoji-capable fallback for the main chat buffer font */
-        font_with_emoji = mg_font_string_with_emoji_fallback (prefs.hex_text_font);
-        if (!gtk_xtext_set_font (xtext, font_with_emoji))
+        font_name = (prefs.hex_text_font && *prefs.hex_text_font)
+                ? prefs.hex_text_font
+                : "Sans 10";
+        if (!gtk_xtext_set_font (xtext, (char *)font_name))
         {
-                g_free (font_with_emoji);
                 fe_message ("Failed to open any font. I'm out of here!", FE_MSG_WAIT | FE_MSG_ERROR);
                 exit (1);
         }
-        g_free (font_with_emoji);
 
         gtk_xtext_refresh (xtext);
 }
@@ -2909,26 +2907,6 @@ mg_apply_emoji_primary_widget (GtkWidget *widget)
         pango_font_description_free (desc);
 }
 
-static gchar *
-mg_font_string_with_emoji_fallback (const gchar *font_string)
-{
-        PangoFontDescription *base;
-        PangoFontDescription *with_fallback;
-        gchar *out;
-
-        /* Keep existing behavior if unset, but still allow emoji fallback */
-        base = pango_font_description_from_string (font_string && *font_string ? font_string : "Sans 10");
-        with_fallback = mg_fontdesc_with_fallback (base, FALSE);
-
-        out = pango_font_description_to_string (with_fallback ? with_fallback : base);
-
-        if (with_fallback)
-                pango_font_description_free (with_fallback);
-        pango_font_description_free (base);
-
-        return out;
-}
-
 /* ------------------------------------------------------------------------- *
  * Emoji picker (optional UI sugar)
  * ------------------------------------------------------------------------- */
@@ -3232,9 +3210,6 @@ mg_create_entry (session *sess, GtkWidget *box)
 
         if (prefs.hex_gui_input_style)
                 mg_apply_entry_style (entry);
-
-        /* Make emoji render in the input box regardless of chosen font */
-        mg_apply_emoji_fallback_widget (entry);
 
         /* Optional emoji button (kept since you already added it) */
         emoji_button = gtk_button_new_with_label ("😊");
