@@ -9,8 +9,8 @@
 
 ZoiteChat is an HexChat based IRC client for Windows and UNIX-like operating systems.  
 See [IRCHelp.org](http://irchelp.org) for information about IRC in general.  
-For more information on ZoiteChat please read our [documentation](https://zoitechat.zoite.net/docs/en/latest/index.html):
-- [Downloads](http://zoitechat.zoite.net/downloads)
+For more information on ZoiteChat please read our [documentation](https://zoitechat.zoite.net/docs/):
+- [Downloads](https://zoitechat.zoite.net/download)
 
 ---
 
