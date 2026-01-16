@@ -990,11 +990,10 @@ servlist_load (void)
 
 	while (fgets (buf, sizeof (buf) - 2, fp))
 	{
+		g_strchomp (buf);
 		len = strlen (buf);
 		if (!len)
 			continue;
-		buf[len] = 0;
-		buf[len-1] = 0;	/* remove the trailing \n */
 		if (net)
 		{
 			switch (buf[0])
