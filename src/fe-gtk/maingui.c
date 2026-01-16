@@ -2964,6 +2964,8 @@ mg_create_emoji_menu (session_gui *gui)
 
                 /* Prefer emoji fonts for the label itself */
                 mg_apply_emoji_primary_widget (item);
+                if (gtk_bin_get_child (GTK_BIN (item)))
+                        mg_apply_emoji_primary_widget (gtk_bin_get_child (GTK_BIN (item)));
 
                 gtk_menu_attach (GTK_MENU (menu), item, col, col + 1, row, row + 1);
                 gtk_widget_show (item);
