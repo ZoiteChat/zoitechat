@@ -83,6 +83,13 @@ static void mg_emoji_button_cb (GtkWidget *widget, session_gui *gui);
 static GtkWidget *mg_create_emoji_menu (session_gui *gui);
 static void mg_emoji_insert_cb (GtkMenuItem *item, session_gui *gui);
 
+static inline void
+mg_set_source_color (cairo_t *cr, const GdkColor *color)
+{
+	cairo_set_source_rgba (cr, color->red / 65535.0, color->green / 65535.0,
+		color->blue / 65535.0, 1.0);
+}
+
 static void mg_create_entry (session *sess, GtkWidget *box);
 static void mg_create_search (session *sess, GtkWidget *box);
 #ifdef G_OS_WIN32
@@ -4149,7 +4156,7 @@ mg_drag_motion_cb (GtkWidget *widget, GdkDragContext *context, int x, int y, gui
         col.blue = rand() % 0xffff;
         cr = gdk_cairo_create (draw);
         cairo_set_operator (cr, CAIRO_OPERATOR_XOR);
-        gdk_cairo_set_source_color (cr, &col);
+        mg_set_source_color (cr, &col);
         cairo_set_line_width (cr, 1.0);
 
         half = height / 2;

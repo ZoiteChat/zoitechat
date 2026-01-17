@@ -157,6 +157,17 @@ xtext_set_source_color (cairo_t *cr, GdkColor *color, gdouble alpha)
 		color->blue / 65535.0, alpha);
 }
 
+static cairo_surface_t *
+xtext_surface_from_drawable (GdkDrawable *drawable)
+{
+	cairo_t *cr = gdk_cairo_create (drawable);
+	cairo_surface_t *surface = cairo_surface_reference (cairo_get_target (cr));
+
+	cairo_destroy (cr);
+
+	return surface;
+}
+
 static inline void
 xtext_draw_rectangle (GtkXText *xtext, cairo_t *cr, GdkColor *color, int x, int y, int width, int height)
 {
@@ -177,7 +188,7 @@ xtext_draw_line (GtkXText *xtext, cairo_t *cr, GdkColor *color, int x1, int y1, 
 
 	/* Disable antialiasing for crispy 1-pixel lines */
 	cairo_set_antialias (cr, CAIRO_ANTIALIAS_NONE);
-	gdk_cairo_set_source_color (cr, color);
+	xtext_set_source_color (cr, color, 1.0);
 	cairo_set_line_cap (cr, CAIRO_LINE_CAP_SQUARE);
 	cairo_set_operator (cr, CAIRO_OPERATOR_SOURCE);
 	cairo_set_line_width (cr, 1.0);
@@ -195,7 +206,10 @@ xtext_draw_bg_offset (GtkXText *xtext, int x, int y, int width, int height, int 
 
 	if (xtext->pixmap)
 	{
-		gdk_cairo_set_source_pixmap (cr, xtext->pixmap, tile_x, tile_y);
+		cairo_surface_t *surface = xtext_surface_from_drawable (xtext->pixmap);
+
+		cairo_set_source_surface (cr, surface, tile_x, tile_y);
+		cairo_surface_destroy (surface);
 		cairo_pattern_set_extend (cairo_get_source (cr), CAIRO_EXTEND_REPEAT);
 		cairo_rectangle (cr, (double)x, (double)y, (double)width, (double)height);
 		cairo_fill (cr);
@@ -437,7 +451,7 @@ backend_draw_text_emph (GtkXText *xtext, gboolean dofill, int x, int y,
 									xtext->font->ascent, str_width, xtext->fontsize);
 	}
 
-	gdk_cairo_set_source_color (cr, &xtext->fgc);
+	xtext_set_source_color (cr, &xtext->fgc, 1.0);
 	line = pango_layout_get_line_readonly (xtext->layout, 0);
 
 	cairo_save (cr);
@@ -2620,10 +2634,14 @@ gtk_xtext_render_flush (GtkXText * xtext, int x, int y, unsigned char *str,
 		if (gdk_rectangle_intersect (&clip, &dest, &dest))
 			/* dump the DB to window, but only within the clip_x/x2/y/y2 */
 		{
+			cairo_surface_t *surface;
+
 			cr = gdk_cairo_create (xtext->draw_buf);
 			cairo_save (cr);
 			cairo_set_operator (cr, CAIRO_OPERATOR_SOURCE);
-			gdk_cairo_set_source_pixmap (cr, pix, dest_x, dest_y);
+			surface = xtext_surface_from_drawable (pix);
+			cairo_set_source_surface (cr, surface, dest_x, dest_y);
+			cairo_surface_destroy (surface);
 			cairo_rectangle (cr, dest.x, dest.y, dest.width, dest.height);
 			cairo_fill (cr);
 			cairo_restore (cr);
@@ -3805,7 +3823,8 @@ gtk_xtext_render_page (GtkXText * xtext)
 	if (xtext->buffer->indent < MARGIN)
 		xtext->buffer->indent = MARGIN;	  /* 2 pixels is our left margin */
 
-	gdk_drawable_get_size (GTK_WIDGET (xtext)->window, &width, &height);
+	width = gdk_window_get_width (GTK_WIDGET (xtext)->window);
+	height = gdk_window_get_height (GTK_WIDGET (xtext)->window);
 
 	if (width < 34 || height < xtext->fontsize || width < xtext->buffer->indent + 32)
 		return;
@@ -3843,6 +3862,7 @@ gtk_xtext_render_page (GtkXText * xtext)
 		if (overlap < 1)	/* DOWN */
 		{
 			int remainder;
+			cairo_surface_t *surface;
 
 			src_y = -overlap;
 			dest_y = 0;
@@ -3850,7 +3870,9 @@ gtk_xtext_render_page (GtkXText * xtext)
 			cr = gdk_cairo_create (xtext->draw_buf);
 			cairo_save (cr);
 			cairo_set_operator (cr, CAIRO_OPERATOR_SOURCE);
-			gdk_cairo_set_source_window (cr, GTK_WIDGET (xtext)->window, dest_x - src_x, dest_y - src_y);
+			surface = xtext_surface_from_drawable (GTK_WIDGET (xtext)->window);
+			cairo_set_source_surface (cr, surface, dest_x - src_x, dest_y - src_y);
+			cairo_surface_destroy (surface);
 			cairo_rectangle (cr, dest_x, dest_y, width, copy_height);
 			cairo_fill (cr);
 			cairo_restore (cr);
@@ -3861,13 +3883,17 @@ gtk_xtext_render_page (GtkXText * xtext)
 			area.height = remainder - overlap;
 		} else
 		{
+			cairo_surface_t *surface;
+
 			src_y = 0;
 			dest_y = overlap;
 			copy_height = height - overlap;
 			cr = gdk_cairo_create (xtext->draw_buf);
 			cairo_save (cr);
 			cairo_set_operator (cr, CAIRO_OPERATOR_SOURCE);
-			gdk_cairo_set_source_window (cr, GTK_WIDGET (xtext)->window, dest_x - src_x, dest_y - src_y);
+			surface = xtext_surface_from_drawable (GTK_WIDGET (xtext)->window);
+			cairo_set_source_surface (cr, surface, dest_x - src_x, dest_y - src_y);
+			cairo_surface_destroy (surface);
 			cairo_rectangle (cr, dest_x, dest_y, width, copy_height);
 			cairo_fill (cr);
 			cairo_restore (cr);
