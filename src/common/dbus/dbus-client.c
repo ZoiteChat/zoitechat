@@ -53,6 +53,33 @@ new_param_variant (const char *arg)
 	return g_variant_new_tuple (args, 1);
 }
 
+static gboolean
+has_theme_argument (void)
+{
+	char *theme_path = NULL;
+	guint i;
+
+	if (arg_url && zoitechat_theme_path_from_arg (arg_url, &theme_path))
+	{
+		g_free (theme_path);
+		return TRUE;
+	}
+
+	if (arg_urls)
+	{
+		for (i = 0; i < g_strv_length (arg_urls); i++)
+		{
+			if (zoitechat_theme_path_from_arg (arg_urls[i], &theme_path))
+			{
+				g_free (theme_path);
+				return TRUE;
+			}
+		}
+	}
+
+	return FALSE;
+}
+
 void
 zoitechat_remote (void)
 /* TODO: dbus_g_connection_unref (connection) are commented because it makes
@@ -68,11 +95,16 @@ zoitechat_remote (void)
 	GError *error = NULL;
 	char *command = NULL;
 	guint i;
+	gboolean allow_remote;
 
 	/* if there is nothing to do, return now. */
-	if (!arg_existing || !(arg_url || arg_urls || arg_command)) {
+	if (!(arg_url || arg_urls || arg_command)) {
 		return;
 	}
+
+	allow_remote = arg_existing || has_theme_argument ();
+	if (!allow_remote)
+		return;
 
 	arg_dont_autoconnect = TRUE;
 

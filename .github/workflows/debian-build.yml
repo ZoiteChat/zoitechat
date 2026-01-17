@@ -35,7 +35,6 @@ jobs:
           rm -rf build
           meson setup build \
             -Dtext-frontend=true \
-            -Dtheme-manager=true \
             -Dauto_features=enabled
         # If configure fails, show the project's actual option names in the log.
       - name: Show Meson options (on failure)

@@ -5,9 +5,6 @@ option('gtk-frontend', type: 'boolean',
 option('text-frontend', type: 'boolean', value: false,
   description: 'Text interface (not generally useful)'
 )
-option('theme-manager', type: 'boolean', value: false,
-  description: 'Utility to help manage themes, requires mono/.net'
-)
 
 # Features
 option('tls', type: 'feature', value: 'enabled',

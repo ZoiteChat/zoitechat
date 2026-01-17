@@ -11,7 +11,7 @@ Categories=GTK;Network;IRCClient;
 StartupNotify=true
 StartupWMClass=Zoitechat
 X-GNOME-UsesNotifications=true
-MimeType=x-scheme-handler/irc;x-scheme-handler/ircs;
+MimeType=x-scheme-handler/irc;x-scheme-handler/ircs;application/x-zoitechat-theme;application/x-hexchat-theme;
 Actions=SafeMode;
 
 [Desktop Action SafeMode]
