@@ -2817,7 +2817,11 @@ mg_inputbox_rightclick (GtkEntry *entry, GtkWidget *menu)
  * ------------------------------------------------------------------------- */
 
 static const char *mg_emoji_family_fallback =
+#ifdef G_OS_WIN32
+        "Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji, Apple Color Emoji, Twemoji Mozilla, EmojiOne Color";
+#else
         "Noto Color Emoji, Segoe UI Emoji, Apple Color Emoji, Twemoji Mozilla, EmojiOne Color";
+#endif
 
 static gboolean
 mg_family_already_has_emoji (const gchar *family)

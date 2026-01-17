@@ -39,7 +39,11 @@
 #endif
 
 #define DEF_FONT "Monospace 9"
+#ifdef WIN32
+#define DEF_FONT_ALTER "Segoe UI Emoji,Arial Unicode MS,Lucida Sans Unicode,Meiryo,Symbola,Unifont"
+#else
 #define DEF_FONT_ALTER "Arial Unicode MS,Segoe UI Emoji,Lucida Sans Unicode,Meiryo,Symbola,Unifont"
+#endif
 
 const char * const languages[LANGUAGES_LENGTH] = {
 	"af", "sq", "am", "ast", "az", "eu", "be", "bg", "ca", "zh_CN",      /*  0 ..  9 */
