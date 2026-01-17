@@ -4156,12 +4156,14 @@ mg_drag_motion_cb (GtkWidget *widget, GdkDragContext *context, int x, int y, gui
 
 #if 0
         /* are both tree/userlist on the same side? */
+        GtkPaned *paned;
         paned = (GtkPaned *)widget->parent->parent;
         if (paned->child1 != NULL && paned->child2 != NULL)
         {
-                gdk_draw_rectangle (draw, gc, 0, 1, 2, width - 3, height - 4);
-                gdk_draw_rectangle (draw, gc, 0, 0, 1, width - 1, height - 2);
-                g_object_unref (gc);
+                cairo_rectangle (cr, 1 + ox, 2 + oy, width - 3, height - 4);
+                cairo_rectangle (cr, 0 + ox, 1 + oy, width - 1, height - 2);
+                cairo_stroke (cr);
+                cairo_destroy (cr);
                 return TRUE;
         }
 #endif
