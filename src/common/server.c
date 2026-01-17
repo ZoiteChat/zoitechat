@@ -64,6 +64,40 @@
 #ifdef USE_OPENSSL
 /* local variables */
 static struct session *g_sess = NULL;
+
+static gboolean
+ssl_sni_hostname_is_valid (const char *hostname)
+{
+	const unsigned char *current;
+	char *ip_literal = NULL;
+	size_t hostname_len;
+
+	if (!hostname || !hostname[0])
+		return FALSE;
+
+	for (current = (const unsigned char *)hostname; *current; current++)
+	{
+		if (*current > 0x7f)
+			return FALSE;
+	}
+
+	if (g_hostname_is_ip_address (hostname))
+		return FALSE;
+
+	hostname_len = strlen (hostname);
+	if (hostname[0] == '[' && hostname_len > 2 && hostname[hostname_len - 1] == ']')
+	{
+		ip_literal = g_strndup (hostname + 1, hostname_len - 2);
+		if (g_hostname_is_ip_address (ip_literal))
+		{
+			g_free (ip_literal);
+			return FALSE;
+		}
+		g_free (ip_literal);
+	}
+
+	return TRUE;
+}
 #endif
 
 static GSList *away_list = NULL;
@@ -519,7 +553,16 @@ ssl_do_connect (server * serv)
 	g_sess = serv->server_session;
 
 	/* Set SNI hostname before connect */
-	SSL_set_tlsext_host_name(serv->ssl, serv->hostname);
+	if (ssl_sni_hostname_is_valid (serv->hostname))
+	{
+		SSL_set_tlsext_host_name (serv->ssl, serv->hostname);
+	}
+	else
+	{
+		g_snprintf (buf, sizeof (buf), "* Skipping invalid SNI hostname: %s",
+					 serv->hostname);
+		EMIT_SIGNAL (XP_TE_SSLMESSAGE, serv->server_session, buf, NULL, NULL, NULL, 0);
+	}
 
 	if (SSL_connect (serv->ssl) <= 0)
 	{
