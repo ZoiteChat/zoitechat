@@ -1,5 +1,6 @@
 appdir = join_paths(get_option('datadir'), 'applications')
 metainfodir = join_paths(get_option('datadir'), 'metainfo')
+mimedir = join_paths(get_option('datadir'), 'mime', 'packages')
 desktop_utils = find_program('desktop-file-validate', required: false)
 
 if get_option('gtk-frontend')
@@ -42,32 +43,15 @@ if get_option('gtk-frontend')
     install_dir: appdir
   )
 
+  install_data('net.zoite.Zoitechat.mime.xml',
+    install_dir: mimedir
+  )
+
   if desktop_utils.found()
     test('Validate net.zoite.Zoitechat.desktop', desktop_utils,
       args: [zoitechat_desktop]
     )
   endif
-endif
-
-if get_option('theme-manager')
-  htm_desktop = i18n.merge_file(
-    input: 'net.zoite.Zoitechat.ThemeManager.desktop.in',
-    output: 'net.zoite.Zoitechat.ThemeManager.desktop',
-    po_dir: '../../po',
-    type: 'desktop',
-    install: true,
-    install_dir: appdir
-  )
-
-  if desktop_utils.found()
-    test('Validate net.zoite.Zoitechat.ThemeManager.desktop', desktop_utils,
-      args: [htm_desktop]
-    )
-  endif
-
-  install_data('net.zoite.Zoitechat.ThemeManager.xml',
-    install_dir: join_paths(get_option('datadir'), 'mime/packages')
-  )
 endif
 
 if get_option('plugin')

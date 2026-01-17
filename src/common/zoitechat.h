@@ -29,6 +29,9 @@
 #ifndef HEXCHAT_H
 #define HEXCHAT_H
 
+gboolean zoitechat_theme_path_from_arg (const char *arg, char **path_out);
+gboolean zoitechat_import_theme (const char *path, GError **error);
+
 #ifdef USE_OPENSSL
 #ifdef __APPLE__
 #define __AVAILABILITYMACROS__

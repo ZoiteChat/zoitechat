@@ -53,7 +53,6 @@
     <None Include="$(DepsRoot)\bin\pangowin32-1.0-0.dll" />
     <None Include="$(DepsRoot)\bin\zlib1.dll" />
     <None Include="$(WinSparklePath)\WinSparkle.dll" />
-    <None Include="$(ZoiteChatBin)thememan.exe" />
     <None Include="changelog.url" />
     <None Include="readme.url" />
 
@@ -101,3 +100,4 @@
     <Copy SourceFiles="@(DepsRootDocs)" DestinationFiles="@(DepsRootDocs->'$(ZoiteChatRel)\share\doc\%(RecursiveDir)%(Filename)%(Extension)')" />
   </Target>
 </Project>
+

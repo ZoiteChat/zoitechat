@@ -36,7 +36,6 @@ jobs:
           meson setup build \
             --prefix=/usr \
             -Dtext-frontend=true \
-            -Dtheme-manager=true \
             -Dauto_features=enabled
 
       - name: Build
