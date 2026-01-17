@@ -53,6 +53,45 @@ new_param_variant (const char *arg)
 	return g_variant_new_tuple (args, 1);
 }
 
+static gboolean
+theme_has_supported_extension (const char *path)
+{
+	const char *ext = strrchr (path, '.');
+
+	if (ext == NULL)
+		return FALSE;
+
+	return g_ascii_strcasecmp (ext, ".zct") == 0 ||
+		g_ascii_strcasecmp (ext, ".hct") == 0;
+}
+
+static char *
+theme_path_from_arg (const char *arg)
+{
+	if (arg == NULL)
+		return NULL;
+
+	if (g_str_has_prefix (arg, "file://"))
+		return g_filename_from_uri (arg, NULL, NULL);
+
+	return g_strdup (arg);
+}
+
+static char *
+theme_command_from_arg (const char *arg)
+{
+	char *path = theme_path_from_arg (arg);
+	char *command = NULL;
+
+	if (path != NULL && theme_has_supported_extension (path) && g_file_test (path, G_FILE_TEST_IS_REGULAR))
+		command = g_strdup_printf ("themeimport %s", path);
+	else if (arg != NULL)
+		command = g_strdup_printf ("url %s", arg);
+
+	g_free (path);
+	return command;
+}
+
 void
 zoitechat_remote (void)
 /* TODO: dbus_g_connection_unref (connection) are commented because it makes
@@ -135,7 +174,7 @@ zoitechat_remote (void)
 	}
 
 	if (arg_url) {
-		command = g_strdup_printf ("url %s", arg_url);
+		command = theme_command_from_arg (arg_url);
 	} else if (arg_command) {
 		command = g_strdup (arg_command);
 	}
@@ -158,7 +197,7 @@ zoitechat_remote (void)
 	{
 		for (i = 0; i < g_strv_length(arg_urls); i++)
 		{
-			command = g_strdup_printf ("url %s", arg_urls[i]);
+			command = theme_command_from_arg (arg_urls[i]);
 
 			g_dbus_proxy_call_sync (remote_object, "Command",
 									new_param_variant (command),

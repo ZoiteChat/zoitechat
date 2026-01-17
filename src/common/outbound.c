@@ -3955,6 +3955,28 @@ cmd_voice (struct session *sess, char *tbuf, char *word[], char *word_eol[])
 	}
 }
 
+static int
+cmd_themeimport (struct session *sess, char *tbuf, char *word[], char *word_eol[])
+{
+	char *path = NULL;
+
+	if (word_eol[2] == NULL || word_eol[2][0] == '\0')
+		return FALSE;
+
+	if (g_str_has_prefix (word_eol[2], "file://"))
+		path = g_filename_from_uri (word_eol[2], NULL, NULL);
+	else
+		path = g_strdup (word_eol[2]);
+
+	if (path == NULL)
+		return FALSE;
+
+	zoitechat_theme_import (sess, path);
+	g_free (path);
+
+	return TRUE;
+}
+
 /* *MUST* be kept perfectly sorted for the bsearch to work */
 const struct commands xc_cmds[] = {
 	{"ADDBUTTON", cmd_addbutton, 0, 0, 1,
@@ -4136,6 +4158,8 @@ const struct commands xc_cmds[] = {
 	{"SETTAB", cmd_settab, 0, 0, 1, N_("SETTAB <new name>, change a tab's name, tab_trunc limit still applies")},
 	{"SETTEXT", cmd_settext, 0, 0, 1, N_("SETTEXT <new text>, replace the text in the input box")},
 	{"SPLAY", cmd_splay, 0, 0, 1, "SPLAY <soundfile>"},
+	{"THEMEIMPORT", cmd_themeimport, 0, 0, 1,
+	 N_("THEMEIMPORT <file>, imports a theme archive into the themes folder")},
 	{"TOPIC", cmd_topic, 1, 1, 1,
 	 N_("TOPIC [<topic>], sets the topic if one is given, else shows the current topic")},
 	{"TRAY", cmd_tray, 0, 0, 1,

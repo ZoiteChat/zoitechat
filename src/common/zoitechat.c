@@ -424,6 +424,7 @@ irc_init (session *sess)
 {
 	static int done_init = FALSE;
 	char *buf;
+	char *theme_path;
 
 	if (done_init)
 		return;
@@ -446,10 +447,23 @@ irc_init (session *sess)
 
 	if (arg_url != NULL)
 	{
-		buf = g_strdup_printf ("server %s", arg_url);
+		theme_path = theme_path_from_arg (arg_url);
+
+		if (theme_path != NULL &&
+			theme_has_supported_extension (theme_path) &&
+			g_file_test (theme_path, G_FILE_TEST_IS_REGULAR))
+		{
+			zoitechat_theme_import (sess, theme_path);
+		}
+		else
+		{
+			buf = g_strdup_printf ("server %s", arg_url);
+			handle_command (sess, buf, FALSE);
+			g_free (buf);
+		}
+
+		g_free (theme_path);
 		g_free (arg_url);	/* from GOption */
-		handle_command (sess, buf, FALSE);
-		g_free (buf);
 	}
 	
 	if (arg_urls != NULL)
@@ -457,9 +471,22 @@ irc_init (session *sess)
 		guint i;
 		for (i = 0; i < g_strv_length (arg_urls); i++)
 		{
-			buf = g_strdup_printf ("%s %s", i==0? "server" : "newserver", arg_urls[i]);
-			handle_command (sess, buf, FALSE);
-			g_free (buf);
+			theme_path = theme_path_from_arg (arg_urls[i]);
+
+			if (theme_path != NULL &&
+				theme_has_supported_extension (theme_path) &&
+				g_file_test (theme_path, G_FILE_TEST_IS_REGULAR))
+			{
+				zoitechat_theme_import (sess, theme_path);
+			}
+			else
+			{
+				buf = g_strdup_printf ("%s %s", i==0? "server" : "newserver", arg_urls[i]);
+				handle_command (sess, buf, FALSE);
+				g_free (buf);
+			}
+
+			g_free (theme_path);
 		}
 		g_strfreev (arg_urls);
 	}
@@ -469,6 +496,9 @@ irc_init (session *sess)
 		handle_command (sess, arg_command, FALSE);
 		g_free (arg_command);
 	}
+
+	theme_import_start_monitor (sess);
+	theme_import_process_inbox (sess);
 
 	/* load -e <xdir>/startup.txt */
 	load_perform_file (sess, "startup.txt");
@@ -1008,6 +1038,177 @@ zoitechat_exec (const char *cmd)
 	util_exec (cmd);
 }
 
+static gboolean
+theme_has_supported_extension (const char *path)
+{
+	const char *ext = strrchr (path, '.');
+
+	if (ext == NULL)
+		return FALSE;
+
+	return g_ascii_strcasecmp (ext, ".zct") == 0 ||
+		g_ascii_strcasecmp (ext, ".hct") == 0;
+}
+
+static char *
+theme_path_from_arg (const char *arg)
+{
+	if (arg == NULL)
+		return NULL;
+
+	if (g_str_has_prefix (arg, "file://"))
+		return g_filename_from_uri (arg, NULL, NULL);
+
+	return g_strdup (arg);
+}
+
+static char *
+theme_basename_from_path (const char *path)
+{
+	char *basename = g_path_get_basename (path);
+	char *ext = strrchr (basename, '.');
+
+	if (ext != NULL)
+		*ext = '\0';
+
+	return basename;
+}
+
+static char *
+theme_dir_path (void)
+{
+	return g_build_filename (get_xdir (), "themes", NULL);
+}
+
+static char *
+theme_inbox_dir_path (void)
+{
+	char *themes_dir = theme_dir_path ();
+	char *inbox_dir = g_build_filename (themes_dir, ".imports", NULL);
+
+	g_free (themes_dir);
+
+	return inbox_dir;
+}
+
+#ifdef WIN32
+static char *
+theme_escape_powershell (const char *input)
+{
+	GString *escaped = g_string_new ("");
+	const char *cursor = input;
+
+	while (*cursor)
+	{
+		if (*cursor == '\'')
+			g_string_append (escaped, "''");
+		else
+			g_string_append_c (escaped, *cursor);
+		cursor++;
+	}
+
+	return g_string_free (escaped, FALSE);
+}
+#endif
+
+static gboolean
+theme_extract_archive (const char *archive_path, const char *dest_dir, GError **error)
+{
+	gboolean ok = FALSE;
+	int status = 0;
+
+#ifdef WIN32
+	char *escaped_archive = theme_escape_powershell (archive_path);
+	char *escaped_dest = theme_escape_powershell (dest_dir);
+	char *command = g_strdup_printf ("Expand-Archive -LiteralPath '%s' -DestinationPath '%s' -Force",
+									 escaped_archive, escaped_dest);
+	char *argv[] = {"powershell", "-NoProfile", "-NonInteractive", "-Command", command, NULL};
+
+	ok = g_spawn_sync (NULL, argv, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL, NULL, NULL, &status, error);
+	if (ok)
+		ok = g_spawn_check_exit_status (status, error);
+
+	g_free (command);
+	g_free (escaped_dest);
+	g_free (escaped_archive);
+#else
+	{
+		char *argv[] = {"unzip", "-o", (char *)archive_path, "-d", (char *)dest_dir, NULL};
+
+		ok = g_spawn_sync (NULL, argv, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL, NULL, NULL, &status, error);
+		if (ok)
+			ok = g_spawn_check_exit_status (status, error);
+	}
+#ifdef __APPLE__
+	if (!ok)
+	{
+		char *argv[] = {"ditto", "-x", "-k", (char *)archive_path, (char *)dest_dir, NULL};
+
+		g_clear_error (error);
+		ok = g_spawn_sync (NULL, argv, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL, NULL, NULL, &status, error);
+		if (ok)
+			ok = g_spawn_check_exit_status (status, error);
+	}
+#endif
+#endif
+
+	return ok;
+}
+
+int
+zoitechat_theme_import (struct session *sess, const char *theme_path)
+{
+	GError *error = NULL;
+	char *themes_dir = NULL;
+	char *dest_dir = NULL;
+	char *basename = NULL;
+
+	(void) sess;
+
+	if (theme_path == NULL || !theme_has_supported_extension (theme_path))
+		return FALSE;
+
+	if (!g_file_test (theme_path, G_FILE_TEST_IS_REGULAR))
+	{
+		fe_message (_("Theme import failed: file not found."), FE_MSG_ERROR);
+		return FALSE;
+	}
+
+	themes_dir = theme_dir_path ();
+	g_mkdir_with_parents (themes_dir, 0700);
+
+	basename = theme_basename_from_path (theme_path);
+	dest_dir = g_build_filename (themes_dir, basename, NULL);
+	g_mkdir_with_parents (dest_dir, 0700);
+
+	if (!theme_extract_archive (theme_path, dest_dir, &error))
+	{
+		char *message = g_strdup_printf (_("Theme import failed: %s"),
+										 error ? error->message : _("unknown error"));
+
+		fe_message (message, FE_MSG_ERROR);
+		g_free (message);
+		g_clear_error (&error);
+		g_free (dest_dir);
+		g_free (basename);
+		g_free (themes_dir);
+		return FALSE;
+	}
+
+	{
+		char *message = g_strdup_printf (_("Theme \"%s\" imported."), basename);
+
+		fe_message (message, FE_MSG_INFO);
+		g_free (message);
+	}
+
+	g_free (dest_dir);
+	g_free (basename);
+	g_free (themes_dir);
+
+	return TRUE;
+}
+
 
 static void
 set_locale (void)
@@ -1024,6 +1225,220 @@ set_locale (void)
 
 	putenv (zoitechat_lang);
 #endif
+}
+
+#ifdef WIN32
+static HANDLE theme_import_mutex = NULL;
+static gboolean theme_import_mutex_exists = FALSE;
+
+static void
+theme_import_mutex_init (void)
+{
+	theme_import_mutex = CreateMutex (NULL, FALSE, TEXT ("ZoiteChat.ThemeImport"));
+	if (theme_import_mutex != NULL && GetLastError () == ERROR_ALREADY_EXISTS)
+		theme_import_mutex_exists = TRUE;
+}
+#endif
+
+static gboolean
+theme_arg_is_importable (const char *arg, char **out_path)
+{
+	char *path = theme_path_from_arg (arg);
+
+	if (path == NULL)
+		return FALSE;
+
+	if (theme_has_supported_extension (path) && g_file_test (path, G_FILE_TEST_IS_REGULAR))
+	{
+		if (out_path != NULL)
+			*out_path = path;
+		else
+			g_free (path);
+		return TRUE;
+	}
+
+	g_free (path);
+	return FALSE;
+}
+
+static void
+theme_queue_import_file (const char *theme_path)
+{
+	GFile *source = NULL;
+	GFile *dest = NULL;
+	char *inbox_dir = NULL;
+	char *basename = NULL;
+	char *queued_name = NULL;
+	char *queued_path = NULL;
+	gint64 timestamp = 0;
+	GError *error = NULL;
+
+	if (theme_path == NULL)
+		return;
+
+	inbox_dir = theme_inbox_dir_path ();
+	g_mkdir_with_parents (inbox_dir, 0700);
+
+	basename = g_path_get_basename (theme_path);
+	timestamp = g_get_real_time ();
+	{
+		char *ext = strrchr (basename, '.');
+
+		if (ext != NULL)
+		{
+			queued_name = g_strdup_printf ("%.*s-%" G_GINT64_FORMAT "%s",
+										   (int) (ext - basename), basename, timestamp, ext);
+		}
+		else
+		{
+			queued_name = g_strdup_printf ("%s-%" G_GINT64_FORMAT, basename, timestamp);
+		}
+	}
+	queued_path = g_build_filename (inbox_dir, queued_name, NULL);
+
+	source = g_file_new_for_path (theme_path);
+	dest = g_file_new_for_path (queued_path);
+
+	if (!g_file_copy (source, dest, G_FILE_COPY_OVERWRITE, NULL, NULL, NULL, &error))
+	{
+		g_printerr ("Theme import failed: %s\n", error ? error->message : "unknown error");
+		g_clear_error (&error);
+	}
+
+	g_clear_object (&source);
+	g_clear_object (&dest);
+	g_free (queued_path);
+	g_free (queued_name);
+	g_free (basename);
+	g_free (inbox_dir);
+}
+
+static void
+theme_import_process_inbox (struct session *sess)
+{
+	char *inbox_dir = theme_inbox_dir_path ();
+	GDir *dir = NULL;
+	const char *entry = NULL;
+
+	dir = g_dir_open (inbox_dir, 0, NULL);
+	if (dir == NULL)
+	{
+		g_free (inbox_dir);
+		return;
+	}
+
+	while ((entry = g_dir_read_name (dir)) != NULL)
+	{
+		char *path = g_build_filename (inbox_dir, entry, NULL);
+
+		if (theme_has_supported_extension (path))
+			zoitechat_theme_import (sess, path);
+
+		g_unlink (path);
+		g_free (path);
+	}
+
+	g_dir_close (dir);
+	g_free (inbox_dir);
+}
+
+static void
+theme_import_monitor_cb (GFileMonitor *monitor, GFile *file, GFile *other_file,
+						 GFileMonitorEvent event_type, gpointer data)
+{
+	struct session *sess = data;
+	char *path = NULL;
+
+	(void) monitor;
+	(void) other_file;
+
+	if (event_type != G_FILE_MONITOR_EVENT_CREATED &&
+		event_type != G_FILE_MONITOR_EVENT_MOVED_IN)
+		return;
+
+	path = g_file_get_path (file);
+	if (path == NULL)
+		return;
+
+	if (theme_has_supported_extension (path))
+	{
+		zoitechat_theme_import (sess, path);
+		g_unlink (path);
+	}
+
+	g_free (path);
+}
+
+static void
+theme_import_start_monitor (struct session *sess)
+{
+	static GFileMonitor *monitor = NULL;
+	GFile *dir = NULL;
+	char *inbox_dir = theme_inbox_dir_path ();
+
+	if (monitor != NULL)
+	{
+		g_free (inbox_dir);
+		return;
+	}
+
+	g_mkdir_with_parents (inbox_dir, 0700);
+	dir = g_file_new_for_path (inbox_dir);
+	monitor = g_file_monitor_directory (dir, G_FILE_MONITOR_NONE, NULL, NULL);
+	if (monitor != NULL)
+		g_signal_connect (monitor, "changed", G_CALLBACK (theme_import_monitor_cb), sess);
+
+	g_clear_object (&dir);
+	g_free (inbox_dir);
+}
+
+static gboolean
+theme_queue_imports_from_args (void)
+{
+	gboolean queued = FALSE;
+	char *path = NULL;
+
+	if (theme_arg_is_importable (arg_url, &path))
+	{
+		theme_queue_import_file (path);
+		g_free (path);
+		queued = TRUE;
+	}
+
+	if (arg_urls != NULL)
+	{
+		guint i = 0;
+
+		for (i = 0; i < g_strv_length (arg_urls); i++)
+		{
+			if (theme_arg_is_importable (arg_urls[i], &path))
+			{
+				theme_queue_import_file (path);
+				g_free (path);
+				queued = TRUE;
+			}
+		}
+	}
+
+	return queued;
+}
+
+static gboolean
+theme_args_present (void)
+{
+	if (theme_arg_is_importable (arg_url, NULL))
+		return TRUE;
+
+	if (arg_urls != NULL)
+	{
+		guint i = 0;
+
+		for (i = 0; i < g_strv_length (arg_urls); i++)
+			if (theme_arg_is_importable (arg_urls[i], NULL))
+				return TRUE;
+	}
+
+	return FALSE;
 }
 
 int
@@ -1089,6 +1504,17 @@ main (int argc, char *argv[])
 	ret = fe_args (argc, argv);
 	if (ret != -1)
 		return ret;
+
+#ifdef USE_DBUS
+	if (theme_args_present ())
+		arg_existing = TRUE;
+#endif
+
+#ifdef WIN32
+	theme_import_mutex_init ();
+	if (theme_import_mutex_exists && theme_queue_imports_from_args ())
+		return 0;
+#endif
 	
 #ifdef USE_DBUS
 	zoitechat_remote ();
