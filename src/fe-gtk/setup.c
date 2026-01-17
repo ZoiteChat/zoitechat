@@ -1726,6 +1726,17 @@ setup_theme_refresh_cb (GtkWidget *button, gpointer user_data)
 }
 
 static void
+setup_theme_open_folder_cb (GtkWidget *button, gpointer user_data)
+{
+        char *themes_dir;
+
+        themes_dir = g_build_filename (get_xdir (), "themes", NULL);
+        g_mkdir_with_parents (themes_dir, 0700);
+        fe_open_url (themes_dir);
+        g_free (themes_dir);
+}
+
+static void
 setup_theme_selection_changed (GtkComboBox *combo, gpointer user_data)
 {
         setup_theme_ui *ui = user_data;
@@ -1860,6 +1871,11 @@ setup_create_theme_page (void)
         gtk_box_pack_start (GTK_BOX (button_box), label, FALSE, FALSE, 0);
         g_signal_connect (G_OBJECT (label), "clicked",
                                                         G_CALLBACK (setup_theme_refresh_cb), ui);
+
+        label = gtk_button_new_with_mnemonic (_("_Open Folder"));
+        gtk_box_pack_start (GTK_BOX (button_box), label, FALSE, FALSE, 0);
+        g_signal_connect (G_OBJECT (label), "clicked",
+                                                        G_CALLBACK (setup_theme_open_folder_cb), ui);
 
         ui->status_label = gtk_label_new (NULL);
         gtk_misc_set_alignment (GTK_MISC (ui->status_label), 0.0, 0.5);
