@@ -168,6 +168,15 @@ xtext_surface_from_drawable (GdkDrawable *drawable)
 	return surface;
 }
 
+static cairo_t *
+xtext_create_context (GtkXText *xtext)
+{
+	if (xtext->draw_surface)
+		return cairo_create (xtext->draw_surface);
+
+	return gdk_cairo_create (xtext->draw_buf);
+}
+
 static inline void
 xtext_draw_rectangle (GtkXText *xtext, cairo_t *cr, GdkColor *color, int x, int y, int width, int height)
 {
@@ -202,7 +211,7 @@ xtext_draw_line (GtkXText *xtext, cairo_t *cr, GdkColor *color, int x1, int y1, 
 static inline void
 xtext_draw_bg_offset (GtkXText *xtext, int x, int y, int width, int height, int tile_x, int tile_y)
 {
-	cairo_t *cr = gdk_cairo_create (xtext->draw_buf);
+	cairo_t *cr = xtext_create_context (xtext);
 
 	if (xtext->pixmap)
 	{
@@ -440,7 +449,7 @@ backend_draw_text_emph (GtkXText *xtext, gboolean dofill, int x, int y,
 	cairo_t *cr;
 	PangoLayoutLine *line;
 
-	cr = gdk_cairo_create (xtext->draw_buf);
+	cr = xtext_create_context (xtext);
 
 	pango_layout_set_attributes (xtext->layout, attr_lists[emphasis]);
 	pango_layout_set_text (xtext->layout, str, len);
@@ -478,6 +487,7 @@ static void
 gtk_xtext_init (GtkXText * xtext)
 {
 	xtext->pixmap = NULL;
+	xtext->draw_surface = NULL;
 	xtext->io_tag = 0;
 	xtext->add_io_tag = 0;
 	xtext->scroll_tag = 0;
@@ -985,7 +995,7 @@ gtk_xtext_draw_sep (GtkXText * xtext, int y)
 	{
 		light = &xtext->light_gc;
 		dark = &xtext->dark_gc;
-		cr = gdk_cairo_create (xtext->draw_buf);
+		cr = xtext_create_context (xtext);
 
 		x = xtext->buffer->indent - ((xtext->space_width + 1) / 2);
 		if (x < 1)
@@ -1038,7 +1048,7 @@ gtk_xtext_draw_marker (GtkXText * xtext, textentry * ent, int y)
 	x = 0;
 	width = GTK_WIDGET (xtext)->allocation.width;
 
-	cr = gdk_cairo_create (xtext->draw_buf);
+	cr = xtext_create_context (xtext);
 	xtext_draw_line (xtext, cr, &xtext->marker_gc, x, render_y, x + width, render_y);
 	cairo_destroy (cr);
 
@@ -2561,7 +2571,7 @@ gtk_xtext_render_flush (GtkXText * xtext, int x, int y, unsigned char *str,
 								int len, int *emphasis)
 {
 	int str_width, dofill;
-	GdkDrawable *pix = NULL;
+	cairo_surface_t *surface = NULL;
 	int dest_x = 0, dest_y = 0;
 	int tile_x = xtext->ts_x;
 	int tile_y = xtext->ts_y;
@@ -2588,8 +2598,9 @@ gtk_xtext_render_flush (GtkXText * xtext, int x, int y, unsigned char *str,
 			goto dounder;
 	}
 
-	pix = gdk_pixmap_new (xtext->draw_buf, str_width, xtext->fontsize, xtext->depth);
-	if (pix)
+	surface = gdk_window_create_similar_surface (GTK_WIDGET (xtext)->window,
+		CAIRO_CONTENT_COLOR_ALPHA, str_width, xtext->fontsize);
+	if (surface)
 	{
 		dest_x = x;
 		dest_y = y - xtext->font->ascent;
@@ -2598,7 +2609,7 @@ gtk_xtext_render_flush (GtkXText * xtext, int x, int y, unsigned char *str,
 
 		x = 0;
 		y = xtext->font->ascent;
-		xtext->draw_buf = pix;
+		xtext->draw_surface = surface;
 	}
 
 	dofill = TRUE;
@@ -2614,13 +2625,13 @@ gtk_xtext_render_flush (GtkXText * xtext, int x, int y, unsigned char *str,
 
 	backend_draw_text_emph (xtext, dofill, x, y, str, len, str_width, *emphasis);
 
-	if (pix)
+	if (surface)
 	{
 		GdkRectangle clip;
 		GdkRectangle dest;
 		cairo_t *cr;
 
-		xtext->draw_buf = GTK_WIDGET (xtext)->window;
+		xtext->draw_surface = NULL;
 		clip.x = xtext->clip_x;
 		clip.y = xtext->clip_y;
 		clip.width = xtext->clip_x2 - xtext->clip_x;
@@ -2634,20 +2645,16 @@ gtk_xtext_render_flush (GtkXText * xtext, int x, int y, unsigned char *str,
 		if (gdk_rectangle_intersect (&clip, &dest, &dest))
 			/* dump the DB to window, but only within the clip_x/x2/y/y2 */
 		{
-			cairo_surface_t *surface;
-
-			cr = gdk_cairo_create (xtext->draw_buf);
+			cr = xtext_create_context (xtext);
 			cairo_save (cr);
 			cairo_set_operator (cr, CAIRO_OPERATOR_SOURCE);
-			surface = xtext_surface_from_drawable (pix);
 			cairo_set_source_surface (cr, surface, dest_x, dest_y);
-			cairo_surface_destroy (surface);
 			cairo_rectangle (cr, dest.x, dest.y, dest.width, dest.height);
 			cairo_fill (cr);
 			cairo_restore (cr);
 			cairo_destroy (cr);
 		}
-		g_object_unref (pix);
+		cairo_surface_destroy (surface);
 	}
 
 	if (xtext->strikethrough)
@@ -2655,7 +2662,7 @@ gtk_xtext_render_flush (GtkXText * xtext, int x, int y, unsigned char *str,
 		cairo_t *cr;
 		/* pango_attr_strikethrough_new does not render in the custom widget so we need to reinvent the wheel */
 		y = dest_y + (xtext->fontsize / 2);
-		cr = gdk_cairo_create (xtext->draw_buf);
+		cr = xtext_create_context (xtext);
 		xtext_draw_line (xtext, cr, &xtext->fgc, dest_x, y, dest_x + str_width - 1, y);
 		cairo_destroy (cr);
 	}
@@ -2666,7 +2673,7 @@ dounder:
 	{
 		cairo_t *cr;
 
-		if (pix)
+		if (surface)
 			y = dest_y + xtext->font->ascent + 1;
 		else
 		{
@@ -2674,7 +2681,7 @@ dounder:
 			dest_x = x;
 		}
 		/* draw directly to window, it's out of the range of our DB */
-		cr = gdk_cairo_create (xtext->draw_buf);
+		cr = xtext_create_context (xtext);
 		xtext_draw_line (xtext, cr, &xtext->fgc, dest_x, y, dest_x + str_width - 1, y);
 		cairo_destroy (cr);
 	}
@@ -3867,7 +3874,7 @@ gtk_xtext_render_page (GtkXText * xtext)
 			src_y = -overlap;
 			dest_y = 0;
 			copy_height = height + overlap;
-			cr = gdk_cairo_create (xtext->draw_buf);
+			cr = xtext_create_context (xtext);
 			cairo_save (cr);
 			cairo_set_operator (cr, CAIRO_OPERATOR_SOURCE);
 			surface = xtext_surface_from_drawable (GTK_WIDGET (xtext)->window);
@@ -3888,7 +3895,7 @@ gtk_xtext_render_page (GtkXText * xtext)
 			src_y = 0;
 			dest_y = overlap;
 			copy_height = height - overlap;
-			cr = gdk_cairo_create (xtext->draw_buf);
+			cr = xtext_create_context (xtext);
 			cairo_save (cr);
 			cairo_set_operator (cr, CAIRO_OPERATOR_SOURCE);
 			surface = xtext_surface_from_drawable (GTK_WIDGET (xtext)->window);
