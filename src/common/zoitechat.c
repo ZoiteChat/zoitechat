@@ -424,6 +424,7 @@ irc_init (session *sess)
 {
 	static int done_init = FALSE;
 	char *buf;
+	char *theme_path;
 
 	if (done_init)
 		return;
@@ -446,10 +447,46 @@ irc_init (session *sess)
 
 	if (arg_url != NULL)
 	{
-		buf = g_strdup_printf ("server %s", arg_url);
+		theme_path = NULL;
+		if (g_str_has_prefix (arg_url, "file://"))
+			theme_path = g_filename_from_uri (arg_url, NULL, NULL);
+		else
+			theme_path = g_strdup (arg_url);
+
+		if (theme_path != NULL)
+		{
+			const char *ext = strrchr (theme_path, '.');
+
+			if (g_file_test (theme_path, G_FILE_TEST_IS_REGULAR) &&
+			    ext != NULL &&
+			    (g_ascii_strcasecmp (ext, ".zct") == 0 ||
+			     g_ascii_strcasecmp (ext, ".hct") == 0))
+			{
+				char *themes_dir = g_build_filename (get_xdir (), "themes", NULL);
+				char *basename = g_path_get_basename (theme_path);
+				char *message = g_strdup_printf (_("Theme file \"%s\" opened.\n"
+				                                   "To install it, move it into:\n%s\n"
+				                                   "Then apply it from Settings → Themes."),
+				                                 basename, themes_dir);
+
+				g_mkdir_with_parents (themes_dir, 0700);
+				fe_message (message, FE_MSG_INFO);
+				fe_open_url (themes_dir);
+
+				g_free (message);
+				g_free (basename);
+				g_free (themes_dir);
+			}
+			else
+			{
+				buf = g_strdup_printf ("server %s", arg_url);
+				handle_command (sess, buf, FALSE);
+				g_free (buf);
+			}
+		}
+
+		g_free (theme_path);
 		g_free (arg_url);	/* from GOption */
-		handle_command (sess, buf, FALSE);
-		g_free (buf);
 	}
 	
 	if (arg_urls != NULL)
@@ -457,9 +494,45 @@ irc_init (session *sess)
 		guint i;
 		for (i = 0; i < g_strv_length (arg_urls); i++)
 		{
-			buf = g_strdup_printf ("%s %s", i==0? "server" : "newserver", arg_urls[i]);
-			handle_command (sess, buf, FALSE);
-			g_free (buf);
+			theme_path = NULL;
+			if (g_str_has_prefix (arg_urls[i], "file://"))
+				theme_path = g_filename_from_uri (arg_urls[i], NULL, NULL);
+			else
+				theme_path = g_strdup (arg_urls[i]);
+
+			if (theme_path != NULL)
+			{
+				const char *ext = strrchr (theme_path, '.');
+
+				if (g_file_test (theme_path, G_FILE_TEST_IS_REGULAR) &&
+				    ext != NULL &&
+				    (g_ascii_strcasecmp (ext, ".zct") == 0 ||
+				     g_ascii_strcasecmp (ext, ".hct") == 0))
+				{
+					char *themes_dir = g_build_filename (get_xdir (), "themes", NULL);
+					char *basename = g_path_get_basename (theme_path);
+					char *message = g_strdup_printf (_("Theme file \"%s\" opened.\n"
+					                                   "To install it, move it into:\n%s\n"
+					                                   "Then apply it from Settings → Themes."),
+					                                 basename, themes_dir);
+
+					g_mkdir_with_parents (themes_dir, 0700);
+					fe_message (message, FE_MSG_INFO);
+					fe_open_url (themes_dir);
+
+					g_free (message);
+					g_free (basename);
+					g_free (themes_dir);
+				}
+				else
+				{
+					buf = g_strdup_printf ("%s %s", i==0? "server" : "newserver", arg_urls[i]);
+					handle_command (sess, buf, FALSE);
+					g_free (buf);
+				}
+			}
+
+			g_free (theme_path);
 		}
 		g_strfreev (arg_urls);
 	}
