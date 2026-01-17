@@ -22,6 +22,22 @@
     <string>????</string>
     <key>CFBundleVersion</key>
     <string>@VERSION@</string>
+    <key>CFBundleDocumentTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleTypeExtensions</key>
+            <array>
+                <string>zct</string>
+                <string>hct</string>
+            </array>
+            <key>CFBundleTypeIconFile</key>
+            <string>zoitechat.icns</string>
+            <key>CFBundleTypeName</key>
+            <string>ZoiteChat Theme</string>
+            <key>CFBundleTypeRole</key>
+            <string>Viewer</string>
+        </dict>
+    </array>
     <key>NSHumanReadableCopyright</key>
     <string></string>
     <key>LSMinimumSystemVersion</key>

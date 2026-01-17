@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+  <mime-type type="application/x-zoitechat-theme">
+    <comment>ZoiteChat Theme</comment>
+    <glob pattern="*.zct"/>
+  </mime-type>
+  <mime-type type="application/x-hexchat-theme">
+    <comment>HexChat Theme</comment>
+    <glob pattern="*.hct"/>
+  </mime-type>
+</mime-info>

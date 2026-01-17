@@ -86,6 +86,11 @@ Root: HKCR; Subkey: "irc"; ValueType: string; ValueName: "URL Protocol"; ValueDa
 Root: HKCR; Subkey: "irc\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\zoitechat.exe,0"; Flags: uninsdeletevalue; Tasks: not portable
 Root: HKCR; Subkey: "irc\shell"; ValueType: string; ValueName: ""; ValueData: "open"; Flags: uninsdeletevalue; Tasks: not portable
 Root: HKCR; Subkey: "irc\shell\open\command"; ValueType: string; ValueName: ""; ValueData: "{app}\zoitechat.exe --url=""%1"""; Flags: uninsdeletevalue; Tasks: not portable
+Root: HKCR; Subkey: ".zct"; ValueType: string; ValueName: ""; ValueData: "ZoiteChat.Theme"; Flags: uninsdeletevalue; Tasks: not portable
+Root: HKCR; Subkey: ".hct"; ValueType: string; ValueName: ""; ValueData: "ZoiteChat.Theme"; Flags: uninsdeletevalue; Tasks: not portable
+Root: HKCR; Subkey: "ZoiteChat.Theme"; ValueType: string; ValueName: ""; ValueData: "ZoiteChat Theme"; Flags: uninsdeletekey; Tasks: not portable
+Root: HKCR; Subkey: "ZoiteChat.Theme\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\zoitechat.exe,0"; Flags: uninsdeletevalue; Tasks: not portable
+Root: HKCR; Subkey: "ZoiteChat.Theme\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\zoitechat.exe"" ""%1"""; Flags: uninsdeletevalue; Tasks: not portable
 
 [Run]
 Filename: "{app}\zoitechat.exe"; Description: "Run ZoiteChat after closing the Wizard"; Flags: nowait postinstall skipifsilent

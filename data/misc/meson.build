@@ -1,5 +1,6 @@
 appdir = join_paths(get_option('datadir'), 'applications')
 metainfodir = join_paths(get_option('datadir'), 'metainfo')
+mimedir = join_paths(get_option('datadir'), 'mime', 'packages')
 desktop_utils = find_program('desktop-file-validate', required: false)
 
 if get_option('gtk-frontend')
@@ -40,6 +41,10 @@ if get_option('gtk-frontend')
     type: 'desktop',
     install: true,
     install_dir: appdir
+  )
+
+  install_data('net.zoite.Zoitechat.mime.xml',
+    install_dir: mimedir
   )
 
   if desktop_utils.found()
