@@ -70,7 +70,6 @@ Name: "custom"; Description: "Custom Installation"; Flags: iscustom
 [Components]
 Name: "libs"; Description: "ZoiteChat"; Types: normal minimal custom; Flags: fixed
 Name: "xctext"; Description: "ZoiteChat-Text"; Types: custom; Flags: disablenouninstallwarning
-Name: "xtm"; Description: "ZoiteChat Theme Manager"; Types: normal custom; Flags: disablenouninstallwarning
 Name: "icons"; Description: "Create Shortcuts"; Types: custom; Flags: disablenouninstallwarning
 Name: "icons\desktopicon"; Description: "Create Desktop Shortcut"; Types: custom; Flags: disablenouninstallwarning
 Name: "icons\quicklaunchicon"; Description: "Create Quick Launch Shortcut"; Types: custom; Flags: disablenouninstallwarning
@@ -101,13 +100,6 @@ Root: HKCR; Subkey: "irc\DefaultIcon"; ValueType: string; ValueName: ""; ValueDa
 Root: HKCR; Subkey: "irc\shell"; ValueType: string; ValueName: ""; ValueData: "open"; Flags: uninsdeletevalue; Tasks: not portable
 Root: HKCR; Subkey: "irc\shell\open\command"; ValueType: string; ValueName: ""; ValueData: "{app}\zoitechat.exe --url=""%1"""; Flags: uninsdeletevalue; Tasks: not portable
 
-Root: HKCR; Subkey: ".hct"; ValueType: none; ValueName: ""; ValueData: ""; Flags: deletekey uninsdeletekey; Components:xtm; Tasks: not portable
-Root: HKCR; Subkey: ".hct"; ValueType: string; ValueName: ""; ValueData: "ZoiteChat Theme File"; Flags: uninsdeletevalue; Components:xtm; Tasks: not portable
-Root: HKCR; Subkey: ".hct"; ValueType: string; ValueName: "ZoiteChat Theme File"; ValueData: ""; Flags: uninsdeletevalue; Components:xtm; Tasks: not portable
-Root: HKCR; Subkey: ".hct\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\thememan.exe,0"; Flags: uninsdeletevalue; Components:xtm; Tasks: not portable
-Root: HKCR; Subkey: ".hct\shell"; ValueType: string; ValueName: ""; ValueData: "open"; Flags: uninsdeletevalue; Components:xtm; Tasks: not portable
-Root: HKCR; Subkey: ".hct\shell\open\command"; ValueType: string; ValueName: ""; ValueData: "{app}\thememan.exe ""%1"""; Flags: uninsdeletevalue; Components:xtm; Tasks: not portable
-
 [Run]
 Filename: "{app}\zoitechat.exe"; Description: "Run ZoiteChat after closing the Wizard"; Flags: nowait postinstall skipifsilent
 Filename: "http://docs.zoitechat.org/en/latest/changelog.html"; Description: "See what's changed"; Flags: shellexec runasoriginaluser postinstall skipifsilent unchecked
@@ -131,7 +123,6 @@ Source: "cert.pem"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexi
 ; We install bin\ contents into {app} to match the non-ARM installer layout.
 Source: "bin\zoitechat.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "bin\zoitechat-text.exe"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist; Components: xctext
-Source: "bin\thememan.exe"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist; Components: xtm
 
 ; All staged DLLs/helpers shipped alongside the EXE (your CI harvest step should have copied deps into bin\)
 Source: "bin\*.dll"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist; Components: libs
@@ -168,7 +159,6 @@ Name: "{group}\ZoiteChat ChangeLog"; Filename: "{app}\changelog.url"; IconFilena
 Name: "{group}\ZoiteChat ReadMe"; Filename: "{app}\readme.url"; IconFilename: "{sys}\shell32.dll"; IconIndex: 23; Tasks: not portable; Check: not WizardNoIcons
 Name: "{group}\ZoiteChat Config Folder"; Filename: "%APPDATA%\ZoiteChat\"; Tasks: not portable; Check: not WizardNoIcons
 Name: "{group}\ZoiteChat-Text"; Filename: "{app}\zoitechat-text.exe"; Components: xctext; Tasks: not portable; Check: not WizardNoIcons
-Name: "{group}\ZoiteChat Theme Manager"; Filename: "{app}\thememan.exe"; Components: xtm; Tasks: not portable; Check: not WizardNoIcons
 Name: "{group}\Uninstall ZoiteChat"; Filename: "{uninstallexe}"; Tasks: not portable; Check: not WizardNoIcons
 Name: "{commondesktop}\ZoiteChat"; Filename: "{app}\zoitechat.exe"; AppUserModelID: "ZoiteChat.Desktop.Notify"; Components: icons\desktopicon; Tasks: not portable
 Name: "{commonappdata}\Microsoft\Internet Explorer\Quick Launch\ZoiteChat"; Filename: "{app}\zoitechat.exe"; Components: icons\quicklaunchicon; Tasks: not portable
