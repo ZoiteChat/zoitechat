@@ -1,8 +1,13 @@
 <?xml version="1.0"?>
- <mime-info xmlns='http://www.freedesktop.org/standards/shared-mime-info'>
-   <mime-type type="application/x-hct">  
-   <comment>ZoiteChat theme archives</comment>
-   <icon name="zoitechat" />
-   <glob pattern="*.hct" weight="100" />
+<mime-info xmlns='http://www.freedesktop.org/standards/shared-mime-info'>
+  <mime-type type="application/x-hct">
+    <comment>ZoiteChat theme archives</comment>
+    <icon name="zoitechat" />
+    <glob pattern="*.hct" weight="100" />
   </mime-type>
- </mime-info>
+  <mime-type type="application/x-zct">
+    <comment>ZoiteChat theme archives</comment>
+    <icon name="zoitechat" />
+    <glob pattern="*.zct" weight="100" />
+  </mime-type>
+</mime-info>
