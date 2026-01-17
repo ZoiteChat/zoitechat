@@ -9,6 +9,13 @@ on:
 jobs:
   flatpak_build:
     runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+      artifact-metadata: write
+
     container:
       image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-49
       options: --privileged
@@ -18,8 +25,23 @@ jobs:
         with:
           submodules: true
 
-      - uses: flatpak/flatpak-github-actions/flatpak-builder@v6
+      - name: Build Flatpak
+        id: flatpak_builder
+        uses: flatpak/flatpak-github-actions/flatpak-builder@v6
         with:
           bundle: zoitechat.flatpak
           manifest-path: flatpak/net.zoite.Zoitechat.json
           cache-key: flatpak-builder-${{ github.sha }}
+
+      - name: Upload Flatpak Bundle
+        id: upload_flatpak
+        uses: actions/upload-artifact@v4
+        with:
+          name: zoitechat.flatpak
+          path: zoitechat.flatpak
+
+      - name: Attest Flatpak Bundle (Build Provenance)
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-path: zoitechat.flatpak
