@@ -259,7 +259,6 @@ zoitechat_import_theme (const char *path, GError **error)
 #ifdef WIN32
 	char *command = NULL;
 	char *powershell = NULL;
-	char *extractor = NULL;
 #endif
 
 	if (!path)
@@ -295,65 +294,74 @@ zoitechat_import_theme (const char *path, GError **error)
 		return FALSE;
 	}
 
-	argv[4] = theme_dir;
 #ifdef WIN32
-	extractor = g_find_program_in_path ("unzip");
-	if (extractor)
+	powershell = g_find_program_in_path ("powershell.exe");
+	if (!powershell)
+		powershell = g_find_program_in_path ("powershell");
+
+	if (!powershell)
 	{
-		argv[0] = extractor;
-		ok = g_spawn_sync (NULL, argv, NULL, 0, NULL, NULL,
-		                   NULL, NULL, &status, error);
+		g_set_error (error, G_SPAWN_ERROR, G_SPAWN_ERROR_NOENT,
+		             _("No archive extractor was found."));
+		ok = FALSE;
 	}
 	else
 	{
-		powershell = g_find_program_in_path ("powershell.exe");
-		if (!powershell)
-			powershell = g_find_program_in_path ("powershell");
+		GString *escaped_path = g_string_new ("'");
+		GString *escaped_dir = g_string_new ("'");
+		const char *cursor;
 
-		if (!powershell)
+		for (cursor = path; *cursor != '\0'; cursor++)
 		{
-			g_set_error (error, G_SPAWN_ERROR, G_SPAWN_ERROR_NOENT,
-			             _("No archive extractor was found."));
-			ok = FALSE;
+			if (*cursor == '\'')
+				g_string_append (escaped_path, "''");
+			else
+				g_string_append_c (escaped_path, *cursor);
 		}
-		else
+		g_string_append_c (escaped_path, '\'');
+
+		for (cursor = theme_dir; *cursor != '\0'; cursor++)
 		{
-			GString *escaped_path = g_string_new ("'");
-			GString *escaped_dir = g_string_new ("'");
-			const char *cursor;
+			if (*cursor == '\'')
+				g_string_append (escaped_dir, "''");
+			else
+				g_string_append_c (escaped_dir, *cursor);
+		}
+		g_string_append_c (escaped_dir, '\'');
 
-			for (cursor = path; *cursor != '\0'; cursor++)
-			{
-				if (*cursor == '\'')
-					g_string_append (escaped_path, "''");
-				else
-					g_string_append_c (escaped_path, *cursor);
-			}
-			g_string_append_c (escaped_path, '\'');
+		command = g_strdup_printf (
+			"Add-Type -AssemblyName WindowsBase; "
+			"$ErrorActionPreference='Stop'; "
+			"$package=[System.IO.Packaging.Package]::Open(%s); "
+			"try { "
+			"foreach ($part in $package.GetParts()) { "
+			"$relative=$part.Uri.OriginalString.TrimStart('/'); "
+			"if ([string]::IsNullOrEmpty($relative)) { continue }; "
+			"$destPath=[System.IO.Path]::Combine(%s, $relative); "
+			"$destDir=[System.IO.Path]::GetDirectoryName($destPath); "
+			"if ($destDir -and -not (Test-Path -LiteralPath $destDir)) { "
+			"[System.IO.Directory]::CreateDirectory($destDir) | Out-Null "
+			"}; "
+			"$partStream=$part.GetStream(); "
+			"$fileStream=[System.IO.File]::Open($destPath,[System.IO.FileMode]::Create,[System.IO.FileAccess]::Write); "
+			"$partStream.CopyTo($fileStream); "
+			"$fileStream.Dispose(); "
+			"$partStream.Dispose(); "
+			"} "
+			"} finally { $package.Close(); }",
+			escaped_path->str,
+			escaped_dir->str);
+		g_string_free (escaped_path, TRUE);
+		g_string_free (escaped_dir, TRUE);
 
-			for (cursor = theme_dir; *cursor != '\0'; cursor++)
-			{
-				if (*cursor == '\'')
-					g_string_append (escaped_dir, "''");
-				else
-					g_string_append_c (escaped_dir, *cursor);
-			}
-			g_string_append_c (escaped_dir, '\'');
-
-			command = g_strdup_printf ("Expand-Archive -LiteralPath %s -DestinationPath %s -Force",
-			                           escaped_path->str,
-			                           escaped_dir->str);
-			g_string_free (escaped_path, TRUE);
-			g_string_free (escaped_dir, TRUE);
-
-			{
-				char *ps_argv[] = {powershell, "-NoProfile", "-NonInteractive", "-Command", command, NULL};
-				ok = g_spawn_sync (NULL, ps_argv, NULL, 0, NULL, NULL,
-				                   NULL, NULL, &status, error);
-			}
+		{
+			char *ps_argv[] = {powershell, "-NoProfile", "-NonInteractive", "-Command", command, NULL};
+			ok = g_spawn_sync (NULL, ps_argv, NULL, 0, NULL, NULL,
+			                   NULL, NULL, &status, error);
 		}
 	}
 #else
+	argv[4] = theme_dir;
 	ok = g_spawn_sync (NULL, argv, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL,
 	                   NULL, NULL, &status, error);
 #endif
@@ -362,7 +370,6 @@ zoitechat_import_theme (const char *path, GError **error)
 #ifdef WIN32
 		g_free (command);
 		g_free (powershell);
-		g_free (extractor);
 #endif
 		g_free (theme_dir);
 		g_free (basename);
@@ -375,7 +382,6 @@ zoitechat_import_theme (const char *path, GError **error)
 #ifdef WIN32
 		g_free (command);
 		g_free (powershell);
-		g_free (extractor);
 #endif
 		g_free (theme_dir);
 		g_free (basename);
@@ -386,7 +392,6 @@ zoitechat_import_theme (const char *path, GError **error)
 #ifdef WIN32
 	g_free (command);
 	g_free (powershell);
-	g_free (extractor);
 #endif
 
 	g_free (theme_dir);
