@@ -11,6 +11,13 @@ on:
 jobs:
   windows_build:
     runs-on: windows-2019
+
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+      artifact-metadata: write
+
     strategy:
       matrix:
         platform: [x64, win32]
@@ -90,12 +97,30 @@ jobs:
           move ..\zoitechat-build .\
         shell: cmd
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload Installer
+        id: upload_installer
+        uses: actions/upload-artifact@v4
         with:
           name: Installer ${{ matrix.arch }}
           path: ZoiteChat*.exe
 
-      - uses: actions/upload-artifact@v4
+      - name: Attest Installer (Artifact Attestation)
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-name: Installer ${{ matrix.arch }}
+          subject-digest: sha256:${{ steps.upload_installer.outputs.artifact-digest }}
+
+      - name: Upload Build Files
+        id: upload_buildfiles
+        uses: actions/upload-artifact@v4
         with:
           name: Build Files ${{ matrix.arch }}
           path: zoitechat-build
+
+      - name: Attest Build Files (Artifact Attestation)
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-name: Build Files ${{ matrix.arch }}
+          subject-digest: sha256:${{ steps.upload_buildfiles.outputs.artifact-digest }}
