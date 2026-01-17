@@ -10,6 +10,12 @@ jobs:
   appimage_build:
     runs-on: ubuntu-24.04
 
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+      artifact-metadata: write
+
     steps:
       - uses: actions/checkout@v4
         with:
@@ -113,6 +119,12 @@ jobs:
 
           appimage_path="$(ls -1 *.AppImage | grep -v linuxdeploy | head -n 1)"
           mv "$appimage_path" "Zoitechat-${VERSION}-x86_64.AppImage"
+
+      - name: Attest AppImage (Build Provenance)
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-path: Zoitechat-*-x86_64.AppImage
 
       - name: Upload AppImage artifact
         uses: actions/upload-artifact@v4
