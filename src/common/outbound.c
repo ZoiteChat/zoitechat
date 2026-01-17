@@ -3770,6 +3770,35 @@ cmd_url (struct session *sess, char *tbuf, char *word[], char *word_eol[])
 {
 	if (word[2][0])
 	{
+		char *theme_path = NULL;
+		if (zoitechat_theme_path_from_arg (word[2], &theme_path))
+		{
+			GError *error = NULL;
+			char *basename = g_path_get_basename (theme_path);
+			char *dot = strrchr (basename, '.');
+			char *message;
+
+			if (dot)
+				*dot = '\0';
+
+			if (zoitechat_import_theme (theme_path, &error))
+			{
+				message = g_strdup_printf (_("Theme \"%s\" imported."), basename);
+				fe_message (message, FE_MSG_INFO);
+				g_free (message);
+			}
+			else
+			{
+				fe_message (error ? error->message : _("Failed to import theme."),
+				            FE_MSG_ERROR);
+				g_clear_error (&error);
+			}
+
+			g_free (basename);
+			g_free (theme_path);
+			return TRUE;
+		}
+
 		char *server_name = NULL;
 		char *port = NULL;
 		char *channel = NULL;

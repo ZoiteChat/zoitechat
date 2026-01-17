@@ -78,6 +78,9 @@ enum
 
 static void mg_create_entry (session *sess, GtkWidget *box);
 static void mg_create_search (session *sess, GtkWidget *box);
+#ifdef G_OS_WIN32
+static GdkFilterReturn mg_win32_filter (GdkXEvent *xevent, GdkEvent *event, gpointer data);
+#endif
 static void mg_link_irctab (session *sess, int focus);
 
 static session_gui static_mg_gui;
@@ -3143,6 +3146,9 @@ mg_create_topwindow (session *sess)
 {
 	GtkWidget *win;
 	GtkWidget *table;
+#ifdef G_OS_WIN32
+	GdkWindow *parent_win;
+#endif
 
 	if (sess->type == SESS_DIALOG)
 		win = gtkutil_window_new ("ZoiteChat", NULL,
@@ -3218,6 +3224,11 @@ mg_create_topwindow (session *sess)
 	mg_place_userlist_and_chanview (sess->gui);
 
 	gtk_widget_show (win);
+
+#ifdef G_OS_WIN32
+	parent_win = gtk_widget_get_window (win);
+	gdk_window_add_filter (parent_win, mg_win32_filter, NULL);
+#endif
 }
 
 static gboolean
@@ -3246,13 +3257,34 @@ mg_tabwindow_de_cb (GtkWidget *widget, GdkEvent *event, gpointer user_data)
 
 #ifdef G_OS_WIN32
 static GdkFilterReturn
-mg_time_change (GdkXEvent *xevent, GdkEvent *event, gpointer data)
+mg_win32_filter (GdkXEvent *xevent, GdkEvent *event, gpointer data)
 {
 	MSG *msg = (MSG*)xevent;
+
+	if (!msg)
+		return GDK_FILTER_CONTINUE;
 
 	if (msg->message == WM_TIMECHANGE)
 	{
 		_tzset();
+		return GDK_FILTER_CONTINUE;
+	}
+
+	if (msg->message == WM_COPYDATA)
+	{
+		COPYDATASTRUCT *copy_data = (COPYDATASTRUCT *)msg->lParam;
+
+		if (copy_data && copy_data->lpData && copy_data->cbData > 0 && current_sess)
+		{
+			char *command = g_strndup ((const char *)copy_data->lpData, copy_data->cbData);
+
+			if (command)
+			{
+				handle_command (current_sess, command, FALSE);
+				g_free (command);
+				return GDK_FILTER_REMOVE;
+			}
+		}
 	}
 
 	return GDK_FILTER_CONTINUE;
@@ -3334,7 +3366,7 @@ mg_create_tabwindow (session *sess)
 
 #ifdef G_OS_WIN32
 	parent_win = gtk_widget_get_window (win);
-	gdk_window_add_filter (parent_win, mg_time_change, NULL);
+	gdk_window_add_filter (parent_win, mg_win32_filter, NULL);
 #endif
 }
 
