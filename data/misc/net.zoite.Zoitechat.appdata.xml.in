@@ -24,7 +24,27 @@
   <provides>
     <id>zoitechat.desktop</id>
   </provides>
-  <releases>
+<releases>
+  <release date="2026-01-17" version="2.17.3">
+    <description>
+      <p>Fixes and minor features:</p>
+      <ul>
+        <li>SNI extension handling: RFC 6066-compliant validation (ASCII-only hostnames; skips IP literals) before setting SNI on SSL connections.</li>
+        <li>Logs an SSL message when an invalid SNI host name is skipped to aid troubleshooting.</li>
+        <li>Theme support integrated into Preferences; removed the standalone Theme Manager application.</li>
+        <li>Added colour emoji support and an emoji selector menu.</li>
+        <li>Updated bundled Python to v3.14.2.</li>
+        <li>Fixed newline issues affecting syncing of Windows/Linux server list files.</li>
+      </ul>
+
+      <p>Known issues:</p>
+      <ul>
+        <li>Opening a theme file (.zct or .hct) spawns a new ZoiteChat instance during import; import succeeds but leaves an extra window open.</li>
+        <li>Colour emojis render in all builds except Windows (GTK2 limitation/issue on Windows).</li>
+      </ul>
+    </description>
+  </release>
+</releases>
     <release date="2026-01-13" version="2.17.2">
       <description>
         <p>This is a release with small fixes:</p>
