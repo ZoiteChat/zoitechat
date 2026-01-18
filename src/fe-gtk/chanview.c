@@ -122,7 +122,7 @@ chanview_apply_theme (chanview *cv)
 		return;
 
 	w = GTK_WIDGET (tv->tree);
-	if (fe_dark_mode_is_enabled ())
+	if (fe_dark_mode_is_enabled () || prefs.hex_gui_dark_mode == ZOITECHAT_DARK_MODE_LIGHT)
 	{
 		gtk_widget_modify_base (w, GTK_STATE_NORMAL, &colors[COL_BG]);
 		gtk_widget_modify_text (w, GTK_STATE_NORMAL, &colors[COL_FG]);
