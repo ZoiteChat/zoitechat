@@ -2650,7 +2650,7 @@ mg_create_userlist (session_gui *gui, GtkWidget *box)
          * - When "Dark mode" is enabled, we also force the user list to use the
          *   palette colors so it doesn't stay blindingly white on GTK2 themes.
          */
-        if (prefs.hex_gui_ulist_style || prefs.hex_gui_dark_mode)
+        if (prefs.hex_gui_ulist_style || fe_dark_mode_is_enabled ())
         {
                 gtk_widget_modify_base (ulist, GTK_STATE_NORMAL, &colors[COL_BG]);
                 gtk_widget_modify_text (ulist, GTK_STATE_NORMAL, &colors[COL_FG]);

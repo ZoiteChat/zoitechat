@@ -270,6 +270,59 @@ static const char adwaita_workaround_rc[] =
 	"}"
 	"widget \"*.zoitechat-inputbox\" style \"zoitechat-input-workaround\"";
 
+static gboolean
+fe_system_prefers_dark (void)
+{
+	GtkSettings *settings = gtk_settings_get_default ();
+	gboolean prefer_dark = FALSE;
+	char *theme_name = NULL;
+
+	if (!settings)
+		return FALSE;
+
+	if (g_object_class_find_property (G_OBJECT_GET_CLASS (settings),
+	                                  "gtk-application-prefer-dark-theme"))
+	{
+		g_object_get (settings, "gtk-application-prefer-dark-theme", &prefer_dark, NULL);
+	}
+
+	if (!prefer_dark)
+	{
+		g_object_get (settings, "gtk-theme-name", &theme_name, NULL);
+		if (theme_name)
+		{
+			char *lower = g_ascii_strdown (theme_name, -1);
+			if (g_str_has_suffix (lower, "-dark") || g_strrstr (lower, "dark"))
+				prefer_dark = TRUE;
+			g_free (lower);
+			g_free (theme_name);
+		}
+	}
+
+	return prefer_dark;
+}
+
+gboolean
+fe_dark_mode_is_enabled_for (unsigned int mode)
+{
+	switch (mode)
+	{
+	case ZOITECHAT_DARK_MODE_DARK:
+		return TRUE;
+	case ZOITECHAT_DARK_MODE_LIGHT:
+		return FALSE;
+	case ZOITECHAT_DARK_MODE_AUTO:
+	default:
+		return fe_system_prefers_dark ();
+	}
+}
+
+gboolean
+fe_dark_mode_is_enabled (void)
+{
+	return fe_dark_mode_is_enabled_for (prefs.hex_gui_dark_mode);
+}
+
 GtkStyle *
 create_input_style (GtkStyle *style)
 {
@@ -317,7 +370,7 @@ void
 fe_init (void)
 {
 	palette_load ();
-	palette_apply_dark_mode (prefs.hex_gui_dark_mode);
+	palette_apply_dark_mode (fe_dark_mode_is_enabled ());
 	key_init ();
 	pixmaps_init ();
 

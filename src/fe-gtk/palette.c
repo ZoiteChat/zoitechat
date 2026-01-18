@@ -311,20 +311,21 @@ palette_save (void)
 	char prefname[256];
 	const GdkColor *lightpal = colors;
 	const GdkColor *darkpal = NULL;
+	gboolean dark_mode_active = fe_dark_mode_is_enabled ();
 
 	/* If we're currently in dark mode, keep colors.conf's legacy keys as the user's light palette. */
-	if (prefs.hex_gui_dark_mode && user_colors_valid)
+	if (dark_mode_active && user_colors_valid)
 		lightpal = user_colors;
 
 	/* If we're currently in light mode, ensure the snapshot stays in sync. */
-	if (!prefs.hex_gui_dark_mode)
+	if (!dark_mode_active)
 	{
 		memcpy (user_colors, colors, sizeof (user_colors));
 		user_colors_valid = TRUE;
 	}
 
 	/* If dark mode is enabled but we haven't snapshotted a custom dark palette yet, capture it now. */
-	if (prefs.hex_gui_dark_mode && !dark_user_colors_valid)
+	if (dark_mode_active && !dark_user_colors_valid)
 	{
 		memcpy (dark_user_colors, colors, sizeof (dark_user_colors));
 		dark_user_colors_valid = TRUE;
@@ -332,7 +333,7 @@ palette_save (void)
 
 	if (dark_user_colors_valid)
 		darkpal = dark_user_colors;
-	else if (prefs.hex_gui_dark_mode)
+	else if (dark_mode_active)
 		darkpal = colors; /* current dark palette (likely defaults) */
 
 	fh = zoitechat_open_file ("colors.conf", O_TRUNC | O_WRONLY | O_CREAT, 0600, XOF_DOMODE);
