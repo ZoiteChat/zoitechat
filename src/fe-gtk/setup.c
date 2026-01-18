@@ -1454,8 +1454,6 @@ setup_color_ok_cb (GtkWidget *button, GtkWidget *dialog)
         GtkColorSelectionDialog *cdialog = GTK_COLOR_SELECTION_DIALOG (dialog);
         GdkColor *col;
         GdkColor old_color;
-        GtkStyle *style;
-
         col = g_object_get_data (G_OBJECT (button), "c");
         old_color = *col;
 
@@ -1473,10 +1471,7 @@ setup_color_ok_cb (GtkWidget *button, GtkWidget *dialog)
 
         gdk_colormap_alloc_color (gtk_widget_get_colormap (button), col, TRUE, TRUE);
 
-        style = gtk_style_new ();
-        style->bg[0] = *col;
-        gtk_widget_set_style (button, style);
-        g_object_unref (style);
+        gtk_widget_modify_bg (button, GTK_STATE_NORMAL, col);
 
         /* is this line correct?? */
         gdk_colormap_free_colors (gtk_widget_get_colormap (button), &old_color, 1);
@@ -1528,7 +1523,6 @@ static void
 setup_create_color_button (GtkWidget *table, int num, int row, int col)
 {
         GtkWidget *but;
-        GtkStyle *style;
         char buf[64];
 
         if (num > 31)
@@ -1544,10 +1538,7 @@ setup_create_color_button (GtkWidget *table, int num, int row, int col)
                                                         GTK_SHRINK | GTK_FILL, GTK_SHRINK | GTK_FILL, 0, 0);
         g_signal_connect (G_OBJECT (but), "clicked",
                                                         G_CALLBACK (setup_color_cb), GINT_TO_POINTER (num));
-        style = gtk_style_new ();
-        style->bg[GTK_STATE_NORMAL] = colors[num];
-        gtk_widget_set_style (but, style);
-        g_object_unref (style);
+        gtk_widget_modify_bg (but, GTK_STATE_NORMAL, &colors[num]);
 
         /* Track all color selector widgets (used for dark mode UI behavior). */
         color_selector_widgets = g_slist_prepend (color_selector_widgets, but);
@@ -2372,7 +2363,7 @@ setup_apply_to_sess (session_gui *gui)
         chanview_apply_theme ((chanview *) gui->chanview);
 
         if (prefs.hex_gui_ulist_style)
-                gtk_widget_set_style (gui->user_tree, input_style);
+                gtk_widget_modify_font (gui->user_tree, input_style->font_desc);
 
         if (prefs.hex_gui_ulist_style || prefs.hex_gui_dark_mode)
         {

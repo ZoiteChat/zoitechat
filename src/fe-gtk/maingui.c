@@ -2587,7 +2587,7 @@ mg_create_userlist (session_gui *gui, GtkWidget *box)
 
         if (prefs.hex_gui_ulist_style)
         {
-                gtk_widget_set_style (ulist, input_style);
+                gtk_widget_modify_font (ulist, input_style->font_desc);
         }
 
         /*
