@@ -117,7 +117,11 @@ cv_tree_init (chanview *cv)
 	view = gtk_tree_view_new_with_model (GTK_TREE_MODEL (cv->store));
 	gtk_widget_set_name (view, "zoitechat-tree");
 	if (cv->style)
-		gtk_widget_set_style (view, cv->style);
+	{
+		gtk_widget_modify_base (view, GTK_STATE_NORMAL, &cv->style->base[GTK_STATE_NORMAL]);
+		gtk_widget_modify_text (view, GTK_STATE_NORMAL, &cv->style->text[GTK_STATE_NORMAL]);
+		gtk_widget_modify_font (view, cv->style->font_desc);
+	}
 	/*gtk_widget_modify_base (view, GTK_STATE_NORMAL, &colors[COL_BG]);*/
 	gtk_widget_set_can_focus (view, FALSE);
 	gtk_tree_view_set_headers_visible (GTK_TREE_VIEW (view), FALSE);

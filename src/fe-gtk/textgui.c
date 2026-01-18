@@ -438,6 +438,7 @@ void
 pevent_dialog_show ()
 {
 	GtkWidget *vbox, *hbox, *wid, *pane;
+	XTextColor xtext_palette[XTEXT_COLS];
 
 	if (pevent_dialog)
 	{
@@ -462,7 +463,8 @@ pevent_dialog_show ()
 	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (wid), GTK_POLICY_NEVER, GTK_POLICY_ALWAYS);
 	gtk_box_pack_start (GTK_BOX (vbox), wid, FALSE, TRUE, 0);
 
-	pevent_dialog_twid = gtk_xtext_new (colors, 0);
+	palette_get_xtext_colors (xtext_palette, XTEXT_COLS);
+	pevent_dialog_twid = gtk_xtext_new (xtext_palette, 0);
 	gtk_widget_set_sensitive (pevent_dialog_twid, FALSE);
 	gtk_widget_set_size_request (pevent_dialog_twid, -1, 75);
 	gtk_container_add (GTK_CONTAINER (wid), pevent_dialog_twid);

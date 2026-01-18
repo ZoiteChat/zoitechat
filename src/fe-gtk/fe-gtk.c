@@ -58,7 +58,7 @@
 #include <canberra.h>
 #endif
 
-GdkPixmap *channelwin_pix;
+cairo_surface_t *channelwin_pix;
 
 #ifdef USE_LIBCANBERRA
 static ca_context *ca_con;
@@ -270,6 +270,88 @@ static const char adwaita_workaround_rc[] =
 	"}"
 	"widget \"*.zoitechat-inputbox\" style \"zoitechat-input-workaround\"";
 
+static gboolean
+fe_system_prefers_dark (void)
+{
+	GtkSettings *settings = gtk_settings_get_default ();
+	gboolean prefer_dark = FALSE;
+	char *theme_name = NULL;
+
+	if (!settings)
+		return FALSE;
+
+	if (g_object_class_find_property (G_OBJECT_GET_CLASS (settings),
+	                                  "gtk-application-prefer-dark-theme"))
+	{
+		g_object_get (settings, "gtk-application-prefer-dark-theme", &prefer_dark, NULL);
+	}
+
+	if (!prefer_dark)
+	{
+		g_object_get (settings, "gtk-theme-name", &theme_name, NULL);
+		if (theme_name)
+		{
+			char *lower = g_ascii_strdown (theme_name, -1);
+			if (g_str_has_suffix (lower, "-dark") || g_strrstr (lower, "dark"))
+				prefer_dark = TRUE;
+			g_free (lower);
+			g_free (theme_name);
+		}
+	}
+
+	return prefer_dark;
+}
+
+static gboolean auto_dark_mode_enabled = FALSE;
+
+static void
+fe_auto_dark_mode_changed (GtkSettings *settings, GParamSpec *pspec, gpointer data)
+{
+	gboolean enabled;
+
+	(void) settings;
+	(void) pspec;
+	(void) data;
+
+	if (prefs.hex_gui_dark_mode != ZOITECHAT_DARK_MODE_AUTO)
+		return;
+
+	enabled = fe_system_prefers_dark ();
+	if (enabled == auto_dark_mode_enabled)
+		return;
+
+	auto_dark_mode_enabled = enabled;
+	palette_apply_dark_mode (enabled);
+	setup_apply_real (0, TRUE, FALSE, FALSE);
+}
+
+void
+fe_set_auto_dark_mode_state (gboolean enabled)
+{
+	auto_dark_mode_enabled = enabled;
+}
+
+gboolean
+fe_dark_mode_is_enabled_for (unsigned int mode)
+{
+	switch (mode)
+	{
+	case ZOITECHAT_DARK_MODE_DARK:
+		return TRUE;
+	case ZOITECHAT_DARK_MODE_LIGHT:
+		return FALSE;
+	case ZOITECHAT_DARK_MODE_AUTO:
+	default:
+		return fe_system_prefers_dark ();
+	}
+}
+
+gboolean
+fe_dark_mode_is_enabled (void)
+{
+	return fe_dark_mode_is_enabled_for (prefs.hex_gui_dark_mode);
+}
+
 GtkStyle *
 create_input_style (GtkStyle *style)
 {
@@ -316,8 +398,10 @@ create_input_style (GtkStyle *style)
 void
 fe_init (void)
 {
+	GtkSettings *settings;
+
 	palette_load ();
-	palette_apply_dark_mode (prefs.hex_gui_dark_mode);
+	palette_apply_dark_mode (fe_dark_mode_is_enabled ());
 	key_init ();
 	pixmaps_init ();
 
@@ -326,6 +410,16 @@ fe_init (void)
 #endif
 	channelwin_pix = pixmap_load_from_file (prefs.hex_text_background);
 	input_style = create_input_style (gtk_style_new ());
+
+	settings = gtk_settings_get_default ();
+	if (settings)
+	{
+		auto_dark_mode_enabled = fe_system_prefers_dark ();
+		g_signal_connect (settings, "notify::gtk-application-prefer-dark-theme",
+						  G_CALLBACK (fe_auto_dark_mode_changed), NULL);
+		g_signal_connect (settings, "notify::gtk-theme-name",
+						  G_CALLBACK (fe_auto_dark_mode_changed), NULL);
+	}
 }
 
 #ifdef HAVE_GTK_MAC

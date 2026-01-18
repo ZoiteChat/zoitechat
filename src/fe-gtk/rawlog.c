@@ -101,6 +101,7 @@ void
 open_rawlog (struct server *serv)
 {
 	GtkWidget *bbox, *scrolledwindow, *vbox;
+	XTextColor xtext_palette[XTEXT_COLS];
 	char tbuf[256];
 
 	if (serv->gui->rawlog_window)
@@ -120,7 +121,8 @@ open_rawlog (struct server *serv)
 	gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scrolledwindow), GTK_SHADOW_IN);
 	gtk_container_add (GTK_CONTAINER (vbox), scrolledwindow);
 
-	serv->gui->rawlog_textlist = gtk_xtext_new (colors, 0);
+	palette_get_xtext_colors (xtext_palette, XTEXT_COLS);
+	serv->gui->rawlog_textlist = gtk_xtext_new (xtext_palette, 0);
 	gtk_container_add (GTK_CONTAINER (scrolledwindow), serv->gui->rawlog_textlist);
 	gtk_xtext_set_font (GTK_XTEXT (serv->gui->rawlog_textlist), prefs.hex_text_font);
 	GTK_XTEXT (serv->gui->rawlog_textlist)->ignore_hidden = 1;

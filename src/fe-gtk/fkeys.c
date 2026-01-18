@@ -803,6 +803,7 @@ key_dialog_show ()
 	GtkWidget *vbox, *box;
 	GtkWidget *view, *xtext;
 	GtkListStore *store;
+	XTextColor xtext_palette[XTEXT_COLS];
 	char buf[128];
 
 	if (key_dialog)
@@ -816,7 +817,8 @@ key_dialog_show ()
 									NULL, 600, 360, &vbox, 0);
 
 	view = key_dialog_treeview_new (vbox);
-	xtext = gtk_xtext_new (colors, 0);
+	palette_get_xtext_colors (xtext_palette, XTEXT_COLS);
+	xtext = gtk_xtext_new (xtext_palette, 0);
 	gtk_box_pack_start (GTK_BOX (vbox), xtext, FALSE, TRUE, 2);
 	gtk_xtext_set_font (GTK_XTEXT (xtext), prefs.hex_text_font);
 

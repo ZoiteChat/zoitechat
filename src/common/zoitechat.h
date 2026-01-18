@@ -83,6 +83,10 @@ gboolean zoitechat_import_theme (const char *path, GError **error);
 #define USERNAMELEN 10
 #define HIDDEN_CHAR	8			/* invisible character for xtext */
 
+#define ZOITECHAT_DARK_MODE_AUTO 0
+#define ZOITECHAT_DARK_MODE_DARK 1
+#define ZOITECHAT_DARK_MODE_LIGHT 2
+
 struct nbexec
 {
 	int myfd;

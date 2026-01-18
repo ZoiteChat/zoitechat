@@ -21,7 +21,10 @@
 #include <stdio.h>
 #include <ctype.h>
 
+#include <gdk/gdk.h>
 #include <gdk/gdkkeysyms.h>
+#include <gdk/gdkcairo.h>
+#include <gdk-pixbuf/gdk-pixbuf.h>
 
 #include "../common/zoitechat.h"
 #include "../common/fe.h"
@@ -82,6 +85,136 @@ static void mg_emoji_button_cb (GtkWidget *widget, session_gui *gui);
 static GtkWidget *mg_create_emoji_menu (session_gui *gui);
 static void mg_emoji_insert_cb (GtkMenuItem *item, session_gui *gui);
 
+static inline void
+mg_set_source_color (cairo_t *cr, const XTextColor *color)
+{
+	cairo_set_source_rgba (cr, color->red, color->green, color->blue, color->alpha);
+}
+
+static inline guint16
+mg_color_component_to_pango (double value)
+{
+	if (value < 0.0)
+		value = 0.0;
+	if (value > 1.0)
+		value = 1.0;
+
+	return (guint16)(value * 65535.0 + 0.5);
+}
+
+static void
+mg_pixbuf_destroy (guchar *pixels, gpointer data)
+{
+	g_free (pixels);
+}
+
+static GdkPixbuf *
+mg_pixbuf_from_surface (cairo_surface_t *surface, int width, int height)
+{
+	const unsigned char *src;
+	int src_stride;
+	int rowstride;
+	guchar *pixels;
+	int x;
+	int y;
+
+	if (!surface || width <= 0 || height <= 0)
+		return NULL;
+
+	src = cairo_image_surface_get_data (surface);
+	src_stride = cairo_image_surface_get_stride (surface);
+	rowstride = width * 4;
+	pixels = g_malloc ((gsize)rowstride * height);
+
+	for (y = 0; y < height; y++)
+	{
+		const unsigned char *src_row = src + (y * src_stride);
+		guchar *dest_row = pixels + (y * rowstride);
+
+		for (x = 0; x < width; x++)
+		{
+			guint8 a;
+			guint8 r;
+			guint8 g;
+			guint8 b;
+			const unsigned char *src_px = src_row + (x * 4);
+			guchar *dest_px = dest_row + (x * 4);
+
+#if G_BYTE_ORDER == G_LITTLE_ENDIAN
+			b = src_px[0];
+			g = src_px[1];
+			r = src_px[2];
+			a = src_px[3];
+#else
+			a = src_px[0];
+			r = src_px[1];
+			g = src_px[2];
+			b = src_px[3];
+#endif
+
+			if (a)
+			{
+				r = (guint8)((r * 255 + (a / 2)) / a);
+				g = (guint8)((g * 255 + (a / 2)) / a);
+				b = (guint8)((b * 255 + (a / 2)) / a);
+			}
+			else
+			{
+				r = g = b = 0;
+			}
+
+			dest_px[0] = r;
+			dest_px[1] = g;
+			dest_px[2] = b;
+			dest_px[3] = a;
+		}
+	}
+
+	return gdk_pixbuf_new_from_data (pixels, GDK_COLORSPACE_RGB, TRUE, 8,
+		width, height, rowstride, mg_pixbuf_destroy, NULL);
+}
+
+static GdkPixbuf *
+mg_pixbuf_from_window (GdkWindow *window, int width, int height)
+{
+	int src_width;
+	int src_height;
+	cairo_surface_t *surface;
+	cairo_t *cr;
+	GdkPixbuf *pixbuf;
+
+	if (!window)
+		return NULL;
+
+	src_width = gdk_window_get_width (window);
+	src_height = gdk_window_get_height (window);
+	if (width <= 0 || height <= 0)
+	{
+		width = src_width;
+		height = src_height;
+	}
+
+	if (width <= 0 || height <= 0)
+		return NULL;
+
+	surface = cairo_image_surface_create (CAIRO_FORMAT_ARGB32, width, height);
+	if (cairo_surface_status (surface) != CAIRO_STATUS_SUCCESS)
+	{
+		cairo_surface_destroy (surface);
+		return NULL;
+	}
+
+	cr = cairo_create (surface);
+	gdk_cairo_set_source_window (cr, window, 0.0, 0.0);
+	cairo_paint (cr);
+	cairo_destroy (cr);
+
+	pixbuf = mg_pixbuf_from_surface (surface, width, height);
+	cairo_surface_destroy (surface);
+
+	return pixbuf;
+}
+
 static void mg_create_entry (session *sess, GtkWidget *box);
 static void mg_create_search (session *sess, GtkWidget *box);
 #ifdef G_OS_WIN32
@@ -106,7 +239,7 @@ static PangoAttrList *newmsg_list;
 static PangoAttrList *plain_list = NULL;
 
 static PangoAttrList *
-mg_attr_list_create (GdkColor *col, int size)
+mg_attr_list_create (const XTextColor *col, int size)
 {
         PangoAttribute *attr;
         PangoAttrList *list;
@@ -115,7 +248,10 @@ mg_attr_list_create (GdkColor *col, int size)
 
         if (col)
         {
-                attr = pango_attr_foreground_new (col->red, col->green, col->blue);
+                attr = pango_attr_foreground_new (
+                        mg_color_component_to_pango (col->red),
+                        mg_color_component_to_pango (col->green),
+                        mg_color_component_to_pango (col->blue));
                 attr->start_index = 0;
                 attr->end_index = 0xffff;
                 pango_attr_list_insert (list, attr);
@@ -135,6 +271,8 @@ mg_attr_list_create (GdkColor *col, int size)
 static void
 mg_create_tab_colors (void)
 {
+        XTextColor gui_palette[MAX_COL + 1];
+
         if (plain_list)
         {
                 pango_attr_list_unref (plain_list);
@@ -144,11 +282,12 @@ mg_create_tab_colors (void)
                 pango_attr_list_unref (away_list);
         }
 
+        palette_get_xtext_colors (gui_palette, G_N_ELEMENTS (gui_palette));
         plain_list = mg_attr_list_create (NULL, prefs.hex_gui_tab_small);
-        newdata_list = mg_attr_list_create (&colors[COL_NEW_DATA], prefs.hex_gui_tab_small);
-        nickseen_list = mg_attr_list_create (&colors[COL_HILIGHT], prefs.hex_gui_tab_small);
-        newmsg_list = mg_attr_list_create (&colors[COL_NEW_MSG], prefs.hex_gui_tab_small);
-        away_list = mg_attr_list_create (&colors[COL_AWAY], FALSE);
+        newdata_list = mg_attr_list_create (&gui_palette[COL_NEW_DATA], prefs.hex_gui_tab_small);
+        nickseen_list = mg_attr_list_create (&gui_palette[COL_HILIGHT], prefs.hex_gui_tab_small);
+        newmsg_list = mg_attr_list_create (&gui_palette[COL_NEW_MSG], prefs.hex_gui_tab_small);
+        away_list = mg_attr_list_create (&gui_palette[COL_AWAY], FALSE);
 }
 
 static void
@@ -2314,8 +2453,10 @@ mg_update_xtext (GtkWidget *wid)
 {
         GtkXText *xtext = GTK_XTEXT (wid);
         const gchar *font_name;
+        XTextColor xtext_palette[XTEXT_COLS];
 
-        gtk_xtext_set_palette (xtext, colors);
+        palette_get_xtext_colors (xtext_palette, XTEXT_COLS);
+        gtk_xtext_set_palette (xtext, xtext_palette);
         gtk_xtext_set_max_lines (xtext, prefs.hex_text_max_lines);
         gtk_xtext_set_background (xtext, channelwin_pix);
         gtk_xtext_set_wordwrap (xtext, prefs.hex_text_wordwrap);
@@ -2340,6 +2481,7 @@ mg_create_textarea (session *sess, GtkWidget *box)
 {
         GtkWidget *inbox, *vbox, *frame;
         GtkXText *xtext;
+        XTextColor xtext_palette[XTEXT_COLS];
         session_gui *gui = sess->gui;
         static const GtkTargetEntry dnd_targets[] =
         {
@@ -2360,7 +2502,8 @@ mg_create_textarea (session *sess, GtkWidget *box)
         gtk_frame_set_shadow_type (GTK_FRAME (frame), GTK_SHADOW_IN);
         gtk_container_add (GTK_CONTAINER (inbox), frame);
 
-        gui->xtext = gtk_xtext_new (colors, TRUE);
+        palette_get_xtext_colors (xtext_palette, XTEXT_COLS);
+        gui->xtext = gtk_xtext_new (xtext_palette, TRUE);
         xtext = GTK_XTEXT (gui->xtext);
         gtk_xtext_set_max_indent (xtext, prefs.hex_text_max_indent);
         gtk_xtext_set_thin_separator (xtext, prefs.hex_text_thin_sep);
@@ -2496,7 +2639,7 @@ mg_create_userlist (session_gui *gui, GtkWidget *box)
 
         if (prefs.hex_gui_ulist_style)
         {
-                gtk_widget_set_style (ulist, input_style);
+                gtk_widget_modify_font (ulist, input_style->font_desc);
         }
 
         /*
@@ -2507,7 +2650,7 @@ mg_create_userlist (session_gui *gui, GtkWidget *box)
          * - When "Dark mode" is enabled, we also force the user list to use the
          *   palette colors so it doesn't stay blindingly white on GTK2 themes.
          */
-        if (prefs.hex_gui_ulist_style || prefs.hex_gui_dark_mode)
+        if (prefs.hex_gui_ulist_style || fe_dark_mode_is_enabled ())
         {
                 gtk_widget_modify_base (ulist, GTK_STATE_NORMAL, &colors[COL_BG]);
                 gtk_widget_modify_text (ulist, GTK_STATE_NORMAL, &colors[COL_FG]);
@@ -4053,18 +4196,20 @@ gboolean
 mg_drag_begin_cb (GtkWidget *widget, GdkDragContext *context, gpointer userdata)
 {
         int width, height;
-        GdkColormap *cmap;
         GdkPixbuf *pix, *pix2;
+        GdkWindow *window;
 
         /* ignore file drops */
         if (!mg_is_gui_target (context))
                 return FALSE;
 
-        cmap = gtk_widget_get_colormap (widget);
-        width = gdk_window_get_width (gtk_widget_get_window (widget));
-        height = gdk_window_get_height (gtk_widget_get_window (widget));
+        window = gtk_widget_get_window (widget);
+        width = gdk_window_get_width (window);
+        height = gdk_window_get_height (window);
 
-        pix = gdk_pixbuf_get_from_drawable (NULL, gtk_widget_get_window (widget), cmap, 0, 0, 0, 0, width, height);
+        pix = mg_pixbuf_from_window (window, width, height);
+        if (!pix)
+                return FALSE;
         pix2 = gdk_pixbuf_scale_simple (pix, width * 4 / 5, height / 2, GDK_INTERP_HYPER);
         g_object_unref (pix);
 
@@ -4115,12 +4260,11 @@ mg_drag_drop_cb (GtkWidget *widget, GdkDragContext *context, int x, int y, guint
 gboolean
 mg_drag_motion_cb (GtkWidget *widget, GdkDragContext *context, int x, int y, guint time, gpointer scbar)
 {
-        GdkGC *gc;
-        GdkColor col;
-        GdkGCValues val;
+        XTextColor col;
+        cairo_t *cr;
         int half, width, height;
         int ox, oy;
-        GdkDrawable *draw;
+        GdkWindow *window;
         GtkAllocation allocation;
 
         /* ignore file drops */
@@ -4134,55 +4278,57 @@ mg_drag_motion_cb (GtkWidget *widget, GdkDragContext *context, int x, int y, gui
                 oy = allocation.y;
                 width = allocation.width;
                 height = allocation.height;
-                draw = gtk_widget_get_window (widget);
+                window = gtk_widget_get_window (widget);
         }
         else
         {
                 ox = oy = 0;
-                width = gdk_window_get_width (gtk_widget_get_window (widget));
-                height = gdk_window_get_height (gtk_widget_get_window (widget));
-                draw = gtk_widget_get_window (widget);
+                window = gtk_widget_get_window (widget);
+                width = gdk_window_get_width (window);
+                height = gdk_window_get_height (window);
         }
 
-        val.subwindow_mode = GDK_INCLUDE_INFERIORS;
-        val.graphics_exposures = 0;
-        val.function = GDK_XOR;
-
-        gc = gdk_gc_new_with_values (gtk_widget_get_window (widget), &val, GDK_GC_EXPOSURES | GDK_GC_SUBWINDOW | GDK_GC_FUNCTION);
-        col.red = rand() % 0xffff;
-        col.green = rand() % 0xffff;
-        col.blue = rand() % 0xffff;
-        gdk_colormap_alloc_color (gtk_widget_get_colormap (widget), &col, FALSE, TRUE);
-        gdk_gc_set_foreground (gc, &col);
+        col.red = (double)rand () / (double)RAND_MAX;
+        col.green = (double)rand () / (double)RAND_MAX;
+        col.blue = (double)rand () / (double)RAND_MAX;
+        col.alpha = 1.0;
+        cr = gdk_cairo_create (window);
+        cairo_set_operator (cr, CAIRO_OPERATOR_XOR);
+        mg_set_source_color (cr, &col);
+        cairo_set_line_width (cr, 1.0);
 
         half = height / 2;
 
 #if 0
         /* are both tree/userlist on the same side? */
+        GtkPaned *paned;
         paned = (GtkPaned *)widget->parent->parent;
         if (paned->child1 != NULL && paned->child2 != NULL)
         {
-                gdk_draw_rectangle (draw, gc, 0, 1, 2, width - 3, height - 4);
-                gdk_draw_rectangle (draw, gc, 0, 0, 1, width - 1, height - 2);
-                g_object_unref (gc);
+                cairo_rectangle (cr, 1 + ox, 2 + oy, width - 3, height - 4);
+                cairo_rectangle (cr, 0 + ox, 1 + oy, width - 1, height - 2);
+                cairo_stroke (cr);
+                cairo_destroy (cr);
                 return TRUE;
         }
 #endif
 
         if (y < half)
         {
-                gdk_draw_rectangle (draw, gc, FALSE, 1 + ox, 2 + oy, width - 3, half - 4);
-                gdk_draw_rectangle (draw, gc, FALSE, 0 + ox, 1 + oy, width - 1, half - 2);
+                cairo_rectangle (cr, 1 + ox, 2 + oy, width - 3, half - 4);
+                cairo_rectangle (cr, 0 + ox, 1 + oy, width - 1, half - 2);
+                cairo_stroke (cr);
                 gtk_widget_queue_draw_area (widget, ox, half + oy, width, height - half);
         }
         else
         {
-                gdk_draw_rectangle (draw, gc, FALSE, 0 + ox, half + 1 + oy, width - 1, half - 2);
-                gdk_draw_rectangle (draw, gc, FALSE, 1 + ox, half + 2 + oy, width - 3, half - 4);
+                cairo_rectangle (cr, 0 + ox, half + 1 + oy, width - 1, half - 2);
+                cairo_rectangle (cr, 1 + ox, half + 2 + oy, width - 3, half - 4);
+                cairo_stroke (cr);
                 gtk_widget_queue_draw_area (widget, ox, oy, width, half);
         }
 
-        g_object_unref (gc);
+        cairo_destroy (cr);
 
         return TRUE;
 }
