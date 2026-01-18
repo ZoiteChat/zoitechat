@@ -20,6 +20,10 @@
 #ifndef HEXCHAT_PALETTE_H
 #define HEXCHAT_PALETTE_H
 
+#include <stddef.h>
+
+#include "xtext-color.h"
+
 extern GdkColor colors[];
 
 #define COL_MARK_FG 32
@@ -58,5 +62,7 @@ void palette_dark_set_color (int idx, const GdkColor *col);
  * Returns TRUE if any palette entries were changed.
  */
 gboolean palette_apply_dark_mode (gboolean enable);
+
+void palette_get_xtext_colors (XTextColor *palette, size_t palette_len);
 
 #endif

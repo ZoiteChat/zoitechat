@@ -2405,8 +2405,10 @@ mg_update_xtext (GtkWidget *wid)
 {
         GtkXText *xtext = GTK_XTEXT (wid);
         const gchar *font_name;
+        XTextColor xtext_palette[XTEXT_COLS];
 
-        gtk_xtext_set_palette (xtext, colors);
+        palette_get_xtext_colors (xtext_palette, XTEXT_COLS);
+        gtk_xtext_set_palette (xtext, xtext_palette);
         gtk_xtext_set_max_lines (xtext, prefs.hex_text_max_lines);
         gtk_xtext_set_background (xtext, channelwin_pix);
         gtk_xtext_set_wordwrap (xtext, prefs.hex_text_wordwrap);
@@ -2431,6 +2433,7 @@ mg_create_textarea (session *sess, GtkWidget *box)
 {
         GtkWidget *inbox, *vbox, *frame;
         GtkXText *xtext;
+        XTextColor xtext_palette[XTEXT_COLS];
         session_gui *gui = sess->gui;
         static const GtkTargetEntry dnd_targets[] =
         {
@@ -2451,7 +2454,8 @@ mg_create_textarea (session *sess, GtkWidget *box)
         gtk_frame_set_shadow_type (GTK_FRAME (frame), GTK_SHADOW_IN);
         gtk_container_add (GTK_CONTAINER (inbox), frame);
 
-        gui->xtext = gtk_xtext_new (colors, TRUE);
+        palette_get_xtext_colors (xtext_palette, XTEXT_COLS);
+        gui->xtext = gtk_xtext_new (xtext_palette, TRUE);
         xtext = GTK_XTEXT (gui->xtext);
         gtk_xtext_set_max_indent (xtext, prefs.hex_text_max_indent);
         gtk_xtext_set_thin_separator (xtext, prefs.hex_text_thin_sep);

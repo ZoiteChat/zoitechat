@@ -150,19 +150,6 @@ static void gtk_xtext_search_fini (xtext_buffer *);
 static gboolean gtk_xtext_search_init (xtext_buffer *buf, const gchar *text, gtk_xtext_search_flags flags, GError **perr);
 static char * gtk_xtext_get_word (GtkXText * xtext, int x, int y, textentry ** ret_ent, int *ret_off, int *ret_len, GSList **slp);
 
-static inline XTextColor
-xtext_color_from_gdk (const GdkColor *color)
-{
-	XTextColor result;
-
-	result.red = color->red / 65535.0;
-	result.green = color->green / 65535.0;
-	result.blue = color->blue / 65535.0;
-	result.alpha = 1.0;
-
-	return result;
-}
-
 static inline void
 xtext_set_source_color (cairo_t *cr, const XTextColor *color, gdouble alpha)
 {
@@ -619,7 +606,7 @@ gtk_xtext_adjustment_changed (GtkAdjustment * adj, GtkXText * xtext)
 }
 
 GtkWidget *
-gtk_xtext_new (GdkColor palette[], int separator)
+gtk_xtext_new (const XTextColor *palette, int separator)
 {
 	GtkXText *xtext;
 
@@ -3472,13 +3459,13 @@ gtk_xtext_render_line (GtkXText * xtext, textentry * ent, int line,
 }
 
 void
-gtk_xtext_set_palette (GtkXText * xtext, GdkColor palette[])
+gtk_xtext_set_palette (GtkXText * xtext, const XTextColor *palette)
 {
 	int i;
 
 	for (i = (XTEXT_COLS-1); i >= 0; i--)
 	{
-		xtext->palette[i] = xtext_color_from_gdk (&palette[i]);
+		xtext->palette[i] = palette[i];
 	}
 
 	if (gtk_widget_get_realized (GTK_WIDGET(xtext)))

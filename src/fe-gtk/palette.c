@@ -38,6 +38,18 @@
 #include "../common/cfgfiles.h"
 #include "../common/typedef.h"
 
+static XTextColor
+palette_color_from_gdk (const GdkColor *color)
+{
+	XTextColor result;
+
+	result.red = color->red / 65535.0;
+	result.green = color->green / 65535.0;
+	result.blue = color->blue / 65535.0;
+	result.alpha = 1.0;
+
+	return result;
+}
 
 GdkColor colors[] = {
 	/* colors for xtext */
@@ -142,6 +154,18 @@ static const GdkColor dark_colors[MAX_COL + 1] = {
 	{0, 0x8080, 0x8080, 0x8080}, /* 40 COL_AWAY (tab: away) */
 	{0, 0xf4f4, 0x4747, 0x4747}, /* 41 COL_SPELL (spellcheck underline) */
 };
+
+void
+palette_get_xtext_colors (XTextColor *palette, size_t palette_len)
+{
+	size_t i;
+	size_t count = palette_len < G_N_ELEMENTS (colors) ? palette_len : G_N_ELEMENTS (colors);
+
+	for (i = 0; i < count; i++)
+	{
+		palette[i] = palette_color_from_gdk (&colors[i]);
+	}
+}
 
 void
 palette_user_set_color (int idx, const GdkColor *col)
@@ -399,4 +423,3 @@ palette_apply_dark_mode (gboolean enable)
 
 	return changed;
 }
-

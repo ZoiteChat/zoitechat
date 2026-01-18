@@ -22,6 +22,7 @@
 
 #include <gtk/gtk.h>
 #include <cairo.h>
+#include "xtext-color.h"
 
 #define GTK_TYPE_XTEXT              (gtk_xtext_get_type ())
 #define GTK_XTEXT(object)           (G_TYPE_CHECK_INSTANCE_CAST ((object), GTK_TYPE_XTEXT, GtkXText))
@@ -55,14 +56,6 @@
 typedef struct _GtkXText GtkXText;
 typedef struct _GtkXTextClass GtkXTextClass;
 typedef struct textentry textentry;
-
-typedef struct
-{
-	double red;
-	double green;
-	double blue;
-	double alpha;
-} XTextColor;
 
 /*
  * offsets_t is used for retaining search information.
@@ -262,7 +255,7 @@ struct _GtkXTextClass
 	void (*set_scroll_adjustments) (GtkXText *xtext, GtkAdjustment *hadj, GtkAdjustment *vadj);
 };
 
-GtkWidget *gtk_xtext_new (GdkColor palette[], int separator);
+GtkWidget *gtk_xtext_new (const XTextColor *palette, int separator);
 void gtk_xtext_append (xtext_buffer *buf, unsigned char *text, int len, time_t stamp);
 void gtk_xtext_append_indent (xtext_buffer *buf,
 										unsigned char *left_text, int left_len,
@@ -270,7 +263,7 @@ void gtk_xtext_append_indent (xtext_buffer *buf,
 										time_t stamp);
 int gtk_xtext_set_font (GtkXText *xtext, char *name);
 void gtk_xtext_set_background (GtkXText * xtext, cairo_surface_t *surface);
-void gtk_xtext_set_palette (GtkXText * xtext, GdkColor palette[]);
+void gtk_xtext_set_palette (GtkXText * xtext, const XTextColor *palette);
 void gtk_xtext_clear (xtext_buffer *buf, int lines);
 void gtk_xtext_save (GtkXText * xtext, int fh);
 void gtk_xtext_refresh (GtkXText * xtext);
