@@ -150,22 +150,24 @@ static void gtk_xtext_search_fini (xtext_buffer *);
 static gboolean gtk_xtext_search_init (xtext_buffer *buf, const gchar *text, gtk_xtext_search_flags flags, GError **perr);
 static char * gtk_xtext_get_word (GtkXText * xtext, int x, int y, textentry ** ret_ent, int *ret_off, int *ret_len, GSList **slp);
 
-static inline void
-xtext_set_source_color (cairo_t *cr, GdkColor *color, gdouble alpha)
+static inline XTextColor
+xtext_color_from_gdk (const GdkColor *color)
 {
-	cairo_set_source_rgba (cr, color->red / 65535.0, color->green / 65535.0,
-		color->blue / 65535.0, alpha);
+	XTextColor result;
+
+	result.red = color->red / 65535.0;
+	result.green = color->green / 65535.0;
+	result.blue = color->blue / 65535.0;
+	result.alpha = 1.0;
+
+	return result;
 }
 
-static cairo_surface_t *
-xtext_surface_from_pixmap (GdkPixmap *pixmap)
+static inline void
+xtext_set_source_color (cairo_t *cr, const XTextColor *color, gdouble alpha)
 {
-	cairo_t *cr = gdk_cairo_create (pixmap);
-	cairo_surface_t *surface = cairo_surface_reference (cairo_get_target (cr));
-
-	cairo_destroy (cr);
-
-	return surface;
+	cairo_set_source_rgba (cr, color->red, color->green,
+		color->blue, color->alpha * alpha);
 }
 
 static cairo_surface_t *
@@ -189,7 +191,7 @@ xtext_create_context (GtkXText *xtext)
 }
 
 static inline void
-xtext_draw_rectangle (GtkXText *xtext, cairo_t *cr, GdkColor *color, int x, int y, int width, int height)
+xtext_draw_rectangle (GtkXText *xtext, cairo_t *cr, const XTextColor *color, int x, int y, int width, int height)
 {
 	cairo_save (cr);
 
@@ -202,7 +204,7 @@ xtext_draw_rectangle (GtkXText *xtext, cairo_t *cr, GdkColor *color, int x, int 
 }
 
 static inline void
-xtext_draw_line (GtkXText *xtext, cairo_t *cr, GdkColor *color, int x1, int y1, int x2, int y2)
+xtext_draw_line (GtkXText *xtext, cairo_t *cr, const XTextColor *color, int x1, int y1, int x2, int y2)
 {
 	cairo_save (cr);
 
@@ -224,12 +226,9 @@ xtext_draw_bg_offset (GtkXText *xtext, int x, int y, int width, int height, int 
 {
 	cairo_t *cr = xtext_create_context (xtext);
 
-	if (xtext->pixmap)
+	if (xtext->background_surface)
 	{
-		cairo_surface_t *surface = xtext_surface_from_pixmap (xtext->pixmap);
-
-		cairo_set_source_surface (cr, surface, tile_x, tile_y);
-		cairo_surface_destroy (surface);
+		cairo_set_source_surface (cr, xtext->background_surface, tile_x, tile_y);
 		cairo_pattern_set_extend (cairo_get_source (cr), CAIRO_EXTEND_REPEAT);
 		cairo_rectangle (cr, (double)x, (double)y, (double)width, (double)height);
 		cairo_fill (cr);
@@ -497,7 +496,7 @@ xtext_set_bg (GtkXText *xtext, int index)
 static void
 gtk_xtext_init (GtkXText * xtext)
 {
-	xtext->pixmap = NULL;
+	xtext->background_surface = NULL;
 	xtext->draw_window = NULL;
 	xtext->draw_surface = NULL;
 	xtext->io_tag = 0;
@@ -659,10 +658,10 @@ gtk_xtext_destroy (GtkObject * object)
 		xtext->io_tag = 0;
 	}
 
-	if (xtext->pixmap)
+	if (xtext->background_surface)
 	{
-		g_object_unref (xtext->pixmap);
-		xtext->pixmap = NULL;
+		cairo_surface_destroy (xtext->background_surface);
+		xtext->background_surface = NULL;
 	}
 
 	if (xtext->font)
@@ -720,8 +719,6 @@ gtk_xtext_realize (GtkWidget * widget)
 {
 	GtkXText *xtext;
 	GdkWindowAttr attributes;
-	GdkColor col;
-	GdkColormap *cmap;
 
 	gtk_widget_set_realized (widget, TRUE);
 	xtext = GTK_XTEXT (widget);
@@ -736,8 +733,7 @@ gtk_xtext_realize (GtkWidget * widget)
 		GDK_EXPOSURE_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK
 		| GDK_POINTER_MOTION_MASK | GDK_LEAVE_NOTIFY_MASK;
 
-	cmap = gtk_widget_get_colormap (widget);
-	attributes.colormap = cmap;
+	attributes.colormap = gtk_widget_get_colormap (widget);
 	attributes.visual = gtk_widget_get_visual (widget);
 
 	widget->window = gdk_window_new (widget->parent->window, &attributes,
@@ -749,19 +745,22 @@ gtk_xtext_realize (GtkWidget * widget)
 	xtext->depth = gdk_window_get_visual (widget->window)->depth;
 
 	/* for the separator bar (light) */
-	col.red = 0xffff; col.green = 0xffff; col.blue = 0xffff;
-	gdk_colormap_alloc_color (cmap, &col, FALSE, TRUE);
-	xtext->light_gc = col;
+	xtext->light_gc.red = 1.0;
+	xtext->light_gc.green = 1.0;
+	xtext->light_gc.blue = 1.0;
+	xtext->light_gc.alpha = 1.0;
 
 	/* for the separator bar (dark) */
-	col.red = 0x1111; col.green = 0x1111; col.blue = 0x1111;
-	gdk_colormap_alloc_color (cmap, &col, FALSE, TRUE);
-	xtext->dark_gc = col;
+	xtext->dark_gc.red = 0x1111 / 65535.0;
+	xtext->dark_gc.green = 0x1111 / 65535.0;
+	xtext->dark_gc.blue = 0x1111 / 65535.0;
+	xtext->dark_gc.alpha = 1.0;
 
 	/* for the separator bar (thinline) */
-	col.red = 0x8e38; col.green = 0x8e38; col.blue = 0x9f38;
-	gdk_colormap_alloc_color (cmap, &col, FALSE, TRUE);
-	xtext->thin_gc = col;
+	xtext->thin_gc.red = 0x8e38 / 65535.0;
+	xtext->thin_gc.green = 0x8e38 / 65535.0;
+	xtext->thin_gc.blue = 0x9f38 / 65535.0;
+	xtext->thin_gc.alpha = 1.0;
 
 	/* for the marker bar (marker) */
 	xtext->marker_gc = xtext->palette[XTEXT_MARKER];
@@ -772,7 +771,7 @@ gtk_xtext_realize (GtkWidget * widget)
 	/* draw directly to window */
 	xtext->draw_window = widget->window;
 
-	if (xtext->pixmap)
+	if (xtext->background_surface)
 	{
 		xtext->ts_x = xtext->ts_y = 0;
 	}
@@ -990,7 +989,6 @@ static void
 gtk_xtext_draw_sep (GtkXText * xtext, int y)
 {
 	int x, height;
-	GdkColor *light, *dark;
 	cairo_t *cr;
 
 	if (y == -1)
@@ -1005,8 +1003,8 @@ gtk_xtext_draw_sep (GtkXText * xtext, int y)
 	/* draw the separator line */
 	if (xtext->separator && xtext->buffer->indent)
 	{
-		light = &xtext->light_gc;
-		dark = &xtext->dark_gc;
+		const XTextColor *light = &xtext->light_gc;
+		const XTextColor *dark = &xtext->dark_gc;
 		cr = xtext_create_context (xtext);
 
 		x = xtext->buffer->indent - ((xtext->space_width + 1) / 2);
@@ -2627,9 +2625,9 @@ gtk_xtext_render_flush (GtkXText * xtext, int x, int y, unsigned char *str,
 	dofill = TRUE;
 
 	/* backcolor is always handled by XDrawImageString */
-	if (!xtext->backcolor && xtext->pixmap)
+	if (!xtext->backcolor && xtext->background_surface)
 	{
-	/* draw the background pixmap behind the text - CAUSES FLICKER HERE!! */
+	/* draw the background surface behind the text - CAUSES FLICKER HERE!! */
 		xtext_draw_bg_offset (xtext, x, y - xtext->font->ascent, str_width,
 							xtext->fontsize, tile_x, tile_y);
 		dofill = FALSE;	/* already drawn the background */
@@ -3481,7 +3479,7 @@ gtk_xtext_set_palette (GtkXText * xtext, GdkColor palette[])
 
 	for (i = (XTEXT_COLS-1); i >= 0; i--)
 	{
-		xtext->palette[i] = palette[i];
+		xtext->palette[i] = xtext_color_from_gdk (&palette[i]);
 	}
 
 	if (gtk_widget_get_realized (GTK_WIDGET(xtext)))
@@ -3575,22 +3573,23 @@ gtk_xtext_set_font (GtkXText *xtext, char *name)
 void
 gtk_xtext_set_background (GtkXText * xtext, GdkPixmap * pixmap)
 {
-	if (xtext->pixmap)
+	if (xtext->background_surface)
 	{
-		g_object_unref (xtext->pixmap);
-		xtext->pixmap = NULL;
+		cairo_surface_destroy (xtext->background_surface);
+		xtext->background_surface = NULL;
 	}
 
 	dontscroll (xtext->buffer);
-	xtext->pixmap = pixmap;
-
 	if (pixmap != 0)
 	{
-		g_object_ref (pixmap);
-		if (gtk_widget_get_realized (GTK_WIDGET(xtext)))
-		{
-			xtext->ts_x = xtext->ts_y = 0;
-		}
+		cairo_t *cr = gdk_cairo_create (pixmap);
+		xtext->background_surface = cairo_surface_reference (cairo_get_target (cr));
+		cairo_destroy (cr);
+	}
+
+	if (pixmap != 0 && gtk_widget_get_realized (GTK_WIDGET(xtext)))
+	{
+		xtext->ts_x = xtext->ts_y = 0;
 	}
 }
 
@@ -3868,7 +3867,7 @@ gtk_xtext_render_page (GtkXText * xtext)
 	xtext->buffer->last_pixel_pos = pos;
 
 #ifndef __APPLE__
-	if (!xtext->pixmap && abs (overlap) < height)
+	if (!xtext->background_surface && abs (overlap) < height)
 	{
 		GdkRectangle area;
 		cairo_t *cr;

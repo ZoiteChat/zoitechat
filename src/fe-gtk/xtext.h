@@ -55,6 +55,14 @@ typedef struct _GtkXText GtkXText;
 typedef struct _GtkXTextClass GtkXTextClass;
 typedef struct textentry textentry;
 
+typedef struct
+{
+	double red;
+	double green;
+	double blue;
+	double alpha;
+} XTextColor;
+
 /*
  * offsets_t is used for retaining search information.
  * It is stored in the 'data' member of a GList,
@@ -130,7 +138,7 @@ struct _GtkXText
 	xtext_buffer *selection_buffer;
 
 	GtkAdjustment *adj;
-	GdkPixmap *pixmap;				/* 0 = use palette[19] */
+	cairo_surface_t *background_surface;	/* 0 = use palette[19] */
 	GdkWindow *draw_window;			/* points to ->window */
 	cairo_surface_t *draw_surface;	/* temporary surface for offscreen draws */
 	GdkCursor *hand_cursor;
@@ -143,13 +151,13 @@ struct _GtkXText
 	int last_win_h;
 	int last_win_w;
 
-	GdkColor bgc;						  /* text background color */
-	GdkColor fgc;						  /* text foreground color */
-	GdkColor light_gc;				  /* sep bar */
-	GdkColor dark_gc;
-	GdkColor thin_gc;
-	GdkColor marker_gc;
-	GdkColor palette[XTEXT_COLS];
+	XTextColor bgc;						  /* text background color */
+	XTextColor fgc;						  /* text foreground color */
+	XTextColor light_gc;				  /* sep bar */
+	XTextColor dark_gc;
+	XTextColor thin_gc;
+	XTextColor marker_gc;
+	XTextColor palette[XTEXT_COLS];
 
 	gint io_tag;					  /* for delayed refresh events */
 	gint add_io_tag;				  /* "" when adding new text */
