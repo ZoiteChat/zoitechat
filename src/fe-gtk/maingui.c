@@ -3634,6 +3634,12 @@ mg_win32_filter (GdkXEvent *xevent, GdkEvent *event, gpointer data)
 		return GDK_FILTER_CONTINUE;
 	}
 
+	if (msg->message == WM_SETTINGCHANGE || msg->message == WM_THEMECHANGED)
+	{
+		fe_refresh_auto_dark_mode ();
+		return GDK_FILTER_CONTINUE;
+	}
+
 	if (msg->message == WM_COPYDATA)
 	{
 		COPYDATASTRUCT *copy_data = (COPYDATASTRUCT *)msg->lParam;

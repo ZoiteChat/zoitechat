@@ -185,6 +185,7 @@ extern cairo_surface_t *dialogwin_pix;
 gboolean fe_dark_mode_is_enabled (void);
 gboolean fe_dark_mode_is_enabled_for (unsigned int mode);
 void fe_set_auto_dark_mode_state (gboolean enabled);
+void fe_refresh_auto_dark_mode (void);
 
 #define SPELL_ENTRY_GET_TEXT(e) ((char *)(gtk_entry_get_text (GTK_ENTRY(e))))
 #define SPELL_ENTRY_SET_TEXT(e,txt) gtk_entry_set_text(GTK_ENTRY(e),txt)

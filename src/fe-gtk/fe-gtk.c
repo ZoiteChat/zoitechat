@@ -276,10 +276,46 @@ fe_system_prefers_dark (void)
 	GtkSettings *settings = gtk_settings_get_default ();
 	gboolean prefer_dark = FALSE;
 	char *theme_name = NULL;
+#ifdef G_OS_WIN32
+	gboolean have_win_pref = FALSE;
+#endif
 
 	if (!settings)
 		return FALSE;
 
+#ifdef G_OS_WIN32
+	{
+		DWORD value = 1;
+		DWORD value_size = sizeof (value);
+		LSTATUS status;
+
+		status = RegGetValueW (HKEY_CURRENT_USER,
+		                       L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
+		                       L"AppsUseLightTheme",
+		                       RRF_RT_REG_DWORD,
+		                       NULL,
+		                       &value,
+		                       &value_size);
+		if (status != ERROR_SUCCESS)
+			status = RegGetValueW (HKEY_CURRENT_USER,
+			                       L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
+			                       L"SystemUsesLightTheme",
+			                       RRF_RT_REG_DWORD,
+			                       NULL,
+			                       &value,
+			                       &value_size);
+
+		if (status == ERROR_SUCCESS)
+		{
+			prefer_dark = (value == 0);
+			have_win_pref = TRUE;
+		}
+	}
+#endif
+
+#ifdef G_OS_WIN32
+	if (!have_win_pref)
+#endif
 	if (g_object_class_find_property (G_OBJECT_GET_CLASS (settings),
 	                                  "gtk-application-prefer-dark-theme"))
 	{
@@ -329,6 +365,12 @@ void
 fe_set_auto_dark_mode_state (gboolean enabled)
 {
 	auto_dark_mode_enabled = enabled;
+}
+
+void
+fe_refresh_auto_dark_mode (void)
+{
+	fe_auto_dark_mode_changed (NULL, NULL, NULL);
 }
 
 gboolean
