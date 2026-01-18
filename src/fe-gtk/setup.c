@@ -1485,6 +1485,30 @@ setup_create_dark_mode_menu (GtkWidget *table, int row, const setting *set)
 }
 
 static void
+setup_color_button_apply (GtkWidget *button, const GdkColor *color)
+{
+	GtkWidget *target = g_object_get_data (G_OBJECT (button), "zoitechat-color-box");
+	GtkStateType states[] = {
+		GTK_STATE_NORMAL,
+		GTK_STATE_PRELIGHT,
+		GTK_STATE_ACTIVE,
+		GTK_STATE_SELECTED,
+		GTK_STATE_INSENSITIVE
+	};
+	guint i;
+	GtkWidget *apply_widget = GTK_IS_WIDGET (target) ? target : button;
+
+	for (i = 0; i < G_N_ELEMENTS (states); i++)
+		gtk_widget_modify_bg (apply_widget, states[i], color);
+
+	if (apply_widget != button)
+		for (i = 0; i < G_N_ELEMENTS (states); i++)
+			gtk_widget_modify_bg (button, states[i], color);
+
+	gtk_widget_queue_draw (button);
+}
+
+static void
 setup_color_ok_cb (GtkWidget *button, GtkWidget *dialog)
 {
         GtkColorSelectionDialog *cdialog = GTK_COLOR_SELECTION_DIALOG (dialog);
@@ -1507,7 +1531,7 @@ setup_color_ok_cb (GtkWidget *button, GtkWidget *dialog)
 
         gdk_colormap_alloc_color (gtk_widget_get_colormap (button), col, TRUE, TRUE);
 
-        gtk_widget_modify_bg (button, GTK_STATE_NORMAL, col);
+        setup_color_button_apply (button, col);
 
         /* is this line correct?? */
         gdk_colormap_free_colors (gtk_widget_get_colormap (button), &old_color, 1);
@@ -1559,22 +1583,41 @@ static void
 setup_create_color_button (GtkWidget *table, int num, int row, int col)
 {
         GtkWidget *but;
+        GtkWidget *label;
+        GtkWidget *box;
+        GtkWidget *alignment;
         char buf[64];
 
         if (num > 31)
                 strcpy (buf, "<span size=\"x-small\"> </span>");
+        else if (num < 10)
+                sprintf (buf, "<span size=\"x-small\">&#x2007;%d</span>", num);
         else
                                                 /* 12345678901 23456789 01  23456789 */
                 sprintf (buf, "<span size=\"x-small\">%d</span>", num);
-        but = gtk_button_new_with_label (" ");
-        gtk_label_set_markup (GTK_LABEL (gtk_bin_get_child (GTK_BIN (but))), buf);
+        but = gtk_button_new ();
+        label = gtk_label_new (" ");
+        gtk_label_set_markup (GTK_LABEL (label), buf);
+        box = gtk_event_box_new ();
+        gtk_event_box_set_visible_window (GTK_EVENT_BOX (box), TRUE);
+        gtk_container_add (GTK_CONTAINER (box), label);
+        gtk_container_add (GTK_CONTAINER (but), box);
+        alignment = gtk_bin_get_child (GTK_BIN (but));
+        if (GTK_IS_ALIGNMENT (alignment))
+        {
+                gtk_alignment_set (GTK_ALIGNMENT (alignment), 0.5, 0.5, 1.0, 1.0);
+                gtk_alignment_set_padding (GTK_ALIGNMENT (alignment), 0, 0, 0, 0);
+        }
+        gtk_widget_show (label);
+        gtk_widget_show (box);
         /* win32 build uses this to turn off themeing */
         g_object_set_data (G_OBJECT (but), "zoitechat-color", (gpointer)1);
+        g_object_set_data (G_OBJECT (but), "zoitechat-color-box", box);
         gtk_table_attach (GTK_TABLE (table), but, col, col+1, row, row+1,
                                                         GTK_SHRINK | GTK_FILL, GTK_SHRINK | GTK_FILL, 0, 0);
         g_signal_connect (G_OBJECT (but), "clicked",
                                                         G_CALLBACK (setup_color_cb), GINT_TO_POINTER (num));
-        gtk_widget_modify_bg (but, GTK_STATE_NORMAL, &colors[num]);
+        setup_color_button_apply (but, &colors[num]);
 
         /* Track all color selector widgets (used for dark mode UI behavior). */
         color_selector_widgets = g_slist_prepend (color_selector_widgets, but);
