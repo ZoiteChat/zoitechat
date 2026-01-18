@@ -1589,7 +1589,7 @@ setup_create_color_button (GtkWidget *table, int num, int row, int col)
         char buf[64];
 
         if (num > 31)
-                strcpy (buf, "<span size=\"x-small\"> </span>");
+                strcpy (buf, "<span size=\"x-small\">&#x2007;&#x2007;</span>");
         else if (num < 10)
                 sprintf (buf, "<span size=\"x-small\">&#x2007;%d</span>", num);
         else
@@ -1614,7 +1614,7 @@ setup_create_color_button (GtkWidget *table, int num, int row, int col)
         g_object_set_data (G_OBJECT (but), "zoitechat-color", (gpointer)1);
         g_object_set_data (G_OBJECT (but), "zoitechat-color-box", box);
         gtk_table_attach (GTK_TABLE (table), but, col, col+1, row, row+1,
-                                                        GTK_SHRINK | GTK_FILL, GTK_SHRINK | GTK_FILL, 0, 0);
+                                                        GTK_SHRINK, GTK_SHRINK, 0, 0);
         g_signal_connect (G_OBJECT (but), "clicked",
                                                         G_CALLBACK (setup_color_cb), GINT_TO_POINTER (num));
         setup_color_button_apply (but, &colors[num]);
