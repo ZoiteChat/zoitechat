@@ -21,6 +21,7 @@
 #define HEXCHAT_XTEXT_H
 
 #include <gtk/gtk.h>
+#include <cairo.h>
 
 #define GTK_TYPE_XTEXT              (gtk_xtext_get_type ())
 #define GTK_XTEXT(object)           (G_TYPE_CHECK_INSTANCE_CAST ((object), GTK_TYPE_XTEXT, GtkXText))
@@ -268,7 +269,7 @@ void gtk_xtext_append_indent (xtext_buffer *buf,
 										unsigned char *right_text, int right_len,
 										time_t stamp);
 int gtk_xtext_set_font (GtkXText *xtext, char *name);
-void gtk_xtext_set_background (GtkXText * xtext, GdkPixmap * pixmap);
+void gtk_xtext_set_background (GtkXText * xtext, cairo_surface_t *surface);
 void gtk_xtext_set_palette (GtkXText * xtext, GdkColor palette[]);
 void gtk_xtext_clear (xtext_buffer *buf, int lines);
 void gtk_xtext_save (GtkXText * xtext, int fh);

@@ -58,7 +58,7 @@
 #include <canberra.h>
 #endif
 
-GdkPixmap *channelwin_pix;
+cairo_surface_t *channelwin_pix;
 
 #ifdef USE_LIBCANBERRA
 static ca_context *ca_con;

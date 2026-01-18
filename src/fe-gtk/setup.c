@@ -2449,7 +2449,7 @@ setup_apply_real (int new_pix, int do_ulist, int do_layout, int do_identd)
         if (new_pix)
         {
                 if (channelwin_pix)
-                        g_object_unref (channelwin_pix);
+                        cairo_surface_destroy (channelwin_pix);
                 channelwin_pix = pixmap_load_from_file (prefs.hex_text_background);
         }
 

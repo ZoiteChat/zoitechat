@@ -30,6 +30,7 @@
 
 #include <glib/gi18n.h>
 #include <gtk/gtk.h>
+#include <cairo.h>
 
 #ifdef HAVE_GTK_MAC
 #include <gtkosxapplication.h>
@@ -178,8 +179,8 @@ typedef struct session_gui
 
 } session_gui;
 
-extern GdkPixmap *channelwin_pix;
-extern GdkPixmap *dialogwin_pix;
+extern cairo_surface_t *channelwin_pix;
+extern cairo_surface_t *dialogwin_pix;
 
 #define SPELL_ENTRY_GET_TEXT(e) ((char *)(gtk_entry_get_text (GTK_ENTRY(e))))
 #define SPELL_ENTRY_SET_TEXT(e,txt) gtk_entry_set_text(GTK_ENTRY(e),txt)

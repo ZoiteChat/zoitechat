@@ -20,6 +20,8 @@
 #ifndef HEXCHAT_PIXMAPS_H
 #define HEXCHAT_PIXMAPS_H
 
+#include <cairo.h>
+
 extern GdkPixbuf *pix_ulist_voice;
 extern GdkPixbuf *pix_ulist_halfop;
 extern GdkPixbuf *pix_ulist_op;
@@ -40,7 +42,7 @@ extern GdkPixbuf *pix_tree_util;
 extern GdkPixbuf *pix_book;
 extern GdkPixbuf *pix_zoitechat;
 
-extern GdkPixmap *pixmap_load_from_file (char *file);
+extern cairo_surface_t *pixmap_load_from_file (char *file);
 extern void pixmaps_init (void);
 
 #endif

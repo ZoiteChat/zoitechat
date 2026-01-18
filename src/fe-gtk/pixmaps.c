@@ -28,6 +28,7 @@
 
 #include <gio/gio.h>
 #include <gdk-pixbuf/gdk-pixbuf.h>
+#include <cairo.h>
 
 GdkPixbuf *pix_ulist_voice;
 GdkPixbuf *pix_ulist_halfop;
@@ -49,26 +50,89 @@ GdkPixbuf *pix_tree_util;
 GdkPixbuf *pix_book;
 GdkPixbuf *pix_zoitechat;
 
-static GdkPixmap *
+static cairo_surface_t *
+pixbuf_to_cairo_surface (GdkPixbuf *pixbuf)
+{
+	cairo_surface_t *surface;
+	gboolean has_alpha;
+	int width;
+	int height;
+	int src_stride;
+	int dest_stride;
+	int n_channels;
+	const guchar *src_pixels;
+	unsigned char *dest_pixels;
+	int x;
+	int y;
+
+	g_return_val_if_fail (GDK_IS_PIXBUF (pixbuf), NULL);
+
+	width = gdk_pixbuf_get_width (pixbuf);
+	height = gdk_pixbuf_get_height (pixbuf);
+	has_alpha = gdk_pixbuf_get_has_alpha (pixbuf);
+	n_channels = gdk_pixbuf_get_n_channels (pixbuf);
+
+	surface = cairo_image_surface_create (CAIRO_FORMAT_ARGB32, width, height);
+	if (cairo_surface_status (surface) != CAIRO_STATUS_SUCCESS)
+	{
+		cairo_surface_destroy (surface);
+		return NULL;
+	}
+
+	src_stride = gdk_pixbuf_get_rowstride (pixbuf);
+	src_pixels = gdk_pixbuf_get_pixels (pixbuf);
+	dest_stride = cairo_image_surface_get_stride (surface);
+	dest_pixels = cairo_image_surface_get_data (surface);
+
+	for (y = 0; y < height; y++)
+	{
+		const guchar *src_row = src_pixels + (y * src_stride);
+		guint32 *dest_row = (guint32 *)(dest_pixels + (y * dest_stride));
+
+		for (x = 0; x < width; x++)
+		{
+			const guchar *src = src_row + (x * n_channels);
+			guchar alpha = has_alpha ? src[3] : 0xff;
+			guchar red = src[0];
+			guchar green = src[1];
+			guchar blue = src[2];
+			guchar premul_red = (guchar)((red * alpha + 127) / 255);
+			guchar premul_green = (guchar)((green * alpha + 127) / 255);
+			guchar premul_blue = (guchar)((blue * alpha + 127) / 255);
+
+			dest_row[x] = ((guint32)alpha << 24) |
+				((guint32)premul_red << 16) |
+				((guint32)premul_green << 8) |
+				((guint32)premul_blue);
+		}
+	}
+
+	cairo_surface_mark_dirty (surface);
+
+	return surface;
+}
+
+static cairo_surface_t *
 pixmap_load_from_file_real (char *file)
 {
 	GdkPixbuf *img;
-	GdkPixmap *pixmap;
+	cairo_surface_t *surface;
 
 	img = gdk_pixbuf_new_from_file (file, 0);
 	if (!img)
 		return NULL;
-	gdk_pixbuf_render_pixmap_and_mask (img, &pixmap, NULL, 128);
+
+	surface = pixbuf_to_cairo_surface (img);
 	g_object_unref (img);
 
-	return pixmap;
+	return surface;
 }
 
-GdkPixmap *
+cairo_surface_t *
 pixmap_load_from_file (char *filename)
 {
 	char buf[256];
-	GdkPixmap *pix;
+	cairo_surface_t *pix;
 
 	if (filename[0] == '\0')
 		return NULL;

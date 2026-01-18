@@ -780,7 +780,6 @@ gtk_xtext_realize (GtkWidget * widget)
 	xtext->resize_cursor = gdk_cursor_new_for_display (gdk_window_get_display (widget->window), GDK_LEFT_SIDE);
 
 	gdk_window_set_back_pixmap (widget->window, NULL, FALSE);
-	widget->style = gtk_style_attach (widget->style, widget->window);
 
 	backend_init (xtext);
 }
@@ -3571,7 +3570,7 @@ gtk_xtext_set_font (GtkXText *xtext, char *name)
 }
 
 void
-gtk_xtext_set_background (GtkXText * xtext, GdkPixmap * pixmap)
+gtk_xtext_set_background (GtkXText * xtext, cairo_surface_t *surface)
 {
 	if (xtext->background_surface)
 	{
@@ -3580,14 +3579,12 @@ gtk_xtext_set_background (GtkXText * xtext, GdkPixmap * pixmap)
 	}
 
 	dontscroll (xtext->buffer);
-	if (pixmap != 0)
+	if (surface)
 	{
-		cairo_t *cr = gdk_cairo_create (pixmap);
-		xtext->background_surface = cairo_surface_reference (cairo_get_target (cr));
-		cairo_destroy (cr);
+		xtext->background_surface = cairo_surface_reference (surface);
 	}
 
-	if (pixmap != 0 && gtk_widget_get_realized (GTK_WIDGET(xtext)))
+	if (surface && gtk_widget_get_realized (GTK_WIDGET(xtext)))
 	{
 		xtext->ts_x = xtext->ts_y = 0;
 	}
