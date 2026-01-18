@@ -102,26 +102,117 @@ mg_color_component_to_pango (double value)
 	return (guint16)(value * 65535.0 + 0.5);
 }
 
+static void
+mg_pixbuf_destroy (guchar *pixels, gpointer data)
+{
+	g_free (pixels);
+}
+
+static GdkPixbuf *
+mg_pixbuf_from_surface (cairo_surface_t *surface, int width, int height)
+{
+	const unsigned char *src;
+	int src_stride;
+	int rowstride;
+	guchar *pixels;
+	int x;
+	int y;
+
+	if (!surface || width <= 0 || height <= 0)
+		return NULL;
+
+	src = cairo_image_surface_get_data (surface);
+	src_stride = cairo_image_surface_get_stride (surface);
+	rowstride = width * 4;
+	pixels = g_malloc ((gsize)rowstride * height);
+
+	for (y = 0; y < height; y++)
+	{
+		const unsigned char *src_row = src + (y * src_stride);
+		guchar *dest_row = pixels + (y * rowstride);
+
+		for (x = 0; x < width; x++)
+		{
+			guint8 a;
+			guint8 r;
+			guint8 g;
+			guint8 b;
+			const unsigned char *src_px = src_row + (x * 4);
+			guchar *dest_px = dest_row + (x * 4);
+
+#if G_BYTE_ORDER == G_LITTLE_ENDIAN
+			b = src_px[0];
+			g = src_px[1];
+			r = src_px[2];
+			a = src_px[3];
+#else
+			a = src_px[0];
+			r = src_px[1];
+			g = src_px[2];
+			b = src_px[3];
+#endif
+
+			if (a)
+			{
+				r = (guint8)((r * 255 + (a / 2)) / a);
+				g = (guint8)((g * 255 + (a / 2)) / a);
+				b = (guint8)((b * 255 + (a / 2)) / a);
+			}
+			else
+			{
+				r = g = b = 0;
+			}
+
+			dest_px[0] = r;
+			dest_px[1] = g;
+			dest_px[2] = b;
+			dest_px[3] = a;
+		}
+	}
+
+	return gdk_pixbuf_new_from_data (pixels, GDK_COLORSPACE_RGB, TRUE, 8,
+		width, height, rowstride, mg_pixbuf_destroy, NULL);
+}
+
 static GdkPixbuf *
 mg_pixbuf_from_window (GdkWindow *window, int width, int height)
 {
-	GdkDrawable *drawable;
 	int src_width;
 	int src_height;
+	cairo_surface_t *surface;
+	cairo_t *cr;
+	GdkPixbuf *pixbuf;
 
-	drawable = GDK_DRAWABLE (window);
-	if (!drawable)
+	if (!window)
 		return NULL;
 
-	gdk_drawable_get_size (drawable, &src_width, &src_height);
+	src_width = gdk_window_get_width (window);
+	src_height = gdk_window_get_height (window);
 	if (width <= 0 || height <= 0)
 	{
 		width = src_width;
 		height = src_height;
 	}
 
-	return gdk_pixbuf_get_from_drawable (NULL, drawable, NULL,
-		0, 0, 0, 0, width, height);
+	if (width <= 0 || height <= 0)
+		return NULL;
+
+	surface = cairo_image_surface_create (CAIRO_FORMAT_ARGB32, width, height);
+	if (cairo_surface_status (surface) != CAIRO_STATUS_SUCCESS)
+	{
+		cairo_surface_destroy (surface);
+		return NULL;
+	}
+
+	cr = cairo_create (surface);
+	gdk_cairo_set_source_window (cr, window, 0.0, 0.0);
+	cairo_paint (cr);
+	cairo_destroy (cr);
+
+	pixbuf = mg_pixbuf_from_surface (surface, width, height);
+	cairo_surface_destroy (surface);
+
+	return pixbuf;
 }
 
 static void mg_create_entry (session *sess, GtkWidget *box);

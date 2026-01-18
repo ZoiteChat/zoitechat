@@ -59,7 +59,6 @@
 #else
 #include <unistd.h>
 #include <gdk/gdkcairo.h>
-#include <gdk-pixbuf/gdk-pixbuf.h>
 #ifdef GDK_WINDOWING_X11
 #include <gdk/gdkx.h>
 #endif
@@ -159,26 +158,20 @@ xtext_set_source_color (cairo_t *cr, const XTextColor *color, gdouble alpha)
 }
 
 static cairo_surface_t *
-xtext_surface_from_pixbuf (GdkPixbuf *pixbuf)
+xtext_surface_from_window (GdkWindow *window)
 {
-	cairo_surface_t *surface;
-	gboolean has_alpha;
+	cairo_surface_t *surface = NULL;
 	int width;
 	int height;
-	int src_stride;
-	int dest_stride;
-	int n_channels;
-	const guchar *src_pixels;
-	unsigned char *dest_pixels;
-	int x;
-	int y;
+	cairo_t *cr;
 
-	g_return_val_if_fail (GDK_IS_PIXBUF (pixbuf), NULL);
+	if (!window)
+		return NULL;
 
-	width = gdk_pixbuf_get_width (pixbuf);
-	height = gdk_pixbuf_get_height (pixbuf);
-	has_alpha = gdk_pixbuf_get_has_alpha (pixbuf);
-	n_channels = gdk_pixbuf_get_n_channels (pixbuf);
+	width = gdk_window_get_width (window);
+	height = gdk_window_get_height (window);
+	if (width <= 0 || height <= 0)
+		return NULL;
 
 	surface = cairo_image_surface_create (CAIRO_FORMAT_ARGB32, width, height);
 	if (cairo_surface_status (surface) != CAIRO_STATUS_SUCCESS)
@@ -187,60 +180,10 @@ xtext_surface_from_pixbuf (GdkPixbuf *pixbuf)
 		return NULL;
 	}
 
-	src_stride = gdk_pixbuf_get_rowstride (pixbuf);
-	src_pixels = gdk_pixbuf_get_pixels (pixbuf);
-	dest_stride = cairo_image_surface_get_stride (surface);
-	dest_pixels = cairo_image_surface_get_data (surface);
-
-	for (y = 0; y < height; y++)
-	{
-		const guchar *src_row = src_pixels + (y * src_stride);
-		guint32 *dest_row = (guint32 *)(dest_pixels + (y * dest_stride));
-
-		for (x = 0; x < width; x++)
-		{
-			const guchar *src = src_row + (x * n_channels);
-			guchar alpha = has_alpha ? src[3] : 0xff;
-			guchar red = src[0];
-			guchar green = src[1];
-			guchar blue = src[2];
-			guchar premul_red = (guchar)((red * alpha + 127) / 255);
-			guchar premul_green = (guchar)((green * alpha + 127) / 255);
-			guchar premul_blue = (guchar)((blue * alpha + 127) / 255);
-
-			dest_row[x] = ((guint32)alpha << 24) |
-				((guint32)premul_red << 16) |
-				((guint32)premul_green << 8) |
-				((guint32)premul_blue);
-		}
-	}
-
-	cairo_surface_mark_dirty (surface);
-
-	return surface;
-}
-
-static cairo_surface_t *
-xtext_surface_from_window (GdkWindow *window)
-{
-	cairo_surface_t *surface = NULL;
-	GdkPixbuf *pixbuf;
-	GdkDrawable *drawable;
-	int width;
-	int height;
-
-	drawable = GDK_DRAWABLE (window);
-	if (!drawable)
-		return NULL;
-
-	gdk_drawable_get_size (drawable, &width, &height);
-	pixbuf = gdk_pixbuf_get_from_drawable (NULL, drawable, NULL,
-		0, 0, 0, 0, width, height);
-	if (pixbuf)
-	{
-		surface = xtext_surface_from_pixbuf (pixbuf);
-		g_object_unref (pixbuf);
-	}
+	cr = cairo_create (surface);
+	gdk_cairo_set_source_window (cr, window, 0.0, 0.0);
+	cairo_paint (cr);
+	cairo_destroy (cr);
 
 	return surface;
 }
