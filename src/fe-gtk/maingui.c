@@ -24,6 +24,7 @@
 #include <gdk/gdk.h>
 #include <gdk/gdkkeysyms.h>
 #include <gdk/gdkcairo.h>
+#include <gdk-pixbuf/gdk-pixbuf.h>
 
 #include "../common/zoitechat.h"
 #include "../common/fe.h"
@@ -85,92 +86,42 @@ static GtkWidget *mg_create_emoji_menu (session_gui *gui);
 static void mg_emoji_insert_cb (GtkMenuItem *item, session_gui *gui);
 
 static inline void
-mg_set_source_color (cairo_t *cr, const GdkColor *color)
+mg_set_source_color (cairo_t *cr, const XTextColor *color)
 {
-	cairo_set_source_rgba (cr, color->red / 65535.0, color->green / 65535.0,
-		color->blue / 65535.0, 1.0);
+	cairo_set_source_rgba (cr, color->red, color->green, color->blue, color->alpha);
 }
 
-#if G_BYTE_ORDER == G_LITTLE_ENDIAN
-#define MG_CAIRO_BLUE 0
-#define MG_CAIRO_GREEN 1
-#define MG_CAIRO_RED 2
-#define MG_CAIRO_ALPHA 3
-#else
-#define MG_CAIRO_ALPHA 0
-#define MG_CAIRO_RED 1
-#define MG_CAIRO_GREEN 2
-#define MG_CAIRO_BLUE 3
-#endif
-
-static inline void
-mg_unpremultiply_pixel (const guchar *src, guchar *dest)
+static inline guint16
+mg_color_component_to_pango (double value)
 {
-	guchar alpha = src[MG_CAIRO_ALPHA];
-	guchar red = src[MG_CAIRO_RED];
-	guchar green = src[MG_CAIRO_GREEN];
-	guchar blue = src[MG_CAIRO_BLUE];
+	if (value < 0.0)
+		value = 0.0;
+	if (value > 1.0)
+		value = 1.0;
 
-	if (alpha == 0)
-	{
-		dest[0] = 0;
-		dest[1] = 0;
-		dest[2] = 0;
-		dest[3] = 0;
-		return;
-	}
-
-	dest[0] = (guchar)((red * 255 + alpha / 2) / alpha);
-	dest[1] = (guchar)((green * 255 + alpha / 2) / alpha);
-	dest[2] = (guchar)((blue * 255 + alpha / 2) / alpha);
-	dest[3] = alpha;
+	return (guint16)(value * 65535.0 + 0.5);
 }
 
 static GdkPixbuf *
 mg_pixbuf_from_window (GdkWindow *window, int width, int height)
 {
-	cairo_surface_t *surface;
-	cairo_t *cr;
-	GdkPixbuf *pixbuf;
-	guchar *surface_data;
-	guchar *dest;
-	int surface_stride;
-	int dest_stride;
-	int x;
-	int y;
+	GdkDrawable *drawable;
+	int src_width;
+	int src_height;
 
-	surface = cairo_image_surface_create (CAIRO_FORMAT_ARGB32, width, height);
-	cr = cairo_create (surface);
-	gdk_cairo_set_source_window (cr, window, 0.0, 0.0);
-	cairo_set_operator (cr, CAIRO_OPERATOR_SOURCE);
-	cairo_paint (cr);
-	cairo_destroy (cr);
+	drawable = GDK_DRAWABLE (window);
+	if (!drawable)
+		return NULL;
 
-	cairo_surface_flush (surface);
-
-	pixbuf = gdk_pixbuf_new (GDK_COLORSPACE_RGB, TRUE, 8, width, height);
-	surface_data = cairo_image_surface_get_data (surface);
-	surface_stride = cairo_image_surface_get_stride (surface);
-	dest = gdk_pixbuf_get_pixels (pixbuf);
-	dest_stride = gdk_pixbuf_get_rowstride (pixbuf);
-
-	for (y = 0; y < height; y++)
+	gdk_drawable_get_size (drawable, &src_width, &src_height);
+	if (width <= 0 || height <= 0)
 	{
-		const guchar *src_row = surface_data + (y * surface_stride);
-		guchar *dest_row = dest + (y * dest_stride);
-
-		for (x = 0; x < width; x++)
-		{
-			const guchar *src = src_row + (x * 4);
-			guchar *dst = dest_row + (x * 4);
-
-			mg_unpremultiply_pixel (src, dst);
-		}
+		width = src_width;
+		height = src_height;
 	}
 
-	cairo_surface_destroy (surface);
-
-	return pixbuf;
+	return gdk_pixbuf_get_from_drawable (NULL, drawable, NULL,
+		0, 0, 0, 0, width, height);
 }
 
 static void mg_create_entry (session *sess, GtkWidget *box);
@@ -197,7 +148,7 @@ static PangoAttrList *newmsg_list;
 static PangoAttrList *plain_list = NULL;
 
 static PangoAttrList *
-mg_attr_list_create (GdkColor *col, int size)
+mg_attr_list_create (const XTextColor *col, int size)
 {
         PangoAttribute *attr;
         PangoAttrList *list;
@@ -206,7 +157,10 @@ mg_attr_list_create (GdkColor *col, int size)
 
         if (col)
         {
-                attr = pango_attr_foreground_new (col->red, col->green, col->blue);
+                attr = pango_attr_foreground_new (
+                        mg_color_component_to_pango (col->red),
+                        mg_color_component_to_pango (col->green),
+                        mg_color_component_to_pango (col->blue));
                 attr->start_index = 0;
                 attr->end_index = 0xffff;
                 pango_attr_list_insert (list, attr);
@@ -226,6 +180,8 @@ mg_attr_list_create (GdkColor *col, int size)
 static void
 mg_create_tab_colors (void)
 {
+        XTextColor gui_palette[MAX_COL + 1];
+
         if (plain_list)
         {
                 pango_attr_list_unref (plain_list);
@@ -235,11 +191,12 @@ mg_create_tab_colors (void)
                 pango_attr_list_unref (away_list);
         }
 
+        palette_get_xtext_colors (gui_palette, G_N_ELEMENTS (gui_palette));
         plain_list = mg_attr_list_create (NULL, prefs.hex_gui_tab_small);
-        newdata_list = mg_attr_list_create (&colors[COL_NEW_DATA], prefs.hex_gui_tab_small);
-        nickseen_list = mg_attr_list_create (&colors[COL_HILIGHT], prefs.hex_gui_tab_small);
-        newmsg_list = mg_attr_list_create (&colors[COL_NEW_MSG], prefs.hex_gui_tab_small);
-        away_list = mg_attr_list_create (&colors[COL_AWAY], FALSE);
+        newdata_list = mg_attr_list_create (&gui_palette[COL_NEW_DATA], prefs.hex_gui_tab_small);
+        nickseen_list = mg_attr_list_create (&gui_palette[COL_HILIGHT], prefs.hex_gui_tab_small);
+        newmsg_list = mg_attr_list_create (&gui_palette[COL_NEW_MSG], prefs.hex_gui_tab_small);
+        away_list = mg_attr_list_create (&gui_palette[COL_AWAY], FALSE);
 }
 
 static void
@@ -4160,6 +4117,8 @@ mg_drag_begin_cb (GtkWidget *widget, GdkDragContext *context, gpointer userdata)
         height = gdk_window_get_height (window);
 
         pix = mg_pixbuf_from_window (window, width, height);
+        if (!pix)
+                return FALSE;
         pix2 = gdk_pixbuf_scale_simple (pix, width * 4 / 5, height / 2, GDK_INTERP_HYPER);
         g_object_unref (pix);
 
@@ -4210,7 +4169,7 @@ mg_drag_drop_cb (GtkWidget *widget, GdkDragContext *context, int x, int y, guint
 gboolean
 mg_drag_motion_cb (GtkWidget *widget, GdkDragContext *context, int x, int y, guint time, gpointer scbar)
 {
-        GdkColor col;
+        XTextColor col;
         cairo_t *cr;
         int half, width, height;
         int ox, oy;
@@ -4238,9 +4197,10 @@ mg_drag_motion_cb (GtkWidget *widget, GdkDragContext *context, int x, int y, gui
                 height = gdk_window_get_height (window);
         }
 
-        col.red = rand() % 0xffff;
-        col.green = rand() % 0xffff;
-        col.blue = rand() % 0xffff;
+        col.red = (double)rand () / (double)RAND_MAX;
+        col.green = (double)rand () / (double)RAND_MAX;
+        col.blue = (double)rand () / (double)RAND_MAX;
+        col.alpha = 1.0;
         cr = gdk_cairo_create (window);
         cairo_set_operator (cr, CAIRO_OPERATOR_XOR);
         mg_set_source_color (cr, &col);
