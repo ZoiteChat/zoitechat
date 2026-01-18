@@ -62,6 +62,57 @@ static GtkWidget *cancel_button;
 static GtkWidget *font_dialog = NULL;
 void setup_apply_real (int new_pix, int do_ulist, int do_layout, int do_identd);
 
+void
+setup_merge_text_font (void)
+{
+#ifdef WIN32
+	PangoFontDescription *old_desc;
+	PangoFontDescription *new_desc;
+	const gchar *base_family;
+	gchar *buffer;
+	gchar *merged;
+
+	if (!prefs.hex_text_font_main[0])
+		return;
+
+	old_desc = pango_font_description_from_string (prefs.hex_text_font_main);
+	if (!old_desc)
+		return;
+
+	base_family = pango_font_description_get_family (old_desc);
+	if (!base_family || !*base_family)
+	{
+		pango_font_description_free (old_desc);
+		return;
+	}
+
+	if (prefs.hex_text_font_alternative[0])
+		buffer = g_strdup_printf ("%s,%s", base_family, prefs.hex_text_font_alternative);
+	else
+		buffer = g_strdup_printf ("%s", base_family);
+
+	new_desc = pango_font_description_from_string (buffer);
+	g_free (buffer);
+
+	if (!new_desc)
+	{
+		pango_font_description_free (old_desc);
+		return;
+	}
+
+	pango_font_description_set_weight (new_desc, pango_font_description_get_weight (old_desc));
+	pango_font_description_set_style (new_desc, pango_font_description_get_style (old_desc));
+	pango_font_description_set_size (new_desc, pango_font_description_get_size (old_desc));
+
+	merged = pango_font_description_to_string (new_desc);
+	g_strlcpy (prefs.hex_text_font, merged, sizeof (prefs.hex_text_font));
+	g_free (merged);
+
+	pango_font_description_free (old_desc);
+	pango_font_description_free (new_desc);
+#endif
+}
+
 typedef struct
 {
         GtkWidget *combo;
@@ -2561,15 +2612,10 @@ setup_apply_real (int new_pix, int do_ulist, int do_layout, int do_identd)
 static void
 setup_apply (struct zoitechatprefs *pr)
 {
-#ifdef WIN32
-        PangoFontDescription *old_desc;
-        PangoFontDescription *new_desc;
-        char buffer[4 * FONTNAMELEN + 1];
-#endif
-        int new_pix = FALSE;
-        int noapply = FALSE;
-        int do_ulist = FALSE;
-        int do_layout = FALSE;
+	int new_pix = FALSE;
+	int noapply = FALSE;
+	int do_ulist = FALSE;
+	int do_layout = FALSE;
         int do_identd = FALSE;
         int old_dark_mode = prefs.hex_gui_dark_mode;
 
@@ -2658,25 +2704,11 @@ setup_apply (struct zoitechatprefs *pr)
 	if (prefs.hex_gui_dark_mode == ZOITECHAT_DARK_MODE_AUTO)
 		fe_set_auto_dark_mode_state (fe_dark_mode_is_enabled_for (ZOITECHAT_DARK_MODE_AUTO));
 
-#ifdef WIN32
-        /* merge hex_font_main and hex_font_alternative into hex_font_normal */
-        old_desc = pango_font_description_from_string (prefs.hex_text_font_main);
-        sprintf (buffer, "%s,%s", pango_font_description_get_family (old_desc), prefs.hex_text_font_alternative);
-        new_desc = pango_font_description_from_string (buffer);
-        pango_font_description_set_weight (new_desc, pango_font_description_get_weight (old_desc));
-        pango_font_description_set_style (new_desc, pango_font_description_get_style (old_desc));
-        pango_font_description_set_size (new_desc, pango_font_description_get_size (old_desc));
-        sprintf (prefs.hex_text_font, "%s", pango_font_description_to_string (new_desc));
+	setup_merge_text_font ();
 
-        /* FIXME this is not required after pango_font_description_from_string()
-        g_free (old_desc);
-        g_free (new_desc);
-        */
-#endif
-
-        if (prefs.hex_irc_real_name[0] == 0)
-        {
-                fe_message (_("The Real name option cannot be left blank. Falling back to \"realname\"."), FE_MSG_WARN);
+	if (prefs.hex_irc_real_name[0] == 0)
+	{
+		fe_message (_("The Real name option cannot be left blank. Falling back to \"realname\"."), FE_MSG_WARN);
                 strcpy (prefs.hex_irc_real_name, "realname");
         }
 

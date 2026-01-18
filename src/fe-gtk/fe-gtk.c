@@ -442,6 +442,10 @@ fe_init (void)
 {
 	GtkSettings *settings;
 
+#ifdef WIN32
+	setup_merge_text_font ();
+#endif
+
 	palette_load ();
 	palette_apply_dark_mode (fe_dark_mode_is_enabled ());
 	key_init ();
