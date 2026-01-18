@@ -158,9 +158,20 @@ xtext_set_source_color (cairo_t *cr, GdkColor *color, gdouble alpha)
 }
 
 static cairo_surface_t *
-xtext_surface_from_drawable (GdkDrawable *drawable)
+xtext_surface_from_pixmap (GdkPixmap *pixmap)
 {
-	cairo_t *cr = gdk_cairo_create (drawable);
+	cairo_t *cr = gdk_cairo_create (pixmap);
+	cairo_surface_t *surface = cairo_surface_reference (cairo_get_target (cr));
+
+	cairo_destroy (cr);
+
+	return surface;
+}
+
+static cairo_surface_t *
+xtext_surface_from_window (GdkWindow *window)
+{
+	cairo_t *cr = gdk_cairo_create (window);
 	cairo_surface_t *surface = cairo_surface_reference (cairo_get_target (cr));
 
 	cairo_destroy (cr);
@@ -174,7 +185,7 @@ xtext_create_context (GtkXText *xtext)
 	if (xtext->draw_surface)
 		return cairo_create (xtext->draw_surface);
 
-	return gdk_cairo_create (xtext->draw_buf);
+	return gdk_cairo_create (xtext->draw_window);
 }
 
 static inline void
@@ -215,7 +226,7 @@ xtext_draw_bg_offset (GtkXText *xtext, int x, int y, int width, int height, int 
 
 	if (xtext->pixmap)
 	{
-		cairo_surface_t *surface = xtext_surface_from_drawable (xtext->pixmap);
+		cairo_surface_t *surface = xtext_surface_from_pixmap (xtext->pixmap);
 
 		cairo_set_source_surface (cr, surface, tile_x, tile_y);
 		cairo_surface_destroy (surface);
@@ -487,6 +498,7 @@ static void
 gtk_xtext_init (GtkXText * xtext)
 {
 	xtext->pixmap = NULL;
+	xtext->draw_window = NULL;
 	xtext->draw_surface = NULL;
 	xtext->io_tag = 0;
 	xtext->add_io_tag = 0;
@@ -758,7 +770,7 @@ gtk_xtext_realize (GtkWidget * widget)
 	xtext_set_bg (xtext, XTEXT_BG);
 
 	/* draw directly to window */
-	xtext->draw_buf = widget->window;
+	xtext->draw_window = widget->window;
 
 	if (xtext->pixmap)
 	{
@@ -3877,7 +3889,7 @@ gtk_xtext_render_page (GtkXText * xtext)
 			cr = xtext_create_context (xtext);
 			cairo_save (cr);
 			cairo_set_operator (cr, CAIRO_OPERATOR_SOURCE);
-			surface = xtext_surface_from_drawable (GTK_WIDGET (xtext)->window);
+			surface = xtext_surface_from_window (GTK_WIDGET (xtext)->window);
 			cairo_set_source_surface (cr, surface, dest_x - src_x, dest_y - src_y);
 			cairo_surface_destroy (surface);
 			cairo_rectangle (cr, dest_x, dest_y, width, copy_height);
@@ -3898,7 +3910,7 @@ gtk_xtext_render_page (GtkXText * xtext)
 			cr = xtext_create_context (xtext);
 			cairo_save (cr);
 			cairo_set_operator (cr, CAIRO_OPERATOR_SOURCE);
-			surface = xtext_surface_from_drawable (GTK_WIDGET (xtext)->window);
+			surface = xtext_surface_from_window (GTK_WIDGET (xtext)->window);
 			cairo_set_source_surface (cr, surface, dest_x - src_x, dest_y - src_y);
 			cairo_surface_destroy (surface);
 			cairo_rectangle (cr, dest_x, dest_y, width, copy_height);
