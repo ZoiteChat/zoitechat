@@ -343,14 +343,12 @@ fe_update_gtk_dark_preference (gboolean enabled)
 {
 	GtkSettings *settings = gtk_settings_get_default ();
 
-	if (!settings)
-		return;
-
-	if (!g_object_class_find_property (G_OBJECT_GET_CLASS (settings),
+	if (settings &&
+	    g_object_class_find_property (G_OBJECT_GET_CLASS (settings),
 	                                   "gtk-application-prefer-dark-theme"))
-		return;
-
-	g_object_set (settings, "gtk-application-prefer-dark-theme", enabled, NULL);
+	{
+		g_object_set (settings, "gtk-application-prefer-dark-theme", enabled, NULL);
+	}
 
 #ifdef G_OS_WIN32
 	gtkutil_update_win32_titlebar_dark_mode (enabled);
