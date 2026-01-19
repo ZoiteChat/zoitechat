@@ -1,0 +1,31 @@
+# ZoiteChat MS-Windows-Dark GTK2 theme overrides.
+# Derived from MS-Windows with dark palette defaults.
+
+style "ms_windows_dark_default"
+{
+	bg[NORMAL] = "#2b2b2b"
+	bg[ACTIVE] = "#3a3a3a"
+	bg[PRELIGHT] = "#3d3d3d"
+	bg[SELECTED] = "#4a4a4a"
+	bg[INSENSITIVE] = "#2f2f2f"
+
+	base[NORMAL] = "#1f1f1f"
+	base[ACTIVE] = "#2a2a2a"
+	base[PRELIGHT] = "#2d2d2d"
+	base[SELECTED] = "#3a3a3a"
+	base[INSENSITIVE] = "#242424"
+
+	fg[NORMAL] = "#e0e0e0"
+	fg[ACTIVE] = "#e8e8e8"
+	fg[PRELIGHT] = "#ffffff"
+	fg[SELECTED] = "#ffffff"
+	fg[INSENSITIVE] = "#a0a0a0"
+
+	text[NORMAL] = "#e0e0e0"
+	text[ACTIVE] = "#e8e8e8"
+	text[PRELIGHT] = "#ffffff"
+	text[SELECTED] = "#ffffff"
+	text[INSENSITIVE] = "#a0a0a0"
+}
+
+widget_class "*" style "ms_windows_dark_default"
