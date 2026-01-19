@@ -1,6 +1,8 @@
 # ZoiteChat MS-Windows-Dark GTK2 theme overrides.
 # Derived from MS-Windows with dark palette defaults.
 
+gtk_color_scheme = "bg_color:#2b2b2b\nfg_color:#e0e0e0\nbase_color:#1f1f1f\ntext_color:#e0e0e0\nselected_bg_color:#4a4a4a\nselected_fg_color:#ffffff\ntooltip_bg_color:#333333\ntooltip_fg_color:#e0e0e0"
+
 style "ms_windows_dark_default"
 {
 	bg[NORMAL] = "#2b2b2b"
@@ -28,4 +30,43 @@ style "ms_windows_dark_default"
 	text[INSENSITIVE] = "#a0a0a0"
 }
 
+style "ms_windows_dark_menubar"
+{
+	bg[NORMAL] = "#2b2b2b"
+	fg[NORMAL] = "#e0e0e0"
+	fg[PRELIGHT] = "#ffffff"
+}
+
+style "ms_windows_dark_menu"
+{
+	bg[NORMAL] = "#2b2b2b"
+	bg[PRELIGHT] = "#3d3d3d"
+	fg[NORMAL] = "#e0e0e0"
+	fg[PRELIGHT] = "#ffffff"
+	text[NORMAL] = "#e0e0e0"
+	text[PRELIGHT] = "#ffffff"
+}
+
+style "ms_windows_dark_toolbar"
+{
+	bg[NORMAL] = "#2b2b2b"
+	fg[NORMAL] = "#e0e0e0"
+}
+
+style "ms_windows_dark_button"
+{
+	bg[NORMAL] = "#3a3a3a"
+	bg[ACTIVE] = "#454545"
+	bg[PRELIGHT] = "#4a4a4a"
+	bg[INSENSITIVE] = "#333333"
+	fg[NORMAL] = "#e0e0e0"
+	fg[PRELIGHT] = "#ffffff"
+	fg[ACTIVE] = "#ffffff"
+	fg[INSENSITIVE] = "#a0a0a0"
+}
+
 widget_class "*" style "ms_windows_dark_default"
+widget_class "*<GtkMenuBar>*" style "ms_windows_dark_menubar"
+widget_class "*<GtkMenu>*" style "ms_windows_dark_menu"
+widget_class "*<GtkToolbar>*" style "ms_windows_dark_toolbar"
+widget_class "*<GtkButton>*" style "ms_windows_dark_button"
