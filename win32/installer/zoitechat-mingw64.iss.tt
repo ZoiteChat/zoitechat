@@ -14,7 +14,7 @@
 #ifndef SRCDIR
   ; Root of your staged tree (must contain bin\, lib\, share\, etc\)
   ; In your workflow this is typically: <repo>\dist
-  #define SRCDIR "..\..\dist\mingw64"
+  #define SRCDIR "..\..\dist\bin\mingw64"
 #endif
 
 #ifndef OUTPUTDIR
