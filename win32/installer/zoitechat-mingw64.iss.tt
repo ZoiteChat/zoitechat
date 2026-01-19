@@ -34,7 +34,7 @@ AppPublisherURL=http://zoitechat.zoite.net
 AppCopyright=Copyright (C) 1998-2010 Peter Zelezny
 AppSupportURL=https://github.com/zoitechat/zoitechat/issues
 AppUpdatesURL=http://zoitechat.zoite.net/downloads.html
-LicenseFile=share\doc\zoitechat\COPYING
+LicenseFile={#PROJECTDIR}..\..\COPYING
 UninstallDisplayIcon={app}\zoitechat.exe
 UninstallDisplayName={#APPNAM}
 
