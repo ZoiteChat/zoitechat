@@ -42,6 +42,8 @@ jobs:
           meson setup build \
             --prefix=/usr \
             -Dtext-frontend=true \
+            -Dwith-perl=perl \
+            -Dwith-python=python3 \
             -Dauto_features=enabled
 
       - name: Build
