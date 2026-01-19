@@ -44,6 +44,11 @@ style "ms_windows_dark_menuitem"
 	fg[PRELIGHT] = "#ffffff"
 }
 
+style "ms_windows_dark_separator"
+{
+	fg[NORMAL] = "#4a4a4a"
+}
+
 style "ms_windows_dark_menu"
 {
 	bg[NORMAL] = "#2b2b2b"
@@ -58,6 +63,11 @@ style "ms_windows_dark_toolbar"
 {
 	bg[NORMAL] = "#2b2b2b"
 	fg[NORMAL] = "#e0e0e0"
+}
+
+style "ms_windows_dark_toolbar_separator"
+{
+	fg[NORMAL] = "#4a4a4a"
 }
 
 style "ms_windows_dark_toolbutton"
@@ -88,6 +98,73 @@ style "ms_windows_dark_combobox"
 	text[NORMAL] = "#e0e0e0"
 }
 
+style "ms_windows_dark_entry"
+{
+	base[NORMAL] = "#1f1f1f"
+	base[ACTIVE] = "#2a2a2a"
+	text[NORMAL] = "#e0e0e0"
+	text[ACTIVE] = "#e8e8e8"
+	fg[NORMAL] = "#e0e0e0"
+	fg[INSENSITIVE] = "#a0a0a0"
+}
+
+style "ms_windows_dark_textview"
+{
+	base[NORMAL] = "#1f1f1f"
+	text[NORMAL] = "#e0e0e0"
+	fg[NORMAL] = "#e0e0e0"
+}
+
+style "ms_windows_dark_treeview"
+{
+	base[NORMAL] = "#1f1f1f"
+	base[SELECTED] = "#3a3a3a"
+	text[NORMAL] = "#e0e0e0"
+	text[SELECTED] = "#ffffff"
+}
+
+style "ms_windows_dark_notebook"
+{
+	bg[NORMAL] = "#2b2b2b"
+	bg[ACTIVE] = "#3a3a3a"
+	fg[NORMAL] = "#e0e0e0"
+}
+
+style "ms_windows_dark_statusbar"
+{
+	bg[NORMAL] = "#2b2b2b"
+	fg[NORMAL] = "#e0e0e0"
+}
+
+style "ms_windows_dark_scrollbar"
+{
+	bg[NORMAL] = "#2b2b2b"
+	bg[ACTIVE] = "#3a3a3a"
+}
+
+style "ms_windows_dark_progressbar"
+{
+	bg[NORMAL] = "#2b2b2b"
+	fg[NORMAL] = "#4a4a4a"
+}
+
+style "ms_windows_dark_check"
+{
+	fg[NORMAL] = "#e0e0e0"
+	fg[ACTIVE] = "#ffffff"
+}
+
+style "ms_windows_dark_frame"
+{
+	fg[NORMAL] = "#e0e0e0"
+}
+
+style "ms_windows_dark_tooltip"
+{
+	bg[NORMAL] = "#333333"
+	fg[NORMAL] = "#e0e0e0"
+}
+
 style "ms_windows_dark_window"
 {
 	bg[NORMAL] = "#2b2b2b"
@@ -98,9 +175,23 @@ widget_class "*" style "ms_windows_dark_default"
 widget_class "*<GtkMenuBar>*" style "ms_windows_dark_menubar"
 widget_class "*<GtkMenuItem>*" style "ms_windows_dark_menuitem"
 widget_class "*<GtkMenu>*" style "ms_windows_dark_menu"
+widget_class "*<GtkSeparator>*" style "ms_windows_dark_separator"
 widget_class "*<GtkToolbar>*" style "ms_windows_dark_toolbar"
+widget_class "*<GtkToolbarSeparator>*" style "ms_windows_dark_toolbar_separator"
 widget_class "*<GtkToolButton>*" style "ms_windows_dark_toolbutton"
 widget_class "*<GtkButton>*" style "ms_windows_dark_button"
 widget_class "*<GtkComboBox>*" style "ms_windows_dark_combobox"
 widget_class "*<GtkOptionMenu>*" style "ms_windows_dark_combobox"
+widget_class "*<GtkComboBoxEntry>*" style "ms_windows_dark_combobox"
+widget_class "*<GtkEntry>*" style "ms_windows_dark_entry"
+widget_class "*<GtkTextView>*" style "ms_windows_dark_textview"
+widget_class "*<GtkTreeView>*" style "ms_windows_dark_treeview"
+widget_class "*<GtkNotebook>*" style "ms_windows_dark_notebook"
+widget_class "*<GtkStatusbar>*" style "ms_windows_dark_statusbar"
+widget_class "*<GtkScrollbar>*" style "ms_windows_dark_scrollbar"
+widget_class "*<GtkProgressBar>*" style "ms_windows_dark_progressbar"
+widget_class "*<GtkCheckButton>*" style "ms_windows_dark_check"
+widget_class "*<GtkRadioButton>*" style "ms_windows_dark_check"
+widget_class "*<GtkFrame>*" style "ms_windows_dark_frame"
+widget_class "*<GtkTooltip>*" style "ms_windows_dark_tooltip"
 widget_class "*<GtkWindow>*" style "ms_windows_dark_window"
