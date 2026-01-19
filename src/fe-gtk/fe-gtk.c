@@ -340,6 +340,97 @@ fe_system_prefers_dark (void)
 
 static gboolean auto_dark_mode_enabled = FALSE;
 
+#ifdef G_OS_WIN32
+static gboolean
+fe_win32_theme_exists (const char *theme_name)
+{
+	const char *home_dir = g_get_home_dir ();
+	const char *user_data_dir = g_get_user_data_dir ();
+	const char * const *system_dirs = g_get_system_data_dirs ();
+	char *theme_path = NULL;
+	gboolean found = FALSE;
+	int i;
+
+	if (!theme_name || theme_name[0] == '\0')
+		return FALSE;
+
+	if (home_dir && home_dir[0])
+	{
+		theme_path = g_build_filename (home_dir, ".themes", theme_name, "gtk-2.0", "gtkrc", NULL);
+		found = g_file_test (theme_path, G_FILE_TEST_EXISTS);
+		g_free (theme_path);
+		if (found)
+			return TRUE;
+	}
+
+	if (user_data_dir && user_data_dir[0])
+	{
+		theme_path = g_build_filename (user_data_dir, "themes", theme_name, "gtk-2.0", "gtkrc", NULL);
+		found = g_file_test (theme_path, G_FILE_TEST_EXISTS);
+		g_free (theme_path);
+		if (found)
+			return TRUE;
+	}
+
+	for (i = 0; system_dirs && system_dirs[i]; i++)
+	{
+		theme_path = g_build_filename (system_dirs[i], "themes", theme_name, "gtk-2.0", "gtkrc", NULL);
+		found = g_file_test (theme_path, G_FILE_TEST_EXISTS);
+		g_free (theme_path);
+		if (found)
+			return TRUE;
+	}
+
+	return FALSE;
+}
+
+static void
+fe_win32_apply_theme_for_dark_mode (GtkSettings *settings, gboolean enabled)
+{
+	const char *dark_theme = "MS-Windows-Dark";
+	const char *light_theme = "MS-Windows";
+	const char *theme_name = enabled ? dark_theme : light_theme;
+	char *current_theme = NULL;
+	GList *toplevels = NULL;
+	GList *iter = NULL;
+
+	if (!settings)
+		return;
+
+	if (prefs.hex_gui_dark_mode != ZOITECHAT_DARK_MODE_AUTO)
+		return;
+
+	if (!fe_win32_theme_exists (theme_name))
+	{
+		if (enabled && fe_win32_theme_exists (light_theme))
+			theme_name = light_theme;
+		else
+			return;
+	}
+
+	g_object_get (settings, "gtk-theme-name", &current_theme, NULL);
+	if (g_strcmp0 (current_theme, theme_name) == 0)
+	{
+		g_free (current_theme);
+		return;
+	}
+	g_free (current_theme);
+
+	g_object_set (settings, "gtk-theme-name", theme_name, NULL);
+	gtk_rc_reparse_all_for_settings (settings, TRUE);
+	gtk_rc_reset_styles (settings);
+
+	toplevels = gtk_window_list_toplevels ();
+	for (iter = toplevels; iter; iter = iter->next)
+	{
+		GtkWidget *widget = GTK_WIDGET (iter->data);
+		gtk_widget_reset_rc_styles (widget);
+		gtk_widget_queue_draw (widget);
+	}
+	g_list_free (toplevels);
+}
+#endif
+
 static void
 fe_auto_dark_mode_changed (GtkSettings *settings, GParamSpec *pspec, gpointer data)
 {
@@ -357,6 +448,9 @@ fe_auto_dark_mode_changed (GtkSettings *settings, GParamSpec *pspec, gpointer da
 		return;
 
 	auto_dark_mode_enabled = enabled;
+#ifdef G_OS_WIN32
+	fe_win32_apply_theme_for_dark_mode (gtk_settings_get_default (), enabled);
+#endif
 	palette_apply_dark_mode (enabled);
 	setup_apply_real (0, TRUE, FALSE, FALSE);
 }
@@ -442,6 +536,15 @@ fe_init (void)
 {
 	GtkSettings *settings;
 
+	settings = gtk_settings_get_default ();
+	if (settings)
+	{
+		auto_dark_mode_enabled = fe_system_prefers_dark ();
+#ifdef G_OS_WIN32
+		fe_win32_apply_theme_for_dark_mode (settings, auto_dark_mode_enabled);
+#endif
+	}
+
 	palette_load ();
 	palette_apply_dark_mode (fe_dark_mode_is_enabled ());
 	key_init ();
@@ -453,10 +556,8 @@ fe_init (void)
 	channelwin_pix = pixmap_load_from_file (prefs.hex_text_background);
 	input_style = create_input_style (gtk_style_new ());
 
-	settings = gtk_settings_get_default ();
 	if (settings)
 	{
-		auto_dark_mode_enabled = fe_system_prefers_dark ();
 		g_signal_connect (settings, "notify::gtk-application-prefer-dark-theme",
 						  G_CALLBACK (fe_auto_dark_mode_changed), NULL);
 		g_signal_connect (settings, "notify::gtk-theme-name",
