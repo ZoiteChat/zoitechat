@@ -70,11 +70,27 @@ jobs:
       - name: Stage install tree
         run: |
           set -eux
-          rm -rf dist
-          meson install -C build --destdir dist --strip
-          mkdir -p dist/bin
+
+          rm -rf stage dist
+
+          # Install into a staging dir (will include .../msys64/... inside it)
+          meson install -C build --destdir stage --strip
+
+          # Find the msys root inside stage (works on GH runners + locally)
+          msysroot="$(find stage -maxdepth 8 -type d -name msys64 -print -quit || true)"
+          [ -n "$msysroot" ] || { echo "Couldn't find msys64 under stage"; find stage -maxdepth 6 -type d -print; exit 1; }
+
+          # Flatten: copy msys64/* into dist/*
+          mkdir -p dist
+          cp -a "${msysroot}/." dist/
+
+          # Your existing extras
           printf "2\n" > dist/portable-mode
           cp -f /mingw64/bin/gspawn-win64-helper*.exe dist/bin/ || true
+
+          # Sanity (fails fast if something is still wrong)
+          ls -la dist/bin/zoitechat.exe
+          ls -la dist/bin/zoitechat-text.exe || true
 
           deps_file="dist/.deps.txt"
           : > "${deps_file}"
@@ -99,6 +115,7 @@ jobs:
             cp -u "${dep}" dist/bin/
           done
           rm -f "${deps_file}"
+
 
       - name: Generate installer script
         run: |
