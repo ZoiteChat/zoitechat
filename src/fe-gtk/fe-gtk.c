@@ -338,6 +338,21 @@ fe_system_prefers_dark (void)
 	return prefer_dark;
 }
 
+void
+fe_update_gtk_dark_preference (gboolean enabled)
+{
+	GtkSettings *settings = gtk_settings_get_default ();
+
+	if (!settings)
+		return;
+
+	if (!g_object_class_find_property (G_OBJECT_GET_CLASS (settings),
+	                                   "gtk-application-prefer-dark-theme"))
+		return;
+
+	g_object_set (settings, "gtk-application-prefer-dark-theme", enabled, NULL);
+}
+
 static gboolean auto_dark_mode_enabled = FALSE;
 
 static void
@@ -358,6 +373,7 @@ fe_auto_dark_mode_changed (GtkSettings *settings, GParamSpec *pspec, gpointer da
 
 	auto_dark_mode_enabled = enabled;
 	palette_apply_dark_mode (enabled);
+	fe_update_gtk_dark_preference (enabled);
 	setup_apply_real (0, TRUE, FALSE, FALSE);
 }
 
@@ -457,6 +473,7 @@ fe_init (void)
 	if (settings)
 	{
 		auto_dark_mode_enabled = fe_system_prefers_dark ();
+		fe_update_gtk_dark_preference (fe_dark_mode_is_enabled_for (prefs.hex_gui_dark_mode));
 		g_signal_connect (settings, "notify::gtk-application-prefer-dark-theme",
 						  G_CALLBACK (fe_auto_dark_mode_changed), NULL);
 		g_signal_connect (settings, "notify::gtk-theme-name",
