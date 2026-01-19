@@ -75,7 +75,7 @@
 
     <Locale Include="$(ZoiteChatBin)locale\**\*;$(DepsRoot)\share\locale\**\*" />
 
-    <MSWindowsTheme Include="$(DepsRoot)\share\themes\MS-Windows\**\*" />
+    <GtkThemes Include="$(DepsRoot)\share\themes\**\*" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <Target Name="Build">
@@ -87,7 +87,7 @@
     <Copy SourceFiles="$(WinSparklePath)\COPYING" DestinationFolder="$(ZoiteChatRel)\share\doc\WinSparkle" />
     <Copy SourceFiles="$(DepsRoot)\lib\enchant\libenchant_myspell.dll" DestinationFolder="$(ZoiteChatRel)\lib\enchant" />
     <Copy SourceFiles="@(Locale)" DestinationFiles="@(Locale->'$(ZoiteChatRel)\share\locale\%(RecursiveDir)%(Filename)%(Extension)')" />
-    <Copy SourceFiles="@(MSWindowsTheme)" DestinationFiles="@(MSWindowsTheme->'$(ZoiteChatRel)\share\themes\MS-Windows\%(RecursiveDir)%(Filename)%(Extension)')" />
+    <Copy SourceFiles="@(GtkThemes)" DestinationFiles="@(GtkThemes->'$(ZoiteChatRel)\share\themes\%(RecursiveDir)%(Filename)%(Extension)')" />
     <Copy SourceFiles="@(LuaShare)" DestinationFiles="@(LuaShare->'$(ZoiteChatRel)\share\lua\%(RecursiveDir)%(Filename)%(Extension)')" />
     <Copy SourceFiles="@(LuaLib)" DestinationFiles="@(LuaLib->'$(ZoiteChatRel)\lib\lua\%(RecursiveDir)%(Filename)%(Extension)')" />
     <Copy SourceFiles="@(Typelib)" DestinationFiles="@(Typelib->'$(ZoiteChatRel)\lib\girepository-1.0\%(Filename)%(Extension)')" />
@@ -100,4 +100,5 @@
     <Copy SourceFiles="@(DepsRootDocs)" DestinationFiles="@(DepsRootDocs->'$(ZoiteChatRel)\share\doc\%(RecursiveDir)%(Filename)%(Extension)')" />
   </Target>
 </Project>
+
 
