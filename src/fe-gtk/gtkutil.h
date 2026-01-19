@@ -36,6 +36,10 @@ GtkWidget *gtkutil_entry_new (int max, GtkWidget * box, void *callback,
 void show_and_unfocus (GtkWidget * wid);
 void gtkutil_set_icon (GtkWidget *win);
 GtkWidget *gtkutil_window_new (char *title, char *role, int width, int height, int flags);
+#ifdef G_OS_WIN32
+void gtkutil_win32_attach_titlebar_theme (GtkWidget *win);
+void gtkutil_update_win32_titlebar_dark_mode (gboolean enabled);
+#endif
 void gtkutil_copy_to_clipboard (GtkWidget *widget, GdkAtom selection,
                                 const gchar *str);
 GtkWidget *gtkutil_treeview_new (GtkWidget *box, GtkTreeModel *model,

@@ -351,6 +351,10 @@ fe_update_gtk_dark_preference (gboolean enabled)
 		return;
 
 	g_object_set (settings, "gtk-application-prefer-dark-theme", enabled, NULL);
+
+#ifdef G_OS_WIN32
+	gtkutil_update_win32_titlebar_dark_mode (enabled);
+#endif
 }
 
 static gboolean auto_dark_mode_enabled = FALSE;

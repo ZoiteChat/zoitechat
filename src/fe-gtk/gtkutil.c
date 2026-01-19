@@ -31,6 +31,11 @@
 #include <pango/pangocairo.h>
 #endif
 
+#ifdef G_OS_WIN32
+#include <gdk/gdkwin32.h>
+#include <windows.h>
+#endif
+
 #ifdef GDK_WINDOWING_X11
 #include <gdk/gdkx.h>
 #endif
@@ -591,6 +596,82 @@ gtkutil_set_icon (GtkWidget *win)
 
 extern GtkWidget *parent_window;	/* maingui.c */
 
+#ifdef G_OS_WIN32
+typedef HRESULT (WINAPI *dwm_set_window_attribute_fn) (HWND, DWORD, LPCVOID, DWORD);
+
+static void
+gtkutil_win32_set_titlebar_dark_mode (GtkWidget *win, gboolean enabled)
+{
+	static HMODULE dwmapi_module = NULL;
+	static dwm_set_window_attribute_fn set_window_attr = NULL;
+	GdkWindow *gdk_window;
+	HWND hwnd;
+	BOOL use_dark;
+	DWORD attribute;
+
+	if (!GTK_IS_WINDOW (win))
+		return;
+
+	if (!gtk_widget_get_realized (win))
+		return;
+
+	gdk_window = gtk_widget_get_window (win);
+	if (!gdk_window)
+		return;
+
+	hwnd = gdk_win32_window_get_impl_hwnd (gdk_window);
+	if (!hwnd)
+		return;
+
+	if (!dwmapi_module)
+	{
+		dwmapi_module = LoadLibraryW (L"dwmapi.dll");
+		if (dwmapi_module)
+			set_window_attr = (dwm_set_window_attribute_fn) GetProcAddress (dwmapi_module, "DwmSetWindowAttribute");
+	}
+
+	if (!set_window_attr)
+		return;
+
+	use_dark = enabled ? TRUE : FALSE;
+	attribute = 20; /* DWMWA_USE_IMMERSIVE_DARK_MODE (Windows 10 2004+) */
+	if (set_window_attr (hwnd, attribute, &use_dark, sizeof (use_dark)) != S_OK)
+	{
+		attribute = 19; /* DWMWA_USE_IMMERSIVE_DARK_MODE (older Windows 10) */
+		set_window_attr (hwnd, attribute, &use_dark, sizeof (use_dark));
+	}
+}
+
+static void
+gtkutil_win32_titlebar_realize_cb (GtkWidget *win, gpointer data)
+{
+	(void) data;
+	gtkutil_win32_set_titlebar_dark_mode (win, fe_dark_mode_is_enabled ());
+}
+
+void
+gtkutil_win32_attach_titlebar_theme (GtkWidget *win)
+{
+	if (!GTK_IS_WINDOW (win))
+		return;
+
+	g_signal_connect (G_OBJECT (win), "realize",
+	                  G_CALLBACK (gtkutil_win32_titlebar_realize_cb), NULL);
+}
+
+void
+gtkutil_update_win32_titlebar_dark_mode (gboolean enabled)
+{
+	GList *toplevels = gtk_window_list_toplevels ();
+	GList *iter;
+
+	for (iter = toplevels; iter; iter = iter->next)
+		gtkutil_win32_set_titlebar_dark_mode (GTK_WIDGET (iter->data), enabled);
+
+	g_list_free (toplevels);
+}
+#endif
+
 GtkWidget *
 gtkutil_window_new (char *title, char *role, int width, int height, int flags)
 {
@@ -612,6 +693,10 @@ gtkutil_window_new (char *title, char *role, int width, int height, int flags)
 		gtk_window_set_transient_for (GTK_WINDOW (win), GTK_WINDOW (parent_window));
 		gtk_window_set_destroy_with_parent (GTK_WINDOW (win), TRUE);
 	}
+
+#ifdef G_OS_WIN32
+	gtkutil_win32_attach_titlebar_theme (win);
+#endif
 
 	return win;
 }

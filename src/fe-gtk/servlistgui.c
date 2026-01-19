@@ -1726,6 +1726,9 @@ servlist_open_edit (GtkWidget *parent, ircnet *net)
 	gtk_window_set_modal (GTK_WINDOW (editwindow), TRUE);
 	gtk_window_set_type_hint (GTK_WINDOW (editwindow), GDK_WINDOW_TYPE_HINT_DIALOG);
 	gtk_window_set_role (GTK_WINDOW (editwindow), "editserv");
+#ifdef G_OS_WIN32
+	gtkutil_win32_attach_titlebar_theme (editwindow);
+#endif
 
 	vbox5 = gtk_vbox_new (FALSE, 0);
 	gtk_container_add (GTK_CONTAINER (editwindow), vbox5);
@@ -1993,6 +1996,9 @@ servlist_open_networks (void)
 	gtk_window_set_type_hint (GTK_WINDOW (servlist), GDK_WINDOW_TYPE_HINT_DIALOG);
 	if (current_sess)
 		gtk_window_set_transient_for (GTK_WINDOW (servlist), GTK_WINDOW (current_sess->gui->window));
+#ifdef G_OS_WIN32
+	gtkutil_win32_attach_titlebar_theme (servlist);
+#endif
 
 	vbox1 = gtk_vbox_new (FALSE, 0);
 	gtk_widget_show (vbox1);
