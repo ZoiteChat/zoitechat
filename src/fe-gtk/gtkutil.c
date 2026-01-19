@@ -649,6 +649,15 @@ gtkutil_win32_titlebar_realize_cb (GtkWidget *win, gpointer data)
 	gtkutil_win32_set_titlebar_dark_mode (win, fe_dark_mode_is_enabled ());
 }
 
+static gboolean
+gtkutil_win32_titlebar_map_cb (GtkWidget *win, GdkEvent *event, gpointer data)
+{
+	(void) event;
+	(void) data;
+	gtkutil_win32_set_titlebar_dark_mode (win, fe_dark_mode_is_enabled ());
+	return FALSE;
+}
+
 void
 gtkutil_win32_attach_titlebar_theme (GtkWidget *win)
 {
@@ -657,6 +666,8 @@ gtkutil_win32_attach_titlebar_theme (GtkWidget *win)
 
 	g_signal_connect (G_OBJECT (win), "realize",
 	                  G_CALLBACK (gtkutil_win32_titlebar_realize_cb), NULL);
+	g_signal_connect (G_OBJECT (win), "map-event",
+	                  G_CALLBACK (gtkutil_win32_titlebar_map_cb), NULL);
 }
 
 void
