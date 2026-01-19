@@ -32,6 +32,17 @@ jobs:
             mingw-w64-x86_64-desktop-file-utils
             mingw-w64-x86_64-gettext-tools
 
+      - name: Install Inno Setup + IDP
+        run: |
+          New-Item -Name "deps" -ItemType "Directory"
+
+          Invoke-WebRequest http://files.jrsoftware.org/is/5/innosetup-5.5.9-unicode.exe -OutFile deps\innosetup-unicode.exe
+          & deps\innosetup-unicode.exe /VERYSILENT | Out-Null
+
+          Invoke-WebRequest https://github.com/zoitechat/gvsbuild/releases/download/zoitechat-2.17.0/idpsetup-1.5.1.exe -OutFile deps\idpsetup.exe
+          & deps\idpsetup.exe /VERYSILENT
+        shell: powershell
+
       - name: Sanity check gettext ITS rules
         run: |
           set -eux
@@ -44,6 +55,7 @@ jobs:
           set -eux
           rm -rf build
           meson setup build \
+            --prefix=/ \
             -Dtext-frontend=true \
             -Ddbus=disabled \
             -Dwith-upd=false \
@@ -54,3 +66,61 @@ jobs:
 
       - name: Test
         run: ninja -C build test
+
+      - name: Stage install tree
+        run: |
+          set -eux
+          rm -rf dist
+          meson install -C build --destdir dist --strip
+          mkdir -p dist/bin
+          printf "2\n" > dist/portable-mode
+          cp -f /mingw64/bin/gspawn-win64-helper*.exe dist/bin/ || true
+
+          deps_file="dist/.deps.txt"
+          : > "${deps_file}"
+
+          collect_deps() {
+            local target="$1"
+            if [ -f "${target}" ]; then
+              ldd "${target}" 2>/dev/null | awk '/=>/ {print $3}' | grep -E '^/mingw64/' >> "${deps_file}" || true
+            fi
+          }
+
+          collect_deps "dist/bin/zoitechat.exe"
+          collect_deps "dist/bin/zoitechat-text.exe"
+
+          if [ -d "dist/lib/zoitechat/plugins" ]; then
+            while IFS= read -r -d '' plugin; do
+              collect_deps "${plugin}"
+            done < <(find dist/lib/zoitechat/plugins -name "*.dll" -print0)
+          fi
+
+          sort -u "${deps_file}" | while read -r dep; do
+            cp -u "${dep}" dist/bin/
+          done
+          rm -f "${deps_file}"
+
+      - name: Generate installer script
+        run: |
+          $env:SOLUTIONDIR = "${{ github.workspace }}\"
+          .\win32\version-template.ps1 .\win32\installer\zoitechat-mingw64.iss.tt .\win32\installer\zoitechat-mingw64.iss
+        shell: powershell
+
+      - name: Build installer
+        run: |
+          $repo = "${{ github.workspace }}"
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 5\ISCC.exe"
+          & $iscc /DPROJECTDIR="$repo\win32\installer\" /DSRCDIR="$repo\dist" /DOUTPUTDIR="$repo" "$repo\win32\installer\zoitechat-mingw64.iss"
+        shell: powershell
+
+      - name: Upload Installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: Installer MSYS2
+          path: ZoiteChat*.exe
+
+      - name: Upload Build Files
+        uses: actions/upload-artifact@v4
+        with:
+          name: Build Files MSYS2
+          path: dist
