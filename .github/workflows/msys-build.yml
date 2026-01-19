@@ -72,15 +72,14 @@ jobs:
           set -eux
 
           rm -rf stage dist
-
-          # Install into a staging dir (will include .../msys64/... inside it)
           meson install -C build --destdir stage --strip
 
-          # Find the msys root inside stage (works on GH runners + locally)
-          msysroot="$(find stage -maxdepth 8 -type d -name msys64 -print -quit || true)"
-          [ -n "$msysroot" ] || { echo "Couldn't find msys64 under stage"; find stage -maxdepth 6 -type d -print; exit 1; }
+          STAGE_DIR="stage"
+          [ -d "$STAGE_DIR" ] || STAGE_DIR="build/stage"
 
-          # Flatten: copy msys64/* into dist/*
+          msysroot="$(find "$STAGE_DIR" -maxdepth 12 -type d -name msys64 -print -quit)"
+          [ -n "$msysroot" ] || { echo "Couldn't find msys64 under $STAGE_DIR"; find "$STAGE_DIR" -maxdepth 6 -type d -print; exit 1; }
+
           mkdir -p dist
           cp -a "${msysroot}/." dist/
 
