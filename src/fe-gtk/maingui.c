@@ -1395,6 +1395,8 @@ mg_open_quit_dialog (gboolean minimize_button)
 #if HAVE_GTK3
         gtk_grid_attach (GTK_GRID (table1), checkbutton1, 0, 1, 2, 1);
         gtk_widget_set_hexpand (checkbutton1, TRUE);
+        gtk_widget_set_halign (checkbutton1, GTK_ALIGN_FILL);
+        gtk_widget_set_valign (checkbutton1, GTK_ALIGN_CENTER);
 #else
         gtk_table_attach (GTK_TABLE (table1), checkbutton1, 0, 2, 1, 2,
                                                         (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
