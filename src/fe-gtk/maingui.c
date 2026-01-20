@@ -113,6 +113,22 @@ mg_set_label_alignment_start (GtkWidget *widget)
 #endif
 }
 
+static GtkWidget *
+mg_box_new (GtkOrientation orientation, gboolean homogeneous, gint spacing)
+{
+#if HAVE_GTK3
+	GtkWidget *box = gtk_box_new (orientation, spacing);
+
+	gtk_box_set_homogeneous (GTK_BOX (box), homogeneous);
+	return box;
+#else
+	if (orientation == GTK_ORIENTATION_HORIZONTAL)
+		return gtk_hbox_new (homogeneous, spacing);
+
+	return gtk_vbox_new (homogeneous, spacing);
+#endif
+}
+
 static void
 mg_pixbuf_destroy (guchar *pixels, gpointer data)
 {
@@ -2370,12 +2386,7 @@ mg_create_topicbar (session *sess, GtkWidget *box)
         GtkWidget *hbox, *topic, *bbox;
         session_gui *gui = sess->gui;
 
-#if HAVE_GTK3
-        gui->topic_bar = hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
-        gtk_box_set_homogeneous (GTK_BOX (hbox), FALSE);
-#else
-        gui->topic_bar = hbox = gtk_hbox_new (FALSE, 0);
-#endif
+        gui->topic_bar = hbox = mg_box_new (GTK_ORIENTATION_HORIZONTAL, FALSE, 0);
         gtk_box_pack_start (GTK_BOX (box), hbox, 0, 0, 0);
 
         if (!gui->is_tab)
@@ -2392,21 +2403,11 @@ mg_create_topicbar (session *sess, GtkWidget *box)
         if (prefs.hex_gui_input_style)
                 mg_apply_entry_style (topic);
 
-#if HAVE_GTK3
-        gui->topicbutton_box = bbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
-        gtk_box_set_homogeneous (GTK_BOX (bbox), FALSE);
-#else
-        gui->topicbutton_box = bbox = gtk_hbox_new (FALSE, 0);
-#endif
+        gui->topicbutton_box = bbox = mg_box_new (GTK_ORIENTATION_HORIZONTAL, FALSE, 0);
         gtk_box_pack_start (GTK_BOX (hbox), bbox, 0, 0, 0);
         mg_create_chanmodebuttons (gui, bbox);
 
-#if HAVE_GTK3
-        gui->dialogbutton_box = bbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
-        gtk_box_set_homogeneous (GTK_BOX (bbox), FALSE);
-#else
-        gui->dialogbutton_box = bbox = gtk_hbox_new (FALSE, 0);
-#endif
+        gui->dialogbutton_box = bbox = mg_box_new (GTK_ORIENTATION_HORIZONTAL, FALSE, 0);
         gtk_box_pack_start (GTK_BOX (hbox), bbox, 0, 0, 0);
         mg_create_dialogbuttons (bbox);
 }
@@ -2555,19 +2556,9 @@ mg_create_textarea (session *sess, GtkWidget *box)
                 {"HEXCHAT_USERLIST", GTK_TARGET_SAME_APP, 75 }
         };
 
-        #if HAVE_GTK3
-        vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
-        gtk_box_set_homogeneous (GTK_BOX (vbox), FALSE);
-        #else
-        vbox = gtk_vbox_new (FALSE, 0);
-        #endif
+        vbox = mg_box_new (GTK_ORIENTATION_VERTICAL, FALSE, 0);
         gtk_container_add (GTK_CONTAINER (box), vbox);
-        #if HAVE_GTK3
-        inbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 2);
-        gtk_box_set_homogeneous (GTK_BOX (inbox), FALSE);
-        #else
-        inbox = gtk_hbox_new (FALSE, 2);
-        #endif
+        inbox = mg_box_new (GTK_ORIENTATION_HORIZONTAL, FALSE, 2);
         gtk_container_add (GTK_CONTAINER (vbox), inbox);
 
         frame = gtk_frame_new (NULL);
@@ -2617,12 +2608,7 @@ mg_create_infoframe (GtkWidget *box)
         gtk_frame_set_shadow_type ((GtkFrame*)frame, GTK_SHADOW_OUT);
         gtk_container_add (GTK_CONTAINER (box), frame);
 
-        #if HAVE_GTK3
-        hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
-        gtk_box_set_homogeneous (GTK_BOX (hbox), FALSE);
-        #else
-        hbox = gtk_hbox_new (0, 0);
-        #endif
+        hbox = mg_box_new (GTK_ORIENTATION_HORIZONTAL, FALSE, 0);
         gtk_container_add (GTK_CONTAINER (frame), hbox);
 
         label = gtk_label_new (NULL);
@@ -2636,22 +2622,12 @@ mg_create_meters (session_gui *gui, GtkWidget *parent_box)
 {
         GtkWidget *infbox, *wid, *box;
 
-        #if HAVE_GTK3
-        gui->meter_box = infbox = box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 1);
-        gtk_box_set_homogeneous (GTK_BOX (box), FALSE);
-        #else
-        gui->meter_box = infbox = box = gtk_vbox_new (0, 1);
-        #endif
+        gui->meter_box = infbox = box = mg_box_new (GTK_ORIENTATION_VERTICAL, FALSE, 1);
         gtk_box_pack_start (GTK_BOX (parent_box), box, 0, 0, 0);
 
         if ((prefs.hex_gui_lagometer & 2) || (prefs.hex_gui_throttlemeter & 2))
         {
-                #if HAVE_GTK3
-                infbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
-                gtk_box_set_homogeneous (GTK_BOX (infbox), FALSE);
-                #else
-                infbox = gtk_hbox_new (0, 0);
-                #endif
+                infbox = mg_box_new (GTK_ORIENTATION_HORIZONTAL, FALSE, 0);
                 gtk_box_pack_start (GTK_BOX (box), infbox, 0, 0, 0);
         }
 
@@ -2712,12 +2688,7 @@ mg_create_userlist (session_gui *gui, GtkWidget *box)
 {
         GtkWidget *frame, *ulist, *vbox;
 
-        #if HAVE_GTK3
-        vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 1);
-        gtk_box_set_homogeneous (GTK_BOX (vbox), FALSE);
-        #else
-        vbox = gtk_vbox_new (0, 1);
-        #endif
+        vbox = mg_box_new (GTK_ORIENTATION_VERTICAL, FALSE, 1);
         gtk_container_add (GTK_CONTAINER (box), vbox);
 
         frame = gtk_frame_new (NULL);
@@ -2829,23 +2800,13 @@ mg_create_center (session *sess, session_gui *gui, GtkWidget *box)
         gtk_notebook_set_show_border (GTK_NOTEBOOK (book), FALSE);
         gtk_paned_pack1 (GTK_PANED (gui->hpane_right), book, TRUE, TRUE);
 
-        #if HAVE_GTK3
-        hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
-        gtk_box_set_homogeneous (GTK_BOX (hbox), FALSE);
-        #else
-        hbox = gtk_hbox_new (FALSE, 0);
-        #endif
+        hbox = mg_box_new (GTK_ORIENTATION_HORIZONTAL, FALSE, 0);
         gtk_paned_pack1 (GTK_PANED (gui->vpane_right), hbox, FALSE, TRUE);
         mg_create_userlist (gui, hbox);
 
         gui->user_box = hbox;
 
-        #if HAVE_GTK3
-        vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 3);
-        gtk_box_set_homogeneous (GTK_BOX (vbox), FALSE);
-        #else
-        vbox = gtk_vbox_new (FALSE, 3);
-        #endif
+        vbox = mg_box_new (GTK_ORIENTATION_VERTICAL, FALSE, 3);
         gtk_notebook_append_page (GTK_NOTEBOOK (book), vbox, NULL);
         mg_create_topicbar (sess, vbox);
 
@@ -3403,12 +3364,7 @@ mg_create_search(session *sess, GtkWidget *box)
         GtkWidget *entry, *label, *next, *previous, *highlight, *matchcase, *regex, *close;
         session_gui *gui = sess->gui;
 
-        #if HAVE_GTK3
-        gui->shbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 5);
-        gtk_box_set_homogeneous (GTK_BOX (gui->shbox), FALSE);
-        #else
-        gui->shbox = gtk_hbox_new(FALSE, 5);
-        #endif
+        gui->shbox = mg_box_new (GTK_ORIENTATION_HORIZONTAL, FALSE, 5);
         gtk_box_pack_start(GTK_BOX(box), gui->shbox, FALSE, FALSE, 0);
 
         close = gtk_button_new ();
@@ -3474,20 +3430,10 @@ mg_create_entry (session *sess, GtkWidget *box)
         GtkWidget *hbox, *but, *entry, *emoji_button;
         session_gui *gui = sess->gui;
 
-        #if HAVE_GTK3
-        hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
-        gtk_box_set_homogeneous (GTK_BOX (hbox), FALSE);
-        #else
-        hbox = gtk_hbox_new (FALSE, 0);
-        #endif
+        hbox = mg_box_new (GTK_ORIENTATION_HORIZONTAL, FALSE, 0);
         gtk_box_pack_start (GTK_BOX (box), hbox, 0, 0, 0);
 
-        #if HAVE_GTK3
-        gui->nick_box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
-        gtk_box_set_homogeneous (GTK_BOX (gui->nick_box), FALSE);
-        #else
-        gui->nick_box = gtk_hbox_new (FALSE, 0);
-        #endif
+        gui->nick_box = mg_box_new (GTK_ORIENTATION_HORIZONTAL, FALSE, 0);
         gtk_box_pack_start (GTK_BOX (hbox), gui->nick_box, 0, 0, 0);
 
         gui->nick_label = but = gtk_button_new_with_label (sess->server->nick);
@@ -3649,17 +3595,15 @@ mg_create_irctab (session *sess, GtkWidget *table)
         GtkWidget *vbox;
         session_gui *gui = sess->gui;
 
-        #if HAVE_GTK3
-        vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
-        gtk_box_set_homogeneous (GTK_BOX (vbox), FALSE);
+        vbox = mg_box_new (GTK_ORIENTATION_VERTICAL, FALSE, 0);
+#if HAVE_GTK3
         gtk_grid_attach (GTK_GRID (table), vbox, 1, 2, 1, 1);
         gtk_widget_set_hexpand (vbox, TRUE);
         gtk_widget_set_vexpand (vbox, TRUE);
-        #else
-        vbox = gtk_vbox_new (FALSE, 0);
+#else
         gtk_table_attach (GTK_TABLE (table), vbox, 1, 2, 2, 3,
                                                    GTK_EXPAND | GTK_FILL, GTK_EXPAND | GTK_FILL, 0, 0);
-        #endif
+#endif
         mg_create_center (sess, gui, vbox);
 }
 
@@ -4029,12 +3973,7 @@ fe_dlgbuttons_update (session *sess)
 
         gtk_widget_destroy (gui->dialogbutton_box);
 
-        #if HAVE_GTK3
-        gui->dialogbutton_box = box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
-        gtk_box_set_homogeneous (GTK_BOX (box), FALSE);
-        #else
-        gui->dialogbutton_box = box = gtk_hbox_new (0, 0);
-        #endif
+        gui->dialogbutton_box = box = mg_box_new (GTK_ORIENTATION_HORIZONTAL, FALSE, 0);
         gtk_box_pack_start (GTK_BOX (gui->topic_bar), box, 0, 0, 0);
         gtk_box_reorder_child (GTK_BOX (gui->topic_bar), box, 3);
         mg_create_dialogbuttons (box);
@@ -4187,12 +4126,7 @@ mg_create_generic_tab (char *name, char *title, int force_toplevel,
         if (force_toplevel || !prefs.hex_gui_tab_utils)
         {
                 win = gtkutil_window_new (title, name, width, height, 2);
-                #if HAVE_GTK3
-                vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
-                gtk_box_set_homogeneous (GTK_BOX (vbox), FALSE);
-                #else
-                vbox = gtk_vbox_new (0, 0);
-                #endif
+                vbox = mg_box_new (GTK_ORIENTATION_VERTICAL, FALSE, 0);
                 *vbox_ret = vbox;
                 gtk_container_add (GTK_CONTAINER (win), vbox);
                 gtk_widget_show (vbox);
@@ -4202,12 +4136,7 @@ mg_create_generic_tab (char *name, char *title, int force_toplevel,
                 return win;
         }
 
-        #if HAVE_GTK3
-        vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 2);
-        gtk_box_set_homogeneous (GTK_BOX (vbox), FALSE);
-        #else
-        vbox = gtk_vbox_new (0, 2);
-        #endif
+        vbox = mg_box_new (GTK_ORIENTATION_VERTICAL, FALSE, 2);
         g_object_set_data (G_OBJECT (vbox), "w", GINT_TO_POINTER (width));
         g_object_set_data (G_OBJECT (vbox), "h", GINT_TO_POINTER (height));
         gtk_container_set_border_width (GTK_CONTAINER (vbox), 3);
@@ -4221,7 +4150,7 @@ mg_create_generic_tab (char *name, char *title, int force_toplevel,
 
 /*      if (link_buttons)
         {
-                hbox = gtk_hbox_new (FALSE, 0);
+                hbox = mg_box_new (GTK_ORIENTATION_HORIZONTAL, FALSE, 0);
                 gtk_box_pack_start (GTK_BOX (vbox), hbox, 0, 0, 0);
                 mg_create_link_buttons (hbox, ch);
                 gtk_widget_show (hbox);
