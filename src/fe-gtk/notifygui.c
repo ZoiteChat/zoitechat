@@ -84,6 +84,17 @@ notify_treecell_property_mapper (GtkTreeViewColumn *col, GtkCellRenderer *cell,
 }
 
 static void
+notify_store_color (GtkListStore *store, GtkTreeIter *iter, const PaletteColor *color)
+{
+#if GTK_CHECK_VERSION(3,0,0)
+	const GdkRGBA *rgba = color;
+	gtk_list_store_set (store, iter, COLOUR_COLUMN, rgba, -1);
+#else
+	gtk_list_store_set (store, iter, COLOUR_COLUMN, color, -1);
+#endif
+}
+
+static void
 notify_row_cb (GtkTreeSelection *sel, GtkTreeView *view)
 {
 	GtkTreeIter iter;
@@ -200,7 +211,8 @@ notify_gui_update (void)
 			if (!valid)	/* create new tree row if required */
 				gtk_list_store_append (store, &iter);
 			gtk_list_store_set (store, &iter, 0, name, 1, status,
-			                    2, server, 3, seen, 4, &colors[4], 5, NULL, -1);
+			                    2, server, 3, seen, 5, NULL, -1);
+			notify_store_color (store, &iter, &colors[4]);
 			if (valid)
 				valid = gtk_tree_model_iter_next (GTK_TREE_MODEL (store), &iter);
 
@@ -225,7 +237,8 @@ notify_gui_update (void)
 					if (!valid)	/* create new tree row if required */
 						gtk_list_store_append (store, &iter);
 					gtk_list_store_set (store, &iter, 0, name, 1, status,
-					                    2, server, 3, seen, 4, &colors[3], 5, servnot, -1);
+					                    2, server, 3, seen, 5, servnot, -1);
+					notify_store_color (store, &iter, &colors[3]);
 					if (valid)
 						valid = gtk_tree_model_iter_next (GTK_TREE_MODEL (store), &iter);
 

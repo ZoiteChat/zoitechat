@@ -46,7 +46,7 @@ enum
 	COL_NICK=1,		/* char * */
 	COL_HOST=2,		/* char * */
 	COL_USER=3,		/* struct User * */
-	COL_GDKCOLOR=4	/* PaletteColor * */
+	COL_GDKCOLOR=4	/* PaletteColor */
 };
 
 
@@ -327,8 +327,8 @@ fe_userlist_rehash (session *sess, struct User *user)
 
 	gtk_list_store_set (GTK_LIST_STORE (sess->res->user_model), iter,
 							  COL_HOST, user->hostname,
-							  COL_GDKCOLOR, nick_color ? &colors[nick_color] : NULL,
 							  -1);
+	userlist_store_color (GTK_LIST_STORE (sess->res->user_model), iter, nick_color);
 }
 
 void
@@ -362,8 +362,8 @@ fe_userlist_insert (session *sess, struct User *newuser, gboolean sel)
 									COL_NICK, nick,
 									COL_HOST, newuser->hostname,
 									COL_USER, newuser,
-									COL_GDKCOLOR, nick_color ? &colors[nick_color] : NULL,
 								  -1);
+	userlist_store_color (GTK_LIST_STORE (model), &iter, nick_color);
 
 	if (!prefs.hex_gui_ulist_icons)
 	{
@@ -465,6 +465,19 @@ userlist_ops_cmp (GtkTreeModel *model, GtkTreeIter *iter_a, GtkTreeIter *iter_b,
 	gtk_tree_model_get (model, iter_b, COL_USER, &user_b, -1);
 
 	return nick_cmp_az_ops (((session*)userdata)->server, user_a, user_b);
+}
+
+static void
+userlist_store_color (GtkListStore *store, GtkTreeIter *iter, int color_index)
+{
+	const PaletteColor *color = color_index ? &colors[color_index] : NULL;
+
+#if GTK_CHECK_VERSION(3,0,0)
+	const GdkRGBA *rgba = color;
+	gtk_list_store_set (store, iter, COL_GDKCOLOR, rgba, -1);
+#else
+	gtk_list_store_set (store, iter, COL_GDKCOLOR, color, -1);
+#endif
 }
 
 GtkListStore *

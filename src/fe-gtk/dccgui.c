@@ -152,6 +152,22 @@ fe_dcc_send_filereq (struct session *sess, char *nick, int maxcps, int passive)
 }
 
 static void
+dcc_store_color (GtkListStore *store, GtkTreeIter *iter, int column, int color_index)
+{
+	const PaletteColor *color = NULL;
+
+	if (color_index != 1)
+		color = &colors[color_index];
+
+#if GTK_CHECK_VERSION(3,0,0)
+	const GdkRGBA *rgba = color;
+	gtk_list_store_set (store, iter, column, rgba, -1);
+#else
+	gtk_list_store_set (store, iter, column, color, -1);
+#endif
+}
+
+static void
 dcc_prepare_row_chat (struct DCC *dcc, GtkListStore *store, GtkTreeIter *iter,
 							 gboolean update_only)
 {
@@ -171,11 +187,8 @@ dcc_prepare_row_chat (struct DCC *dcc, GtkListStore *store, GtkTreeIter *iter,
 							  CCOL_SENT, size,
 							  CCOL_START, date,
 							  CCOL_DCC, dcc,
-							  CCOL_COLOR,
-							  dccstat[dcc->dccstat].color == 1 ?
-								NULL :
-								colors + dccstat[dcc->dccstat].color,
 							  -1);
+	dcc_store_color (store, iter, CCOL_COLOR, dccstat[dcc->dccstat].color);
 }
 
 static void
@@ -211,10 +224,6 @@ dcc_prepare_row_send (struct DCC *dcc, GtkListStore *store, GtkTreeIter *iter,
 								  COL_PERC, perc,
 								  COL_SPEED, kbs,
 								  COL_ETA, eta,
-								  COL_COLOR,
-								  dccstat[dcc->dccstat].color == 1 ?
-									NULL :
-									colors + dccstat[dcc->dccstat].color,
 									-1);
 	else
 		gtk_list_store_set (store, iter,
@@ -228,11 +237,8 @@ dcc_prepare_row_send (struct DCC *dcc, GtkListStore *store, GtkTreeIter *iter,
 								  COL_ETA, eta,
 								  COL_NICK, dcc->nick,
 								  COL_DCC, dcc,
-								  COL_COLOR,
-								  dccstat[dcc->dccstat].color == 1 ?
-									NULL :
-									colors + dccstat[dcc->dccstat].color,
 									-1);
+	dcc_store_color (store, iter, COL_COLOR, dccstat[dcc->dccstat].color);
 }
 
 static void
@@ -271,10 +277,6 @@ dcc_prepare_row_recv (struct DCC *dcc, GtkListStore *store, GtkTreeIter *iter,
 								  COL_PERC, perc,
 								  COL_SPEED, kbs,
 								  COL_ETA, eta,
-								  COL_COLOR,
-								  dccstat[dcc->dccstat].color == 1 ?
-									NULL :
-									colors + dccstat[dcc->dccstat].color,
 									-1);
 	else
 		gtk_list_store_set (store, iter,
@@ -288,11 +290,8 @@ dcc_prepare_row_recv (struct DCC *dcc, GtkListStore *store, GtkTreeIter *iter,
 								  COL_ETA, eta,
 								  COL_NICK, dcc->nick,
 								  COL_DCC, dcc,
-								  COL_COLOR,
-								  dccstat[dcc->dccstat].color == 1 ?
-									NULL :
-									colors + dccstat[dcc->dccstat].color,
 									-1);
+	dcc_store_color (store, iter, COL_COLOR, dccstat[dcc->dccstat].color);
 }
 
 static gboolean

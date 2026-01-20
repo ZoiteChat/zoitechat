@@ -1540,7 +1540,10 @@ setup_color_response_cb (GtkDialog *dialog, gint response_id, gpointer user_data
 
 	if (response_id == GTK_RESPONSE_OK)
 	{
-		gtk_color_chooser_get_rgba (GTK_COLOR_CHOOSER (dialog), data->color);
+		GdkRGBA rgba;
+
+		gtk_color_chooser_get_rgba (GTK_COLOR_CHOOSER (dialog), &rgba);
+		*data->color = rgba;
 		color_change = TRUE;
 		setup_color_button_apply (data->button, data->color);
 
