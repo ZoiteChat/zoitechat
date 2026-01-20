@@ -837,6 +837,8 @@ banlist_opengui (struct session *sess)
 								G_CALLBACK (banlist_toggle), banl);
 #if HAVE_GTK3
 		gtk_grid_attach (GTK_GRID (table), banl->checkboxes[i], i + 1, 0, 1, 1);
+		gtk_widget_set_halign (banl->checkboxes[i], GTK_ALIGN_START);
+		gtk_widget_set_valign (banl->checkboxes[i], GTK_ALIGN_CENTER);
 #else
 		gtk_table_attach (GTK_TABLE (table), banl->checkboxes[i], i+1, i+2, 0, 1, GTK_FILL, GTK_FILL, 0, 0);
 #endif
