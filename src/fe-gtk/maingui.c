@@ -103,6 +103,17 @@ mg_color_component_to_pango (double value)
 }
 
 static void
+mg_set_label_alignment_start (GtkWidget *widget)
+{
+#if HAVE_GTK3
+	gtk_widget_set_halign (widget, GTK_ALIGN_START);
+	gtk_widget_set_valign (widget, GTK_ALIGN_CENTER);
+#else
+	gtk_misc_set_alignment (GTK_MISC (widget), 0, 0.5);
+#endif
+}
+
+static void
 mg_pixbuf_destroy (guchar *pixels, gpointer data)
 {
 	g_free (pixels);
@@ -1383,17 +1394,15 @@ mg_open_quit_dialog (gboolean minimize_button)
         label = gtk_label_new (text);
         g_free (text);
         gtk_widget_show (label);
+        mg_set_label_alignment_start (label);
 #if HAVE_GTK3
         gtk_grid_attach (GTK_GRID (table1), label, 1, 0, 1, 1);
         gtk_widget_set_hexpand (label, TRUE);
         gtk_widget_set_vexpand (label, TRUE);
-        gtk_widget_set_halign (label, GTK_ALIGN_START);
-        gtk_widget_set_valign (label, GTK_ALIGN_CENTER);
 #else
         gtk_table_attach (GTK_TABLE (table1), label, 1, 2, 0, 1,
                                                         (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL),
                                                         (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 0);
-        gtk_misc_set_alignment (GTK_MISC (label), 0, 0.5);
 #endif
         gtk_label_set_use_markup (GTK_LABEL (label), TRUE);
 

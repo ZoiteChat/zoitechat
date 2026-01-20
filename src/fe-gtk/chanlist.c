@@ -68,6 +68,17 @@ chanlistrow;
 
 #define GET_MODEL(xserv) (gtk_tree_view_get_model(GTK_TREE_VIEW(xserv->gui->chanlist_list)))
 
+static void
+chanlist_set_label_alignment (GtkWidget *widget)
+{
+#if HAVE_GTK3
+	gtk_widget_set_halign (widget, GTK_ALIGN_START);
+	gtk_widget_set_valign (widget, GTK_ALIGN_CENTER);
+#else
+	gtk_misc_set_alignment (GTK_MISC (widget), 0, 0.5);
+#endif
+}
+
 
 static gboolean
 chanlist_match (server *serv, const char *str)
@@ -839,12 +850,10 @@ chanlist_opengui (server *serv, int do_refresh)
 	/* ============================================================= */
 
 	wid = gtk_label_new (_("Show only:"));
+	chanlist_set_label_alignment (wid);
 #if HAVE_GTK3
-	gtk_widget_set_halign (wid, GTK_ALIGN_START);
-	gtk_widget_set_valign (wid, GTK_ALIGN_CENTER);
 	gtk_grid_attach (GTK_GRID (table), wid, 0, 3, 1, 1);
 #else
-	gtk_misc_set_alignment (GTK_MISC (wid), 0, 0.5);
 	gtk_table_attach (GTK_TABLE (table), wid, 0, 1, 3, 4,
 							GTK_SHRINK | GTK_FILL, GTK_SHRINK | GTK_FILL, 0, 0);
 #endif
@@ -897,12 +906,10 @@ chanlist_opengui (server *serv, int do_refresh)
 	/* ============================================================= */
 
 	wid = gtk_label_new (_("Look in:"));
+	chanlist_set_label_alignment (wid);
 #if HAVE_GTK3
-	gtk_widget_set_halign (wid, GTK_ALIGN_START);
-	gtk_widget_set_valign (wid, GTK_ALIGN_CENTER);
 	gtk_grid_attach (GTK_GRID (table), wid, 0, 2, 1, 1);
 #else
-	gtk_misc_set_alignment (GTK_MISC (wid), 0, 0.5);
 	gtk_table_attach (GTK_TABLE (table), wid, 0, 1, 2, 3,
 							GTK_SHRINK | GTK_FILL, GTK_SHRINK | GTK_FILL, 0, 0);
 #endif
@@ -944,12 +951,10 @@ chanlist_opengui (server *serv, int do_refresh)
 	/* ============================================================= */
 
 	wid = gtk_label_new (_("Search type:"));
+	chanlist_set_label_alignment (wid);
 #if HAVE_GTK3
-	gtk_widget_set_halign (wid, GTK_ALIGN_START);
-	gtk_widget_set_valign (wid, GTK_ALIGN_CENTER);
 	gtk_grid_attach (GTK_GRID (table), wid, 0, 1, 1, 1);
 #else
-	gtk_misc_set_alignment (GTK_MISC (wid), 0, 0.5);
 	gtk_table_attach (GTK_TABLE (table), wid, 0, 1, 1, 2,
 							GTK_SHRINK | GTK_FILL, GTK_SHRINK | GTK_FILL, 0, 0);
 #endif
@@ -973,12 +978,10 @@ chanlist_opengui (server *serv, int do_refresh)
 	/* ============================================================= */
 
 	wid = gtk_label_new (_("Find:"));
+	chanlist_set_label_alignment (wid);
 #if HAVE_GTK3
-	gtk_widget_set_halign (wid, GTK_ALIGN_START);
-	gtk_widget_set_valign (wid, GTK_ALIGN_CENTER);
 	gtk_grid_attach (GTK_GRID (table), wid, 0, 0, 1, 1);
 #else
-	gtk_misc_set_alignment (GTK_MISC (wid), 0, 0.5);
 	gtk_table_attach (GTK_TABLE (table), wid, 0, 1, 0, 1,
 							GTK_SHRINK | GTK_FILL, GTK_SHRINK | GTK_FILL, 0, 0);
 #endif
