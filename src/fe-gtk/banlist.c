@@ -772,6 +772,22 @@ banlist_closegui (GtkWidget *wid, banlist_info *banl)
 	}
 }
 
+static GtkWidget *
+banlist_table_new (void)
+{
+#if HAVE_GTK3
+	GtkWidget *table = gtk_grid_new ();
+
+	gtk_grid_set_column_spacing (GTK_GRID (table), 16);
+	return table;
+#else
+	GtkWidget *table = gtk_table_new (1, MODE_CT, FALSE);
+
+	gtk_table_set_col_spacings (GTK_TABLE (table), 16);
+	return table;
+#endif
+}
+
 void
 banlist_opengui (struct session *sess)
 {
@@ -818,13 +834,7 @@ banlist_opengui (struct session *sess)
 	/* create banlist view */
 	banl->treeview = banlist_treeview_new (vbox, banl);
 
-#if HAVE_GTK3
-	table = gtk_grid_new ();
-	gtk_grid_set_column_spacing (GTK_GRID (table), 16);
-#else
-	table = gtk_table_new (1, MODE_CT, FALSE);
-	gtk_table_set_col_spacings (GTK_TABLE (table), 16);
-#endif
+	table = banlist_table_new ();
 	gtk_box_pack_start (GTK_BOX (vbox), table, 0, 0, 0);
 
 	for (i = 0; i < MODE_CT; i++)
