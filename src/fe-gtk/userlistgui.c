@@ -49,6 +49,7 @@ enum
 	COL_GDKCOLOR=4	/* PaletteColor */
 };
 
+static void userlist_store_color (GtkListStore *store, GtkTreeIter *iter, int color_index);
 
 GdkPixbuf *
 get_user_icon (server *serv, struct User *user)
