@@ -79,6 +79,19 @@ chanlist_set_label_alignment (GtkWidget *widget)
 #endif
 }
 
+static GtkWidget *
+chanlist_box_new (void)
+{
+#if HAVE_GTK3
+	GtkWidget *box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
+
+	gtk_box_set_homogeneous (GTK_BOX (box), FALSE);
+	return box;
+#else
+	return gtk_hbox_new (FALSE, 0);
+#endif
+}
+
 
 static gboolean
 chanlist_match (server *serv, const char *str)
@@ -859,12 +872,7 @@ chanlist_opengui (server *serv, int do_refresh)
 #endif
 	gtk_widget_show (wid);
 
-#if HAVE_GTK3
-	hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
-	gtk_box_set_homogeneous (GTK_BOX (hbox), FALSE);
-#else
-	hbox = gtk_hbox_new (0, 0);
-#endif
+	hbox = chanlist_box_new ();
 	gtk_box_set_spacing (GTK_BOX (hbox), 9);
 #if HAVE_GTK3
 	gtk_grid_attach (GTK_GRID (table), hbox, 1, 3, 1, 1);
@@ -915,12 +923,7 @@ chanlist_opengui (server *serv, int do_refresh)
 #endif
 	gtk_widget_show (wid);
 
-#if HAVE_GTK3
-	hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
-	gtk_box_set_homogeneous (GTK_BOX (hbox), FALSE);
-#else
-	hbox = gtk_hbox_new (0, 0);
-#endif
+	hbox = chanlist_box_new ();
 	gtk_box_set_spacing (GTK_BOX (hbox), 12);
 #if HAVE_GTK3
 	gtk_grid_attach (GTK_GRID (table), hbox, 1, 2, 1, 1);
