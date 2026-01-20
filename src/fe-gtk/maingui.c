@@ -1337,24 +1337,42 @@ mg_open_quit_dialog (gboolean minimize_button)
         dialog_vbox1 = gtk_dialog_get_content_area (GTK_DIALOG (dialog));
         gtk_widget_show (dialog_vbox1);
 
+#if HAVE_GTK3
+        table1 = gtk_grid_new ();
+        gtk_widget_show (table1);
+        gtk_box_pack_start (GTK_BOX (dialog_vbox1), table1, TRUE, TRUE, 0);
+        gtk_container_set_border_width (GTK_CONTAINER (table1), 6);
+        gtk_grid_set_row_spacing (GTK_GRID (table1), 12);
+        gtk_grid_set_column_spacing (GTK_GRID (table1), 12);
+#else
         table1 = gtk_table_new (2, 2, FALSE);
         gtk_widget_show (table1);
         gtk_box_pack_start (GTK_BOX (dialog_vbox1), table1, TRUE, TRUE, 0);
         gtk_container_set_border_width (GTK_CONTAINER (table1), 6);
         gtk_table_set_row_spacings (GTK_TABLE (table1), 12);
         gtk_table_set_col_spacings (GTK_TABLE (table1), 12);
+#endif
 
         image = gtk_image_new_from_stock ("gtk-dialog-warning", GTK_ICON_SIZE_DIALOG);
         gtk_widget_show (image);
+#if HAVE_GTK3
+        gtk_grid_attach (GTK_GRID (table1), image, 0, 0, 1, 1);
+#else
         gtk_table_attach (GTK_TABLE (table1), image, 0, 1, 0, 1,
                                                         (GtkAttachOptions) (GTK_FILL),
                                                         (GtkAttachOptions) (GTK_FILL), 0, 0);
+#endif
 
         checkbutton1 = gtk_check_button_new_with_mnemonic (_("Don't ask next time."));
         gtk_widget_show (checkbutton1);
+#if HAVE_GTK3
+        gtk_grid_attach (GTK_GRID (table1), checkbutton1, 0, 1, 2, 1);
+        gtk_widget_set_hexpand (checkbutton1, TRUE);
+#else
         gtk_table_attach (GTK_TABLE (table1), checkbutton1, 0, 2, 1, 2,
                                                         (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
                                                         (GtkAttachOptions) (0), 0, 4);
+#endif
 
         connecttext = g_strdup_printf (_("You are connected to %i IRC networks."), cons);
         text = g_strdup_printf ("<span weight=\"bold\" size=\"larger\">%s</span>\n\n%s\n%s",
@@ -1365,11 +1383,19 @@ mg_open_quit_dialog (gboolean minimize_button)
         label = gtk_label_new (text);
         g_free (text);
         gtk_widget_show (label);
+#if HAVE_GTK3
+        gtk_grid_attach (GTK_GRID (table1), label, 1, 0, 1, 1);
+        gtk_widget_set_hexpand (label, TRUE);
+        gtk_widget_set_vexpand (label, TRUE);
+        gtk_widget_set_halign (label, GTK_ALIGN_START);
+        gtk_widget_set_valign (label, GTK_ALIGN_CENTER);
+#else
         gtk_table_attach (GTK_TABLE (table1), label, 1, 2, 0, 1,
                                                         (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL),
                                                         (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK), 0, 0);
-        gtk_label_set_use_markup (GTK_LABEL (label), TRUE);
         gtk_misc_set_alignment (GTK_MISC (label), 0, 0.5);
+#endif
+        gtk_label_set_use_markup (GTK_LABEL (label), TRUE);
 
         dialog_action_area1 = gtk_dialog_get_action_area (GTK_DIALOG (dialog));
         gtk_widget_show (dialog_action_area1);
@@ -1873,7 +1899,15 @@ mg_userlist_button (GtkWidget * box, char *label, char *cmd,
         GtkWidget *wid = gtk_button_new_with_label (label);
         g_signal_connect (G_OBJECT (wid), "clicked",
                                                         G_CALLBACK (userlist_button_cb), cmd);
+#if HAVE_GTK3
+        gtk_grid_attach (GTK_GRID (box), wid, a, c, b - a, d - c);
+        gtk_widget_set_hexpand (wid, TRUE);
+        gtk_widget_set_vexpand (wid, TRUE);
+        gtk_widget_set_halign (wid, GTK_ALIGN_FILL);
+        gtk_widget_set_valign (wid, GTK_ALIGN_FILL);
+#else
         gtk_table_attach_defaults (GTK_TABLE (box), wid, a, b, c, d);
+#endif
         show_and_unfocus (wid);
 }
 
@@ -1885,7 +1919,11 @@ mg_create_userlistbuttons (GtkWidget *box)
         int a = 0, b = 0;
         GtkWidget *tab;
 
+#if HAVE_GTK3
+        tab = gtk_grid_new ();
+#else
         tab = gtk_table_new (5, 2, FALSE);
+#endif
         gtk_box_pack_end (GTK_BOX (box), tab, FALSE, FALSE, 0);
 
         while (list)
@@ -2323,7 +2361,12 @@ mg_create_topicbar (session *sess, GtkWidget *box)
         GtkWidget *hbox, *topic, *bbox;
         session_gui *gui = sess->gui;
 
+#if HAVE_GTK3
+        gui->topic_bar = hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
+        gtk_box_set_homogeneous (GTK_BOX (hbox), FALSE);
+#else
         gui->topic_bar = hbox = gtk_hbox_new (FALSE, 0);
+#endif
         gtk_box_pack_start (GTK_BOX (box), hbox, 0, 0, 0);
 
         if (!gui->is_tab)
@@ -2340,11 +2383,21 @@ mg_create_topicbar (session *sess, GtkWidget *box)
         if (prefs.hex_gui_input_style)
                 mg_apply_entry_style (topic);
 
+#if HAVE_GTK3
+        gui->topicbutton_box = bbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
+        gtk_box_set_homogeneous (GTK_BOX (bbox), FALSE);
+#else
         gui->topicbutton_box = bbox = gtk_hbox_new (FALSE, 0);
+#endif
         gtk_box_pack_start (GTK_BOX (hbox), bbox, 0, 0, 0);
         mg_create_chanmodebuttons (gui, bbox);
 
+#if HAVE_GTK3
+        gui->dialogbutton_box = bbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
+        gtk_box_set_homogeneous (GTK_BOX (bbox), FALSE);
+#else
         gui->dialogbutton_box = bbox = gtk_hbox_new (FALSE, 0);
+#endif
         gtk_box_pack_start (GTK_BOX (hbox), bbox, 0, 0, 0);
         mg_create_dialogbuttons (bbox);
 }
@@ -2493,9 +2546,19 @@ mg_create_textarea (session *sess, GtkWidget *box)
                 {"HEXCHAT_USERLIST", GTK_TARGET_SAME_APP, 75 }
         };
 
+        #if HAVE_GTK3
+        vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
+        gtk_box_set_homogeneous (GTK_BOX (vbox), FALSE);
+        #else
         vbox = gtk_vbox_new (FALSE, 0);
+        #endif
         gtk_container_add (GTK_CONTAINER (box), vbox);
+        #if HAVE_GTK3
+        inbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 2);
+        gtk_box_set_homogeneous (GTK_BOX (inbox), FALSE);
+        #else
         inbox = gtk_hbox_new (FALSE, 2);
+        #endif
         gtk_container_add (GTK_CONTAINER (vbox), inbox);
 
         frame = gtk_frame_new (NULL);
@@ -2545,7 +2608,12 @@ mg_create_infoframe (GtkWidget *box)
         gtk_frame_set_shadow_type ((GtkFrame*)frame, GTK_SHADOW_OUT);
         gtk_container_add (GTK_CONTAINER (box), frame);
 
+        #if HAVE_GTK3
+        hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
+        gtk_box_set_homogeneous (GTK_BOX (hbox), FALSE);
+        #else
         hbox = gtk_hbox_new (0, 0);
+        #endif
         gtk_container_add (GTK_CONTAINER (frame), hbox);
 
         label = gtk_label_new (NULL);
@@ -2559,12 +2627,22 @@ mg_create_meters (session_gui *gui, GtkWidget *parent_box)
 {
         GtkWidget *infbox, *wid, *box;
 
+        #if HAVE_GTK3
+        gui->meter_box = infbox = box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 1);
+        gtk_box_set_homogeneous (GTK_BOX (box), FALSE);
+        #else
         gui->meter_box = infbox = box = gtk_vbox_new (0, 1);
+        #endif
         gtk_box_pack_start (GTK_BOX (parent_box), box, 0, 0, 0);
 
         if ((prefs.hex_gui_lagometer & 2) || (prefs.hex_gui_throttlemeter & 2))
         {
+                #if HAVE_GTK3
+                infbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
+                gtk_box_set_homogeneous (GTK_BOX (infbox), FALSE);
+                #else
                 infbox = gtk_hbox_new (0, 0);
+                #endif
                 gtk_box_pack_start (GTK_BOX (box), infbox, 0, 0, 0);
         }
 
@@ -2625,7 +2703,12 @@ mg_create_userlist (session_gui *gui, GtkWidget *box)
 {
         GtkWidget *frame, *ulist, *vbox;
 
+        #if HAVE_GTK3
+        vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 1);
+        gtk_box_set_homogeneous (GTK_BOX (vbox), FALSE);
+        #else
         vbox = gtk_vbox_new (0, 1);
+        #endif
         gtk_container_add (GTK_CONTAINER (box), vbox);
 
         frame = gtk_frame_new (NULL);
@@ -2737,13 +2820,23 @@ mg_create_center (session *sess, session_gui *gui, GtkWidget *box)
         gtk_notebook_set_show_border (GTK_NOTEBOOK (book), FALSE);
         gtk_paned_pack1 (GTK_PANED (gui->hpane_right), book, TRUE, TRUE);
 
+        #if HAVE_GTK3
+        hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
+        gtk_box_set_homogeneous (GTK_BOX (hbox), FALSE);
+        #else
         hbox = gtk_hbox_new (FALSE, 0);
+        #endif
         gtk_paned_pack1 (GTK_PANED (gui->vpane_right), hbox, FALSE, TRUE);
         mg_create_userlist (gui, hbox);
 
         gui->user_box = hbox;
 
+        #if HAVE_GTK3
+        vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 3);
+        gtk_box_set_homogeneous (GTK_BOX (vbox), FALSE);
+        #else
         vbox = gtk_vbox_new (FALSE, 3);
+        #endif
         gtk_notebook_append_page (GTK_NOTEBOOK (book), vbox, NULL);
         mg_create_topicbar (sess, vbox);
 
@@ -2833,8 +2926,13 @@ mg_place_userlist_and_chanview_real (session_gui *gui, GtkWidget *userlist, GtkW
                 /* incase the previous pos was POS_HIDDEN */
                 gtk_widget_show (chanview);
 
+#if HAVE_GTK3
+                gtk_widget_set_margin_top (chanview, 0);
+                gtk_widget_set_margin_bottom (chanview, 0);
+#else
                 gtk_table_set_row_spacing (GTK_TABLE (gui->main_table), 1, 0);
                 gtk_table_set_row_spacing (GTK_TABLE (gui->main_table), 2, 2);
+#endif
 
                 /* then place them back in their new positions */
                 switch (prefs.hex_gui_tab_pos)
@@ -2852,25 +2950,47 @@ mg_place_userlist_and_chanview_real (session_gui *gui, GtkWidget *userlist, GtkW
                         gtk_paned_pack2 (GTK_PANED (gui->vpane_right), chanview, FALSE, TRUE);
                         break;
                 case POS_TOP:
+#if HAVE_GTK3
+                        gtk_widget_set_margin_bottom (chanview, GUI_SPACING - 1);
+                        gtk_grid_attach (GTK_GRID (gui->main_table), chanview,
+                                                                        1, 1, 1, 1);
+#else
                         gtk_table_set_row_spacing (GTK_TABLE (gui->main_table), 1, GUI_SPACING-1);
                         gtk_table_attach (GTK_TABLE (gui->main_table), chanview,
                                                                         1, 2, 1, 2, GTK_FILL, GTK_FILL, 0, 0);
+#endif
                         break;
                 case POS_HIDDEN:
                         gtk_widget_hide (chanview);
                         /* always attach it to something to avoid ref_count=0 */
                         if (prefs.hex_gui_ulist_pos == POS_TOP)
+#if HAVE_GTK3
+                                gtk_grid_attach (GTK_GRID (gui->main_table), chanview,
+                                                                                1, 3, 1, 1);
+#else
                                 gtk_table_attach (GTK_TABLE (gui->main_table), chanview,
                                                                                 1, 2, 3, 4, GTK_FILL, GTK_FILL, 0, 0);
+#endif
 
                         else
+#if HAVE_GTK3
+                                gtk_grid_attach (GTK_GRID (gui->main_table), chanview,
+                                                                                1, 1, 1, 1);
+#else
                                 gtk_table_attach (GTK_TABLE (gui->main_table), chanview,
                                                                                 1, 2, 1, 2, GTK_FILL, GTK_FILL, 0, 0);
+#endif
                         break;
                 default:/* POS_BOTTOM */
+#if HAVE_GTK3
+                        gtk_widget_set_margin_top (chanview, 3);
+                        gtk_grid_attach (GTK_GRID (gui->main_table), chanview,
+                                                                        1, 3, 1, 1);
+#else
                         gtk_table_set_row_spacing (GTK_TABLE (gui->main_table), 2, 3);
                         gtk_table_attach (GTK_TABLE (gui->main_table), chanview,
                                                                         1, 2, 3, 4, GTK_FILL, GTK_FILL, 0, 0);
+#endif
                 }
         }
 
@@ -3274,7 +3394,12 @@ mg_create_search(session *sess, GtkWidget *box)
         GtkWidget *entry, *label, *next, *previous, *highlight, *matchcase, *regex, *close;
         session_gui *gui = sess->gui;
 
+        #if HAVE_GTK3
+        gui->shbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 5);
+        gtk_box_set_homogeneous (GTK_BOX (gui->shbox), FALSE);
+        #else
         gui->shbox = gtk_hbox_new(FALSE, 5);
+        #endif
         gtk_box_pack_start(GTK_BOX(box), gui->shbox, FALSE, FALSE, 0);
 
         close = gtk_button_new ();
@@ -3340,10 +3465,20 @@ mg_create_entry (session *sess, GtkWidget *box)
         GtkWidget *hbox, *but, *entry, *emoji_button;
         session_gui *gui = sess->gui;
 
+        #if HAVE_GTK3
+        hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
+        gtk_box_set_homogeneous (GTK_BOX (hbox), FALSE);
+        #else
         hbox = gtk_hbox_new (FALSE, 0);
+        #endif
         gtk_box_pack_start (GTK_BOX (box), hbox, 0, 0, 0);
 
+        #if HAVE_GTK3
+        gui->nick_box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
+        gtk_box_set_homogeneous (GTK_BOX (gui->nick_box), FALSE);
+        #else
         gui->nick_box = gtk_hbox_new (FALSE, 0);
+        #endif
         gtk_box_pack_start (GTK_BOX (hbox), gui->nick_box, 0, 0, 0);
 
         gui->nick_label = but = gtk_button_new_with_label (sess->server->nick);
@@ -3489,8 +3624,14 @@ mg_create_menu (session_gui *gui, GtkWidget *table, int away_state)
 
         gui->menu = menu_create_main (accel_group, TRUE, away_state, !gui->is_tab,
                                                                                         gui->menu_item);
+#if HAVE_GTK3
+        gtk_grid_attach (GTK_GRID (table), gui->menu, 0, 0, 3, 1);
+        gtk_widget_set_hexpand (gui->menu, TRUE);
+        gtk_widget_set_halign (gui->menu, GTK_ALIGN_FILL);
+#else
         gtk_table_attach (GTK_TABLE (table), gui->menu, 0, 3, 0, 1,
                                                    GTK_EXPAND | GTK_FILL, GTK_SHRINK | GTK_FILL, 0, 0);
+#endif
 }
 
 static void
@@ -3499,9 +3640,17 @@ mg_create_irctab (session *sess, GtkWidget *table)
         GtkWidget *vbox;
         session_gui *gui = sess->gui;
 
+        #if HAVE_GTK3
+        vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
+        gtk_box_set_homogeneous (GTK_BOX (vbox), FALSE);
+        gtk_grid_attach (GTK_GRID (table), vbox, 1, 2, 1, 1);
+        gtk_widget_set_hexpand (vbox, TRUE);
+        gtk_widget_set_vexpand (vbox, TRUE);
+        #else
         vbox = gtk_vbox_new (FALSE, 0);
         gtk_table_attach (GTK_TABLE (table), vbox, 1, 2, 2, 3,
                                                    GTK_EXPAND | GTK_FILL, GTK_EXPAND | GTK_FILL, 0, 0);
+        #endif
         mg_create_center (sess, gui, vbox);
 }
 
@@ -3534,12 +3683,20 @@ mg_create_topwindow (session *sess)
 
         palette_alloc (win);
 
+        #if HAVE_GTK3
+        table = gtk_grid_new ();
+        /* spacing under the menubar */
+        gtk_grid_set_row_spacing (GTK_GRID (table), GUI_SPACING);
+        /* left and right borders */
+        gtk_grid_set_column_spacing (GTK_GRID (table), 1);
+        #else
         table = gtk_table_new (4, 3, FALSE);
         /* spacing under the menubar */
         gtk_table_set_row_spacing (GTK_TABLE (table), 0, GUI_SPACING);
         /* left and right borders */
         gtk_table_set_col_spacing (GTK_TABLE (table), 0, 1);
         gtk_table_set_col_spacing (GTK_TABLE (table), 1, 1);
+        #endif
         gtk_container_add (GTK_CONTAINER (win), table);
 
         mg_create_irctab (sess, table);
@@ -3695,12 +3852,20 @@ mg_create_tabwindow (session *sess)
 
         palette_alloc (win);
 
+        #if HAVE_GTK3
+        sess->gui->main_table = table = gtk_grid_new ();
+        /* spacing under the menubar */
+        gtk_grid_set_row_spacing (GTK_GRID (table), GUI_SPACING);
+        /* left and right borders */
+        gtk_grid_set_column_spacing (GTK_GRID (table), 1);
+        #else
         sess->gui->main_table = table = gtk_table_new (4, 3, FALSE);
         /* spacing under the menubar */
         gtk_table_set_row_spacing (GTK_TABLE (table), 0, GUI_SPACING);
         /* left and right borders */
         gtk_table_set_col_spacing (GTK_TABLE (table), 0, 1);
         gtk_table_set_col_spacing (GTK_TABLE (table), 1, 1);
+        #endif
         gtk_container_add (GTK_CONTAINER (win), table);
 
         mg_create_irctab (sess, table);
@@ -3855,7 +4020,12 @@ fe_dlgbuttons_update (session *sess)
 
         gtk_widget_destroy (gui->dialogbutton_box);
 
+        #if HAVE_GTK3
+        gui->dialogbutton_box = box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
+        gtk_box_set_homogeneous (GTK_BOX (box), FALSE);
+        #else
         gui->dialogbutton_box = box = gtk_hbox_new (0, 0);
+        #endif
         gtk_box_pack_start (GTK_BOX (gui->topic_bar), box, 0, 0, 0);
         gtk_box_reorder_child (GTK_BOX (gui->topic_bar), box, 3);
         mg_create_dialogbuttons (box);
@@ -4008,7 +4178,12 @@ mg_create_generic_tab (char *name, char *title, int force_toplevel,
         if (force_toplevel || !prefs.hex_gui_tab_utils)
         {
                 win = gtkutil_window_new (title, name, width, height, 2);
+                #if HAVE_GTK3
+                vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
+                gtk_box_set_homogeneous (GTK_BOX (vbox), FALSE);
+                #else
                 vbox = gtk_vbox_new (0, 0);
+                #endif
                 *vbox_ret = vbox;
                 gtk_container_add (GTK_CONTAINER (win), vbox);
                 gtk_widget_show (vbox);
@@ -4018,7 +4193,12 @@ mg_create_generic_tab (char *name, char *title, int force_toplevel,
                 return win;
         }
 
+        #if HAVE_GTK3
+        vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 2);
+        gtk_box_set_homogeneous (GTK_BOX (vbox), FALSE);
+        #else
         vbox = gtk_vbox_new (0, 2);
+        #endif
         g_object_set_data (G_OBJECT (vbox), "w", GINT_TO_POINTER (width));
         g_object_set_data (G_OBJECT (vbox), "h", GINT_TO_POINTER (height));
         gtk_container_set_border_width (GTK_CONTAINER (vbox), 3);

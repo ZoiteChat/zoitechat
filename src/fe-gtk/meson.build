@@ -28,7 +28,16 @@ zoitechat_gtk_sources = [
   'xtext.c'
 ]
 
-gtk_dep = dependency('gtk+-2.0', version: '>= 2.24.0')
+zoitechat_gtk_cflags = []
+
+if get_option('gtk3')
+  gtk_dep = dependency('gtk+-3.0', version: '>= 3.22')
+  zoitechat_gtk_cflags += '-DHAVE_GTK3'
+else
+  gtk_dep = dependency('gtk+-2.0', version: '>= 2.24.0')
+  zoitechat_gtk_cflags += '-DHAVE_GTK2'
+endif
+
 zoitechat_gtk_deps = [
   zoitechat_common_dep,
   libgmodule_dep, # used by libsexy
@@ -38,8 +47,6 @@ zoitechat_gtk_deps = [
 if gtk_dep.get_pkgconfig_variable('target') == 'x11'
   zoitechat_gtk_deps += dependency('x11')
 endif
-
-zoitechat_gtk_cflags = []
 
 zoitechat_gtk_ldflags = []
 

@@ -818,8 +818,13 @@ banlist_opengui (struct session *sess)
 	/* create banlist view */
 	banl->treeview = banlist_treeview_new (vbox, banl);
 
+#if HAVE_GTK3
+	table = gtk_grid_new ();
+	gtk_grid_set_column_spacing (GTK_GRID (table), 16);
+#else
 	table = gtk_table_new (1, MODE_CT, FALSE);
 	gtk_table_set_col_spacings (GTK_TABLE (table), 16);
+#endif
 	gtk_box_pack_start (GTK_BOX (vbox), table, 0, 0, 0);
 
 	for (i = 0; i < MODE_CT; i++)
@@ -830,7 +835,11 @@ banlist_opengui (struct session *sess)
 		gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (banl->checkboxes[i]), (banl->checked & 1<<i? TRUE: FALSE));
 		g_signal_connect (G_OBJECT (banl->checkboxes[i]), "toggled",
 								G_CALLBACK (banlist_toggle), banl);
+#if HAVE_GTK3
+		gtk_grid_attach (GTK_GRID (table), banl->checkboxes[i], i + 1, 0, 1, 1);
+#else
 		gtk_table_attach (GTK_TABLE (table), banl->checkboxes[i], i+1, i+2, 0, 1, GTK_FILL, GTK_FILL, 0, 0);
+#endif
 	}
 
 	bbox = gtk_hbutton_box_new ();
