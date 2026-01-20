@@ -248,21 +248,7 @@ palette_dark_set_color (int idx, const PaletteColor *col)
 void
 palette_alloc (GtkWidget * widget)
 {
-#if GTK_CHECK_VERSION(3,0,0)
 	(void) widget;
-#else
-	int i;
-	static int done_alloc = FALSE;
-	GdkColormap *cmap;
-
-	if (!done_alloc)		  /* don't do it again */
-	{
-		done_alloc = TRUE;
-		cmap = gtk_widget_get_colormap (widget);
-		for (i = MAX_COL; i >= 0; i--)
-			gdk_colormap_alloc_color (cmap, &colors[i], FALSE, TRUE);
-	}
-#endif
 }
 
 void
@@ -473,15 +459,7 @@ palette_apply_dark_mode (gboolean enable)
 		memcpy (colors, user_colors, sizeof (colors));
 
 	/* Allocate the new colors for GTK's colormap. */
-#if !GTK_CHECK_VERSION(3,0,0)
-	{
-		GdkColormap *cmap;
-
-		cmap = gdk_colormap_get_system ();
-		for (i = 0; i <= MAX_COL; i++)
-			gdk_colormap_alloc_color (cmap, &colors[i], FALSE, TRUE);
-	}
-#endif
+	(void) i;
 
 	for (i = 0; i <= MAX_COL; i++)
 	{

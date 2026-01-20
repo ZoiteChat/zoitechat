@@ -1559,9 +1559,7 @@ setup_color_ok_cb (GtkWidget *button, GtkWidget *dialog)
 {
         GtkColorSelectionDialog *cdialog = GTK_COLOR_SELECTION_DIALOG (dialog);
         GdkColor *col;
-        GdkColor old_color;
         col = g_object_get_data (G_OBJECT (button), "c");
-        old_color = *col;
 
         button = g_object_get_data (G_OBJECT (button), "b");
 
@@ -1575,16 +1573,7 @@ setup_color_ok_cb (GtkWidget *button, GtkWidget *dialog)
 
         gtk_color_selection_get_current_color (GTK_COLOR_SELECTION (gtk_color_selection_dialog_get_color_selection (cdialog)), col);
 
-#if !GTK_CHECK_VERSION(3,0,0)
-        gdk_colormap_alloc_color (gtk_widget_get_colormap (button), col, TRUE, TRUE);
-#endif
-
         setup_color_button_apply (button, col);
-
-        /* is this line correct?? */
-#if !GTK_CHECK_VERSION(3,0,0)
-        gdk_colormap_free_colors (gtk_widget_get_colormap (button), &old_color, 1);
-#endif
 
 	/* Persist custom colors for the palette the user is editing. */
 	if (fe_dark_mode_is_enabled_for (setup_prefs.hex_gui_dark_mode))

@@ -27,9 +27,11 @@
 #if GTK_CHECK_VERSION(3,0,0)
 typedef GdkRGBA PaletteColor;
 #define PALETTE_GDK_TYPE GDK_TYPE_RGBA
+#define PALETTE_FOREGROUND_PROPERTY "foreground-rgba"
 #else
 typedef GdkColor PaletteColor;
 #define PALETTE_GDK_TYPE GDK_TYPE_COLOR
+#define PALETTE_FOREGROUND_PROPERTY "foreground-gdk"
 #endif
 
 extern PaletteColor colors[];
