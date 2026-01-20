@@ -50,7 +50,7 @@ enum	/* DCC SEND/RECV */
 	COL_ETA,
 	COL_NICK,
 	COL_DCC, /* struct DCC * */
-	COL_COLOR,	/* GdkColor */
+	COL_COLOR,	/* PaletteColor */
 	N_COLUMNS
 };
 
@@ -62,7 +62,7 @@ enum	/* DCC CHAT */
 	CCOL_SENT,
 	CCOL_START,
 	CCOL_DCC,	/* struct DCC * */
-	CCOL_COLOR,	/* GdkColor * */
+	CCOL_COLOR,	/* PaletteColor * */
 	CN_COLUMNS
 };
 
@@ -730,7 +730,11 @@ dcc_add_column (GtkWidget *tree, int textcol, int colorcol, char *title, gboolea
 	if (right_justified)
 		g_object_set (G_OBJECT (renderer), "xalign", (float) 1.0, NULL);
 	gtk_tree_view_insert_column_with_attributes (GTK_TREE_VIEW (tree), -1, title, renderer,
+#if GTK_CHECK_VERSION(3,0,0)
+																"text", textcol, "foreground-rgba", colorcol,
+#else
 																"text", textcol, "foreground-gdk", colorcol,
+#endif
 																NULL);
 	gtk_cell_renderer_text_set_fixed_height_from_font (GTK_CELL_RENDERER_TEXT (renderer), 1);
 }
@@ -810,7 +814,7 @@ fe_dcc_open_recv_win (int passive)
 	store = gtk_list_store_new (N_COLUMNS, GDK_TYPE_PIXBUF, G_TYPE_STRING,
 										 G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING,
 										 G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING,
-										 G_TYPE_STRING, G_TYPE_POINTER, GDK_TYPE_COLOR);
+										 G_TYPE_STRING, G_TYPE_POINTER, PALETTE_GDK_TYPE);
 	view = gtkutil_treeview_new (vbox, GTK_TREE_MODEL (store), NULL, -1);
 	gtk_tree_view_set_rules_hint (GTK_TREE_VIEW (view), TRUE);
 	/* Up/Down Icon column */
@@ -1057,7 +1061,7 @@ fe_dcc_open_chat_win (int passive)
 
 	store = gtk_list_store_new (CN_COLUMNS, G_TYPE_STRING, G_TYPE_STRING,
 										 G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING,
-										 G_TYPE_POINTER, GDK_TYPE_COLOR);
+										 G_TYPE_POINTER, PALETTE_GDK_TYPE);
 	view = gtkutil_treeview_new (vbox, GTK_TREE_MODEL (store), NULL, -1);
 
 	dcc_add_column (view, CCOL_STATUS, CCOL_COLOR, _("Status"), FALSE);

@@ -38,121 +38,150 @@
 #include "../common/cfgfiles.h"
 #include "../common/typedef.h"
 
+#if GTK_CHECK_VERSION(3,0,0)
+#define PALETTE_COLOR_INIT(r, g, b) { (r) / 65535.0, (g) / 65535.0, (b) / 65535.0, 1.0 }
+#else
+#define PALETTE_COLOR_INIT(r, g, b) { 0, (r), (g), (b) }
+#endif
+
+static void
+palette_color_set_rgb16 (PaletteColor *color, guint16 red, guint16 green, guint16 blue)
+{
+#if GTK_CHECK_VERSION(3,0,0)
+	char buf[8];
+
+	g_snprintf (buf, sizeof (buf), "#%02x%02x%02x", red >> 8, green >> 8, blue >> 8);
+	gdk_rgba_parse (color, buf);
+#else
+	color->red = red;
+	color->green = green;
+	color->blue = blue;
+	color->pixel = 0;
+#endif
+}
+
 static XTextColor
-palette_color_from_gdk (const GdkColor *color)
+palette_color_from_gdk (const PaletteColor *color)
 {
 	XTextColor result;
 
+#if GTK_CHECK_VERSION(3,0,0)
+	result.red = color->red;
+	result.green = color->green;
+	result.blue = color->blue;
+	result.alpha = color->alpha;
+#else
 	result.red = color->red / 65535.0;
 	result.green = color->green / 65535.0;
 	result.blue = color->blue / 65535.0;
 	result.alpha = 1.0;
+#endif
 
 	return result;
 }
 
-GdkColor colors[] = {
+PaletteColor colors[] = {
 	/* colors for xtext */
-	{0, 0xd3d3, 0xd7d7, 0xcfcf}, /* 0 white */
-	{0, 0x2e2e, 0x3434, 0x3636}, /* 1 black */
-	{0, 0x3434, 0x6565, 0xa4a4}, /* 2 blue */
-	{0, 0x4e4e, 0x9a9a, 0x0606}, /* 3 green */
-	{0, 0xcccc, 0x0000, 0x0000}, /* 4 red */
-	{0, 0x8f8f, 0x3939, 0x0202}, /* 5 light red */
-	{0, 0x5c5c, 0x3535, 0x6666}, /* 6 purple */
-	{0, 0xcece, 0x5c5c, 0x0000}, /* 7 orange */
-	{0, 0xc4c4, 0xa0a0, 0x0000}, /* 8 yellow */
-	{0, 0x7373, 0xd2d2, 0x1616}, /* 9 green */
-	{0, 0x1111, 0xa8a8, 0x7979}, /* 10 aqua */
-	{0, 0x5858, 0xa1a1, 0x9d9d}, /* 11 light aqua */
-	{0, 0x5757, 0x7979, 0x9e9e}, /* 12 blue */
-	{0, 0xa0d0, 0x42d4, 0x6562}, /* 13 light purple */
-	{0, 0x5555, 0x5757, 0x5353}, /* 14 grey */
-	{0, 0x8888, 0x8a8a, 0x8585}, /* 15 light grey */
+	PALETTE_COLOR_INIT (0xd3d3, 0xd7d7, 0xcfcf), /* 0 white */
+	PALETTE_COLOR_INIT (0x2e2e, 0x3434, 0x3636), /* 1 black */
+	PALETTE_COLOR_INIT (0x3434, 0x6565, 0xa4a4), /* 2 blue */
+	PALETTE_COLOR_INIT (0x4e4e, 0x9a9a, 0x0606), /* 3 green */
+	PALETTE_COLOR_INIT (0xcccc, 0x0000, 0x0000), /* 4 red */
+	PALETTE_COLOR_INIT (0x8f8f, 0x3939, 0x0202), /* 5 light red */
+	PALETTE_COLOR_INIT (0x5c5c, 0x3535, 0x6666), /* 6 purple */
+	PALETTE_COLOR_INIT (0xcece, 0x5c5c, 0x0000), /* 7 orange */
+	PALETTE_COLOR_INIT (0xc4c4, 0xa0a0, 0x0000), /* 8 yellow */
+	PALETTE_COLOR_INIT (0x7373, 0xd2d2, 0x1616), /* 9 green */
+	PALETTE_COLOR_INIT (0x1111, 0xa8a8, 0x7979), /* 10 aqua */
+	PALETTE_COLOR_INIT (0x5858, 0xa1a1, 0x9d9d), /* 11 light aqua */
+	PALETTE_COLOR_INIT (0x5757, 0x7979, 0x9e9e), /* 12 blue */
+	PALETTE_COLOR_INIT (0xa0d0, 0x42d4, 0x6562), /* 13 light purple */
+	PALETTE_COLOR_INIT (0x5555, 0x5757, 0x5353), /* 14 grey */
+	PALETTE_COLOR_INIT (0x8888, 0x8a8a, 0x8585), /* 15 light grey */
 
-	{0, 0xd3d3, 0xd7d7, 0xcfcf}, /* 16 white */
-	{0, 0x2e2e, 0x3434, 0x3636}, /* 17 black */
-	{0, 0x3434, 0x6565, 0xa4a4}, /* 18 blue */
-	{0, 0x4e4e, 0x9a9a, 0x0606}, /* 19 green */
-	{0, 0xcccc, 0x0000, 0x0000}, /* 20 red */
-	{0, 0x8f8f, 0x3939, 0x0202}, /* 21 light red */
-	{0, 0x5c5c, 0x3535, 0x6666}, /* 22 purple */
-	{0, 0xcece, 0x5c5c, 0x0000}, /* 23 orange */
-	{0, 0xc4c4, 0xa0a0, 0x0000}, /* 24 yellow */
-	{0, 0x7373, 0xd2d2, 0x1616}, /* 25 green */
-	{0, 0x1111, 0xa8a8, 0x7979}, /* 26 aqua */
-	{0, 0x5858, 0xa1a1, 0x9d9d}, /* 27 light aqua */
-	{0, 0x5757, 0x7979, 0x9e9e}, /* 28 blue */
-	{0, 0xa0d0, 0x42d4, 0x6562}, /* 29 light purple */
-	{0, 0x5555, 0x5757, 0x5353}, /* 30 grey */
-	{0, 0x8888, 0x8a8a, 0x8585}, /* 31 light grey */
+	PALETTE_COLOR_INIT (0xd3d3, 0xd7d7, 0xcfcf), /* 16 white */
+	PALETTE_COLOR_INIT (0x2e2e, 0x3434, 0x3636), /* 17 black */
+	PALETTE_COLOR_INIT (0x3434, 0x6565, 0xa4a4), /* 18 blue */
+	PALETTE_COLOR_INIT (0x4e4e, 0x9a9a, 0x0606), /* 19 green */
+	PALETTE_COLOR_INIT (0xcccc, 0x0000, 0x0000), /* 20 red */
+	PALETTE_COLOR_INIT (0x8f8f, 0x3939, 0x0202), /* 21 light red */
+	PALETTE_COLOR_INIT (0x5c5c, 0x3535, 0x6666), /* 22 purple */
+	PALETTE_COLOR_INIT (0xcece, 0x5c5c, 0x0000), /* 23 orange */
+	PALETTE_COLOR_INIT (0xc4c4, 0xa0a0, 0x0000), /* 24 yellow */
+	PALETTE_COLOR_INIT (0x7373, 0xd2d2, 0x1616), /* 25 green */
+	PALETTE_COLOR_INIT (0x1111, 0xa8a8, 0x7979), /* 26 aqua */
+	PALETTE_COLOR_INIT (0x5858, 0xa1a1, 0x9d9d), /* 27 light aqua */
+	PALETTE_COLOR_INIT (0x5757, 0x7979, 0x9e9e), /* 28 blue */
+	PALETTE_COLOR_INIT (0xa0d0, 0x42d4, 0x6562), /* 29 light purple */
+	PALETTE_COLOR_INIT (0x5555, 0x5757, 0x5353), /* 30 grey */
+	PALETTE_COLOR_INIT (0x8888, 0x8a8a, 0x8585), /* 31 light grey */
 
-	{0, 0xd3d3, 0xd7d7, 0xcfcf}, /* 32 marktext Fore (white) */
-	{0, 0x2020, 0x4a4a, 0x8787}, /* 33 marktext Back (blue) */
-	{0, 0x2512, 0x29e8, 0x2b85}, /* 34 foreground (black) */
-	{0, 0xfae0, 0xfae0, 0xf8c4}, /* 35 background (white) */
-	{0, 0x8f8f, 0x3939, 0x0202}, /* 36 marker line (red) */
+	PALETTE_COLOR_INIT (0xd3d3, 0xd7d7, 0xcfcf), /* 32 marktext Fore (white) */
+	PALETTE_COLOR_INIT (0x2020, 0x4a4a, 0x8787), /* 33 marktext Back (blue) */
+	PALETTE_COLOR_INIT (0x2512, 0x29e8, 0x2b85), /* 34 foreground (black) */
+	PALETTE_COLOR_INIT (0xfae0, 0xfae0, 0xf8c4), /* 35 background (white) */
+	PALETTE_COLOR_INIT (0x8f8f, 0x3939, 0x0202), /* 36 marker line (red) */
 
 	/* colors for GUI */
-	{0, 0x3434, 0x6565, 0xa4a4}, /* 37 tab New Data (dark red) */
-	{0, 0x4e4e, 0x9a9a, 0x0606}, /* 38 tab Nick Mentioned (blue) */
-	{0, 0xcece, 0x5c5c, 0x0000}, /* 39 tab New Message (red) */
-	{0, 0x8888, 0x8a8a, 0x8585}, /* 40 away user (grey) */
-	{0, 0xa4a4, 0x0000, 0x0000}, /* 41 spell checker color (red) */
+	PALETTE_COLOR_INIT (0x3434, 0x6565, 0xa4a4), /* 37 tab New Data (dark red) */
+	PALETTE_COLOR_INIT (0x4e4e, 0x9a9a, 0x0606), /* 38 tab Nick Mentioned (blue) */
+	PALETTE_COLOR_INIT (0xcece, 0x5c5c, 0x0000), /* 39 tab New Message (red) */
+	PALETTE_COLOR_INIT (0x8888, 0x8a8a, 0x8585), /* 40 away user (grey) */
+	PALETTE_COLOR_INIT (0xa4a4, 0x0000, 0x0000), /* 41 spell checker color (red) */
 };
 
 /* User palette snapshot (what we write to colors.conf) */
-static GdkColor user_colors[MAX_COL + 1];
+static PaletteColor user_colors[MAX_COL + 1];
 static gboolean user_colors_valid = FALSE;
 
 /* Dark palette snapshot (saved separately so dark mode can have its own custom palette). */
-static GdkColor dark_user_colors[MAX_COL + 1];
+static PaletteColor dark_user_colors[MAX_COL + 1];
 static gboolean dark_user_colors_valid = FALSE;
 
 /* ZoiteChat's curated dark palette (applies when prefs.hex_gui_dark_mode is enabled). */
-static const GdkColor dark_colors[MAX_COL + 1] = {
+static const PaletteColor dark_colors[MAX_COL + 1] = {
 	/* mIRC colors 0-15 */
-	{0, 0xe5e5, 0xe5e5, 0xe5e5}, /* 0 white */
-	{0, 0x3c3c, 0x3c3c, 0x3c3c}, /* 1 black (dark gray for contrast) */
-	{0, 0x5656, 0x9c9c, 0xd6d6}, /* 2 blue */
-	{0, 0x0d0d, 0xbcbc, 0x7979}, /* 3 green */
-	{0, 0xf4f4, 0x4747, 0x4747}, /* 4 red */
-	{0, 0xcece, 0x9191, 0x7878}, /* 5 light red / brown */
-	{0, 0xc5c5, 0x8686, 0xc0c0}, /* 6 purple */
-	{0, 0xd7d7, 0xbaba, 0x7d7d}, /* 7 orange */
-	{0, 0xdcdc, 0xdcdc, 0xaaaa}, /* 8 yellow */
-	{0, 0xb5b5, 0xcece, 0xa8a8}, /* 9 light green */
-	{0, 0x4e4e, 0xc9c9, 0xb0b0}, /* 10 aqua */
-	{0, 0x9c9c, 0xdcdc, 0xfefe}, /* 11 light aqua */
-	{0, 0x3737, 0x9494, 0xffff}, /* 12 light blue */
-	{0, 0xd6d6, 0x7070, 0xd6d6}, /* 13 pink */
-	{0, 0x8080, 0x8080, 0x8080}, /* 14 gray */
-	{0, 0xc0c0, 0xc0c0, 0xc0c0}, /* 15 light gray */
+	PALETTE_COLOR_INIT (0xe5e5, 0xe5e5, 0xe5e5), /* 0 white */
+	PALETTE_COLOR_INIT (0x3c3c, 0x3c3c, 0x3c3c), /* 1 black (dark gray for contrast) */
+	PALETTE_COLOR_INIT (0x5656, 0x9c9c, 0xd6d6), /* 2 blue */
+	PALETTE_COLOR_INIT (0x0d0d, 0xbcbc, 0x7979), /* 3 green */
+	PALETTE_COLOR_INIT (0xf4f4, 0x4747, 0x4747), /* 4 red */
+	PALETTE_COLOR_INIT (0xcece, 0x9191, 0x7878), /* 5 light red / brown */
+	PALETTE_COLOR_INIT (0xc5c5, 0x8686, 0xc0c0), /* 6 purple */
+	PALETTE_COLOR_INIT (0xd7d7, 0xbaba, 0x7d7d), /* 7 orange */
+	PALETTE_COLOR_INIT (0xdcdc, 0xdcdc, 0xaaaa), /* 8 yellow */
+	PALETTE_COLOR_INIT (0xb5b5, 0xcece, 0xa8a8), /* 9 light green */
+	PALETTE_COLOR_INIT (0x4e4e, 0xc9c9, 0xb0b0), /* 10 aqua */
+	PALETTE_COLOR_INIT (0x9c9c, 0xdcdc, 0xfefe), /* 11 light aqua */
+	PALETTE_COLOR_INIT (0x3737, 0x9494, 0xffff), /* 12 light blue */
+	PALETTE_COLOR_INIT (0xd6d6, 0x7070, 0xd6d6), /* 13 pink */
+	PALETTE_COLOR_INIT (0x8080, 0x8080, 0x8080), /* 14 gray */
+	PALETTE_COLOR_INIT (0xc0c0, 0xc0c0, 0xc0c0), /* 15 light gray */
 	/* mIRC colors 16-31 (repeat) */
-	{0, 0xe5e5, 0xe5e5, 0xe5e5}, {0, 0x3c3c, 0x3c3c, 0x3c3c},
-	{0, 0x5656, 0x9c9c, 0xd6d6}, {0, 0x0d0d, 0xbcbc, 0x7979},
-	{0, 0xf4f4, 0x4747, 0x4747}, {0, 0xcece, 0x9191, 0x7878},
-	{0, 0xc5c5, 0x8686, 0xc0c0}, {0, 0xd7d7, 0xbaba, 0x7d7d},
-	{0, 0xdcdc, 0xdcdc, 0xaaaa}, {0, 0xb5b5, 0xcece, 0xa8a8},
-	{0, 0x4e4e, 0xc9c9, 0xb0b0}, {0, 0x9c9c, 0xdcdc, 0xfefe},
-	{0, 0x3737, 0x9494, 0xffff}, {0, 0xd6d6, 0x7070, 0xd6d6},
-	{0, 0x8080, 0x8080, 0x8080}, {0, 0xc0c0, 0xc0c0, 0xc0c0},
+	PALETTE_COLOR_INIT (0xe5e5, 0xe5e5, 0xe5e5), PALETTE_COLOR_INIT (0x3c3c, 0x3c3c, 0x3c3c),
+	PALETTE_COLOR_INIT (0x5656, 0x9c9c, 0xd6d6), PALETTE_COLOR_INIT (0x0d0d, 0xbcbc, 0x7979),
+	PALETTE_COLOR_INIT (0xf4f4, 0x4747, 0x4747), PALETTE_COLOR_INIT (0xcece, 0x9191, 0x7878),
+	PALETTE_COLOR_INIT (0xc5c5, 0x8686, 0xc0c0), PALETTE_COLOR_INIT (0xd7d7, 0xbaba, 0x7d7d),
+	PALETTE_COLOR_INIT (0xdcdc, 0xdcdc, 0xaaaa), PALETTE_COLOR_INIT (0xb5b5, 0xcece, 0xa8a8),
+	PALETTE_COLOR_INIT (0x4e4e, 0xc9c9, 0xb0b0), PALETTE_COLOR_INIT (0x9c9c, 0xdcdc, 0xfefe),
+	PALETTE_COLOR_INIT (0x3737, 0x9494, 0xffff), PALETTE_COLOR_INIT (0xd6d6, 0x7070, 0xd6d6),
+	PALETTE_COLOR_INIT (0x8080, 0x8080, 0x8080), PALETTE_COLOR_INIT (0xc0c0, 0xc0c0, 0xc0c0),
 
 	/* selection colors */
-	{0, 0xffff, 0xffff, 0xffff}, /* 32 COL_MARK_FG */
-	{0, 0x2626, 0x4f4f, 0x7878}, /* 33 COL_MARK_BG */
+	PALETTE_COLOR_INIT (0xffff, 0xffff, 0xffff), /* 32 COL_MARK_FG */
+	PALETTE_COLOR_INIT (0x2626, 0x4f4f, 0x7878), /* 33 COL_MARK_BG */
 
 	/* foreground/background */
-	{0, 0xd4d4, 0xd4d4, 0xd4d4}, /* 34 COL_FG */
-	{0, 0x1e1e, 0x1e1e, 0x1e1e}, /* 35 COL_BG */
+	PALETTE_COLOR_INIT (0xd4d4, 0xd4d4, 0xd4d4), /* 34 COL_FG */
+	PALETTE_COLOR_INIT (0x1e1e, 0x1e1e, 0x1e1e), /* 35 COL_BG */
 
 	/* interface colors */
-	{0, 0x4040, 0x4040, 0x4040}, /* 36 COL_MARKER (marker line) */
-	{0, 0x3737, 0x9494, 0xffff}, /* 37 COL_NEW_DATA (tab: new data) */
-	{0, 0xd7d7, 0xbaba, 0x7d7d}, /* 38 COL_HILIGHT (tab: nick mentioned) */
-	{0, 0xf4f4, 0x4747, 0x4747}, /* 39 COL_NEW_MSG (tab: new message) */
-	{0, 0x8080, 0x8080, 0x8080}, /* 40 COL_AWAY (tab: away) */
-	{0, 0xf4f4, 0x4747, 0x4747}, /* 41 COL_SPELL (spellcheck underline) */
+	PALETTE_COLOR_INIT (0x4040, 0x4040, 0x4040), /* 36 COL_MARKER (marker line) */
+	PALETTE_COLOR_INIT (0x3737, 0x9494, 0xffff), /* 37 COL_NEW_DATA (tab: new data) */
+	PALETTE_COLOR_INIT (0xd7d7, 0xbaba, 0x7d7d), /* 38 COL_HILIGHT (tab: nick mentioned) */
+	PALETTE_COLOR_INIT (0xf4f4, 0x4747, 0x4747), /* 39 COL_NEW_MSG (tab: new message) */
+	PALETTE_COLOR_INIT (0x8080, 0x8080, 0x8080), /* 40 COL_AWAY (tab: away) */
+	PALETTE_COLOR_INIT (0xf4f4, 0x4747, 0x4747), /* 41 COL_SPELL (spellcheck underline) */
 };
 
 void
@@ -168,7 +197,7 @@ palette_get_xtext_colors (XTextColor *palette, size_t palette_len)
 }
 
 void
-palette_user_set_color (int idx, const GdkColor *col)
+palette_user_set_color (int idx, const PaletteColor *col)
 {
 	if (!col)
 		return;
@@ -181,14 +210,18 @@ palette_user_set_color (int idx, const GdkColor *col)
 		user_colors_valid = TRUE;
 	}
 
+#if GTK_CHECK_VERSION(3,0,0)
+	user_colors[idx] = *col;
+#else
 	user_colors[idx].red = col->red;
 	user_colors[idx].green = col->green;
 	user_colors[idx].blue = col->blue;
 	user_colors[idx].pixel = 0;
+#endif
 }
 
 void
-palette_dark_set_color (int idx, const GdkColor *col)
+palette_dark_set_color (int idx, const PaletteColor *col)
 {
 	if (!col)
 		return;
@@ -202,15 +235,22 @@ palette_dark_set_color (int idx, const GdkColor *col)
 		dark_user_colors_valid = TRUE;
 	}
 
+#if GTK_CHECK_VERSION(3,0,0)
+	dark_user_colors[idx] = *col;
+#else
 	dark_user_colors[idx].red = col->red;
 	dark_user_colors[idx].green = col->green;
 	dark_user_colors[idx].blue = col->blue;
 	dark_user_colors[idx].pixel = 0;
+#endif
 }
 
 void
 palette_alloc (GtkWidget * widget)
 {
+#if GTK_CHECK_VERSION(3,0,0)
+	(void) widget;
+#else
 	int i;
 	static int done_alloc = FALSE;
 	GdkColormap *cmap;
@@ -222,6 +262,7 @@ palette_alloc (GtkWidget * widget)
 		for (i = MAX_COL; i >= 0; i--)
 			gdk_colormap_alloc_color (cmap, &colors[i], FALSE, TRUE);
 	}
+#endif
 }
 
 void
@@ -247,9 +288,7 @@ palette_load (void)
 			g_snprintf (prefname, sizeof prefname, "color_%d", i);
 			if (cfg_get_color (cfg, prefname, &red, &green, &blue))
 			{
-				colors[i].red = red;
-				colors[i].green = green;
-				colors[i].blue = blue;
+				palette_color_set_rgb16 (&colors[i], red, green, blue);
 			}
 		}
 
@@ -259,9 +298,7 @@ palette_load (void)
 			g_snprintf (prefname, sizeof prefname, "color_%d", i);
 			if (cfg_get_color (cfg, prefname, &red, &green, &blue))
 			{
-				colors[j].red = red;
-				colors[j].green = green;
-				colors[j].blue = blue;
+				palette_color_set_rgb16 (&colors[j], red, green, blue);
 			}
 		}
 
@@ -273,9 +310,7 @@ palette_load (void)
 			g_snprintf (prefname, sizeof prefname, "dark_color_%d", i);
 			if (cfg_get_color (cfg, prefname, &red, &green, &blue))
 			{
-				dark_user_colors[i].red = red;
-				dark_user_colors[i].green = green;
-				dark_user_colors[i].blue = blue;
+				palette_color_set_rgb16 (&dark_user_colors[i], red, green, blue);
 				dark_found = TRUE;
 			}
 		}
@@ -285,9 +320,7 @@ palette_load (void)
 			g_snprintf (prefname, sizeof prefname, "dark_color_%d", i);
 			if (cfg_get_color (cfg, prefname, &red, &green, &blue))
 			{
-				dark_user_colors[j].red = red;
-				dark_user_colors[j].green = green;
-				dark_user_colors[j].blue = blue;
+				palette_color_set_rgb16 (&dark_user_colors[j], red, green, blue);
 				dark_found = TRUE;
 			}
 		}
@@ -309,8 +342,8 @@ palette_save (void)
 {
 	int i, j, fh;
 	char prefname[256];
-	const GdkColor *lightpal = colors;
-	const GdkColor *darkpal = NULL;
+	const PaletteColor *lightpal = colors;
+	const PaletteColor *darkpal = NULL;
 	gboolean dark_mode_active = fe_dark_mode_is_enabled ();
 
 	/* If we're currently in dark mode, keep colors.conf's legacy keys as the user's light palette. */
@@ -343,13 +376,25 @@ palette_save (void)
 		for (i = 0; i < 32; i++)
 		{
 			g_snprintf (prefname, sizeof prefname, "color_%d", i);
-			cfg_put_color (fh, lightpal[i].red, lightpal[i].green, lightpal[i].blue, prefname);
+			guint16 red;
+			guint16 green;
+			guint16 blue;
+
+			palette_color_get_rgb16 (&lightpal[i], &red, &green, &blue);
+			cfg_put_color (fh, red, green, blue, prefname);
 		}
 
 		for (i = 256, j = 32; j < MAX_COL + 1; i++, j++)
 		{
 			g_snprintf (prefname, sizeof prefname, "color_%d", i);
-			cfg_put_color (fh, lightpal[j].red, lightpal[j].green, lightpal[j].blue, prefname);
+			{
+				guint16 red;
+				guint16 green;
+				guint16 blue;
+
+				palette_color_get_rgb16 (&lightpal[j], &red, &green, &blue);
+				cfg_put_color (fh, red, green, blue, prefname);
+			}
 		}
 
 		/* Dark palette (new keys) */
@@ -358,13 +403,25 @@ palette_save (void)
 			for (i = 0; i < 32; i++)
 			{
 				g_snprintf (prefname, sizeof prefname, "dark_color_%d", i);
-				cfg_put_color (fh, darkpal[i].red, darkpal[i].green, darkpal[i].blue, prefname);
+				guint16 red;
+				guint16 green;
+				guint16 blue;
+
+				palette_color_get_rgb16 (&darkpal[i], &red, &green, &blue);
+				cfg_put_color (fh, red, green, blue, prefname);
 			}
 
 			for (i = 256, j = 32; j < MAX_COL + 1; i++, j++)
 			{
 				g_snprintf (prefname, sizeof prefname, "dark_color_%d", i);
-				cfg_put_color (fh, darkpal[j].red, darkpal[j].green, darkpal[j].blue, prefname);
+				{
+					guint16 red;
+					guint16 green;
+					guint16 blue;
+
+					palette_color_get_rgb16 (&darkpal[j], &red, &green, &blue);
+					cfg_put_color (fh, red, green, blue, prefname);
+				}
 			}
 		}
 
@@ -374,16 +431,25 @@ palette_save (void)
 
 
 static gboolean
-palette_color_eq (const GdkColor *a, const GdkColor *b)
+palette_color_eq (const PaletteColor *a, const PaletteColor *b)
 {
-	return a->red == b->red && a->green == b->green && a->blue == b->blue;
+	guint16 red_a;
+	guint16 green_a;
+	guint16 blue_a;
+	guint16 red_b;
+	guint16 green_b;
+	guint16 blue_b;
+
+	palette_color_get_rgb16 (a, &red_a, &green_a, &blue_a);
+	palette_color_get_rgb16 (b, &red_b, &green_b, &blue_b);
+
+	return red_a == red_b && green_a == green_b && blue_a == blue_b;
 }
 
 gboolean
 palette_apply_dark_mode (gboolean enable)
 {
-	GdkColor old_colors[MAX_COL + 1];
-	GdkColormap *cmap;
+	PaletteColor old_colors[MAX_COL + 1];
 	int i;
 	gboolean changed = FALSE;
 
@@ -407,15 +473,19 @@ palette_apply_dark_mode (gboolean enable)
 		memcpy (colors, user_colors, sizeof (colors));
 
 	/* Allocate the new colors for GTK's colormap. */
-	cmap = gdk_colormap_get_system ();
-	for (i = 0; i <= MAX_COL; i++)
-		gdk_colormap_alloc_color (cmap, &colors[i], FALSE, TRUE);
+#if !GTK_CHECK_VERSION(3,0,0)
+	{
+		GdkColormap *cmap;
+
+		cmap = gdk_colormap_get_system ();
+		for (i = 0; i <= MAX_COL; i++)
+			gdk_colormap_alloc_color (cmap, &colors[i], FALSE, TRUE);
+	}
+#endif
 
 	for (i = 0; i <= MAX_COL; i++)
 	{
-		if (old_colors[i].red != colors[i].red ||
-			 old_colors[i].green != colors[i].green ||
-			 old_colors[i].blue != colors[i].blue)
+		if (!palette_color_eq (&old_colors[i], &colors[i]))
 		{
 			changed = TRUE;
 			break;

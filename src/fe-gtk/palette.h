@@ -24,7 +24,29 @@
 
 #include "xtext-color.h"
 
-extern GdkColor colors[];
+#if GTK_CHECK_VERSION(3,0,0)
+typedef GdkRGBA PaletteColor;
+#define PALETTE_GDK_TYPE GDK_TYPE_RGBA
+#else
+typedef GdkColor PaletteColor;
+#define PALETTE_GDK_TYPE GDK_TYPE_COLOR
+#endif
+
+extern PaletteColor colors[];
+
+static inline void
+palette_color_get_rgb16 (const PaletteColor *color, guint16 *red, guint16 *green, guint16 *blue)
+{
+#if GTK_CHECK_VERSION(3,0,0)
+	*red = (guint16) CLAMP (color->red * 65535.0 + 0.5, 0.0, 65535.0);
+	*green = (guint16) CLAMP (color->green * 65535.0 + 0.5, 0.0, 65535.0);
+	*blue = (guint16) CLAMP (color->blue * 65535.0 + 0.5, 0.0, 65535.0);
+#else
+	*red = color->red;
+	*green = color->green;
+	*blue = color->blue;
+#endif
+}
 
 #define COL_MARK_FG 32
 #define COL_MARK_BG 33
@@ -43,8 +65,8 @@ void palette_load (void);
 void palette_save (void);
 
 /* Keep a copy of the user's palette so dark mode can be toggled without losing it. */
-void palette_user_set_color (int idx, const GdkColor *col);
-void palette_dark_set_color (int idx, const GdkColor *col);
+void palette_user_set_color (int idx, const PaletteColor *col);
+void palette_dark_set_color (int idx, const PaletteColor *col);
 
 /*
  * Apply ZoiteChat's built-in "dark mode" palette.

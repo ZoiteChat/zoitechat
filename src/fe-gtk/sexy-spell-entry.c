@@ -342,8 +342,12 @@ insert_underline_error (SexySpellEntry *entry, guint start, guint end)
 {
 	PangoAttribute *ucolor;
 	PangoAttribute *unline;
+	guint16 red;
+	guint16 green;
+	guint16 blue;
 
-	ucolor = pango_attr_underline_color_new (colors[COL_SPELL].red, colors[COL_SPELL].green, colors[COL_SPELL].blue);
+	palette_color_get_rgb16 (&colors[COL_SPELL], &red, &green, &blue);
+	ucolor = pango_attr_underline_color_new (red, green, blue);
 	unline = pango_attr_underline_new (PANGO_UNDERLINE_ERROR);
 
 	ucolor->start_index = start;
@@ -406,22 +410,33 @@ insert_color (SexySpellEntry *entry, guint start, int fgcolor, int bgcolor)
 	PangoAttribute *fgattr;
 	PangoAttribute *ulattr;
 	PangoAttribute *bgattr;
+	guint16 red;
+	guint16 green;
+	guint16 blue;
 
 	if (fgcolor < 0 || fgcolor > MAX_COL)
 	{
-		fgattr = pango_attr_foreground_new (colors[COL_FG].red, colors[COL_FG].green, colors[COL_FG].blue);
-		ulattr = pango_attr_underline_color_new (colors[COL_FG].red, colors[COL_FG].green, colors[COL_FG].blue);
+		palette_color_get_rgb16 (&colors[COL_FG], &red, &green, &blue);
+		fgattr = pango_attr_foreground_new (red, green, blue);
+		ulattr = pango_attr_underline_color_new (red, green, blue);
 	}
 	else
 	{
-		fgattr = pango_attr_foreground_new (colors[fgcolor].red, colors[fgcolor].green, colors[fgcolor].blue);
-		ulattr = pango_attr_underline_color_new (colors[fgcolor].red, colors[fgcolor].green, colors[fgcolor].blue);
+		palette_color_get_rgb16 (&colors[fgcolor], &red, &green, &blue);
+		fgattr = pango_attr_foreground_new (red, green, blue);
+		ulattr = pango_attr_underline_color_new (red, green, blue);
 	}
 
 	if (bgcolor < 0 || bgcolor > MAX_COL)
-		bgattr = pango_attr_background_new (colors[COL_BG].red, colors[COL_BG].green, colors[COL_BG].blue);
+	{
+		palette_color_get_rgb16 (&colors[COL_BG], &red, &green, &blue);
+		bgattr = pango_attr_background_new (red, green, blue);
+	}
 	else
-		bgattr = pango_attr_background_new (colors[bgcolor].red, colors[bgcolor].green, colors[bgcolor].blue);
+	{
+		palette_color_get_rgb16 (&colors[bgcolor], &red, &green, &blue);
+		bgattr = pango_attr_background_new (red, green, blue);
+	}
 
 	fgattr->start_index = start;
 	fgattr->end_index = PANGO_ATTR_INDEX_TO_TEXT_END;

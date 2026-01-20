@@ -64,7 +64,7 @@ notify_closegui (void)
 }
 
 /* Need this to be able to set the foreground colour property of a row
- * from a GdkColor * in the model  -Vince
+ * from a PaletteColor * in the model  -Vince
  */
 static void
 notify_treecell_property_mapper (GtkTreeViewColumn *col, GtkCellRenderer *cell,
@@ -72,14 +72,18 @@ notify_treecell_property_mapper (GtkTreeViewColumn *col, GtkCellRenderer *cell,
                                  gpointer data)
 {
 	gchar *text;
-	GdkColor *colour;
+	PaletteColor *colour;
 	int model_column = GPOINTER_TO_INT (data);
 
 	gtk_tree_model_get (GTK_TREE_MODEL (model), iter, 
 	                    COLOUR_COLUMN, &colour,
 	                    model_column, &text, -1);
 	g_object_set (G_OBJECT (cell), "text", text, NULL);
+#if GTK_CHECK_VERSION(3,0,0)
+	g_object_set (G_OBJECT (cell), "foreground-rgba", colour, NULL);
+#else
 	g_object_set (G_OBJECT (cell), "foreground-gdk", colour, NULL);
+#endif
 	g_free (text);
 }
 
@@ -113,7 +117,7 @@ notify_treeview_new (GtkWidget *box)
 	                            G_TYPE_STRING,
 	                            G_TYPE_STRING,
 	                            G_TYPE_STRING,
-	                            G_TYPE_POINTER,	/* can't specify colour! */
+	                            PALETTE_GDK_TYPE,
 										 G_TYPE_POINTER
 	                           );
 	g_return_val_if_fail (store != NULL, NULL);

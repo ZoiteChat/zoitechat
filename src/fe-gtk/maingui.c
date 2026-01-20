@@ -1661,9 +1661,14 @@ mg_create_color_menu (GtkWidget *menu, session *sess)
 
         for (i = 0; i < 8; i++)
         {
+                guint16 red;
+                guint16 green;
+                guint16 blue;
+
+                palette_color_get_rgb16 (&colors[i], &red, &green, &blue);
                 sprintf (buf, "<tt><sup>%02d</sup> <span background=\"#%02x%02x%02x\">"
                                         "   </span></tt>",
-                                i, colors[i].red >> 8, colors[i].green >> 8, colors[i].blue >> 8);
+                                i, red >> 8, green >> 8, blue >> 8);
                 mg_markup_item (subsubmenu, buf, i);
         }
 
@@ -1671,9 +1676,14 @@ mg_create_color_menu (GtkWidget *menu, session *sess)
 
         for (i = 8; i < 16; i++)
         {
+                guint16 red;
+                guint16 green;
+                guint16 blue;
+
+                palette_color_get_rgb16 (&colors[i], &red, &green, &blue);
                 sprintf (buf, "<tt><sup>%02d</sup> <span background=\"#%02x%02x%02x\">"
                                         "   </span></tt>",
-                                i, colors[i].red >> 8, colors[i].green >> 8, colors[i].blue >> 8);
+                                i, red >> 8, green >> 8, blue >> 8);
                 mg_markup_item (subsubmenu, buf, i);
         }
 }

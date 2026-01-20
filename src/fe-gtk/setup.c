@@ -1485,9 +1485,19 @@ setup_create_dark_mode_menu (GtkWidget *table, int row, const setting *set)
 }
 
 static void
-setup_color_button_apply (GtkWidget *button, const GdkColor *color)
+setup_color_button_apply (GtkWidget *button, const PaletteColor *color)
 {
 	GtkWidget *target = g_object_get_data (G_OBJECT (button), "zoitechat-color-box");
+	GtkWidget *apply_widget = GTK_IS_WIDGET (target) ? target : button;
+#if GTK_CHECK_VERSION(3,0,0)
+	GtkStateFlags states[] = {
+		GTK_STATE_FLAG_NORMAL,
+		GTK_STATE_FLAG_PRELIGHT,
+		GTK_STATE_FLAG_ACTIVE,
+		GTK_STATE_FLAG_SELECTED,
+		GTK_STATE_FLAG_INSENSITIVE
+	};
+#else
 	GtkStateType states[] = {
 		GTK_STATE_NORMAL,
 		GTK_STATE_PRELIGHT,
@@ -1495,19 +1505,55 @@ setup_color_button_apply (GtkWidget *button, const GdkColor *color)
 		GTK_STATE_SELECTED,
 		GTK_STATE_INSENSITIVE
 	};
+#endif
 	guint i;
-	GtkWidget *apply_widget = GTK_IS_WIDGET (target) ? target : button;
 
 	for (i = 0; i < G_N_ELEMENTS (states); i++)
+#if GTK_CHECK_VERSION(3,0,0)
+		gtk_widget_override_background_color (apply_widget, states[i], color);
+#else
 		gtk_widget_modify_bg (apply_widget, states[i], color);
+#endif
 
 	if (apply_widget != button)
 		for (i = 0; i < G_N_ELEMENTS (states); i++)
+#if GTK_CHECK_VERSION(3,0,0)
+			gtk_widget_override_background_color (button, states[i], color);
+#else
 			gtk_widget_modify_bg (button, states[i], color);
+#endif
 
 	gtk_widget_queue_draw (button);
 }
 
+#if GTK_CHECK_VERSION(3,0,0)
+typedef struct
+{
+	GtkWidget *button;
+	PaletteColor *color;
+} setup_color_dialog_data;
+
+static void
+setup_color_response_cb (GtkDialog *dialog, gint response_id, gpointer user_data)
+{
+	setup_color_dialog_data *data = user_data;
+
+	if (response_id == GTK_RESPONSE_OK)
+	{
+		gtk_color_chooser_get_rgba (GTK_COLOR_CHOOSER (dialog), data->color);
+		color_change = TRUE;
+		setup_color_button_apply (data->button, data->color);
+
+		if (fe_dark_mode_is_enabled_for (setup_prefs.hex_gui_dark_mode))
+			palette_dark_set_color ((int)(data->color - colors), data->color);
+		else
+			palette_user_set_color ((int)(data->color - colors), data->color);
+	}
+
+	gtk_widget_destroy (GTK_WIDGET (dialog));
+	g_free (data);
+}
+#else
 static void
 setup_color_ok_cb (GtkWidget *button, GtkWidget *dialog)
 {
@@ -1529,12 +1575,16 @@ setup_color_ok_cb (GtkWidget *button, GtkWidget *dialog)
 
         gtk_color_selection_get_current_color (GTK_COLOR_SELECTION (gtk_color_selection_dialog_get_color_selection (cdialog)), col);
 
+#if !GTK_CHECK_VERSION(3,0,0)
         gdk_colormap_alloc_color (gtk_widget_get_colormap (button), col, TRUE, TRUE);
+#endif
 
         setup_color_button_apply (button, col);
 
         /* is this line correct?? */
+#if !GTK_CHECK_VERSION(3,0,0)
         gdk_colormap_free_colors (gtk_widget_get_colormap (button), &old_color, 1);
+#endif
 
 	/* Persist custom colors for the palette the user is editing. */
 	if (fe_dark_mode_is_enabled_for (setup_prefs.hex_gui_dark_mode))
@@ -1544,10 +1594,28 @@ setup_color_ok_cb (GtkWidget *button, GtkWidget *dialog)
 
         gtk_widget_destroy (dialog);
 }
+#endif
 
 static void
 setup_color_cb (GtkWidget *button, gpointer userdata)
 {
+#if GTK_CHECK_VERSION(3,0,0)
+        GtkWidget *dialog;
+        PaletteColor *color;
+        setup_color_dialog_data *data;
+
+        color = &colors[GPOINTER_TO_INT (userdata)];
+
+        dialog = gtk_color_chooser_dialog_new (_("Select color"), GTK_WINDOW (setup_window));
+        gtk_color_chooser_set_rgba (GTK_COLOR_CHOOSER (dialog), color);
+        gtk_window_set_modal (GTK_WINDOW (dialog), TRUE);
+
+        data = g_new0 (setup_color_dialog_data, 1);
+        data->button = button;
+        data->color = color;
+        g_signal_connect (dialog, "response", G_CALLBACK (setup_color_response_cb), data);
+        gtk_widget_show (dialog);
+#else
         GtkWidget *dialog, *cancel_button, *ok_button, *help_button;
         GtkColorSelectionDialog *cdialog;
         GdkColor *color;
@@ -1577,6 +1645,7 @@ setup_color_cb (GtkWidget *button, gpointer userdata)
         g_object_unref (cancel_button);
         g_object_unref (ok_button);
         g_object_unref (help_button);
+#endif
 }
 
 static void
@@ -2427,9 +2496,15 @@ setup_create_tree (GtkWidget *box, GtkWidget *book)
 static void
 setup_apply_entry_style (GtkWidget *entry)
 {
+#if GTK_CHECK_VERSION(3,0,0)
+        gtk_widget_override_background_color (entry, GTK_STATE_FLAG_NORMAL, &colors[COL_BG]);
+        gtk_widget_override_color (entry, GTK_STATE_FLAG_NORMAL, &colors[COL_FG]);
+        gtk_widget_override_font (entry, input_style->font_desc);
+#else
         gtk_widget_modify_base (entry, GTK_STATE_NORMAL, &colors[COL_BG]);
         gtk_widget_modify_text (entry, GTK_STATE_NORMAL, &colors[COL_FG]);
         gtk_widget_modify_font (entry, input_style->font_desc);
+#endif
 }
 
 static void
@@ -2441,7 +2516,22 @@ setup_apply_to_sess (session_gui *gui)
         if (prefs.hex_gui_ulist_style)
                 gtk_widget_modify_font (gui->user_tree, input_style->font_desc);
 
-	if (prefs.hex_gui_ulist_style || fe_dark_mode_is_enabled ())
+#if GTK_CHECK_VERSION(3,0,0)
+        if (prefs.hex_gui_ulist_style || fe_dark_mode_is_enabled ())
+	{
+		gtk_widget_override_background_color (gui->user_tree, GTK_STATE_FLAG_NORMAL, &colors[COL_BG]);
+		if (fe_dark_mode_is_enabled ())
+			gtk_widget_override_color (gui->user_tree, GTK_STATE_FLAG_NORMAL, &colors[COL_FG]);
+		else
+			gtk_widget_override_color (gui->user_tree, GTK_STATE_FLAG_NORMAL, NULL);
+        }
+        else
+        {
+                gtk_widget_override_background_color (gui->user_tree, GTK_STATE_FLAG_NORMAL, NULL);
+                gtk_widget_override_color (gui->user_tree, GTK_STATE_FLAG_NORMAL, NULL);
+        }
+#else
+        if (prefs.hex_gui_ulist_style || fe_dark_mode_is_enabled ())
 	{
 		gtk_widget_modify_base (gui->user_tree, GTK_STATE_NORMAL, &colors[COL_BG]);
 		if (fe_dark_mode_is_enabled ())
@@ -2454,9 +2544,37 @@ setup_apply_to_sess (session_gui *gui)
                 gtk_widget_modify_base (gui->user_tree, GTK_STATE_NORMAL, NULL);
                 gtk_widget_modify_text (gui->user_tree, GTK_STATE_NORMAL, NULL);
         }
+#endif
 
         if (prefs.hex_gui_input_style)
         {
+#if GTK_CHECK_VERSION(3,0,0)
+                guint8 red = (guint8) CLAMP (colors[COL_FG].red * 255.0 + 0.5, 0.0, 255.0);
+                guint8 green = (guint8) CLAMP (colors[COL_FG].green * 255.0 + 0.5, 0.0, 255.0);
+                guint8 blue = (guint8) CLAMP (colors[COL_FG].blue * 255.0 + 0.5, 0.0, 255.0);
+                char buf[128];
+                GtkCssProvider *provider = gtk_css_provider_new ();
+                GtkStyleContext *context;
+
+                g_snprintf (buf, sizeof (buf), ".zoitechat-inputbox { caret-color: #%02x%02x%02x; }",
+                            red, green, blue);
+                gtk_css_provider_load_from_data (provider, buf, -1, NULL);
+
+                context = gtk_widget_get_style_context (gui->input_box);
+                gtk_style_context_add_provider (context, GTK_STYLE_PROVIDER (provider),
+                                                GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+                context = gtk_widget_get_style_context (gui->limit_entry);
+                gtk_style_context_add_provider (context, GTK_STYLE_PROVIDER (provider),
+                                                GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+                context = gtk_widget_get_style_context (gui->key_entry);
+                gtk_style_context_add_provider (context, GTK_STYLE_PROVIDER (provider),
+                                                GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+                context = gtk_widget_get_style_context (gui->topic_entry);
+                gtk_style_context_add_provider (context, GTK_STYLE_PROVIDER (provider),
+                                                GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+
+                g_object_unref (provider);
+#else
                 extern char cursor_color_rc[];
                 char buf[256];
                 sprintf (buf, cursor_color_rc,
@@ -2464,6 +2582,7 @@ setup_apply_to_sess (session_gui *gui)
                                 (colors[COL_FG].green >> 8),
                                 (colors[COL_FG].blue >> 8));
                 gtk_rc_parse_string (buf);
+#endif
 
                 setup_apply_entry_style (gui->input_box);
                 setup_apply_entry_style (gui->limit_entry);

@@ -46,7 +46,7 @@ enum
 	COL_NICK=1,		/* char * */
 	COL_HOST=2,		/* char * */
 	COL_USER=3,		/* struct User * */
-	COL_GDKCOLOR=4	/* GdkColor * */
+	COL_GDKCOLOR=4	/* PaletteColor * */
 };
 
 
@@ -475,7 +475,7 @@ userlist_create_model (session *sess)
 	GtkSortType sort_type;
 
 	store = gtk_list_store_new (5, GDK_TYPE_PIXBUF, G_TYPE_STRING, G_TYPE_STRING,
-										G_TYPE_POINTER, GDK_TYPE_COLOR);
+										G_TYPE_POINTER, PALETTE_GDK_TYPE);
 
 	switch (prefs.hex_gui_ulist_sort)
 	{
@@ -528,7 +528,11 @@ userlist_add_columns (GtkTreeView * treeview)
 	gtk_cell_renderer_text_set_fixed_height_from_font (GTK_CELL_RENDERER_TEXT (renderer), 1);
 	gtk_tree_view_insert_column_with_attributes (GTK_TREE_VIEW (treeview),
 																-1, NULL, renderer,
+#if GTK_CHECK_VERSION(3,0,0)
+													"text", 1, "foreground-rgba", 4, NULL);
+#else
 													"text", 1, "foreground-gdk", 4, NULL);
+#endif
 
 	if (prefs.hex_gui_ulist_show_hosts)
 	{

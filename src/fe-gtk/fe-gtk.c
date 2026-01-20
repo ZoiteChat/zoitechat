@@ -425,8 +425,14 @@ create_input_style (GtkStyle *style)
 		g_free (theme_name);
 
 		done_rc = TRUE;
-		sprintf (buf, cursor_color_rc, (colors[COL_FG].red >> 8),
-			(colors[COL_FG].green >> 8), (colors[COL_FG].blue >> 8));
+		{
+			guint16 red;
+			guint16 green;
+			guint16 blue;
+
+			palette_color_get_rgb16 (&colors[COL_FG], &red, &green, &blue);
+			sprintf (buf, cursor_color_rc, (red >> 8), (green >> 8), (blue >> 8));
+		}
 		gtk_rc_parse_string (buf);
 	}
 
