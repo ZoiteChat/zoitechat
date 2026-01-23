@@ -151,6 +151,16 @@ static gboolean gtk_xtext_search_init (xtext_buffer *buf, const gchar *text, gtk
 static char * gtk_xtext_get_word (GtkXText * xtext, int x, int y, textentry ** ret_ent, int *ret_off, int *ret_len, GSList **slp);
 
 static inline void
+gtk_xtext_cursor_unref (GdkCursor *cursor)
+{
+#if !HAVE_GTK3
+	gdk_cursor_unref (cursor);
+#else
+	g_object_unref (cursor);
+#endif
+}
+
+static inline void
 xtext_set_source_color (cairo_t *cr, const XTextColor *color, gdouble alpha)
 {
 	cairo_set_source_rgba (cr, color->red, color->green,
@@ -689,21 +699,13 @@ gtk_xtext_destroy (GtkObject * object)
 
 	if (xtext->hand_cursor)
 	{
-#if !HAVE_GTK3
-		gdk_cursor_unref (xtext->hand_cursor);
-#else
-		g_object_unref (xtext->hand_cursor);
-#endif
+		gtk_xtext_cursor_unref (xtext->hand_cursor);
 		xtext->hand_cursor = NULL;
 	}
 
 	if (xtext->resize_cursor)
 	{
-#if !HAVE_GTK3
-		gdk_cursor_unref (xtext->resize_cursor);
-#else
-		g_object_unref (xtext->resize_cursor);
-#endif
+		gtk_xtext_cursor_unref (xtext->resize_cursor);
 		xtext->resize_cursor = NULL;
 	}
 
