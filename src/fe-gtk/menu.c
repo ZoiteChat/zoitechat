@@ -2046,7 +2046,9 @@ create_icon_menu (char *labeltext, void *stock_name, int is_stock)
 	if (is_stock)
 	{
 #if HAVE_GTK3
-		img = gtk_image_new_from_icon_name (stock_name, GTK_ICON_SIZE_MENU);
+		const char *icon_name = menu_icon_name_from_stock (stock_name);
+
+		img = gtk_image_new_from_icon_name (icon_name, GTK_ICON_SIZE_MENU);
 #endif
 #if !HAVE_GTK3
 		img = gtk_image_new_from_stock (stock_name, GTK_ICON_SIZE_MENU);
