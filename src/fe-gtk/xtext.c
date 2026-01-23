@@ -689,13 +689,21 @@ gtk_xtext_destroy (GtkObject * object)
 
 	if (xtext->hand_cursor)
 	{
+#if HAVE_GTK3
+		g_object_unref (xtext->hand_cursor);
+#else
 		gdk_cursor_unref (xtext->hand_cursor);
+#endif
 		xtext->hand_cursor = NULL;
 	}
 
 	if (xtext->resize_cursor)
 	{
+#if HAVE_GTK3
+		g_object_unref (xtext->resize_cursor);
+#else
 		gdk_cursor_unref (xtext->resize_cursor);
+#endif
 		xtext->resize_cursor = NULL;
 	}
 
@@ -719,6 +727,33 @@ gtk_xtext_unrealize (GtkWidget * widget)
 
 	if (parent_class->unrealize)
 		(* GTK_WIDGET_CLASS (parent_class)->unrealize) (widget);
+}
+
+static void
+gtk_xtext_get_pointer (GdkWindow *window, gint *x, gint *y, GdkModifierType *mask)
+{
+#if HAVE_GTK3
+	GdkDisplay *display = gdk_window_get_display (window);
+	GdkSeat *seat = gdk_display_get_default_seat (display);
+	GdkDevice *device = gdk_seat_get_pointer (seat);
+	GdkScreen *screen = NULL;
+	gint root_x = 0;
+	gint root_y = 0;
+	gint win_x = 0;
+	gint win_y = 0;
+
+	gdk_device_get_position (device, &screen, &root_x, &root_y);
+	gdk_window_get_origin (window, &win_x, &win_y);
+
+	if (x)
+		*x = root_x - win_x;
+	if (y)
+		*y = root_y - win_y;
+	if (mask)
+		gdk_device_get_state (device, window, NULL, mask);
+#else
+	gdk_window_get_pointer (window, x, y, mask);
+#endif
 }
 
 static void
@@ -786,7 +821,11 @@ gtk_xtext_realize (GtkWidget * widget)
 	xtext->hand_cursor = gdk_cursor_new_for_display (gdk_window_get_display (widget->window), GDK_HAND1);
 	xtext->resize_cursor = gdk_cursor_new_for_display (gdk_window_get_display (widget->window), GDK_LEFT_SIDE);
 
+#if HAVE_GTK3
+	gdk_window_set_background_pattern (widget->window, NULL);
+#else
 	gdk_window_set_back_pixmap (widget->window, NULL, FALSE);
+#endif
 
 	backend_init (xtext);
 }
@@ -1467,7 +1506,7 @@ gtk_xtext_scrolldown_timeout (GtkXText * xtext)
 	xtext_buffer *buf = xtext->buffer;
 	GtkAdjustment *adj = xtext->adj;
 
-	gdk_window_get_pointer (GTK_WIDGET (xtext)->window, 0, &p_y, 0);
+	gtk_xtext_get_pointer (GTK_WIDGET (xtext)->window, NULL, &p_y, NULL);
 	win_height = gdk_window_get_height (gtk_widget_get_window (GTK_WIDGET (xtext)));
 
 	if (buf->last_ent_end == NULL ||	/* If context has changed OR */
@@ -1501,7 +1540,7 @@ gtk_xtext_scrollup_timeout (GtkXText * xtext)
 	GtkAdjustment *adj = xtext->adj;
 	int delta_y;
 
-	gdk_window_get_pointer (GTK_WIDGET (xtext)->window, 0, &p_y, 0);
+	gtk_xtext_get_pointer (GTK_WIDGET (xtext)->window, NULL, &p_y, NULL);
 
 	if (buf->last_ent_start == NULL ||	/* If context has changed OR */
 		 buf->pagetop_ent == NULL ||		/* pagetop_ent is reset OR */
@@ -1769,7 +1808,7 @@ gtk_xtext_motion_notify (GtkWidget * widget, GdkEventMotion * event)
 	textentry *word_ent;
 	int word_type;
 
-	gdk_window_get_pointer (widget->window, &x, &y, &mask);
+	gtk_xtext_get_pointer (widget->window, &x, &y, &mask);
 
 	if (xtext->moving_separator)
 	{
@@ -2023,7 +2062,7 @@ gtk_xtext_button_press (GtkWidget * widget, GdkEventButton * event)
 	unsigned char *word;
 	int line_x, x, y, offset, len;
 
-	gdk_window_get_pointer (widget->window, &x, &y, &mask);
+	gtk_xtext_get_pointer (widget->window, &x, &y, &mask);
 
 	if (event->button == 3 || event->button == 2) /* right/middle click */
 	{
