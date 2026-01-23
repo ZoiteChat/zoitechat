@@ -1534,6 +1534,15 @@ typedef struct
 } setup_color_dialog_data;
 
 static void
+setup_rgba_from_palette (const PaletteColor *color, GdkRGBA *rgba)
+{
+	g_autofree char *color_string = gdk_rgba_to_string (color);
+
+	if (!color_string || !gdk_rgba_parse (rgba, color_string))
+		*rgba = *color;
+}
+
+static void
 setup_color_response_cb (GtkDialog *dialog, gint response_id, gpointer user_data)
 {
 	setup_color_dialog_data *data = user_data;
@@ -1595,17 +1604,12 @@ setup_color_cb (GtkWidget *button, gpointer userdata)
         GtkWidget *dialog;
         PaletteColor *color;
         GdkRGBA rgba;
-        gboolean parsed_ok;
-        g_autofree char *color_string = NULL;
         setup_color_dialog_data *data;
 
         color = &colors[GPOINTER_TO_INT (userdata)];
 
         dialog = gtk_color_chooser_dialog_new (_("Select color"), GTK_WINDOW (setup_window));
-        color_string = gdk_rgba_to_string (color);
-        parsed_ok = color_string && gdk_rgba_parse (&rgba, color_string);
-        if (!parsed_ok)
-                rgba = *color;
+        setup_rgba_from_palette (color, &rgba);
         gtk_color_chooser_set_rgba (GTK_COLOR_CHOOSER (dialog), &rgba);
         gtk_window_set_modal (GTK_WINDOW (dialog), TRUE);
 

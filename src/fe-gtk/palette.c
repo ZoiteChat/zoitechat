@@ -468,7 +468,7 @@ palette_apply_dark_mode (gboolean enable)
 	else
 		memcpy (colors, user_colors, sizeof (colors));
 
-	/* Allocate the new colors for GTK's colormap. */
+	/* Track whether any palette entries changed. */
 	(void) i;
 
 	for (i = 0; i <= MAX_COL; i++)

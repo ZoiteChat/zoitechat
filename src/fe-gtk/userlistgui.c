@@ -533,6 +533,11 @@ static void
 userlist_add_columns (GtkTreeView * treeview)
 {
 	GtkCellRenderer *renderer;
+#if GTK_CHECK_VERSION(3,0,0)
+	const char *foreground_property = "foreground-rgba";
+#else
+	const char *foreground_property = "foreground-gdk";
+#endif
 
 	/* icon column */
 	renderer = gtk_cell_renderer_pixbuf_new ();
@@ -549,7 +554,7 @@ userlist_add_columns (GtkTreeView * treeview)
 	gtk_cell_renderer_text_set_fixed_height_from_font (GTK_CELL_RENDERER_TEXT (renderer), 1);
 	gtk_tree_view_insert_column_with_attributes (GTK_TREE_VIEW (treeview),
 																-1, NULL, renderer,
-													"text", 1, PALETTE_FOREGROUND_PROPERTY, 4, NULL);
+													"text", 1, foreground_property, 4, NULL);
 
 	if (prefs.hex_gui_ulist_show_hosts)
 	{
