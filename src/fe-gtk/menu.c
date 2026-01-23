@@ -581,7 +581,21 @@ menu_popup (GtkWidget *menu, GdkEventButton *event, gpointer objtounref)
 	g_signal_connect (G_OBJECT (menu), "selection-done",
 							G_CALLBACK (menu_destroy), objtounref);
 #if HAVE_GTK3
-	gtk_menu_popup_at_pointer (GTK_MENU (menu), (GdkEvent *)event);
+	if (event)
+	{
+		gtk_menu_popup_at_pointer (GTK_MENU (menu), (GdkEvent *)event);
+	}
+	else if (parent_window)
+	{
+		gtk_menu_popup_at_widget (GTK_MENU (menu), GTK_WIDGET (parent_window),
+										  GDK_GRAVITY_SOUTH_WEST,
+										  GDK_GRAVITY_NORTH_WEST,
+										  NULL);
+	}
+	else
+	{
+		gtk_menu_popup_at_pointer (GTK_MENU (menu), NULL);
+	}
 #endif
 #if !HAVE_GTK3
 	gtk_menu_popup (GTK_MENU (menu), NULL, NULL, NULL, NULL,
