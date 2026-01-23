@@ -644,11 +644,11 @@ sexy_spell_entry_icon_menu_item (const char *label, const char *stock_name)
 	box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 6);
 	image = gtk_image_new_from_icon_name (icon_name, GTK_ICON_SIZE_MENU);
 	label_widget = gtk_label_new_with_mnemonic (label);
-	gtk_box_pack_start (GTK_BOX (box), image, FALSE, FALSE, 0);
+	if (image)
+		gtk_box_pack_start (GTK_BOX (box), image, FALSE, FALSE, 0);
 	gtk_box_pack_start (GTK_BOX (box), label_widget, FALSE, FALSE, 0);
 	gtk_container_add (GTK_CONTAINER (item), box);
-#endif
-#if !HAVE_GTK3
+#else
 	GtkWidget *image;
 
 	item = gtk_image_menu_item_new_with_label (label);
