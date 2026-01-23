@@ -752,9 +752,7 @@ gtkutil_treeview_get_selected (GtkTreeView *view, GtkTreeIter *iter_ret, ...)
 gboolean
 gtkutil_tray_icon_supported (GtkWindow *window)
 {
-#ifndef GDK_WINDOWING_X11
-	return TRUE;
-#else
+#ifdef GDK_WINDOWING_X11
 	GdkScreen *screen = gtk_window_get_screen (window);
 	GdkDisplay *display = gdk_screen_get_display (screen);
 	int screen_number = gdk_screen_get_number (screen);
@@ -772,6 +770,8 @@ gtkutil_tray_icon_supported (GtkWindow *window)
 	g_free (selection_name);
 
 	return (tray_window != None);
+#else
+	return TRUE;
 #endif
 }
 

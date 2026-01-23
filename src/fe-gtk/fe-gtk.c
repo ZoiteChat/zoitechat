@@ -1080,8 +1080,8 @@ fe_gui_info_ptr (session *sess, int info_type)
 	switch (info_type)
 	{
 	case 0:	/* native window pointer (for plugins) */
-#ifdef WIN32
-		return gdk_win32_window_get_impl_hwnd (gtk_widget_get_window (sess->gui->window));
+#ifdef GDK_WINDOWING_WIN32
+		return gdk_win32_window_get_handle (gtk_widget_get_window (sess->gui->window));
 #else
 		return sess->gui->window;
 #endif
