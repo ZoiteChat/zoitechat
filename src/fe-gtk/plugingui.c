@@ -283,7 +283,8 @@ plugingui_open (void)
 								G_CALLBACK (plugingui_reloadbutton_cb), view);
 		gtk_widget_show (button);
 	}
-#else
+#endif
+#if !HAVE_GTK3
 	gtkutil_button (hbox, GTK_STOCK_REVERT_TO_SAVED, NULL,
 	                plugingui_loadbutton_cb, NULL, _("_Load..."));
 

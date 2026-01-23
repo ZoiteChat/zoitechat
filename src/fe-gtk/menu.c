@@ -291,7 +291,8 @@ menu_quick_item (char *cmd, char *label, GtkWidget * menu, int flags,
 				{
 #if HAVE_GTK3
 					img = gtk_image_new_from_icon_name (icon, GTK_ICON_SIZE_MENU);
-#else
+#endif
+#if !HAVE_GTK3
 					img = gtk_image_new_from_stock (icon, GTK_ICON_SIZE_MENU);
 #endif
 				}
@@ -581,7 +582,8 @@ menu_popup (GtkWidget *menu, GdkEventButton *event, gpointer objtounref)
 							G_CALLBACK (menu_destroy), objtounref);
 #if HAVE_GTK3
 	gtk_menu_popup_at_pointer (GTK_MENU (menu), (GdkEvent *)event);
-#else
+#endif
+#if !HAVE_GTK3
 	gtk_menu_popup (GTK_MENU (menu), NULL, NULL, NULL, NULL,
 						 0, event ? event->time : 0);
 #endif
@@ -1439,7 +1441,8 @@ menu_join (GtkWidget * wid, gpointer none)
 			gtk_button_set_image (GTK_BUTTON (button),
 										 gtk_image_new_from_icon_name ("dialog-ok", GTK_ICON_SIZE_BUTTON));
 	}
-#else
+#endif
+#if !HAVE_GTK3
 	dialog = gtk_dialog_new_with_buttons (_("Join Channel"),
 									GTK_WINDOW (parent_window), 0,
 									_("Retrieve channel list"), GTK_RESPONSE_HELP,
@@ -1820,7 +1823,8 @@ menu_about (GtkWidget *wid, gpointer sess)
 #define ICON_FIND "edit-find"
 #define ICON_HELP "help-browser"
 #define ICON_ABOUT "help-about"
-#else
+#endif
+#if !HAVE_GTK3
 #define ICON_NEW GTK_STOCK_NEW
 #define ICON_LOAD_PLUGIN GTK_STOCK_REVERT_TO_SAVED
 #define ICON_DETACH GTK_STOCK_REDO
@@ -1967,7 +1971,8 @@ create_icon_menu (char *labeltext, void *stock_name, int is_stock)
 	{
 #if HAVE_GTK3
 		img = gtk_image_new_from_icon_name (stock_name, GTK_ICON_SIZE_MENU);
-#else
+#endif
+#if !HAVE_GTK3
 		img = gtk_image_new_from_stock (stock_name, GTK_ICON_SIZE_MENU);
 #endif
 	}

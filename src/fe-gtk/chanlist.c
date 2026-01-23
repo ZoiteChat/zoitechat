@@ -676,7 +676,8 @@ chanlist_button_cb (GtkTreeView *tree, GdkEventButton *event, server *serv)
 								G_CALLBACK (chanlist_copytopic), serv);
 		gtk_widget_show (item);
 	}
-#else
+#endif
+#if !HAVE_GTK3
 	mg_create_icon_item (_("_Join Channel"), GTK_STOCK_JUMP_TO, menu,
 								chanlist_join, serv);
 	mg_create_icon_item (_("_Copy Channel Name"), GTK_STOCK_COPY, menu,
@@ -691,7 +692,8 @@ chanlist_button_cb (GtkTreeView *tree, GdkEventButton *event, server *serv)
 
 #if HAVE_GTK3
 	gtk_menu_popup_at_pointer (GTK_MENU (menu), (GdkEvent *)event);
-#else
+#endif
+#if !HAVE_GTK3
 	gtk_menu_popup (GTK_MENU (menu), NULL, NULL, NULL, NULL, 0, event->time);
 #endif
 
@@ -865,7 +867,8 @@ chanlist_opengui (server *serv, int do_refresh)
 	g_signal_connect (G_OBJECT (wid), "clicked",
 							G_CALLBACK (chanlist_search_pressed), serv);
 	gtk_widget_show (wid);
-#else
+#endif
+#if !HAVE_GTK3
 	wid = gtkutil_button (NULL, GTK_STOCK_FIND, 0, chanlist_search_pressed, serv,
 								 _("_Search"));
 #endif
@@ -885,7 +888,8 @@ chanlist_opengui (server *serv, int do_refresh)
 	g_signal_connect (G_OBJECT (wid), "clicked",
 							G_CALLBACK (chanlist_refresh), serv);
 	gtk_widget_show (wid);
-#else
+#endif
+#if !HAVE_GTK3
 	wid = gtkutil_button (NULL, GTK_STOCK_REFRESH, 0, chanlist_refresh, serv,
 								 _("_Download List"));
 #endif
@@ -905,7 +909,8 @@ chanlist_opengui (server *serv, int do_refresh)
 	g_signal_connect (G_OBJECT (wid), "clicked",
 							G_CALLBACK (chanlist_save), serv);
 	gtk_widget_show (wid);
-#else
+#endif
+#if !HAVE_GTK3
 	wid = gtkutil_button (NULL, GTK_STOCK_SAVE_AS, 0, chanlist_save, serv,
 								 _("Save _List..."));
 #endif
@@ -925,7 +930,8 @@ chanlist_opengui (server *serv, int do_refresh)
 	g_signal_connect (G_OBJECT (wid), "clicked",
 							G_CALLBACK (chanlist_join), serv);
 	gtk_widget_show (wid);
-#else
+#endif
+#if !HAVE_GTK3
 	wid = gtkutil_button (NULL, GTK_STOCK_JUMP_TO, 0, chanlist_join, serv,
 						 _("_Join Channel"));
 #endif
