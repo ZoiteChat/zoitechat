@@ -124,6 +124,28 @@ chanlist_icon_button (const char *label, const char *icon_name,
 
 	return button;
 }
+
+static GtkWidget *
+chanlist_icon_menu_item (const char *label, const char *icon_name,
+								 GCallback callback, gpointer userdata)
+{
+	GtkWidget *item;
+	GtkWidget *box;
+	GtkWidget *image;
+	GtkWidget *label_widget;
+
+	item = gtk_menu_item_new ();
+	box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 6);
+	image = gtk_image_new_from_icon_name (icon_name, GTK_ICON_SIZE_MENU);
+	label_widget = gtk_label_new_with_mnemonic (label);
+	gtk_box_pack_start (GTK_BOX (box), image, FALSE, FALSE, 0);
+	gtk_box_pack_start (GTK_BOX (box), label_widget, FALSE, FALSE, 0);
+	gtk_container_add (GTK_CONTAINER (item), box);
+	g_signal_connect (G_OBJECT (item), "activate", callback, userdata);
+	gtk_widget_show_all (item);
+
+	return item;
+}
 #endif
 
 
@@ -682,44 +704,18 @@ chanlist_button_cb (GtkTreeView *tree, GdkEventButton *event, server *serv)
 #if HAVE_GTK3
 	{
 		GtkWidget *item;
-		GtkWidget *box;
-		GtkWidget *image;
-		GtkWidget *label;
 
-		item = gtk_menu_item_new ();
-		box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 6);
-		image = gtk_image_new_from_icon_name (ICON_CHANLIST_JOIN, GTK_ICON_SIZE_MENU);
-		label = gtk_label_new_with_mnemonic (_("_Join Channel"));
-		gtk_box_pack_start (GTK_BOX (box), image, FALSE, FALSE, 0);
-		gtk_box_pack_start (GTK_BOX (box), label, FALSE, FALSE, 0);
-		gtk_container_add (GTK_CONTAINER (item), box);
+		item = chanlist_icon_menu_item (_("_Join Channel"), ICON_CHANLIST_JOIN,
+												G_CALLBACK (chanlist_join), serv);
 		gtk_menu_shell_append (GTK_MENU_SHELL (menu), item);
-		g_signal_connect (G_OBJECT (item), "activate", G_CALLBACK (chanlist_join), serv);
-		gtk_widget_show_all (item);
 
-		item = gtk_menu_item_new ();
-		box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 6);
-		image = gtk_image_new_from_icon_name (ICON_CHANLIST_COPY, GTK_ICON_SIZE_MENU);
-		label = gtk_label_new_with_mnemonic (_("_Copy Channel Name"));
-		gtk_box_pack_start (GTK_BOX (box), image, FALSE, FALSE, 0);
-		gtk_box_pack_start (GTK_BOX (box), label, FALSE, FALSE, 0);
-		gtk_container_add (GTK_CONTAINER (item), box);
+		item = chanlist_icon_menu_item (_("_Copy Channel Name"), ICON_CHANLIST_COPY,
+												G_CALLBACK (chanlist_copychannel), serv);
 		gtk_menu_shell_append (GTK_MENU_SHELL (menu), item);
-		g_signal_connect (G_OBJECT (item), "activate",
-								G_CALLBACK (chanlist_copychannel), serv);
-		gtk_widget_show_all (item);
 
-		item = gtk_menu_item_new ();
-		box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 6);
-		image = gtk_image_new_from_icon_name (ICON_CHANLIST_COPY, GTK_ICON_SIZE_MENU);
-		label = gtk_label_new_with_mnemonic (_("Copy _Topic Text"));
-		gtk_box_pack_start (GTK_BOX (box), image, FALSE, FALSE, 0);
-		gtk_box_pack_start (GTK_BOX (box), label, FALSE, FALSE, 0);
-		gtk_container_add (GTK_CONTAINER (item), box);
+		item = chanlist_icon_menu_item (_("Copy _Topic Text"), ICON_CHANLIST_COPY,
+												G_CALLBACK (chanlist_copytopic), serv);
 		gtk_menu_shell_append (GTK_MENU_SHELL (menu), item);
-		g_signal_connect (G_OBJECT (item), "activate",
-								G_CALLBACK (chanlist_copytopic), serv);
-		gtk_widget_show_all (item);
 	}
 #endif
 #if !HAVE_GTK3
