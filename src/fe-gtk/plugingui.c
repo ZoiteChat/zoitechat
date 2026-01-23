@@ -252,6 +252,38 @@ plugingui_open (void)
 	gtk_container_set_border_width (GTK_CONTAINER (hbox), 5);
 	gtk_box_pack_end (GTK_BOX (vbox), hbox, 0, 0, 0);
 
+#if HAVE_GTK3
+	{
+		GtkWidget *button;
+
+		button = gtk_button_new_with_mnemonic (_("_Load..."));
+		gtk_button_set_image (GTK_BUTTON (button),
+									 gtk_image_new_from_icon_name ("document-open", GTK_ICON_SIZE_MENU));
+		gtk_button_set_use_underline (GTK_BUTTON (button), TRUE);
+		gtk_container_add (GTK_CONTAINER (hbox), button);
+		g_signal_connect (G_OBJECT (button), "clicked",
+								G_CALLBACK (plugingui_loadbutton_cb), NULL);
+		gtk_widget_show (button);
+
+		button = gtk_button_new_with_mnemonic (_("_Unload"));
+		gtk_button_set_image (GTK_BUTTON (button),
+									 gtk_image_new_from_icon_name ("edit-delete", GTK_ICON_SIZE_MENU));
+		gtk_button_set_use_underline (GTK_BUTTON (button), TRUE);
+		gtk_container_add (GTK_CONTAINER (hbox), button);
+		g_signal_connect (G_OBJECT (button), "clicked",
+								G_CALLBACK (plugingui_unload), NULL);
+		gtk_widget_show (button);
+
+		button = gtk_button_new_with_mnemonic (_("_Reload"));
+		gtk_button_set_image (GTK_BUTTON (button),
+									 gtk_image_new_from_icon_name ("view-refresh", GTK_ICON_SIZE_MENU));
+		gtk_button_set_use_underline (GTK_BUTTON (button), TRUE);
+		gtk_container_add (GTK_CONTAINER (hbox), button);
+		g_signal_connect (G_OBJECT (button), "clicked",
+								G_CALLBACK (plugingui_reloadbutton_cb), view);
+		gtk_widget_show (button);
+	}
+#else
 	gtkutil_button (hbox, GTK_STOCK_REVERT_TO_SAVED, NULL,
 	                plugingui_loadbutton_cb, NULL, _("_Load..."));
 
@@ -260,6 +292,7 @@ plugingui_open (void)
 
 	gtkutil_button (hbox, GTK_STOCK_REFRESH, NULL,
 	                plugingui_reloadbutton_cb, view, _("_Reload"));
+#endif
 
 	fe_pluginlist_update ();
 

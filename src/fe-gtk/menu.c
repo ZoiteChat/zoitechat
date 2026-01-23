@@ -573,8 +573,12 @@ menu_popup (GtkWidget *menu, GdkEventButton *event, gpointer objtounref)
 	g_object_unref (menu);
 	g_signal_connect (G_OBJECT (menu), "selection-done",
 							G_CALLBACK (menu_destroy), objtounref);
+#if HAVE_GTK3
+	gtk_menu_popup_at_pointer (GTK_MENU (menu), (GdkEvent *)event);
+#else
 	gtk_menu_popup (GTK_MENU (menu), NULL, NULL, NULL, NULL,
 						 0, event ? event->time : 0);
+#endif
 }
 
 static void
@@ -1409,12 +1413,34 @@ menu_join (GtkWidget * wid, gpointer none)
 {
 	GtkWidget *hbox, *dialog, *entry, *label;
 
+#if HAVE_GTK3
+	dialog = gtk_dialog_new_with_buttons (_("Join Channel"),
+									GTK_WINDOW (parent_window), 0,
+									_("Retrieve channel list"), GTK_RESPONSE_HELP,
+									_("_Cancel"), GTK_RESPONSE_REJECT,
+									_("_OK"), GTK_RESPONSE_ACCEPT,
+									NULL);
+	{
+		GtkWidget *button;
+
+		button = gtk_dialog_get_widget_for_response (GTK_DIALOG (dialog), GTK_RESPONSE_REJECT);
+		if (button)
+			gtk_button_set_image (GTK_BUTTON (button),
+										 gtk_image_new_from_icon_name ("dialog-cancel", GTK_ICON_SIZE_BUTTON));
+
+		button = gtk_dialog_get_widget_for_response (GTK_DIALOG (dialog), GTK_RESPONSE_ACCEPT);
+		if (button)
+			gtk_button_set_image (GTK_BUTTON (button),
+										 gtk_image_new_from_icon_name ("dialog-ok", GTK_ICON_SIZE_BUTTON));
+	}
+#else
 	dialog = gtk_dialog_new_with_buttons (_("Join Channel"),
 									GTK_WINDOW (parent_window), 0,
 									_("Retrieve channel list"), GTK_RESPONSE_HELP,
 									GTK_STOCK_CANCEL, GTK_RESPONSE_REJECT,
 									GTK_STOCK_OK, GTK_RESPONSE_ACCEPT,
 									NULL);
+#endif
 	gtk_box_set_homogeneous (GTK_BOX (GTK_DIALOG (dialog)->vbox), TRUE);
 	gtk_window_set_position (GTK_WINDOW (dialog), GTK_WIN_POS_MOUSE);
 	hbox = gtk_hbox_new (TRUE, 0);
@@ -1771,12 +1797,48 @@ menu_about (GtkWidget *wid, gpointer sess)
 	gtk_widget_show_all (GTK_WIDGET(dialog));
 }
 
+#if HAVE_GTK3
+#define ICON_NEW "document-new"
+#define ICON_LOAD_PLUGIN "document-open"
+#define ICON_DETACH "edit-redo"
+#define ICON_CLOSE "window-close"
+#define ICON_QUIT "application-exit"
+#define ICON_DISCONNECT "network-disconnect"
+#define ICON_CONNECT "network-connect"
+#define ICON_JOIN "go-jump"
+#define ICON_CHANLIST "view-list"
+#define ICON_PREFERENCES "preferences-system"
+#define ICON_CLEAR "edit-clear"
+#define ICON_SAVE "document-save"
+#define ICON_SEARCH "edit-find"
+#define ICON_FIND "edit-find"
+#define ICON_HELP "help-browser"
+#define ICON_ABOUT "help-about"
+#else
+#define ICON_NEW GTK_STOCK_NEW
+#define ICON_LOAD_PLUGIN GTK_STOCK_REVERT_TO_SAVED
+#define ICON_DETACH GTK_STOCK_REDO
+#define ICON_CLOSE GTK_STOCK_CLOSE
+#define ICON_QUIT GTK_STOCK_QUIT
+#define ICON_DISCONNECT GTK_STOCK_DISCONNECT
+#define ICON_CONNECT GTK_STOCK_CONNECT
+#define ICON_JOIN GTK_STOCK_JUMP_TO
+#define ICON_CHANLIST GTK_STOCK_INDEX
+#define ICON_PREFERENCES GTK_STOCK_PREFERENCES
+#define ICON_CLEAR GTK_STOCK_CLEAR
+#define ICON_SAVE GTK_STOCK_SAVE
+#define ICON_SEARCH GTK_STOCK_JUSTIFY_LEFT
+#define ICON_FIND GTK_STOCK_FIND
+#define ICON_HELP GTK_STOCK_HELP
+#define ICON_ABOUT GTK_STOCK_ABOUT
+#endif
+
 static struct mymenu mymenu[] = {
 	{N_("_ZoiteChat"), 0, 0, M_NEWMENU, MENU_ID_HEXCHAT, 0, 1},
 	{N_("Network Li_st"), menu_open_server_list, (char *)&pix_book, M_MENUPIX, 0, 0, 1, GDK_KEY_s},
 	{0, 0, 0, M_SEP, 0, 0, 0},
 
-	{N_("_New"), 0, GTK_STOCK_NEW, M_MENUSUB, 0, 0, 1},
+	{N_("_New"), 0, ICON_NEW, M_MENUSUB, 0, 0, 1},
 		{N_("Server Tab"), menu_newserver_tab, 0, M_MENUITEM, 0, 0, 1, GDK_KEY_t},
 		{N_("Channel Tab"), menu_newchannel_tab, 0, M_MENUITEM, 0, 0, 1},
 		{N_("Server Window"), menu_newserver_window, 0, M_MENUITEM, 0, 0, 1, GDK_KEY_n},
@@ -1784,14 +1846,14 @@ static struct mymenu mymenu[] = {
 		{0, 0, 0, M_END, 0, 0, 0},
 	{0, 0, 0, M_SEP, 0, 0, 0},
 
-	{N_("_Load Plugin or Script" ELLIPSIS), menu_loadplugin, GTK_STOCK_REVERT_TO_SAVED, M_MENUSTOCK, 0, 0, 1},
+	{N_("_Load Plugin or Script" ELLIPSIS), menu_loadplugin, ICON_LOAD_PLUGIN, M_MENUSTOCK, 0, 0, 1},
 	{0, 0, 0, M_SEP, 0, 0, 0},	/* 11 */
 #define DETACH_OFFSET (12)
-	{0, menu_detach, GTK_STOCK_REDO, M_MENUSTOCK, 0, 0, 1},	/* 12 */
+	{0, menu_detach, ICON_DETACH, M_MENUSTOCK, 0, 0, 1},	/* 12 */
 #define CLOSE_OFFSET (13)
-	{0, menu_close, GTK_STOCK_CLOSE, M_MENUSTOCK, 0, 0, 1},
+	{0, menu_close, ICON_CLOSE, M_MENUSTOCK, 0, 0, 1},
 	{0, 0, 0, M_SEP, 0, 0, 0},
-	{N_("_Quit"), menu_quit, GTK_STOCK_QUIT, M_MENUSTOCK, 0, 0, 1, GDK_KEY_q},	/* 15 */
+	{N_("_Quit"), menu_quit, ICON_QUIT, M_MENUSTOCK, 0, 0, 1, GDK_KEY_q},	/* 15 */
 
 	{N_("_View"), 0, 0, M_NEWMENU, 0, 0, 1},
 #define MENUBAR_OFFSET (17)
@@ -1817,10 +1879,10 @@ static struct mymenu mymenu[] = {
 	{N_ ("_Fullscreen"), menu_fullscreen_toggle, 0, M_MENUTOG, MENU_ID_FULLSCREEN, 0, 1, GDK_KEY_F11},
 
 	{N_("_Server"), 0, 0, M_NEWMENU, 0, 0, 1},
-	{N_("_Disconnect"), menu_disconnect, GTK_STOCK_DISCONNECT, M_MENUSTOCK, MENU_ID_DISCONNECT, 0, 1},
-	{N_("_Reconnect"), menu_reconnect, GTK_STOCK_CONNECT, M_MENUSTOCK, MENU_ID_RECONNECT, 0, 1},
-	{N_("_Join a Channel" ELLIPSIS), menu_join, GTK_STOCK_JUMP_TO, M_MENUSTOCK, MENU_ID_JOIN, 0, 1},
-	{N_("Channel _List"), menu_chanlist, GTK_STOCK_INDEX, M_MENUITEM, 0, 0, 1},
+	{N_("_Disconnect"), menu_disconnect, ICON_DISCONNECT, M_MENUSTOCK, MENU_ID_DISCONNECT, 0, 1},
+	{N_("_Reconnect"), menu_reconnect, ICON_CONNECT, M_MENUSTOCK, MENU_ID_RECONNECT, 0, 1},
+	{N_("_Join a Channel" ELLIPSIS), menu_join, ICON_JOIN, M_MENUSTOCK, MENU_ID_JOIN, 0, 1},
+	{N_("Channel _List"), menu_chanlist, ICON_CHANLIST, M_MENUITEM, 0, 0, 1},
 	{0, 0, 0, M_SEP, 0, 0, 0},
 #define AWAY_OFFSET (41)
 	{N_("Marked _Away"), menu_away, 0, M_MENUTOG, MENU_ID_AWAY, 0, 1, GDK_KEY_a},
@@ -1828,7 +1890,7 @@ static struct mymenu mymenu[] = {
 	{N_("_Usermenu"), 0, 0, M_NEWMENU, MENU_ID_USERMENU, 0, 1},	/* 40 */
 
 	{N_("S_ettings"), 0, 0, M_NEWMENU, 0, 0, 1},
-	{N_("_Preferences"), menu_settings, GTK_STOCK_PREFERENCES, M_MENUSTOCK, 0, 0, 1},
+	{N_("_Preferences"), menu_settings, ICON_PREFERENCES, M_MENUSTOCK, 0, 0, 1},
 	{0, 0, 0, M_SEP, 0, 0, 0},
 	{N_("Auto Replace"), menu_rpopup, 0, M_MENUITEM, 0, 0, 1},
 	{N_("CTCP Replies"), menu_ctcpguiopen, 0, M_MENUITEM, 0, 0, 1},
@@ -1854,18 +1916,18 @@ static struct mymenu mymenu[] = {
 	{N_("Reset Marker Line"), menu_resetmarker, 0, M_MENUITEM, 0, 0, 1, GDK_KEY_m},
 	{N_("Move to Marker Line"), menu_movetomarker, 0, M_MENUITEM, 0, 0, 1, GDK_KEY_M},
 	{N_("_Copy Selection"), menu_copy_selection, 0, M_MENUITEM, 0, 0, 1, GDK_KEY_C},
-	{N_("C_lear Text"), menu_flushbuffer, GTK_STOCK_CLEAR, M_MENUSTOCK, 0, 0, 1},
-	{N_("Save Text" ELLIPSIS), menu_savebuffer, GTK_STOCK_SAVE, M_MENUSTOCK, 0, 0, 1},
+	{N_("C_lear Text"), menu_flushbuffer, ICON_CLEAR, M_MENUSTOCK, 0, 0, 1},
+	{N_("Save Text" ELLIPSIS), menu_savebuffer, ICON_SAVE, M_MENUSTOCK, 0, 0, 1},
 #define SEARCH_OFFSET (70)
-	{N_("Search"), 0, GTK_STOCK_JUSTIFY_LEFT, M_MENUSUB, 0, 0, 1},
-		{N_("Search Text" ELLIPSIS), menu_search, GTK_STOCK_FIND, M_MENUSTOCK, 0, 0, 1, GDK_KEY_f},
-		{N_("Search Next"   ), menu_search_next, GTK_STOCK_FIND, M_MENUSTOCK, 0, 0, 1, GDK_KEY_g},
-		{N_("Search Previous"   ), menu_search_prev, GTK_STOCK_FIND, M_MENUSTOCK, 0, 0, 1, GDK_KEY_G},
+	{N_("Search"), 0, ICON_SEARCH, M_MENUSUB, 0, 0, 1},
+		{N_("Search Text" ELLIPSIS), menu_search, ICON_FIND, M_MENUSTOCK, 0, 0, 1, GDK_KEY_f},
+		{N_("Search Next"   ), menu_search_next, ICON_FIND, M_MENUSTOCK, 0, 0, 1, GDK_KEY_g},
+		{N_("Search Previous"   ), menu_search_prev, ICON_FIND, M_MENUSTOCK, 0, 0, 1, GDK_KEY_G},
 		{0, 0, 0, M_END, 0, 0, 0},
 
 	{N_("_Help"), 0, 0, M_NEWMENU, 0, 0, 1},	/* 74 */
-	{N_("_Contents"), menu_docs, GTK_STOCK_HELP, M_MENUSTOCK, 0, 0, 1, GDK_KEY_F1},
-	{N_("_About"), menu_about, GTK_STOCK_ABOUT, M_MENUSTOCK, 0, 0, 1},
+	{N_("_Contents"), menu_docs, ICON_HELP, M_MENUSTOCK, 0, 0, 1, GDK_KEY_F1},
+	{N_("_About"), menu_about, ICON_ABOUT, M_MENUSTOCK, 0, 0, 1},
 
 	{0, 0, 0, M_END, 0, 0, 0},
 };
@@ -1896,7 +1958,13 @@ create_icon_menu (char *labeltext, void *stock_name, int is_stock)
 	GtkWidget *item, *img;
 
 	if (is_stock)
+	{
+#if HAVE_GTK3
+		img = gtk_image_new_from_icon_name (stock_name, GTK_ICON_SIZE_MENU);
+#else
 		img = gtk_image_new_from_stock (stock_name, GTK_ICON_SIZE_MENU);
+#endif
+	}
 	else
 		img = gtk_image_new_from_pixbuf (*((GdkPixbuf **)stock_name));
 	item = gtk_image_menu_item_new_with_mnemonic (labeltext);
