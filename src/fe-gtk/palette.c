@@ -47,13 +47,13 @@
 static void
 palette_color_set_rgb16 (PaletteColor *color, guint16 red, guint16 green, guint16 blue)
 {
-	char color_string[16];
-
-	g_snprintf (color_string, sizeof (color_string), "#%04x%04x%04x", red, green, blue);
 #if GTK_CHECK_VERSION(3,0,0)
+	char color_string[8];
 	GdkRGBA parsed = { 0 };
 	gboolean parsed_ok;
 
+	g_snprintf (color_string, sizeof (color_string), "#%02x%02x%02x",
+	            red >> 8, green >> 8, blue >> 8);
 	parsed_ok = gdk_rgba_parse (&parsed, color_string);
 	if (!parsed_ok)
 	{
@@ -64,6 +64,9 @@ palette_color_set_rgb16 (PaletteColor *color, guint16 red, guint16 green, guint1
 	}
 	*color = parsed;
 #else
+	char color_string[16];
+
+	g_snprintf (color_string, sizeof (color_string), "#%04x%04x%04x", red, green, blue);
 	if (!gdk_color_parse (color_string, color))
 	{
 		color->red = red;

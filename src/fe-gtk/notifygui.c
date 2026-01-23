@@ -74,18 +74,24 @@ notify_treecell_property_mapper (GtkTreeViewColumn *col, GtkCellRenderer *cell,
 	gchar *text;
 	PaletteColor *colour;
 	int model_column = GPOINTER_TO_INT (data);
+	const char *foreground_property =
+#if GTK_CHECK_VERSION(3,0,0)
+		"foreground-rgba";
+#else
+		"foreground-gdk";
+#endif
 
 	gtk_tree_model_get (GTK_TREE_MODEL (model), iter, 
 	                    COLOUR_COLUMN, &colour,
 	                    model_column, &text, -1);
 #if GTK_CHECK_VERSION(3,0,0)
 	g_object_set (G_OBJECT (cell), "text", text,
-	              PALETTE_FOREGROUND_PROPERTY, colour, NULL);
+	              foreground_property, colour, NULL);
 	if (colour)
 		gdk_rgba_free (colour);
 #else
 	g_object_set (G_OBJECT (cell), "text", text,
-	              PALETTE_FOREGROUND_PROPERTY, colour, NULL);
+	              foreground_property, colour, NULL);
 	if (colour)
 		gdk_color_free (colour);
 #endif
