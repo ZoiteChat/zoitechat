@@ -52,7 +52,7 @@ palette_color_set_rgb16 (PaletteColor *color, guint16 red, guint16 green, guint1
 	gboolean parsed_ok;
 	char *color_string;
 
-	color_string = g_strdup_printf ("#%02x%02x%02x", red >> 8, green >> 8, blue >> 8);
+	color_string = g_strdup_printf ("#%04x%04x%04x", red, green, blue);
 	parsed_ok = gdk_rgba_parse (&parsed, color_string);
 	g_free (color_string);
 	if (!parsed_ok)
