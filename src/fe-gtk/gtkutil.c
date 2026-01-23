@@ -62,6 +62,60 @@ struct file_req
 	int flags;		/* FRF_* flags */
 };
 
+#if HAVE_GTK3
+const char *
+gtkutil_icon_name_from_stock (const char *stock_name)
+{
+	if (!stock_name)
+		return NULL;
+
+	if (strcmp (stock_name, "gtk-new") == 0)
+		return "document-new";
+	if (strcmp (stock_name, "gtk-open") == 0 || strcmp (stock_name, "gtk-revert-to-saved") == 0)
+		return "document-open";
+	if (strcmp (stock_name, "gtk-save") == 0)
+		return "document-save";
+	if (strcmp (stock_name, "gtk-save-as") == 0)
+		return "document-save-as";
+	if (strcmp (stock_name, "gtk-cancel") == 0)
+		return "dialog-cancel";
+	if (strcmp (stock_name, "gtk-ok") == 0)
+		return "dialog-ok";
+	if (strcmp (stock_name, "gtk-copy") == 0)
+		return "edit-copy";
+	if (strcmp (stock_name, "gtk-delete") == 0)
+		return "edit-delete";
+	if (strcmp (stock_name, "gtk-clear") == 0)
+		return "edit-clear";
+	if (strcmp (stock_name, "gtk-redo") == 0)
+		return "edit-redo";
+	if (strcmp (stock_name, "gtk-find") == 0 || strcmp (stock_name, "gtk-justify-left") == 0)
+		return "edit-find";
+	if (strcmp (stock_name, "gtk-refresh") == 0)
+		return "view-refresh";
+	if (strcmp (stock_name, "gtk-index") == 0)
+		return "view-list";
+	if (strcmp (stock_name, "gtk-jump-to") == 0)
+		return "go-jump";
+	if (strcmp (stock_name, "gtk-preferences") == 0)
+		return "preferences-system";
+	if (strcmp (stock_name, "gtk-help") == 0)
+		return "help-browser";
+	if (strcmp (stock_name, "gtk-about") == 0)
+		return "help-about";
+	if (strcmp (stock_name, "gtk-close") == 0)
+		return "window-close";
+	if (strcmp (stock_name, "gtk-quit") == 0)
+		return "application-exit";
+	if (strcmp (stock_name, "gtk-connect") == 0)
+		return "network-connect";
+	if (strcmp (stock_name, "gtk-disconnect") == 0)
+		return "network-disconnect";
+
+	return stock_name;
+}
+#endif
+
 static void
 gtkutil_file_req_destroy (GtkWidget * wid, struct file_req *freq)
 {
@@ -517,13 +571,23 @@ gtkutil_button (GtkWidget *box, char *stock, char *tip, void *callback,
 					 void *userdata, char *labeltext)
 {
 	GtkWidget *wid, *img, *bbox;
+#if HAVE_GTK3
+	const char *icon_name;
+#endif
 
 	wid = gtk_button_new ();
 
 	if (labeltext)
 	{
 		gtk_button_set_label (GTK_BUTTON (wid), labeltext);
-		gtk_button_set_image (GTK_BUTTON (wid), gtk_image_new_from_stock (stock, GTK_ICON_SIZE_MENU));
+#if HAVE_GTK3
+		icon_name = gtkutil_icon_name_from_stock (stock);
+		img = gtk_image_new_from_icon_name (icon_name, GTK_ICON_SIZE_MENU);
+#endif
+#if !HAVE_GTK3
+		img = gtk_image_new_from_stock (stock, GTK_ICON_SIZE_MENU);
+#endif
+		gtk_button_set_image (GTK_BUTTON (wid), img);
 		gtk_button_set_use_underline (GTK_BUTTON (wid), TRUE);
 		if (box)
 			gtk_container_add (GTK_CONTAINER (box), wid);
@@ -534,7 +598,13 @@ gtkutil_button (GtkWidget *box, char *stock, char *tip, void *callback,
 		gtk_container_add (GTK_CONTAINER (wid), bbox);
 		gtk_widget_show (bbox);
 
+#if HAVE_GTK3
+		icon_name = gtkutil_icon_name_from_stock (stock);
+		img = gtk_image_new_from_icon_name (icon_name, GTK_ICON_SIZE_MENU);
+#endif
+#if !HAVE_GTK3
 		img = gtk_image_new_from_stock (stock, GTK_ICON_SIZE_MENU);
+#endif
 		gtk_container_add (GTK_CONTAINER (bbox), img);
 		gtk_widget_show (img);
 		gtk_box_pack_start (GTK_BOX (box), wid, 0, 0, 0);
