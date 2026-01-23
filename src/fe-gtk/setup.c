@@ -1578,7 +1578,7 @@ static void
 setup_color_ok_cb (GtkWidget *button, GtkWidget *dialog)
 {
         GtkColorSelectionDialog *cdialog = GTK_COLOR_SELECTION_DIALOG (dialog);
-        GdkColor *col;
+        PaletteColor *col;
         col = g_object_get_data (G_OBJECT (button), "c");
 
         button = g_object_get_data (G_OBJECT (button), "b");
@@ -1629,7 +1629,7 @@ setup_color_cb (GtkWidget *button, gpointer userdata)
 #else
         GtkWidget *dialog, *cancel_button, *ok_button, *help_button;
         GtkColorSelectionDialog *cdialog;
-        GdkColor *color;
+        PaletteColor *color;
 
         color = &colors[GPOINTER_TO_INT (userdata)];
 
