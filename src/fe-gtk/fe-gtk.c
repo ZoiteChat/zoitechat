@@ -22,8 +22,11 @@
 
 #include "fe-gtk.h"
 
-#ifdef WIN32
+#ifdef GDK_WINDOWING_WIN32
 #include <gdk/gdkwin32.h>
+#endif
+
+#ifdef WIN32
 #include <windows.h>
 #else
 #include <unistd.h>
