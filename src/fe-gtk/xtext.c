@@ -153,11 +153,11 @@ static char * gtk_xtext_get_word (GtkXText * xtext, int x, int y, textentry ** r
 static inline void
 gtk_xtext_cursor_unref (GdkCursor *cursor)
 {
+	if (!cursor)
+		return;
 #if !HAVE_GTK3
 	gdk_cursor_unref (cursor);
 #else
-	if (!cursor)
-		return;
 	g_object_unref (cursor);
 #endif
 }
@@ -771,6 +771,16 @@ gtk_xtext_get_pointer (GdkWindow *window, gint *x, gint *y, GdkModifierType *mas
 #endif
 }
 
+static inline void
+gtk_xtext_clear_background (GtkWidget *widget)
+{
+#if !HAVE_GTK3
+	gdk_window_set_back_pixmap (widget->window, NULL, FALSE);
+#else
+	gdk_window_set_background_pattern (widget->window, NULL);
+#endif
+}
+
 static void
 gtk_xtext_realize (GtkWidget * widget)
 {
@@ -836,11 +846,7 @@ gtk_xtext_realize (GtkWidget * widget)
 	xtext->hand_cursor = gdk_cursor_new_for_display (gdk_window_get_display (widget->window), GDK_HAND1);
 	xtext->resize_cursor = gdk_cursor_new_for_display (gdk_window_get_display (widget->window), GDK_LEFT_SIDE);
 
-#if !HAVE_GTK3
-	gdk_window_set_back_pixmap (widget->window, NULL, FALSE);
-#else
-	gdk_window_set_background_pattern (widget->window, NULL);
-#endif
+	gtk_xtext_clear_background (widget);
 
 	backend_init (xtext);
 }
