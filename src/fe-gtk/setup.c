@@ -1594,12 +1594,14 @@ setup_color_cb (GtkWidget *button, gpointer userdata)
 #if GTK_CHECK_VERSION(3,0,0)
         GtkWidget *dialog;
         PaletteColor *color;
+        GdkRGBA rgba;
         setup_color_dialog_data *data;
 
         color = &colors[GPOINTER_TO_INT (userdata)];
 
         dialog = gtk_color_chooser_dialog_new (_("Select color"), GTK_WINDOW (setup_window));
-        gtk_color_chooser_set_rgba (GTK_COLOR_CHOOSER (dialog), color);
+        rgba = *color;
+        gtk_color_chooser_set_rgba (GTK_COLOR_CHOOSER (dialog), &rgba);
         gtk_window_set_modal (GTK_WINDOW (dialog), TRUE);
 
         data = g_new0 (setup_color_dialog_data, 1);

@@ -50,9 +50,17 @@ palette_color_set_rgb16 (PaletteColor *color, guint16 red, guint16 green, guint1
 #if GTK_CHECK_VERSION(3,0,0)
 	char buf[8];
 	GdkRGBA parsed;
+	gboolean parsed_ok;
 
 	g_snprintf (buf, sizeof (buf), "#%02x%02x%02x", red >> 8, green >> 8, blue >> 8);
-	gdk_rgba_parse (&parsed, buf);
+	parsed_ok = gdk_rgba_parse (&parsed, buf);
+	if (!parsed_ok)
+	{
+		parsed.red = red / 65535.0;
+		parsed.green = green / 65535.0;
+		parsed.blue = blue / 65535.0;
+		parsed.alpha = 1.0;
+	}
 	*color = parsed;
 #else
 	color->red = red;

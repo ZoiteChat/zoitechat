@@ -474,8 +474,15 @@ userlist_store_color (GtkListStore *store, GtkTreeIter *iter, int color_index)
 	const PaletteColor *color = color_index ? &colors[color_index] : NULL;
 
 #if GTK_CHECK_VERSION(3,0,0)
-	const GdkRGBA *rgba = color;
-	gtk_list_store_set (store, iter, COL_GDKCOLOR, rgba, -1);
+	if (color)
+	{
+		GdkRGBA rgba = *color;
+		gtk_list_store_set (store, iter, COL_GDKCOLOR, &rgba, -1);
+	}
+	else
+	{
+		gtk_list_store_set (store, iter, COL_GDKCOLOR, NULL, -1);
+	}
 #else
 	gtk_list_store_set (store, iter, COL_GDKCOLOR, color, -1);
 #endif
@@ -540,9 +547,15 @@ userlist_add_columns (GtkTreeView * treeview)
 	if (prefs.hex_gui_compact)
 		g_object_set (G_OBJECT (renderer), "ypad", 0, NULL);
 	gtk_cell_renderer_text_set_fixed_height_from_font (GTK_CELL_RENDERER_TEXT (renderer), 1);
+#if GTK_CHECK_VERSION(3,0,0)
 	gtk_tree_view_insert_column_with_attributes (GTK_TREE_VIEW (treeview),
 																-1, NULL, renderer,
-													"text", 1, PALETTE_FOREGROUND_PROPERTY, 4, NULL);
+													"text", 1, "foreground-rgba", 4, NULL);
+#else
+	gtk_tree_view_insert_column_with_attributes (GTK_TREE_VIEW (treeview),
+																-1, NULL, renderer,
+													"text", 1, "foreground-gdk", 4, NULL);
+#endif
 
 	if (prefs.hex_gui_ulist_show_hosts)
 	{

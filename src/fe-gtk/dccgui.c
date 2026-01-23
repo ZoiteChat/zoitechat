@@ -160,8 +160,15 @@ dcc_store_color (GtkListStore *store, GtkTreeIter *iter, int column, int color_i
 		color = &colors[color_index];
 
 #if GTK_CHECK_VERSION(3,0,0)
-	const GdkRGBA *rgba = color;
-	gtk_list_store_set (store, iter, column, rgba, -1);
+	if (color)
+	{
+		GdkRGBA rgba = *color;
+		gtk_list_store_set (store, iter, column, &rgba, -1);
+	}
+	else
+	{
+		gtk_list_store_set (store, iter, column, NULL, -1);
+	}
 #else
 	gtk_list_store_set (store, iter, column, color, -1);
 #endif
@@ -728,9 +735,15 @@ dcc_add_column (GtkWidget *tree, int textcol, int colorcol, char *title, gboolea
 	renderer = gtk_cell_renderer_text_new ();
 	if (right_justified)
 		g_object_set (G_OBJECT (renderer), "xalign", (float) 1.0, NULL);
+#if GTK_CHECK_VERSION(3,0,0)
 	gtk_tree_view_insert_column_with_attributes (GTK_TREE_VIEW (tree), -1, title, renderer,
-																"text", textcol, PALETTE_FOREGROUND_PROPERTY, colorcol,
+																"text", textcol, "foreground-rgba", colorcol,
 																NULL);
+#else
+	gtk_tree_view_insert_column_with_attributes (GTK_TREE_VIEW (tree), -1, title, renderer,
+																"text", textcol, "foreground-gdk", colorcol,
+																NULL);
+#endif
 	gtk_cell_renderer_text_set_fixed_height_from_font (GTK_CELL_RENDERER_TEXT (renderer), 1);
 }
 
