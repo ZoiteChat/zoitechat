@@ -353,27 +353,6 @@ menu_quick_item (char *cmd, char *label, GtkWidget * menu, int flags,
 	return item;
 }
 
-#if HAVE_GTK3
-static GtkWidget *
-menu_icon_name_item_new (const char *label, const char *icon_name)
-{
-	GtkWidget *item;
-	GtkWidget *box;
-	GtkWidget *image;
-	GtkWidget *label_widget;
-
-	item = gtk_menu_item_new ();
-	box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 6);
-	image = gtk_image_new_from_icon_name (icon_name, GTK_ICON_SIZE_MENU);
-	label_widget = gtk_label_new_with_mnemonic (label);
-	gtk_box_pack_start (GTK_BOX (box), image, FALSE, FALSE, 0);
-	gtk_box_pack_start (GTK_BOX (box), label_widget, FALSE, FALSE, 0);
-	gtk_container_add (GTK_CONTAINER (item), box);
-
-	return item;
-}
-#endif
-
 static void
 menu_quick_item_with_callback (void *callback, char *label, GtkWidget * menu,
 										 void *arg)
@@ -2026,13 +2005,17 @@ GtkWidget *
 create_icon_menu (char *labeltext, void *stock_name, int is_stock)
 {
 	GtkWidget *item, *img;
+#if HAVE_GTK3
+	GtkWidget *box;
+	GtkWidget *label_widget;
+	const char *icon_name;
+#endif
 
 	if (is_stock)
 	{
 #if HAVE_GTK3
-		const char *icon_name = gtkutil_icon_name_from_stock (stock_name);
-
-		item = menu_icon_name_item_new (labeltext, icon_name);
+		icon_name = gtkutil_icon_name_from_stock (stock_name);
+		img = gtk_image_new_from_icon_name (icon_name, GTK_ICON_SIZE_MENU);
 #endif
 #if !HAVE_GTK3
 		img = gtk_image_new_from_stock (stock_name, GTK_ICON_SIZE_MENU);
@@ -2041,16 +2024,13 @@ create_icon_menu (char *labeltext, void *stock_name, int is_stock)
 	else
 		img = gtk_image_new_from_pixbuf (*((GdkPixbuf **)stock_name));
 #if HAVE_GTK3
-	if (!is_stock)
-	{
-		GtkWidget *box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 6);
-		GtkWidget *label_widget = gtk_label_new_with_mnemonic (labeltext);
-
-		item = gtk_menu_item_new ();
+	item = gtk_menu_item_new ();
+	box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 6);
+	label_widget = gtk_label_new_with_mnemonic (labeltext);
+	if (img)
 		gtk_box_pack_start (GTK_BOX (box), img, FALSE, FALSE, 0);
-		gtk_box_pack_start (GTK_BOX (box), label_widget, FALSE, FALSE, 0);
-		gtk_container_add (GTK_CONTAINER (item), box);
-	}
+	gtk_box_pack_start (GTK_BOX (box), label_widget, FALSE, FALSE, 0);
+	gtk_container_add (GTK_CONTAINER (item), box);
 #endif
 #if !HAVE_GTK3
 	item = gtk_image_menu_item_new_with_mnemonic (labeltext);

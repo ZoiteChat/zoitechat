@@ -107,7 +107,6 @@ chanlist_box_new (void)
 #endif
 }
 
-#if HAVE_GTK3
 static GtkWidget *
 chanlist_icon_button (const char *label, const char *icon_name,
 							 GCallback callback, gpointer userdata)
@@ -130,6 +129,7 @@ chanlist_icon_menu_item (const char *label, const char *icon_name,
 								 GCallback callback, gpointer userdata)
 {
 	GtkWidget *item;
+#if HAVE_GTK3
 	GtkWidget *box;
 	GtkWidget *image;
 	GtkWidget *label_widget;
@@ -141,12 +141,19 @@ chanlist_icon_menu_item (const char *label, const char *icon_name,
 	gtk_box_pack_start (GTK_BOX (box), image, FALSE, FALSE, 0);
 	gtk_box_pack_start (GTK_BOX (box), label_widget, FALSE, FALSE, 0);
 	gtk_container_add (GTK_CONTAINER (item), box);
+#endif
+#if !HAVE_GTK3
+	GtkWidget *image;
+
+	item = gtk_image_menu_item_new_with_mnemonic (label);
+	image = gtk_image_new_from_stock (icon_name, GTK_ICON_SIZE_MENU);
+	gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (item), image);
+#endif
 	g_signal_connect (G_OBJECT (item), "activate", callback, userdata);
 	gtk_widget_show_all (item);
 
 	return item;
 }
-#endif
 
 
 static gboolean
@@ -701,7 +708,6 @@ chanlist_button_cb (GtkTreeView *tree, GdkEventButton *event, server *serv)
 	g_object_unref (menu);
 	g_signal_connect (G_OBJECT (menu), "selection-done",
 							G_CALLBACK (chanlist_menu_destroy), NULL);
-#if HAVE_GTK3
 	{
 		GtkWidget *item;
 
@@ -717,15 +723,6 @@ chanlist_button_cb (GtkTreeView *tree, GdkEventButton *event, server *serv)
 												G_CALLBACK (chanlist_copytopic), serv);
 		gtk_menu_shell_append (GTK_MENU_SHELL (menu), item);
 	}
-#endif
-#if !HAVE_GTK3
-	mg_create_icon_item (_("_Join Channel"), ICON_CHANLIST_JOIN, menu,
-								chanlist_join, serv);
-	mg_create_icon_item (_("_Copy Channel Name"), ICON_CHANLIST_COPY, menu,
-								chanlist_copychannel, serv);
-	mg_create_icon_item (_("Copy _Topic Text"), ICON_CHANLIST_COPY, menu,
-								chanlist_copytopic, serv);
-#endif
 
 	chan = chanlist_get_selected (serv, FALSE);
 	menu_addfavoritemenu (serv, menu, chan, FALSE);
