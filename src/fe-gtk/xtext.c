@@ -742,7 +742,6 @@ gtk_xtext_get_pointer (GdkWindow *window, gint *x, gint *y, GdkModifierType *mas
 	GdkDisplay *display = gdk_window_get_display (window);
 	GdkSeat *seat = gdk_display_get_default_seat (display);
 	GdkDevice *device = gdk_seat_get_pointer (seat);
-	GdkScreen *screen = NULL;
 	gint root_x = 0;
 	gint root_y = 0;
 	gint win_x = 0;
@@ -759,7 +758,7 @@ gtk_xtext_get_pointer (GdkWindow *window, gint *x, gint *y, GdkModifierType *mas
 		return;
 	}
 
-	gdk_device_get_position (device, &screen, &root_x, &root_y);
+	gdk_device_get_position (device, NULL, &root_x, &root_y);
 	gdk_window_get_origin (window, &win_x, &win_y);
 
 	if (x)
