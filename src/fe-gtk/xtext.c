@@ -156,6 +156,8 @@ gtk_xtext_cursor_unref (GdkCursor *cursor)
 #if !HAVE_GTK3
 	gdk_cursor_unref (cursor);
 #else
+	if (!cursor)
+		return;
 	g_object_unref (cursor);
 #endif
 }
@@ -745,6 +747,17 @@ gtk_xtext_get_pointer (GdkWindow *window, gint *x, gint *y, GdkModifierType *mas
 	gint root_y = 0;
 	gint win_x = 0;
 	gint win_y = 0;
+
+	if (!device)
+	{
+		if (x)
+			*x = 0;
+		if (y)
+			*y = 0;
+		if (mask)
+			*mask = 0;
+		return;
+	}
 
 	gdk_device_get_position (device, &screen, &root_x, &root_y);
 	gdk_window_get_origin (window, &win_x, &win_y);
