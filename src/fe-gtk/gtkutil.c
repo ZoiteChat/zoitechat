@@ -81,10 +81,14 @@ gtkutil_icon_name_from_stock (const char *stock_name)
 		return "dialog-cancel";
 	if (strcmp (stock_name, "gtk-ok") == 0)
 		return "dialog-ok";
+	if (strcmp (stock_name, "gtk-apply") == 0)
+		return "dialog-apply";
 	if (strcmp (stock_name, "gtk-copy") == 0)
 		return "edit-copy";
 	if (strcmp (stock_name, "gtk-delete") == 0)
 		return "edit-delete";
+	if (strcmp (stock_name, "gtk-remove") == 0)
+		return "list-remove";
 	if (strcmp (stock_name, "gtk-clear") == 0)
 		return "edit-clear";
 	if (strcmp (stock_name, "gtk-redo") == 0)
