@@ -48,12 +48,12 @@ static void
 palette_color_set_rgb16 (PaletteColor *color, guint16 red, guint16 green, guint16 blue)
 {
 #if GTK_CHECK_VERSION(3,0,0)
-	char color_string[8];
+	char color_string[16];
 	GdkRGBA parsed = { 0 };
 	gboolean parsed_ok;
 
-	g_snprintf (color_string, sizeof (color_string), "#%02x%02x%02x",
-	            red >> 8, green >> 8, blue >> 8);
+	g_snprintf (color_string, sizeof (color_string), "#%04x%04x%04x",
+	            red, green, blue);
 	parsed_ok = gdk_rgba_parse (&parsed, color_string);
 	if (!parsed_ok)
 	{

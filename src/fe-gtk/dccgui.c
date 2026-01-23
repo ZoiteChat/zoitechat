@@ -731,18 +731,12 @@ static void
 dcc_add_column (GtkWidget *tree, int textcol, int colorcol, char *title, gboolean right_justified)
 {
 	GtkCellRenderer *renderer;
-	const char *foreground_property =
-#if GTK_CHECK_VERSION(3,0,0)
-		"foreground-rgba";
-#else
-		"foreground-gdk";
-#endif
 
 	renderer = gtk_cell_renderer_text_new ();
 	if (right_justified)
 		g_object_set (G_OBJECT (renderer), "xalign", (float) 1.0, NULL);
 	gtk_tree_view_insert_column_with_attributes (GTK_TREE_VIEW (tree), -1, title, renderer,
-																"text", textcol, foreground_property, colorcol,
+																"text", textcol, PALETTE_FOREGROUND_PROPERTY, colorcol,
 																NULL);
 	gtk_cell_renderer_text_set_fixed_height_from_font (GTK_CELL_RENDERER_TEXT (renderer), 1);
 }
