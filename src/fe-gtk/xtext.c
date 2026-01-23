@@ -689,20 +689,20 @@ gtk_xtext_destroy (GtkObject * object)
 
 	if (xtext->hand_cursor)
 	{
-#if HAVE_GTK3
-		g_object_unref (xtext->hand_cursor);
-#else
+#if !HAVE_GTK3
 		gdk_cursor_unref (xtext->hand_cursor);
+#else
+		g_object_unref (xtext->hand_cursor);
 #endif
 		xtext->hand_cursor = NULL;
 	}
 
 	if (xtext->resize_cursor)
 	{
-#if HAVE_GTK3
-		g_object_unref (xtext->resize_cursor);
-#else
+#if !HAVE_GTK3
 		gdk_cursor_unref (xtext->resize_cursor);
+#else
+		g_object_unref (xtext->resize_cursor);
 #endif
 		xtext->resize_cursor = NULL;
 	}
@@ -732,7 +732,9 @@ gtk_xtext_unrealize (GtkWidget * widget)
 static void
 gtk_xtext_get_pointer (GdkWindow *window, gint *x, gint *y, GdkModifierType *mask)
 {
-#if HAVE_GTK3
+#if !HAVE_GTK3
+	gdk_window_get_pointer (window, x, y, mask);
+#else
 	GdkDisplay *display = gdk_window_get_display (window);
 	GdkSeat *seat = gdk_display_get_default_seat (display);
 	GdkDevice *device = gdk_seat_get_pointer (seat);
@@ -751,8 +753,6 @@ gtk_xtext_get_pointer (GdkWindow *window, gint *x, gint *y, GdkModifierType *mas
 		*y = root_y - win_y;
 	if (mask)
 		gdk_device_get_state (device, window, NULL, mask);
-#else
-	gdk_window_get_pointer (window, x, y, mask);
 #endif
 }
 
@@ -821,10 +821,10 @@ gtk_xtext_realize (GtkWidget * widget)
 	xtext->hand_cursor = gdk_cursor_new_for_display (gdk_window_get_display (widget->window), GDK_HAND1);
 	xtext->resize_cursor = gdk_cursor_new_for_display (gdk_window_get_display (widget->window), GDK_LEFT_SIDE);
 
-#if HAVE_GTK3
-	gdk_window_set_background_pattern (widget->window, NULL);
-#else
+#if !HAVE_GTK3
 	gdk_window_set_back_pixmap (widget->window, NULL, FALSE);
+#else
+	gdk_window_set_background_pattern (widget->window, NULL);
 #endif
 
 	backend_init (xtext);
