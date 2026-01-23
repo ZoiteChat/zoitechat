@@ -2543,16 +2543,15 @@ setup_apply_to_sess (session_gui *gui)
         if (prefs.hex_gui_input_style)
         {
 #if GTK_CHECK_VERSION(3,0,0)
-                guint8 red = (guint8) CLAMP (colors[COL_FG].red * 255.0 + 0.5, 0.0, 255.0);
-                guint8 green = (guint8) CLAMP (colors[COL_FG].green * 255.0 + 0.5, 0.0, 255.0);
-                guint8 blue = (guint8) CLAMP (colors[COL_FG].blue * 255.0 + 0.5, 0.0, 255.0);
                 char buf[128];
                 GtkCssProvider *provider = gtk_css_provider_new ();
                 GtkStyleContext *context;
+                char *color_string = gdk_rgba_to_string (&colors[COL_FG]);
 
-                g_snprintf (buf, sizeof (buf), ".zoitechat-inputbox { caret-color: #%02x%02x%02x; }",
-                            red, green, blue);
+                g_snprintf (buf, sizeof (buf), ".zoitechat-inputbox { caret-color: %s; }",
+                            color_string);
                 gtk_css_provider_load_from_data (provider, buf, -1, NULL);
+                g_free (color_string);
 
                 context = gtk_widget_get_style_context (gui->input_box);
                 gtk_style_context_add_provider (context, GTK_STYLE_PROVIDER (provider),
