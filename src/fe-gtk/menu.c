@@ -276,6 +276,10 @@ menu_icon_name_from_stock (const char *stock_name)
 		return "document-save";
 	if (strcmp (stock_name, "gtk-save-as") == 0)
 		return "document-save-as";
+	if (strcmp (stock_name, "gtk-cancel") == 0)
+		return "dialog-cancel";
+	if (strcmp (stock_name, "gtk-ok") == 0)
+		return "dialog-ok";
 	if (strcmp (stock_name, "gtk-copy") == 0)
 		return "edit-copy";
 	if (strcmp (stock_name, "gtk-delete") == 0)
@@ -650,8 +654,7 @@ menu_popup (GtkWidget *menu, GdkEventButton *event, gpointer objtounref)
 	{
 		gtk_menu_popup_at_pointer (GTK_MENU (menu), NULL);
 	}
-#endif
-#if !HAVE_GTK3
+#else
 	gtk_menu_popup (GTK_MENU (menu), NULL, NULL, NULL, NULL,
 						 0, event ? event->time : 0);
 #endif
