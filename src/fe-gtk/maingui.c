@@ -3285,7 +3285,8 @@ search_handle_event(int search_type, session *sess)
         {
 #if HAVE_GTK3
                 gtk_entry_set_icon_from_icon_name (GTK_ENTRY (sess->gui->shentry), GTK_ENTRY_ICON_SECONDARY, "dialog-error");
-#else
+#endif
+#if !HAVE_GTK3
                 gtk_entry_set_icon_from_stock (GTK_ENTRY (sess->gui->shentry), GTK_ENTRY_ICON_SECONDARY, GTK_STOCK_DIALOG_ERROR);
 #endif
                 gtk_entry_set_icon_tooltip_text (GTK_ENTRY (sess->gui->shentry), GTK_ENTRY_ICON_SECONDARY, _(err->message));
@@ -3297,7 +3298,8 @@ search_handle_event(int search_type, session *sess)
                 {
 #if HAVE_GTK3
                         gtk_entry_set_icon_from_icon_name (GTK_ENTRY (sess->gui->shentry), GTK_ENTRY_ICON_SECONDARY, NULL);
-#else
+#endif
+#if !HAVE_GTK3
                         gtk_entry_set_icon_from_stock (GTK_ENTRY (sess->gui->shentry), GTK_ENTRY_ICON_SECONDARY, NULL);
 #endif
                 }
@@ -3309,7 +3311,8 @@ search_handle_event(int search_type, session *sess)
                         {
 #if HAVE_GTK3
                                 gtk_entry_set_icon_from_icon_name (GTK_ENTRY (sess->gui->shentry), GTK_ENTRY_ICON_SECONDARY, "dialog-error");
-#else
+#endif
+#if !HAVE_GTK3
                                 gtk_entry_set_icon_from_stock (GTK_ENTRY (sess->gui->shentry), GTK_ENTRY_ICON_SECONDARY, GTK_STOCK_DIALOG_ERROR);
 #endif
                                 gtk_entry_set_icon_tooltip_text (GTK_ENTRY (sess->gui->shentry), GTK_ENTRY_ICON_SECONDARY, _("No results found."));
@@ -3320,7 +3323,8 @@ search_handle_event(int search_type, session *sess)
         {
 #if HAVE_GTK3
                 gtk_entry_set_icon_from_icon_name (GTK_ENTRY (sess->gui->shentry), GTK_ENTRY_ICON_SECONDARY, NULL);
-#else
+#endif
+#if !HAVE_GTK3
                 gtk_entry_set_icon_from_stock (GTK_ENTRY (sess->gui->shentry), GTK_ENTRY_ICON_SECONDARY, NULL);
 #endif
         }
@@ -3371,7 +3375,8 @@ mg_search_toggle(session *sess)
                 /* Reset search state */
 #if HAVE_GTK3
                 gtk_entry_set_icon_from_icon_name (GTK_ENTRY (sess->gui->shentry), GTK_ENTRY_ICON_SECONDARY, NULL);
-#else
+#endif
+#if !HAVE_GTK3
                 gtk_entry_set_icon_from_stock (GTK_ENTRY (sess->gui->shentry), GTK_ENTRY_ICON_SECONDARY, NULL);
 #endif
 
