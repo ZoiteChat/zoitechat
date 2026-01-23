@@ -49,6 +49,17 @@ enum
 static GtkWidget *plugin_window = NULL;
 
 #if HAVE_GTK3
+#define ICON_PLUGIN_LOAD "document-open"
+#define ICON_PLUGIN_UNLOAD "edit-delete"
+#define ICON_PLUGIN_RELOAD "view-refresh"
+#endif
+#if !HAVE_GTK3
+#define ICON_PLUGIN_LOAD GTK_STOCK_REVERT_TO_SAVED
+#define ICON_PLUGIN_UNLOAD GTK_STOCK_DELETE
+#define ICON_PLUGIN_RELOAD GTK_STOCK_REFRESH
+#endif
+
+#if HAVE_GTK3
 static GtkWidget *
 plugingui_icon_button (GtkWidget *box, const char *label,
 							  const char *icon_name, GCallback callback,
@@ -275,22 +286,22 @@ plugingui_open (void)
 
 #if HAVE_GTK3
 	{
-		plugingui_icon_button (hbox, _("_Load..."), "document-open",
+		plugingui_icon_button (hbox, _("_Load..."), ICON_PLUGIN_LOAD,
 									  G_CALLBACK (plugingui_loadbutton_cb), NULL);
-		plugingui_icon_button (hbox, _("_Unload"), "edit-delete",
+		plugingui_icon_button (hbox, _("_Unload"), ICON_PLUGIN_UNLOAD,
 									  G_CALLBACK (plugingui_unload), NULL);
-		plugingui_icon_button (hbox, _("_Reload"), "view-refresh",
+		plugingui_icon_button (hbox, _("_Reload"), ICON_PLUGIN_RELOAD,
 									  G_CALLBACK (plugingui_reloadbutton_cb), view);
 	}
 #endif
 #if !HAVE_GTK3
-	gtkutil_button (hbox, GTK_STOCK_REVERT_TO_SAVED, NULL,
+	gtkutil_button (hbox, ICON_PLUGIN_LOAD, NULL,
 	                plugingui_loadbutton_cb, NULL, _("_Load..."));
 
-	gtkutil_button (hbox, GTK_STOCK_DELETE, NULL,
+	gtkutil_button (hbox, ICON_PLUGIN_UNLOAD, NULL,
 	                plugingui_unload, NULL, _("_Unload"));
 
-	gtkutil_button (hbox, GTK_STOCK_REFRESH, NULL,
+	gtkutil_button (hbox, ICON_PLUGIN_RELOAD, NULL,
 	                plugingui_reloadbutton_cb, view, _("_Reload"));
 #endif
 

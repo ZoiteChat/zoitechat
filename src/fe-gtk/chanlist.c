@@ -45,6 +45,21 @@
 
 #include "custom-list.h"
 
+#if HAVE_GTK3
+#define ICON_CHANLIST_JOIN "go-jump"
+#define ICON_CHANLIST_COPY "edit-copy"
+#define ICON_CHANLIST_FIND "edit-find"
+#define ICON_CHANLIST_REFRESH "view-refresh"
+#define ICON_CHANLIST_SAVE "document-save-as"
+#endif
+#if !HAVE_GTK3
+#define ICON_CHANLIST_JOIN GTK_STOCK_JUMP_TO
+#define ICON_CHANLIST_COPY GTK_STOCK_COPY
+#define ICON_CHANLIST_FIND GTK_STOCK_FIND
+#define ICON_CHANLIST_REFRESH GTK_STOCK_REFRESH
+#define ICON_CHANLIST_SAVE GTK_STOCK_SAVE_AS
+#endif
+
 enum
 {
 	COL_CHANNEL,
@@ -670,7 +685,7 @@ chanlist_button_cb (GtkTreeView *tree, GdkEventButton *event, server *serv)
 		GtkWidget *image;
 
 		item = gtk_image_menu_item_new_with_mnemonic (_("_Join Channel"));
-		image = gtk_image_new_from_icon_name ("go-jump", GTK_ICON_SIZE_MENU);
+		image = gtk_image_new_from_icon_name (ICON_CHANLIST_JOIN, GTK_ICON_SIZE_MENU);
 		gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (item), image);
 		gtk_widget_show (image);
 		gtk_menu_shell_append (GTK_MENU_SHELL (menu), item);
@@ -678,7 +693,7 @@ chanlist_button_cb (GtkTreeView *tree, GdkEventButton *event, server *serv)
 		gtk_widget_show (item);
 
 		item = gtk_image_menu_item_new_with_mnemonic (_("_Copy Channel Name"));
-		image = gtk_image_new_from_icon_name ("edit-copy", GTK_ICON_SIZE_MENU);
+		image = gtk_image_new_from_icon_name (ICON_CHANLIST_COPY, GTK_ICON_SIZE_MENU);
 		gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (item), image);
 		gtk_widget_show (image);
 		gtk_menu_shell_append (GTK_MENU_SHELL (menu), item);
@@ -687,7 +702,7 @@ chanlist_button_cb (GtkTreeView *tree, GdkEventButton *event, server *serv)
 		gtk_widget_show (item);
 
 		item = gtk_image_menu_item_new_with_mnemonic (_("Copy _Topic Text"));
-		image = gtk_image_new_from_icon_name ("edit-copy", GTK_ICON_SIZE_MENU);
+		image = gtk_image_new_from_icon_name (ICON_CHANLIST_COPY, GTK_ICON_SIZE_MENU);
 		gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (item), image);
 		gtk_widget_show (image);
 		gtk_menu_shell_append (GTK_MENU_SHELL (menu), item);
@@ -697,11 +712,11 @@ chanlist_button_cb (GtkTreeView *tree, GdkEventButton *event, server *serv)
 	}
 #endif
 #if !HAVE_GTK3
-	mg_create_icon_item (_("_Join Channel"), GTK_STOCK_JUMP_TO, menu,
+	mg_create_icon_item (_("_Join Channel"), ICON_CHANLIST_JOIN, menu,
 								chanlist_join, serv);
-	mg_create_icon_item (_("_Copy Channel Name"), GTK_STOCK_COPY, menu,
+	mg_create_icon_item (_("_Copy Channel Name"), ICON_CHANLIST_COPY, menu,
 								chanlist_copychannel, serv);
-	mg_create_icon_item (_("Copy _Topic Text"), GTK_STOCK_COPY, menu,
+	mg_create_icon_item (_("Copy _Topic Text"), ICON_CHANLIST_COPY, menu,
 								chanlist_copytopic, serv);
 #endif
 
@@ -889,11 +904,11 @@ chanlist_opengui (server *serv, int do_refresh)
 	gtk_widget_show (table);
 
 #if HAVE_GTK3
-	wid = chanlist_icon_button (_("_Search"), "edit-find",
+	wid = chanlist_icon_button (_("_Search"), ICON_CHANLIST_FIND,
 										 G_CALLBACK (chanlist_search_pressed), serv);
 #endif
 #if !HAVE_GTK3
-	wid = gtkutil_button (NULL, GTK_STOCK_FIND, 0, chanlist_search_pressed, serv,
+	wid = gtkutil_button (NULL, ICON_CHANLIST_FIND, 0, chanlist_search_pressed, serv,
 								 _("_Search"));
 #endif
 	serv->gui->chanlist_search = wid;
@@ -905,11 +920,11 @@ chanlist_opengui (server *serv, int do_refresh)
 #endif
 
 #if HAVE_GTK3
-	wid = chanlist_icon_button (_("_Download List"), "view-refresh",
+	wid = chanlist_icon_button (_("_Download List"), ICON_CHANLIST_REFRESH,
 										 G_CALLBACK (chanlist_refresh), serv);
 #endif
 #if !HAVE_GTK3
-	wid = gtkutil_button (NULL, GTK_STOCK_REFRESH, 0, chanlist_refresh, serv,
+	wid = gtkutil_button (NULL, ICON_CHANLIST_REFRESH, 0, chanlist_refresh, serv,
 								 _("_Download List"));
 #endif
 	serv->gui->chanlist_refresh = wid;
@@ -921,11 +936,11 @@ chanlist_opengui (server *serv, int do_refresh)
 #endif
 
 #if HAVE_GTK3
-	wid = chanlist_icon_button (_("Save _List..."), "document-save-as",
+	wid = chanlist_icon_button (_("Save _List..."), ICON_CHANLIST_SAVE,
 										 G_CALLBACK (chanlist_save), serv);
 #endif
 #if !HAVE_GTK3
-	wid = gtkutil_button (NULL, GTK_STOCK_SAVE_AS, 0, chanlist_save, serv,
+	wid = gtkutil_button (NULL, ICON_CHANLIST_SAVE, 0, chanlist_save, serv,
 								 _("Save _List..."));
 #endif
 	serv->gui->chanlist_savelist = wid;
@@ -937,11 +952,11 @@ chanlist_opengui (server *serv, int do_refresh)
 #endif
 
 #if HAVE_GTK3
-	wid = chanlist_icon_button (_("_Join Channel"), "go-jump",
+	wid = chanlist_icon_button (_("_Join Channel"), ICON_CHANLIST_JOIN,
 										 G_CALLBACK (chanlist_join), serv);
 #endif
 #if !HAVE_GTK3
-	wid = gtkutil_button (NULL, GTK_STOCK_JUMP_TO, 0, chanlist_join, serv,
+	wid = gtkutil_button (NULL, ICON_CHANLIST_JOIN, 0, chanlist_join, serv,
 						 _("_Join Channel"));
 #endif
 	serv->gui->chanlist_join = wid;
