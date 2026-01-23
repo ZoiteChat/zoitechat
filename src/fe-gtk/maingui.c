@@ -3283,7 +3283,11 @@ search_handle_event(int search_type, session *sess)
 
         if (err)
         {
+#if HAVE_GTK3
+                gtk_entry_set_icon_from_icon_name (GTK_ENTRY (sess->gui->shentry), GTK_ENTRY_ICON_SECONDARY, "dialog-error");
+#else
                 gtk_entry_set_icon_from_stock (GTK_ENTRY (sess->gui->shentry), GTK_ENTRY_ICON_SECONDARY, GTK_STOCK_DIALOG_ERROR);
+#endif
                 gtk_entry_set_icon_tooltip_text (GTK_ENTRY (sess->gui->shentry), GTK_ENTRY_ICON_SECONDARY, _(err->message));
                 g_error_free (err);
         }
@@ -3291,7 +3295,11 @@ search_handle_event(int search_type, session *sess)
         {
                 if (text && text[0] == 0) /* empty string, no error */
                 {
+#if HAVE_GTK3
+                        gtk_entry_set_icon_from_icon_name (GTK_ENTRY (sess->gui->shentry), GTK_ENTRY_ICON_SECONDARY, NULL);
+#else
                         gtk_entry_set_icon_from_stock (GTK_ENTRY (sess->gui->shentry), GTK_ENTRY_ICON_SECONDARY, NULL);
+#endif
                 }
                 else
                 {
@@ -3299,14 +3307,22 @@ search_handle_event(int search_type, session *sess)
                         last = gtk_xtext_search (GTK_XTEXT (sess->gui->xtext), text, flags, &err);
                         if (!last) /* Not found error */
                         {
+#if HAVE_GTK3
+                                gtk_entry_set_icon_from_icon_name (GTK_ENTRY (sess->gui->shentry), GTK_ENTRY_ICON_SECONDARY, "dialog-error");
+#else
                                 gtk_entry_set_icon_from_stock (GTK_ENTRY (sess->gui->shentry), GTK_ENTRY_ICON_SECONDARY, GTK_STOCK_DIALOG_ERROR);
+#endif
                                 gtk_entry_set_icon_tooltip_text (GTK_ENTRY (sess->gui->shentry), GTK_ENTRY_ICON_SECONDARY, _("No results found."));
                         }
                 }
         }
         else
         {
+#if HAVE_GTK3
+                gtk_entry_set_icon_from_icon_name (GTK_ENTRY (sess->gui->shentry), GTK_ENTRY_ICON_SECONDARY, NULL);
+#else
                 gtk_entry_set_icon_from_stock (GTK_ENTRY (sess->gui->shentry), GTK_ENTRY_ICON_SECONDARY, NULL);
+#endif
         }
 }
 
@@ -3353,7 +3369,11 @@ mg_search_toggle(session *sess)
         else
         {
                 /* Reset search state */
+#if HAVE_GTK3
+                gtk_entry_set_icon_from_icon_name (GTK_ENTRY (sess->gui->shentry), GTK_ENTRY_ICON_SECONDARY, NULL);
+#else
                 gtk_entry_set_icon_from_stock (GTK_ENTRY (sess->gui->shentry), GTK_ENTRY_ICON_SECONDARY, NULL);
+#endif
 
                 /* Show and focus */
                 gtk_widget_show(sess->gui->shbox);
