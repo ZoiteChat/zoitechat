@@ -691,7 +691,17 @@ chanlist_button_cb (GtkTreeView *tree, GdkEventButton *event, server *serv)
 	g_free (chan);
 
 #if HAVE_GTK3
-	gtk_menu_popup_at_pointer (GTK_MENU (menu), (GdkEvent *)event);
+	if (event)
+	{
+		gtk_menu_popup_at_pointer (GTK_MENU (menu), (GdkEvent *)event);
+	}
+	else
+	{
+		gtk_menu_popup_at_widget (GTK_MENU (menu), GTK_WIDGET (tree),
+										  GDK_GRAVITY_SOUTH_WEST,
+										  GDK_GRAVITY_NORTH_WEST,
+										  NULL);
+	}
 #endif
 #if !HAVE_GTK3
 	gtk_menu_popup (GTK_MENU (menu), NULL, NULL, NULL, NULL, 0, event->time);
