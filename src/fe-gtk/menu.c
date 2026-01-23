@@ -277,10 +277,16 @@ menu_quick_item (char *cmd, char *label, GtkWidget * menu, int flags,
 	{
 		if (icon)
 		{
+#if HAVE_GTK3
+			GtkWidget *box;
+			GtkWidget *label_widget;
+#endif
 			/*if (flags & XCMENU_MARKUP)
 				item = gtk_image_menu_item_new_with_markup (label);
 			else*/
+#if !HAVE_GTK3
 				item = gtk_image_menu_item_new_with_mnemonic (label);
+#endif
 			img = NULL;
 			if (access (icon, R_OK) == 0)	/* try fullpath */
 				img = gtk_image_new_from_file (icon);
@@ -303,8 +309,19 @@ menu_quick_item (char *cmd, char *label, GtkWidget * menu, int flags,
 				g_free (path);
 			}
 
+#if HAVE_GTK3
+			item = gtk_menu_item_new ();
+			box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 6);
+			label_widget = gtk_label_new_with_mnemonic (label);
 			if (img)
+				gtk_box_pack_start (GTK_BOX (box), img, FALSE, FALSE, 0);
+			gtk_box_pack_start (GTK_BOX (box), label_widget, FALSE, FALSE, 0);
+			gtk_container_add (GTK_CONTAINER (item), box);
+#endif
+			if (img)
+#if !HAVE_GTK3
 				gtk_image_menu_item_set_image ((GtkImageMenuItem *)item, img);
+#endif
 		}
 		else
 		{
@@ -2002,9 +2019,22 @@ create_icon_menu (char *labeltext, void *stock_name, int is_stock)
 	}
 	else
 		img = gtk_image_new_from_pixbuf (*((GdkPixbuf **)stock_name));
+#if HAVE_GTK3
+	{
+		GtkWidget *box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 6);
+		GtkWidget *label_widget = gtk_label_new_with_mnemonic (labeltext);
+
+		item = gtk_menu_item_new ();
+		gtk_box_pack_start (GTK_BOX (box), img, FALSE, FALSE, 0);
+		gtk_box_pack_start (GTK_BOX (box), label_widget, FALSE, FALSE, 0);
+		gtk_container_add (GTK_CONTAINER (item), box);
+	}
+#endif
+#if !HAVE_GTK3
 	item = gtk_image_menu_item_new_with_mnemonic (labeltext);
 	gtk_image_menu_item_set_image ((GtkImageMenuItem *)item, img);
 	gtk_widget_show (img);
+#endif
 
 	return item;
 }

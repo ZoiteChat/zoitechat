@@ -49,6 +49,7 @@
 #include "../common/zoitechatc.h"
 #include "palette.h"
 #include "xtext.h"
+#include "gtkutil.h"
 
 /*
  * Bunch of poop to make enchant into a runtime dependency rather than a
@@ -682,10 +683,24 @@ build_spelling_menu(SexySpellEntry *entry, const gchar *word)
 
 	/* + Add to Dictionary */
 	label = g_strdup_printf(_("Add \"%s\" to Dictionary"), word);
-	mi = gtk_image_menu_item_new_with_label(label);
-	g_free(label);
+#if HAVE_GTK3
+	{
+		const char *icon_name = gtkutil_icon_name_from_stock (GTK_STOCK_ADD);
+		GtkWidget *box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 6);
+		GtkWidget *image = gtk_image_new_from_icon_name (icon_name, GTK_ICON_SIZE_MENU);
+		GtkWidget *label_widget = gtk_label_new_with_mnemonic (label);
 
+		mi = gtk_menu_item_new ();
+		gtk_box_pack_start (GTK_BOX (box), image, FALSE, FALSE, 0);
+		gtk_box_pack_start (GTK_BOX (box), label_widget, FALSE, FALSE, 0);
+		gtk_container_add (GTK_CONTAINER (mi), box);
+	}
+#endif
+#if !HAVE_GTK3
+	mi = gtk_image_menu_item_new_with_label(label);
 	gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(mi), gtk_image_new_from_stock(GTK_STOCK_ADD, GTK_ICON_SIZE_MENU));
+#endif
+	g_free(label);
 
 	if (g_slist_length(entry->priv->dict_list) == 1) {
 		dict = (struct EnchantDict *) entry->priv->dict_list->data;
@@ -726,8 +741,23 @@ build_spelling_menu(SexySpellEntry *entry, const gchar *word)
 	gtk_menu_shell_append(GTK_MENU_SHELL(topmenu), mi);
 
 	/* - Ignore All */
+#if HAVE_GTK3
+	{
+		const char *icon_name = gtkutil_icon_name_from_stock (GTK_STOCK_REMOVE);
+		GtkWidget *box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 6);
+		GtkWidget *image = gtk_image_new_from_icon_name (icon_name, GTK_ICON_SIZE_MENU);
+		GtkWidget *label_widget = gtk_label_new_with_mnemonic (_("Ignore All"));
+
+		mi = gtk_menu_item_new ();
+		gtk_box_pack_start (GTK_BOX (box), image, FALSE, FALSE, 0);
+		gtk_box_pack_start (GTK_BOX (box), label_widget, FALSE, FALSE, 0);
+		gtk_container_add (GTK_CONTAINER (mi), box);
+	}
+#endif
+#if !HAVE_GTK3
 	mi = gtk_image_menu_item_new_with_label(_("Ignore All"));
 	gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(mi), gtk_image_new_from_stock(GTK_STOCK_REMOVE, GTK_ICON_SIZE_MENU));
+#endif
 	g_signal_connect(G_OBJECT(mi), "activate", G_CALLBACK(ignore_all), entry);
 	gtk_widget_show_all(mi);
 	gtk_menu_shell_append(GTK_MENU_SHELL(topmenu), mi);
@@ -760,9 +790,24 @@ sexy_spell_entry_populate_popup(SexySpellEntry *entry, GtkMenu *menu, gpointer d
 	gtk_menu_shell_prepend(GTK_MENU_SHELL(menu), mi);
 
 	/* Above the separator, show the suggestions menu */
+#if HAVE_GTK3
+	{
+		const char *icon_name = gtkutil_icon_name_from_stock (GTK_STOCK_SPELL_CHECK);
+		GtkWidget *box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 6);
+		GtkWidget *label_widget = gtk_label_new_with_mnemonic (_("Spelling Suggestions"));
+
+		icon = gtk_image_new_from_icon_name (icon_name, GTK_ICON_SIZE_MENU);
+		mi = gtk_menu_item_new ();
+		gtk_box_pack_start (GTK_BOX (box), icon, FALSE, FALSE, 0);
+		gtk_box_pack_start (GTK_BOX (box), label_widget, FALSE, FALSE, 0);
+		gtk_container_add (GTK_CONTAINER (mi), box);
+	}
+#endif
+#if !HAVE_GTK3
 	icon = gtk_image_new_from_stock(GTK_STOCK_SPELL_CHECK, GTK_ICON_SIZE_MENU);
 	mi = gtk_image_menu_item_new_with_label(_("Spelling Suggestions"));
 	gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(mi), icon);
+#endif
 
 	word = gtk_editable_get_chars(GTK_EDITABLE(entry), start, end);
 	g_assert(word != NULL);
