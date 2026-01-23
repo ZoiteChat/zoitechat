@@ -130,12 +130,13 @@ chanlist_menu_item_new_with_icon (const char *label, const char *icon_name)
 {
 	GtkWidget *item;
 	GtkWidget *box;
-	GtkWidget *image;
+	GtkWidget *image = NULL;
 	GtkWidget *label_widget;
 
 	item = gtk_menu_item_new ();
 	box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 6);
-	image = gtk_image_new_from_icon_name (icon_name, GTK_ICON_SIZE_MENU);
+	if (icon_name)
+		image = gtk_image_new_from_icon_name (icon_name, GTK_ICON_SIZE_MENU);
 	label_widget = gtk_label_new_with_mnemonic (label);
 	if (image)
 		gtk_box_pack_start (GTK_BOX (box), image, FALSE, FALSE, 0);

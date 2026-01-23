@@ -279,6 +279,17 @@ menu_item_new_with_image_and_label (GtkWidget *image, const char *label)
 
 	return item;
 }
+
+static GtkWidget *
+menu_item_new_with_icon_name_and_label (const char *icon_name, const char *label)
+{
+	GtkWidget *image = NULL;
+
+	if (icon_name)
+		image = gtk_image_new_from_icon_name (icon_name, GTK_ICON_SIZE_MENU);
+
+	return menu_item_new_with_image_and_label (image, label);
+}
 #endif
 
 GtkWidget *
@@ -288,7 +299,7 @@ menu_quick_item (char *cmd, char *label, GtkWidget * menu, int flags,
 	GtkWidget *img, *item;
 	char *path;
 #if HAVE_GTK3
-	const char *icon_name;
+	const char *icon_name = NULL;
 #endif
 
 	if (!label)
@@ -313,7 +324,6 @@ menu_quick_item (char *cmd, char *label, GtkWidget * menu, int flags,
 				{
 #if HAVE_GTK3
 					icon_name = gtkutil_icon_name_from_stock (icon);
-					img = gtk_image_new_from_icon_name (icon_name, GTK_ICON_SIZE_MENU);
 #endif
 #if !HAVE_GTK3
 					img = gtk_image_new_from_stock (icon, GTK_ICON_SIZE_MENU);
@@ -323,7 +333,10 @@ menu_quick_item (char *cmd, char *label, GtkWidget * menu, int flags,
 			}
 
 #if HAVE_GTK3
-			item = menu_item_new_with_image_and_label (img, label);
+			if (img)
+				item = menu_item_new_with_image_and_label (img, label);
+			else
+				item = menu_item_new_with_icon_name_and_label (icon_name, label);
 #endif
 #if !HAVE_GTK3
 			item = gtk_image_menu_item_new_with_mnemonic (label);
@@ -2021,7 +2034,6 @@ create_icon_menu (char *labeltext, void *stock_name, int is_stock)
 	{
 #if HAVE_GTK3
 		icon_name = gtkutil_icon_name_from_stock (stock_name);
-		img = gtk_image_new_from_icon_name (icon_name, GTK_ICON_SIZE_MENU);
 #endif
 #if !HAVE_GTK3
 		img = gtk_image_new_from_stock (stock_name, GTK_ICON_SIZE_MENU);
@@ -2030,7 +2042,10 @@ create_icon_menu (char *labeltext, void *stock_name, int is_stock)
 	else
 		img = gtk_image_new_from_pixbuf (*((GdkPixbuf **)stock_name));
 #if HAVE_GTK3
-	item = menu_item_new_with_image_and_label (img, labeltext);
+	if (is_stock)
+		item = menu_item_new_with_icon_name_and_label (icon_name, labeltext);
+	else
+		item = menu_item_new_with_image_and_label (img, labeltext);
 #endif
 #if !HAVE_GTK3
 	item = gtk_image_menu_item_new_with_mnemonic (labeltext);
