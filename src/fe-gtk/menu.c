@@ -283,12 +283,22 @@ menu_item_new_with_image_and_label (GtkWidget *image, const char *label)
 static GtkWidget *
 menu_item_new_with_icon_name_and_label (const char *icon_name, const char *label)
 {
+	GtkWidget *item;
+	GtkWidget *box;
 	GtkWidget *image = NULL;
+	GtkWidget *label_widget;
 
+	item = gtk_menu_item_new ();
+	box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 6);
 	if (icon_name)
 		image = gtk_image_new_from_icon_name (icon_name, GTK_ICON_SIZE_MENU);
+	label_widget = gtk_label_new_with_mnemonic (label);
+	if (image)
+		gtk_box_pack_start (GTK_BOX (box), image, FALSE, FALSE, 0);
+	gtk_box_pack_start (GTK_BOX (box), label_widget, FALSE, FALSE, 0);
+	gtk_container_add (GTK_CONTAINER (item), box);
 
-	return menu_item_new_with_image_and_label (image, label);
+	return item;
 }
 #endif
 
