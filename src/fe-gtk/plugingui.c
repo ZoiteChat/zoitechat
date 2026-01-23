@@ -52,8 +52,7 @@ static GtkWidget *plugin_window = NULL;
 #define ICON_PLUGIN_LOAD "document-open"
 #define ICON_PLUGIN_UNLOAD "edit-delete"
 #define ICON_PLUGIN_RELOAD "view-refresh"
-#endif
-#if !HAVE_GTK3
+#else
 #define ICON_PLUGIN_LOAD GTK_STOCK_REVERT_TO_SAVED
 #define ICON_PLUGIN_UNLOAD GTK_STOCK_DELETE
 #define ICON_PLUGIN_RELOAD GTK_STOCK_REFRESH

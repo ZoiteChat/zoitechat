@@ -596,8 +596,7 @@ menu_popup (GtkWidget *menu, GdkEventButton *event, gpointer objtounref)
 	{
 		gtk_menu_popup_at_pointer (GTK_MENU (menu), NULL);
 	}
-#endif
-#if !HAVE_GTK3
+#else
 	gtk_menu_popup (GTK_MENU (menu), NULL, NULL, NULL, NULL,
 						 0, event ? event->time : 0);
 #endif
@@ -1842,8 +1841,7 @@ menu_about (GtkWidget *wid, gpointer sess)
 #define ICON_FIND "edit-find"
 #define ICON_HELP "help-browser"
 #define ICON_ABOUT "help-about"
-#endif
-#if !HAVE_GTK3
+#else
 #define ICON_NEW GTK_STOCK_NEW
 #define ICON_LOAD_PLUGIN GTK_STOCK_REVERT_TO_SAVED
 #define ICON_DETACH GTK_STOCK_REDO
