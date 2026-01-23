@@ -48,6 +48,27 @@ enum
 
 static GtkWidget *plugin_window = NULL;
 
+#if HAVE_GTK3
+static GtkWidget *
+plugingui_icon_button (GtkWidget *box, const char *label,
+							  const char *icon_name, GCallback callback,
+							  gpointer userdata)
+{
+	GtkWidget *button;
+	GtkWidget *image;
+
+	button = gtk_button_new_with_mnemonic (label);
+	image = gtk_image_new_from_icon_name (icon_name, GTK_ICON_SIZE_MENU);
+	gtk_button_set_image (GTK_BUTTON (button), image);
+	gtk_button_set_use_underline (GTK_BUTTON (button), TRUE);
+	gtk_container_add (GTK_CONTAINER (box), button);
+	g_signal_connect (G_OBJECT (button), "clicked", callback, userdata);
+	gtk_widget_show (button);
+
+	return button;
+}
+#endif
+
 
 static GtkWidget *
 plugingui_treeview_new (GtkWidget *box)
@@ -254,34 +275,12 @@ plugingui_open (void)
 
 #if HAVE_GTK3
 	{
-		GtkWidget *button;
-
-		button = gtk_button_new_with_mnemonic (_("_Load..."));
-		gtk_button_set_image (GTK_BUTTON (button),
-									 gtk_image_new_from_icon_name ("document-open", GTK_ICON_SIZE_MENU));
-		gtk_button_set_use_underline (GTK_BUTTON (button), TRUE);
-		gtk_container_add (GTK_CONTAINER (hbox), button);
-		g_signal_connect (G_OBJECT (button), "clicked",
-								G_CALLBACK (plugingui_loadbutton_cb), NULL);
-		gtk_widget_show (button);
-
-		button = gtk_button_new_with_mnemonic (_("_Unload"));
-		gtk_button_set_image (GTK_BUTTON (button),
-									 gtk_image_new_from_icon_name ("edit-delete", GTK_ICON_SIZE_MENU));
-		gtk_button_set_use_underline (GTK_BUTTON (button), TRUE);
-		gtk_container_add (GTK_CONTAINER (hbox), button);
-		g_signal_connect (G_OBJECT (button), "clicked",
-								G_CALLBACK (plugingui_unload), NULL);
-		gtk_widget_show (button);
-
-		button = gtk_button_new_with_mnemonic (_("_Reload"));
-		gtk_button_set_image (GTK_BUTTON (button),
-									 gtk_image_new_from_icon_name ("view-refresh", GTK_ICON_SIZE_MENU));
-		gtk_button_set_use_underline (GTK_BUTTON (button), TRUE);
-		gtk_container_add (GTK_CONTAINER (hbox), button);
-		g_signal_connect (G_OBJECT (button), "clicked",
-								G_CALLBACK (plugingui_reloadbutton_cb), view);
-		gtk_widget_show (button);
+		plugingui_icon_button (hbox, _("_Load..."), "document-open",
+									  G_CALLBACK (plugingui_loadbutton_cb), NULL);
+		plugingui_icon_button (hbox, _("_Unload"), "edit-delete",
+									  G_CALLBACK (plugingui_unload), NULL);
+		plugingui_icon_button (hbox, _("_Reload"), "view-refresh",
+									  G_CALLBACK (plugingui_reloadbutton_cb), view);
 	}
 #endif
 #if !HAVE_GTK3

@@ -92,6 +92,25 @@ chanlist_box_new (void)
 #endif
 }
 
+#if HAVE_GTK3
+static GtkWidget *
+chanlist_icon_button (const char *label, const char *icon_name,
+							 GCallback callback, gpointer userdata)
+{
+	GtkWidget *button;
+	GtkWidget *image;
+
+	button = gtk_button_new_with_mnemonic (label);
+	image = gtk_image_new_from_icon_name (icon_name, GTK_ICON_SIZE_MENU);
+	gtk_button_set_image (GTK_BUTTON (button), image);
+	gtk_button_set_use_underline (GTK_BUTTON (button), TRUE);
+	g_signal_connect (G_OBJECT (button), "clicked", callback, userdata);
+	gtk_widget_show (button);
+
+	return button;
+}
+#endif
+
 
 static gboolean
 chanlist_match (server *serv, const char *str)
@@ -704,7 +723,7 @@ chanlist_button_cb (GtkTreeView *tree, GdkEventButton *event, server *serv)
 	}
 #endif
 #if !HAVE_GTK3
-	gtk_menu_popup (GTK_MENU (menu), NULL, NULL, NULL, NULL, 0, event->time);
+	gtk_menu_popup (GTK_MENU (menu), NULL, NULL, NULL, NULL, 0, event ? event->time : 0);
 #endif
 
 	return TRUE;
@@ -870,13 +889,8 @@ chanlist_opengui (server *serv, int do_refresh)
 	gtk_widget_show (table);
 
 #if HAVE_GTK3
-	wid = gtk_button_new_with_mnemonic (_("_Search"));
-	gtk_button_set_image (GTK_BUTTON (wid),
-								 gtk_image_new_from_icon_name ("edit-find", GTK_ICON_SIZE_MENU));
-	gtk_button_set_use_underline (GTK_BUTTON (wid), TRUE);
-	g_signal_connect (G_OBJECT (wid), "clicked",
-							G_CALLBACK (chanlist_search_pressed), serv);
-	gtk_widget_show (wid);
+	wid = chanlist_icon_button (_("_Search"), "edit-find",
+										 G_CALLBACK (chanlist_search_pressed), serv);
 #endif
 #if !HAVE_GTK3
 	wid = gtkutil_button (NULL, GTK_STOCK_FIND, 0, chanlist_search_pressed, serv,
@@ -891,13 +905,8 @@ chanlist_opengui (server *serv, int do_refresh)
 #endif
 
 #if HAVE_GTK3
-	wid = gtk_button_new_with_mnemonic (_("_Download List"));
-	gtk_button_set_image (GTK_BUTTON (wid),
-								 gtk_image_new_from_icon_name ("view-refresh", GTK_ICON_SIZE_MENU));
-	gtk_button_set_use_underline (GTK_BUTTON (wid), TRUE);
-	g_signal_connect (G_OBJECT (wid), "clicked",
-							G_CALLBACK (chanlist_refresh), serv);
-	gtk_widget_show (wid);
+	wid = chanlist_icon_button (_("_Download List"), "view-refresh",
+										 G_CALLBACK (chanlist_refresh), serv);
 #endif
 #if !HAVE_GTK3
 	wid = gtkutil_button (NULL, GTK_STOCK_REFRESH, 0, chanlist_refresh, serv,
@@ -912,13 +921,8 @@ chanlist_opengui (server *serv, int do_refresh)
 #endif
 
 #if HAVE_GTK3
-	wid = gtk_button_new_with_mnemonic (_("Save _List..."));
-	gtk_button_set_image (GTK_BUTTON (wid),
-								 gtk_image_new_from_icon_name ("document-save-as", GTK_ICON_SIZE_MENU));
-	gtk_button_set_use_underline (GTK_BUTTON (wid), TRUE);
-	g_signal_connect (G_OBJECT (wid), "clicked",
-							G_CALLBACK (chanlist_save), serv);
-	gtk_widget_show (wid);
+	wid = chanlist_icon_button (_("Save _List..."), "document-save-as",
+										 G_CALLBACK (chanlist_save), serv);
 #endif
 #if !HAVE_GTK3
 	wid = gtkutil_button (NULL, GTK_STOCK_SAVE_AS, 0, chanlist_save, serv,
@@ -933,13 +937,8 @@ chanlist_opengui (server *serv, int do_refresh)
 #endif
 
 #if HAVE_GTK3
-	wid = gtk_button_new_with_mnemonic (_("_Join Channel"));
-	gtk_button_set_image (GTK_BUTTON (wid),
-								 gtk_image_new_from_icon_name ("go-jump", GTK_ICON_SIZE_MENU));
-	gtk_button_set_use_underline (GTK_BUTTON (wid), TRUE);
-	g_signal_connect (G_OBJECT (wid), "clicked",
-							G_CALLBACK (chanlist_join), serv);
-	gtk_widget_show (wid);
+	wid = chanlist_icon_button (_("_Join Channel"), "go-jump",
+										 G_CALLBACK (chanlist_join), serv);
 #endif
 #if !HAVE_GTK3
 	wid = gtkutil_button (NULL, GTK_STOCK_JUMP_TO, 0, chanlist_join, serv,

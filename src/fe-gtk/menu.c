@@ -1445,6 +1445,11 @@ menu_join (GtkWidget * wid, gpointer none)
 	{
 		GtkWidget *button;
 
+		button = gtk_dialog_get_widget_for_response (GTK_DIALOG (dialog), GTK_RESPONSE_HELP);
+		if (button)
+			gtk_button_set_image (GTK_BUTTON (button),
+										 gtk_image_new_from_icon_name ("help-browser", GTK_ICON_SIZE_BUTTON));
+
 		button = gtk_dialog_get_widget_for_response (GTK_DIALOG (dialog), GTK_RESPONSE_REJECT);
 		if (button)
 			gtk_button_set_image (GTK_BUTTON (button),
