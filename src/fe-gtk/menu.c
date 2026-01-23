@@ -261,12 +261,65 @@ menu_toggle_item (char *label, GtkWidget *menu, void *callback, void *userdata,
 	return item;
 }
 
+#if HAVE_GTK3
+static const char *
+menu_icon_name_from_stock (const char *stock_name)
+{
+	if (!stock_name)
+		return NULL;
+
+	if (strcmp (stock_name, "gtk-new") == 0)
+		return "document-new";
+	if (strcmp (stock_name, "gtk-open") == 0 || strcmp (stock_name, "gtk-revert-to-saved") == 0)
+		return "document-open";
+	if (strcmp (stock_name, "gtk-save") == 0)
+		return "document-save";
+	if (strcmp (stock_name, "gtk-save-as") == 0)
+		return "document-save-as";
+	if (strcmp (stock_name, "gtk-copy") == 0)
+		return "edit-copy";
+	if (strcmp (stock_name, "gtk-delete") == 0)
+		return "edit-delete";
+	if (strcmp (stock_name, "gtk-clear") == 0)
+		return "edit-clear";
+	if (strcmp (stock_name, "gtk-redo") == 0)
+		return "edit-redo";
+	if (strcmp (stock_name, "gtk-find") == 0 || strcmp (stock_name, "gtk-justify-left") == 0)
+		return "edit-find";
+	if (strcmp (stock_name, "gtk-refresh") == 0)
+		return "view-refresh";
+	if (strcmp (stock_name, "gtk-index") == 0)
+		return "view-list";
+	if (strcmp (stock_name, "gtk-jump-to") == 0)
+		return "go-jump";
+	if (strcmp (stock_name, "gtk-preferences") == 0)
+		return "preferences-system";
+	if (strcmp (stock_name, "gtk-help") == 0)
+		return "help-browser";
+	if (strcmp (stock_name, "gtk-about") == 0)
+		return "help-about";
+	if (strcmp (stock_name, "gtk-close") == 0)
+		return "window-close";
+	if (strcmp (stock_name, "gtk-quit") == 0)
+		return "application-exit";
+	if (strcmp (stock_name, "gtk-connect") == 0)
+		return "network-connect";
+	if (strcmp (stock_name, "gtk-disconnect") == 0)
+		return "network-disconnect";
+
+	return stock_name;
+}
+#endif
+
 GtkWidget *
 menu_quick_item (char *cmd, char *label, GtkWidget * menu, int flags,
 					  gpointer userdata, char *icon)
 {
 	GtkWidget *img, *item;
 	char *path;
+#if HAVE_GTK3
+	const char *icon_name;
+#endif
 
 	if (!label)
 		item = gtk_menu_item_new ();
@@ -290,7 +343,8 @@ menu_quick_item (char *cmd, char *label, GtkWidget * menu, int flags,
 				else
 				{
 #if HAVE_GTK3
-					img = gtk_image_new_from_icon_name (icon, GTK_ICON_SIZE_MENU);
+					icon_name = menu_icon_name_from_stock (icon);
+					img = gtk_image_new_from_icon_name (icon_name, GTK_ICON_SIZE_MENU);
 #endif
 #if !HAVE_GTK3
 					img = gtk_image_new_from_stock (icon, GTK_ICON_SIZE_MENU);
