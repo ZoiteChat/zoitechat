@@ -51,7 +51,8 @@
 #define ICON_CHANLIST_FIND "edit-find"
 #define ICON_CHANLIST_REFRESH "view-refresh"
 #define ICON_CHANLIST_SAVE "document-save-as"
-#else
+#endif
+#if !HAVE_GTK3
 #define ICON_CHANLIST_JOIN GTK_STOCK_JUMP_TO
 #define ICON_CHANLIST_COPY GTK_STOCK_COPY
 #define ICON_CHANLIST_FIND GTK_STOCK_FIND
@@ -735,7 +736,8 @@ chanlist_button_cb (GtkTreeView *tree, GdkEventButton *event, server *serv)
 										  GDK_GRAVITY_NORTH_WEST,
 										  NULL);
 	}
-#else
+#endif
+#if !HAVE_GTK3
 	gtk_menu_popup (GTK_MENU (menu), NULL, NULL, NULL, NULL, 0, event ? event->time : 0);
 #endif
 
