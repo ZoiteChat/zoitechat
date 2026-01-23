@@ -1542,7 +1542,12 @@ setup_rgba_from_palette (const PaletteColor *color, GdkRGBA *rgba)
 	palette_color_get_rgb16 (color, &red, &green, &blue);
 	g_snprintf (color_string, sizeof (color_string), "#%04x%04x%04x", red, green, blue);
 	if (!gdk_rgba_parse (rgba, color_string))
-		*rgba = *color;
+	{
+		rgba->red = red / 65535.0;
+		rgba->green = green / 65535.0;
+		rgba->blue = blue / 65535.0;
+		rgba->alpha = 1.0;
+	}
 }
 
 static void

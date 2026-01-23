@@ -731,7 +731,11 @@ static void
 dcc_add_column (GtkWidget *tree, int textcol, int colorcol, char *title, gboolean right_justified)
 {
 	GtkCellRenderer *renderer;
-	const char *foreground_property = PALETTE_FOREGROUND_PROPERTY;
+#if GTK_CHECK_VERSION(3,0,0)
+	const char *foreground_property = "foreground-rgba";
+#else
+	const char *foreground_property = "foreground-gdk";
+#endif
 
 	renderer = gtk_cell_renderer_text_new ();
 	if (right_justified)
