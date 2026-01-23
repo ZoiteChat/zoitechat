@@ -120,19 +120,6 @@ gtkutil_icon_name_from_stock (const char *stock_name)
 }
 #endif
 
-static GtkWidget *
-gtkutil_image_new_from_stock_name (const char *stock_name)
-{
-#if HAVE_GTK3
-	const char *icon_name = gtkutil_icon_name_from_stock (stock_name);
-
-	return gtk_image_new_from_icon_name (icon_name, GTK_ICON_SIZE_MENU);
-#endif
-#if !HAVE_GTK3
-	return gtk_image_new_from_stock (stock_name, GTK_ICON_SIZE_MENU);
-#endif
-}
-
 static void
 gtkutil_file_req_destroy (GtkWidget * wid, struct file_req *freq)
 {
@@ -594,8 +581,21 @@ gtkutil_button (GtkWidget *box, char *stock, char *tip, void *callback,
 	if (labeltext)
 	{
 		gtk_button_set_label (GTK_BUTTON (wid), labeltext);
-		img = gtkutil_image_new_from_stock_name (stock);
-		gtk_button_set_image (GTK_BUTTON (wid), img);
+		img = NULL;
+#if HAVE_GTK3
+		if (stock)
+		{
+			const char *icon_name = gtkutil_icon_name_from_stock (stock);
+
+			img = gtk_image_new_from_icon_name (icon_name, GTK_ICON_SIZE_BUTTON);
+		}
+#endif
+#if !HAVE_GTK3
+		if (stock)
+			img = gtk_image_new_from_stock (stock, GTK_ICON_SIZE_BUTTON);
+#endif
+		if (img)
+			gtk_button_set_image (GTK_BUTTON (wid), img);
 		gtk_button_set_use_underline (GTK_BUTTON (wid), TRUE);
 		if (box)
 			gtk_container_add (GTK_CONTAINER (box), wid);
@@ -606,9 +606,24 @@ gtkutil_button (GtkWidget *box, char *stock, char *tip, void *callback,
 		gtk_container_add (GTK_CONTAINER (wid), bbox);
 		gtk_widget_show (bbox);
 
-		img = gtkutil_image_new_from_stock_name (stock);
-		gtk_container_add (GTK_CONTAINER (bbox), img);
-		gtk_widget_show (img);
+		img = NULL;
+#if HAVE_GTK3
+		if (stock)
+		{
+			const char *icon_name = gtkutil_icon_name_from_stock (stock);
+
+			img = gtk_image_new_from_icon_name (icon_name, GTK_ICON_SIZE_BUTTON);
+		}
+#endif
+#if !HAVE_GTK3
+		if (stock)
+			img = gtk_image_new_from_stock (stock, GTK_ICON_SIZE_BUTTON);
+#endif
+		if (img)
+		{
+			gtk_container_add (GTK_CONTAINER (bbox), img);
+			gtk_widget_show (img);
+		}
 		gtk_box_pack_start (GTK_BOX (box), wid, 0, 0, 0);
 	}
 
