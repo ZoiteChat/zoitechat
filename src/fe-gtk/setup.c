@@ -1536,9 +1536,12 @@ typedef struct
 static void
 setup_rgba_from_palette (const PaletteColor *color, GdkRGBA *rgba)
 {
-	g_autofree char *color_string = gdk_rgba_to_string (color);
+	guint16 red, green, blue;
+	char color_string[16];
 
-	if (!color_string || !gdk_rgba_parse (rgba, color_string))
+	palette_color_get_rgb16 (color, &red, &green, &blue);
+	g_snprintf (color_string, sizeof (color_string), "#%04x%04x%04x", red, green, blue);
+	if (!gdk_rgba_parse (rgba, color_string))
 		*rgba = *color;
 }
 
