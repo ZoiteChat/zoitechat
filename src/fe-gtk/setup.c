@@ -1596,15 +1596,14 @@ setup_color_cb (GtkWidget *button, gpointer userdata)
         PaletteColor *color;
         GdkRGBA rgba;
         gboolean parsed_ok;
-        char *color_string;
+        g_autofree char *color_string = NULL;
         setup_color_dialog_data *data;
 
         color = &colors[GPOINTER_TO_INT (userdata)];
 
         dialog = gtk_color_chooser_dialog_new (_("Select color"), GTK_WINDOW (setup_window));
         color_string = gdk_rgba_to_string (color);
-        parsed_ok = gdk_rgba_parse (&rgba, color_string);
-        g_free (color_string);
+        parsed_ok = color_string && gdk_rgba_parse (&rgba, color_string);
         if (!parsed_ok)
                 rgba = *color;
         gtk_color_chooser_set_rgba (GTK_COLOR_CHOOSER (dialog), &rgba);
