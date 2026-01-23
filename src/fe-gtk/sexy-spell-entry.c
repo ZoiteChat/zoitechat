@@ -629,17 +629,15 @@ build_suggestion_menu(SexySpellEntry *entry, GtkWidget *menu, struct EnchantDict
 	enchant_dict_free_suggestions(dict, suggestions);
 }
 
+#if HAVE_GTK3
 static GtkWidget *
-sexy_spell_entry_icon_menu_item (const char *label, const char *stock_name)
+sexy_spell_entry_menu_item_new_with_icon (const char *label, const char *icon_name)
 {
 	GtkWidget *item;
-#if HAVE_GTK3
 	GtkWidget *box;
 	GtkWidget *image;
 	GtkWidget *label_widget;
-	const char *icon_name;
 
-	icon_name = gtkutil_icon_name_from_stock (stock_name);
 	item = gtk_menu_item_new ();
 	box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 6);
 	image = gtk_image_new_from_icon_name (icon_name, GTK_ICON_SIZE_MENU);
@@ -648,6 +646,20 @@ sexy_spell_entry_icon_menu_item (const char *label, const char *stock_name)
 		gtk_box_pack_start (GTK_BOX (box), image, FALSE, FALSE, 0);
 	gtk_box_pack_start (GTK_BOX (box), label_widget, FALSE, FALSE, 0);
 	gtk_container_add (GTK_CONTAINER (item), box);
+
+	return item;
+}
+#endif
+
+static GtkWidget *
+sexy_spell_entry_icon_menu_item (const char *label, const char *stock_name)
+{
+	GtkWidget *item;
+#if HAVE_GTK3
+	const char *icon_name;
+
+	icon_name = gtkutil_icon_name_from_stock (stock_name);
+	item = sexy_spell_entry_menu_item_new_with_icon (label, icon_name);
 #endif
 #if !HAVE_GTK3
 	GtkWidget *image;

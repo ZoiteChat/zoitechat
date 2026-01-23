@@ -124,12 +124,11 @@ chanlist_icon_button (const char *label, const char *icon_name,
 	return button;
 }
 
+#if HAVE_GTK3
 static GtkWidget *
-chanlist_icon_menu_item (const char *label, const char *icon_name,
-								 GCallback callback, gpointer userdata)
+chanlist_menu_item_new_with_icon (const char *label, const char *icon_name)
 {
 	GtkWidget *item;
-#if HAVE_GTK3
 	GtkWidget *box;
 	GtkWidget *image;
 	GtkWidget *label_widget;
@@ -142,6 +141,18 @@ chanlist_icon_menu_item (const char *label, const char *icon_name,
 		gtk_box_pack_start (GTK_BOX (box), image, FALSE, FALSE, 0);
 	gtk_box_pack_start (GTK_BOX (box), label_widget, FALSE, FALSE, 0);
 	gtk_container_add (GTK_CONTAINER (item), box);
+
+	return item;
+}
+#endif
+
+static GtkWidget *
+chanlist_icon_menu_item (const char *label, const char *icon_name,
+								 GCallback callback, gpointer userdata)
+{
+	GtkWidget *item;
+#if HAVE_GTK3
+	item = chanlist_menu_item_new_with_icon (label, icon_name);
 #endif
 #if !HAVE_GTK3
 	GtkWidget *image;
