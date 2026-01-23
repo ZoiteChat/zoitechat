@@ -118,6 +118,14 @@ gtkutil_icon_name_from_stock (const char *stock_name)
 
 	return stock_name;
 }
+
+static GtkWidget *
+gtkutil_image_new_from_stock (const char *stock, GtkIconSize size)
+{
+	const char *icon_name = gtkutil_icon_name_from_stock (stock);
+
+	return gtk_image_new_from_icon_name (icon_name, size);
+}
 #endif
 
 static void
@@ -584,11 +592,7 @@ gtkutil_button (GtkWidget *box, char *stock, char *tip, void *callback,
 		img = NULL;
 #if HAVE_GTK3
 		if (stock)
-		{
-			const char *icon_name = gtkutil_icon_name_from_stock (stock);
-
-			img = gtk_image_new_from_icon_name (icon_name, GTK_ICON_SIZE_BUTTON);
-		}
+			img = gtkutil_image_new_from_stock (stock, GTK_ICON_SIZE_BUTTON);
 #endif
 #if !HAVE_GTK3
 		if (stock)
@@ -609,11 +613,7 @@ gtkutil_button (GtkWidget *box, char *stock, char *tip, void *callback,
 		img = NULL;
 #if HAVE_GTK3
 		if (stock)
-		{
-			const char *icon_name = gtkutil_icon_name_from_stock (stock);
-
-			img = gtk_image_new_from_icon_name (icon_name, GTK_ICON_SIZE_BUTTON);
-		}
+			img = gtkutil_image_new_from_stock (stock, GTK_ICON_SIZE_BUTTON);
 #endif
 #if !HAVE_GTK3
 		if (stock)
