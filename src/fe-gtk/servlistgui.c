@@ -1565,7 +1565,8 @@ servlist_username_changed_cb (GtkEntry *entry, gpointer userdata)
 	{
 #if HAVE_GTK3
 		gtk_entry_set_icon_from_icon_name (entry, GTK_ENTRY_ICON_SECONDARY, "dialog-error");
-#else
+#endif
+#if !HAVE_GTK3
 		gtk_entry_set_icon_from_stock (entry, GTK_ENTRY_ICON_SECONDARY, GTK_STOCK_DIALOG_ERROR);
 #endif
 		gtk_entry_set_icon_tooltip_text (entry, GTK_ENTRY_ICON_SECONDARY,
@@ -1576,7 +1577,8 @@ servlist_username_changed_cb (GtkEntry *entry, gpointer userdata)
 	{
 #if HAVE_GTK3
 		gtk_entry_set_icon_from_icon_name (entry, GTK_ENTRY_ICON_SECONDARY, NULL);
-#else
+#endif
+#if !HAVE_GTK3
 		gtk_entry_set_icon_from_stock (entry, GTK_ENTRY_ICON_SECONDARY, NULL);
 #endif
 		gtk_widget_set_sensitive (connect_btn, TRUE);
@@ -1595,7 +1597,8 @@ servlist_nick_changed_cb (GtkEntry *entry, gpointer userdata)
 		entry = GTK_ENTRY(!nick1[0] ? entry_nick1 : entry_nick2);
 #if HAVE_GTK3
 		gtk_entry_set_icon_from_icon_name (entry, GTK_ENTRY_ICON_SECONDARY, "dialog-error");
-#else
+#endif
+#if !HAVE_GTK3
 		gtk_entry_set_icon_from_stock (entry, GTK_ENTRY_ICON_SECONDARY, GTK_STOCK_DIALOG_ERROR);
 #endif
 		gtk_entry_set_icon_tooltip_text (entry, GTK_ENTRY_ICON_SECONDARY,
@@ -1606,7 +1609,8 @@ servlist_nick_changed_cb (GtkEntry *entry, gpointer userdata)
 	{
 #if HAVE_GTK3
 		gtk_entry_set_icon_from_icon_name (entry, GTK_ENTRY_ICON_SECONDARY, "dialog-error");
-#else
+#endif
+#if !HAVE_GTK3
 		gtk_entry_set_icon_from_stock (entry, GTK_ENTRY_ICON_SECONDARY, GTK_STOCK_DIALOG_ERROR);
 #endif
 		gtk_entry_set_icon_tooltip_text (entry, GTK_ENTRY_ICON_SECONDARY,
@@ -1618,7 +1622,8 @@ servlist_nick_changed_cb (GtkEntry *entry, gpointer userdata)
 #if HAVE_GTK3
 		gtk_entry_set_icon_from_icon_name (GTK_ENTRY(entry_nick1), GTK_ENTRY_ICON_SECONDARY, NULL);
 		gtk_entry_set_icon_from_icon_name (GTK_ENTRY(entry_nick2), GTK_ENTRY_ICON_SECONDARY, NULL);
-#else
+#endif
+#if !HAVE_GTK3
 		gtk_entry_set_icon_from_stock (GTK_ENTRY(entry_nick1), GTK_ENTRY_ICON_SECONDARY, NULL);
 		gtk_entry_set_icon_from_stock (GTK_ENTRY(entry_nick2), GTK_ENTRY_ICON_SECONDARY, NULL);
 #endif
