@@ -288,7 +288,13 @@ menu_quick_item (char *cmd, char *label, GtkWidget * menu, int flags,
 				if (access (path, R_OK) == 0)
 					img = gtk_image_new_from_file (path);
 				else
+				{
+#if HAVE_GTK3
+					img = gtk_image_new_from_icon_name (icon, GTK_ICON_SIZE_MENU);
+#else
 					img = gtk_image_new_from_stock (icon, GTK_ICON_SIZE_MENU);
+#endif
+				}
 				g_free (path);
 			}
 
