@@ -2655,7 +2655,10 @@ setup_apply (struct zoitechatprefs *pr)
 			color_change = TRUE;
 	}
 
-	if (prefs.hex_gui_dark_mode == ZOITECHAT_DARK_MODE_AUTO)
+	if (prefs.hex_gui_dark_mode != old_dark_mode)
+		fe_apply_gtk_dark_preference_for_mode (prefs.hex_gui_dark_mode);
+
+    if (prefs.hex_gui_dark_mode == ZOITECHAT_DARK_MODE_AUTO)
 		fe_set_auto_dark_mode_state (fe_dark_mode_is_enabled_for (ZOITECHAT_DARK_MODE_AUTO));
 #ifdef G_OS_WIN32
 	else if (prefs.hex_gui_dark_mode != old_dark_mode)

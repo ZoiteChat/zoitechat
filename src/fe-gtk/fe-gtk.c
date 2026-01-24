@@ -340,6 +340,25 @@ fe_system_prefers_dark (void)
 
 static gboolean auto_dark_mode_enabled = FALSE;
 
+#ifndef G_OS_WIN32
+static gboolean gtk_prefer_dark_initial = FALSE;
+static gboolean gtk_prefer_dark_initial_valid = FALSE;
+
+static void
+fe_capture_gtk_dark_preference (GtkSettings *settings)
+{
+	if (!settings || gtk_prefer_dark_initial_valid)
+		return;
+
+	if (!g_object_class_find_property (G_OBJECT_GET_CLASS (settings),
+	                                   "gtk-application-prefer-dark-theme"))
+		return;
+
+	g_object_get (settings, "gtk-application-prefer-dark-theme", &gtk_prefer_dark_initial, NULL);
+	gtk_prefer_dark_initial_valid = TRUE;
+}
+#endif
+
 #ifdef G_OS_WIN32
 static char *fe_win32_light_theme = NULL;
 static char *fe_win32_dark_theme = NULL;
@@ -797,6 +816,50 @@ fe_dark_mode_is_enabled (void)
 	return fe_dark_mode_is_enabled_for (prefs.hex_gui_dark_mode);
 }
 
+#ifndef G_OS_WIN32
+void
+fe_apply_gtk_dark_preference_for_mode (unsigned int mode)
+{
+	GtkSettings *settings;
+	gboolean target_prefer_dark = FALSE;
+	gboolean current_prefer_dark = FALSE;
+
+	settings = gtk_settings_get_default ();
+	if (!settings)
+		return;
+
+	fe_capture_gtk_dark_preference (settings);
+
+	if (!g_object_class_find_property (G_OBJECT_GET_CLASS (settings),
+	                                   "gtk-application-prefer-dark-theme"))
+		return;
+
+	switch (mode)
+	{
+	case ZOITECHAT_DARK_MODE_DARK:
+		target_prefer_dark = TRUE;
+		break;
+	case ZOITECHAT_DARK_MODE_LIGHT:
+		target_prefer_dark = FALSE;
+		break;
+	case ZOITECHAT_DARK_MODE_AUTO:
+	default:
+		target_prefer_dark = gtk_prefer_dark_initial_valid ? gtk_prefer_dark_initial : fe_system_prefers_dark ();
+		break;
+	}
+
+	g_object_get (settings, "gtk-application-prefer-dark-theme", &current_prefer_dark, NULL);
+	if (current_prefer_dark != target_prefer_dark)
+		g_object_set (settings, "gtk-application-prefer-dark-theme", target_prefer_dark, NULL);
+}
+#else
+void
+fe_apply_gtk_dark_preference_for_mode (unsigned int mode)
+{
+	(void) mode;
+}
+#endif
+
 GtkStyle *
 create_input_style (GtkStyle *style)
 {
@@ -852,6 +915,7 @@ fe_init (void)
 #ifdef G_OS_WIN32
 		fe_win32_apply_theme_for_dark_mode (settings, fe_dark_mode_is_enabled ());
 #endif
+		fe_apply_gtk_dark_preference_for_mode (prefs.hex_gui_dark_mode);
 	}
 
 	palette_load ();

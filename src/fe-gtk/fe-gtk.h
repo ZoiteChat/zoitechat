@@ -186,6 +186,7 @@ gboolean fe_dark_mode_is_enabled (void);
 gboolean fe_dark_mode_is_enabled_for (unsigned int mode);
 void fe_set_auto_dark_mode_state (gboolean enabled);
 void fe_refresh_auto_dark_mode (void);
+void fe_apply_gtk_dark_preference_for_mode (unsigned int mode);
 #ifdef G_OS_WIN32
 void fe_win32_apply_theme_for_mode (unsigned int mode);
 #endif
