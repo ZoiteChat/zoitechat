@@ -296,6 +296,8 @@ menu_quick_item (char *cmd, char *label, GtkWidget * menu, int flags,
 				{
 #if HAVE_GTK3
 					icon_name = gtkutil_icon_name_from_stock (icon);
+					if (!icon_name)
+						icon_name = icon;
 #endif
 #if !HAVE_GTK3
 					img = gtk_image_new_from_stock (icon, GTK_ICON_SIZE_MENU);
@@ -2018,6 +2020,8 @@ create_icon_menu (char *labeltext, void *stock_name, int is_stock)
 	{
 #if HAVE_GTK3
 		icon_name = gtkutil_icon_name_from_stock (stock_name);
+		if (!icon_name)
+			icon_name = stock_name;
 		if (icon_name)
 			image = gtk_image_new_from_icon_name (icon_name, GTK_ICON_SIZE_MENU);
 #endif

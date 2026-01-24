@@ -640,6 +640,8 @@ sexy_spell_entry_icon_menu_item (const char *label, const char *stock_name)
 	GtkWidget *label_widget;
 
 	icon_name = gtkutil_icon_name_from_stock (stock_name);
+	if (!icon_name)
+		icon_name = stock_name;
 	item = gtk_menu_item_new ();
 	box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 6);
 	if (icon_name)
