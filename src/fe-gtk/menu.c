@@ -1492,7 +1492,12 @@ menu_join (GtkWidget * wid, gpointer none)
 #endif
 	gtk_box_set_homogeneous (GTK_BOX (GTK_DIALOG (dialog)->vbox), TRUE);
 	gtk_window_set_position (GTK_WINDOW (dialog), GTK_WIN_POS_MOUSE);
+#if HAVE_GTK3
+	hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
+	gtk_box_set_homogeneous (GTK_BOX (hbox), TRUE);
+#elif !HAVE_GTK3
 	hbox = gtk_hbox_new (TRUE, 0);
+#endif
 
 	entry = gtk_entry_new ();
 	GTK_ENTRY (entry)->editable = 0;	/* avoid auto-selection */

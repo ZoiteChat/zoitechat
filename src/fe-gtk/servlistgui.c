@@ -1763,12 +1763,20 @@ servlist_open_edit (GtkWidget *parent, ircnet *net)
 	gtk_window_set_type_hint (GTK_WINDOW (editwindow), GDK_WINDOW_TYPE_HINT_DIALOG);
 	gtk_window_set_role (GTK_WINDOW (editwindow), "editserv");
 
+#if HAVE_GTK3
+	vbox5 = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
+#elif !HAVE_GTK3
 	vbox5 = gtk_vbox_new (FALSE, 0);
+#endif
 	gtk_container_add (GTK_CONTAINER (editwindow), vbox5);
 
 
 	/* Tabs and buttons */
+#if HAVE_GTK3
+	hbox1 = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
+#elif !HAVE_GTK3
 	hbox1 = gtk_hbox_new (FALSE, 0);
+#endif
 	gtk_box_pack_start (GTK_BOX (vbox5), hbox1, TRUE, TRUE, 4);
 
 	scrolledwindow2 = gtk_scrolled_window_new (NULL, NULL);
@@ -2040,7 +2048,11 @@ servlist_open_networks (void)
 	if (current_sess)
 		gtk_window_set_transient_for (GTK_WINDOW (servlist), GTK_WINDOW (current_sess->gui->window));
 
+#if HAVE_GTK3
+	vbox1 = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
+#elif !HAVE_GTK3
 	vbox1 = gtk_vbox_new (FALSE, 0);
+#endif
 	gtk_widget_show (vbox1);
 	gtk_container_add (GTK_CONTAINER (servlist), vbox1);
 
@@ -2144,7 +2156,11 @@ servlist_open_networks (void)
 							(GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
 							(GtkAttachOptions) (0), 0, 0); */
 
+#if HAVE_GTK3
+	vbox2 = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
+#elif !HAVE_GTK3
 	vbox2 = gtk_vbox_new (FALSE, 0);
+#endif
 	gtk_widget_show (vbox2);
 	gtk_box_pack_start (GTK_BOX (vbox1), vbox2, TRUE, TRUE, 0);
 
@@ -2189,7 +2205,11 @@ servlist_open_networks (void)
 								"weight", 2,
 								NULL);
 
+#if HAVE_GTK3
+	hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
+#elif !HAVE_GTK3
 	hbox = gtk_hbox_new (0, FALSE);
+#endif
 	gtk_table_attach (GTK_TABLE (table4), hbox, 0, 2, 1, 2,
 							(GtkAttachOptions) (GTK_FILL),
 							(GtkAttachOptions) (0), 0, 0);

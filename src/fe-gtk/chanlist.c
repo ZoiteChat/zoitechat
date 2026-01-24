@@ -102,7 +102,7 @@ chanlist_box_new (void)
 
 	gtk_box_set_homogeneous (GTK_BOX (box), FALSE);
 	return box;
-#else
+#elif !HAVE_GTK3
 	return gtk_hbox_new (FALSE, 0);
 #endif
 }

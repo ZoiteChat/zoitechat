@@ -121,7 +121,7 @@ mg_box_new (GtkOrientation orientation, gboolean homogeneous, gint spacing)
 
 	gtk_box_set_homogeneous (GTK_BOX (box), homogeneous);
 	return box;
-#else
+#elif !HAVE_GTK3
 	if (orientation == GTK_ORIENTATION_HORIZONTAL)
 		return gtk_hbox_new (homogeneous, spacing);
 

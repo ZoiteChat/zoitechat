@@ -302,7 +302,11 @@ chanview_new (int type, int trunc_len, gboolean sort, gboolean use_icons,
 	cv->store = gtk_tree_store_new (4, G_TYPE_STRING, G_TYPE_POINTER,
 											  PANGO_TYPE_ATTR_LIST, GDK_TYPE_PIXBUF);
 	cv->style = style;
+#if HAVE_GTK3
+	cv->box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
+#elif !HAVE_GTK3
 	cv->box = gtk_hbox_new (0, 0);
+#endif
 	cv->trunc_len = trunc_len;
 	cv->sorted = sort;
 	cv->use_icons = use_icons;
