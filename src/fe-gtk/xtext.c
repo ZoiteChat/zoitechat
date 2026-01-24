@@ -800,13 +800,14 @@ gtk_xtext_realize (GtkWidget * widget)
 	GdkWindow *parent_window;
 	gint attributes_mask;
 
-	gtk_widget_set_realized (widget, TRUE);
 	xtext = GTK_XTEXT (widget);
 
 #if HAVE_GTK3
+	gtk_widget_set_realized (widget, TRUE);
 	gtk_widget_get_allocation (widget, &allocation);
 	parent_window = gtk_widget_get_parent_window (widget);
 #else
+	gtk_widget_set_realized (widget, TRUE);
 	allocation = widget->allocation;
 	parent_window = widget->parent->window;
 #endif
