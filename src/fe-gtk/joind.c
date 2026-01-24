@@ -155,6 +155,7 @@ joind_show_dialog (server *serv)
 #if HAVE_GTK3
 	gtk_widget_set_halign (image1, GTK_ALIGN_CENTER);
 	gtk_widget_set_valign (image1, GTK_ALIGN_START);
+	gtk_widget_set_margin_top (image1, 2);
 #elif !HAVE_GTK3
 	gtk_misc_set_alignment (GTK_MISC (image1), 0.5f, 0.06f);
 #endif

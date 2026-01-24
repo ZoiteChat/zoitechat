@@ -2107,7 +2107,7 @@ servlist_open_networks (void)
 	gtk_table_attach (GTK_TABLE (table1), label7, 0, 1, 4, 5,
 							(GtkAttachOptions) (GTK_FILL),
 							(GtkAttachOptions) (0), 0, 0);
-	gtk_misc_set_alignment (GTK_MISC (label7), 0, 0.5);*/
+	*/
 
 	entry_nick1 = entry1 = gtk_entry_new ();
 	gtk_entry_set_text (GTK_ENTRY (entry1), prefs.hex_irc_nick1);
