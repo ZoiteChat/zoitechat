@@ -724,22 +724,26 @@ gtk_xtext_destroy (GtkObject * object)
 static void
 gtk_xtext_unrealize (GtkWidget * widget)
 {
+#if HAVE_GTK3
+	GdkWindow *window = gtk_widget_get_window (widget);
+#endif
 	backend_deinit (GTK_XTEXT (widget));
 
 	/* if there are still events in the queue, this'll avoid segfault */
 #if HAVE_GTK3
-	{
-		GdkWindow *window = gtk_widget_get_window (widget);
-		if (window)
-			gdk_window_set_user_data (window, NULL);
-	}
-#endif
-#if !HAVE_GTK3
+	if (window)
+		gdk_window_set_user_data (window, NULL);
+#else
 	gdk_window_set_user_data (widget->window, NULL);
 #endif
 
 	if (parent_class->unrealize)
 		(* GTK_WIDGET_CLASS (parent_class)->unrealize) (widget);
+
+#if HAVE_GTK3
+	gtk_widget_set_window (widget, NULL);
+	gtk_widget_set_realized (widget, FALSE);
+#endif
 }
 
 static void
@@ -807,8 +811,7 @@ gtk_xtext_realize (GtkWidget * widget)
 	gtk_widget_set_realized (widget, TRUE);
 	gtk_widget_get_allocation (widget, &allocation);
 	parent_window = gtk_widget_get_parent_window (widget);
-#endif
-#if !HAVE_GTK3
+#else
 	gtk_widget_set_realized (widget, TRUE);
 	allocation = widget->allocation;
 	parent_window = widget->parent->window;
@@ -841,8 +844,7 @@ gtk_xtext_realize (GtkWidget * widget)
 
 #if HAVE_GTK3
 	gtk_widget_set_window (widget, window);
-#endif
-#if !HAVE_GTK3
+#else
 	widget->window = window;
 #endif
 
