@@ -730,7 +730,7 @@ setup_headlabel (GtkWidget *tab, int row, int col, char *text)
 #if HAVE_GTK3
         gtk_widget_set_halign (label, GTK_ALIGN_START);
         gtk_widget_set_valign (label, GTK_ALIGN_CENTER);
-#else
+#elif !HAVE_GTK3
         gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
 #endif
         gtk_table_attach (GTK_TABLE (tab), label, col, col + 1, row, row + 1, 0, 0, 4, 0);
@@ -756,7 +756,7 @@ setup_create_3oggle (GtkWidget *tab, int row, const setting *set)
 #if HAVE_GTK3
         gtk_widget_set_halign (label, GTK_ALIGN_START);
         gtk_widget_set_valign (label, GTK_ALIGN_CENTER);
-#else
+#elif !HAVE_GTK3
         gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
 #endif
         if (set->tooltip)
@@ -875,7 +875,7 @@ setup_create_spin (GtkWidget *table, int row, const setting *set)
 #if HAVE_GTK3
         gtk_widget_set_halign (label, GTK_ALIGN_START);
         gtk_widget_set_valign (label, GTK_ALIGN_CENTER);
-#else
+#elif !HAVE_GTK3
         gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
 #endif
         gtk_table_attach (GTK_TABLE (table), label, 2, 3, row, row + 1,
@@ -953,7 +953,7 @@ setup_create_hscale (GtkWidget *table, int row, const setting *set)
 #if HAVE_GTK3
         gtk_widget_set_halign (wid, GTK_ALIGN_START);
         gtk_widget_set_valign (wid, GTK_ALIGN_CENTER);
-#else
+#elif !HAVE_GTK3
         gtk_misc_set_alignment (GTK_MISC (wid), 0.0, 0.5);
 #endif
         gtk_table_attach (GTK_TABLE (table), wid, 2, 3, row, row + 1,
@@ -1017,7 +1017,7 @@ setup_create_radio (GtkWidget *table, int row, const setting *set)
 #if HAVE_GTK3
         gtk_widget_set_halign (wid, GTK_ALIGN_START);
         gtk_widget_set_valign (wid, GTK_ALIGN_CENTER);
-#else
+#elif !HAVE_GTK3
         gtk_misc_set_alignment (GTK_MISC (wid), 0.0, 0.5);
 #endif
         gtk_table_attach (GTK_TABLE (table), wid, 2, 3, row, row + 1,
@@ -1085,7 +1085,7 @@ setup_create_id_menu (GtkWidget *table, char *label, int row, char *dest)
 #if HAVE_GTK3
         gtk_widget_set_halign (wid, GTK_ALIGN_START);
         gtk_widget_set_valign (wid, GTK_ALIGN_CENTER);
-#else
+#elif !HAVE_GTK3
         gtk_misc_set_alignment (GTK_MISC (wid), 0.0, 0.5);
 #endif
         gtk_table_attach (GTK_TABLE (table), wid, 2, 3, row, row + 1,
@@ -1136,7 +1136,7 @@ setup_create_menu (GtkWidget *table, int row, const setting *set)
 #if HAVE_GTK3
         gtk_widget_set_halign (wid, GTK_ALIGN_START);
         gtk_widget_set_valign (wid, GTK_ALIGN_CENTER);
-#else
+#elif !HAVE_GTK3
         gtk_misc_set_alignment (GTK_MISC (wid), 0.0, 0.5);
 #endif
         gtk_table_attach (GTK_TABLE (table), wid, 2, 3, row, row + 1,
@@ -1302,7 +1302,7 @@ setup_create_entry (GtkWidget *table, int row, const setting *set)
 #if HAVE_GTK3
         gtk_widget_set_halign (label, GTK_ALIGN_START);
         gtk_widget_set_valign (label, GTK_ALIGN_CENTER);
-#else
+#elif !HAVE_GTK3
         gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
 #endif
         gtk_table_attach (GTK_TABLE (table), label, 2, 3, row, row + 1,
@@ -1370,7 +1370,7 @@ setup_create_header (GtkWidget *table, int row, char *labeltext)
 #if HAVE_GTK3
         gtk_widget_set_halign (label, GTK_ALIGN_START);
         gtk_widget_set_valign (label, GTK_ALIGN_CENTER);
-#else
+#elif !HAVE_GTK3
         gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
 #endif
         gtk_table_attach (GTK_TABLE (table), label, 0, 4, row, row + 1,
@@ -1518,7 +1518,7 @@ setup_create_dark_mode_menu (GtkWidget *table, int row, const setting *set)
 #if HAVE_GTK3
 	gtk_widget_set_halign (wid, GTK_ALIGN_START);
 	gtk_widget_set_valign (wid, GTK_ALIGN_CENTER);
-#else
+#elif !HAVE_GTK3
 	gtk_misc_set_alignment (GTK_MISC (wid), 0.0, 0.5);
 #endif
 	gtk_table_attach (GTK_TABLE (table), wid, 2, 3, row, row + 1,
@@ -1747,7 +1747,7 @@ setup_create_color_button (GtkWidget *table, int num, int row, int col)
 #if HAVE_GTK3
                 gtk_widget_set_halign (alignment, GTK_ALIGN_CENTER);
                 gtk_widget_set_valign (alignment, GTK_ALIGN_CENTER);
-#else
+#elif !HAVE_GTK3
                 gtk_alignment_set (GTK_ALIGNMENT (alignment), 0.5, 0.5, 1.0, 1.0);
                 gtk_alignment_set_padding (GTK_ALIGNMENT (alignment), 0, 0, 0, 0);
 #endif
@@ -1776,7 +1776,7 @@ setup_create_other_colorR (char *text, int num, int row, GtkWidget *tab)
 #if HAVE_GTK3
         gtk_widget_set_halign (label, GTK_ALIGN_START);
         gtk_widget_set_valign (label, GTK_ALIGN_CENTER);
-#else
+#elif !HAVE_GTK3
         gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
 #endif
         gtk_table_attach (GTK_TABLE (tab), label, 5, 9, row, row + 1,
@@ -1793,7 +1793,7 @@ setup_create_other_color (char *text, int num, int row, GtkWidget *tab)
 #if HAVE_GTK3
         gtk_widget_set_halign (label, GTK_ALIGN_START);
         gtk_widget_set_valign (label, GTK_ALIGN_CENTER);
-#else
+#elif !HAVE_GTK3
         gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
 #endif
         gtk_table_attach (GTK_TABLE (tab), label, 2, 3, row, row + 1,
@@ -1824,7 +1824,7 @@ setup_create_color_page (void)
 #if HAVE_GTK3
         gtk_widget_set_halign (label, GTK_ALIGN_START);
         gtk_widget_set_valign (label, GTK_ALIGN_CENTER);
-#else
+#elif !HAVE_GTK3
         gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
 #endif
         gtk_table_attach (GTK_TABLE (tab), label, 2, 3, 1, 2,
@@ -1837,7 +1837,7 @@ setup_create_color_page (void)
 #if HAVE_GTK3
         gtk_widget_set_halign (label, GTK_ALIGN_START);
         gtk_widget_set_valign (label, GTK_ALIGN_CENTER);
-#else
+#elif !HAVE_GTK3
         gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
 #endif
         gtk_table_attach (GTK_TABLE (tab), label, 2, 3, 2, 3,
@@ -1870,7 +1870,7 @@ setup_create_color_page (void)
 #if HAVE_GTK3
         gtk_widget_set_halign (label, GTK_ALIGN_START);
         gtk_widget_set_valign (label, GTK_ALIGN_CENTER);
-#else
+#elif !HAVE_GTK3
         gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
 #endif
         gtk_table_attach (GTK_TABLE (tab), label, 2, 3, 16, 17,
@@ -2085,7 +2085,7 @@ setup_create_theme_page (void)
 #if HAVE_GTK3
         gtk_widget_set_halign (label, GTK_ALIGN_START);
         gtk_widget_set_valign (label, GTK_ALIGN_CENTER);
-#else
+#elif !HAVE_GTK3
         gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
 #endif
         gtk_box_pack_start (GTK_BOX (box), label, FALSE, FALSE, 0);
@@ -2122,7 +2122,7 @@ setup_create_theme_page (void)
 #if HAVE_GTK3
         gtk_widget_set_halign (ui->status_label, GTK_ALIGN_START);
         gtk_widget_set_valign (ui->status_label, GTK_ALIGN_CENTER);
-#else
+#elif !HAVE_GTK3
         gtk_misc_set_alignment (GTK_MISC (ui->status_label), 0.0, 0.5);
 #endif
         gtk_box_pack_start (GTK_BOX (box), ui->status_label, FALSE, FALSE, 0);
@@ -2358,7 +2358,7 @@ setup_create_sound_page (void)
 #if HAVE_GTK3
         gtk_widget_set_halign (sound_label, GTK_ALIGN_START);
         gtk_widget_set_valign (sound_label, GTK_ALIGN_CENTER);
-#else
+#elif !HAVE_GTK3
         gtk_misc_set_alignment (GTK_MISC (sound_label), 0, 0.5);
 #endif
 
@@ -2415,7 +2415,7 @@ setup_add_page (const char *title, GtkWidget *book, GtkWidget *tab)
         gtk_widget_set_margin_end (label, 2);
         gtk_widget_set_margin_top (label, 1);
         gtk_widget_set_margin_bottom (label, 1);
-#else
+#elif !HAVE_GTK3
         gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
         gtk_misc_set_padding (GTK_MISC (label), 2, 1);
 #endif

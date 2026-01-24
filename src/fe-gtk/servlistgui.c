@@ -1280,7 +1280,7 @@ servlist_create_entry (GtkWidget *table, char *labeltext, int row,
 #if HAVE_GTK3
 	gtk_widget_set_halign (label, GTK_ALIGN_START);
 	gtk_widget_set_valign (label, GTK_ALIGN_CENTER);
-#else
+#elif !HAVE_GTK3
 	gtk_misc_set_alignment (GTK_MISC (label), 0, 0.5);
 #endif
 
@@ -1714,7 +1714,7 @@ bold_label (char *text)
 #if HAVE_GTK3
 	gtk_widget_set_halign (label, GTK_ALIGN_START);
 	gtk_widget_set_valign (label, GTK_ALIGN_CENTER);
-#else
+#elif !HAVE_GTK3
 	gtk_misc_set_alignment (GTK_MISC (label), 0, 0.5);
 #endif
 	gtk_widget_show (label);
@@ -1935,7 +1935,7 @@ servlist_open_edit (GtkWidget *parent, ircnet *net)
 #if HAVE_GTK3
 	gtk_widget_set_halign (label_logintype, GTK_ALIGN_START);
 	gtk_widget_set_valign (label_logintype, GTK_ALIGN_CENTER);
-#else
+#elif !HAVE_GTK3
 	gtk_misc_set_alignment (GTK_MISC (label_logintype), 0, 0.5);
 #endif
 	combobox_logintypes = servlist_create_logintypecombo (notebook);
@@ -1951,7 +1951,7 @@ servlist_open_edit (GtkWidget *parent, ircnet *net)
 #if HAVE_GTK3
 	gtk_widget_set_halign (label34, GTK_ALIGN_START);
 	gtk_widget_set_valign (label34, GTK_ALIGN_CENTER);
-#else
+#elif !HAVE_GTK3
 	gtk_misc_set_alignment (GTK_MISC (label34), 0, 0.5);
 #endif
 	comboboxentry_charset = servlist_create_charsetcombo ();
@@ -2062,7 +2062,7 @@ servlist_open_networks (void)
 #if HAVE_GTK3
 	gtk_widget_set_halign (label3, GTK_ALIGN_START);
 	gtk_widget_set_valign (label3, GTK_ALIGN_CENTER);
-#else
+#elif !HAVE_GTK3
 	gtk_misc_set_alignment (GTK_MISC (label3), 0, 0.5);
 #endif
 
@@ -2074,7 +2074,7 @@ servlist_open_networks (void)
 #if HAVE_GTK3
 	gtk_widget_set_halign (label4, GTK_ALIGN_START);
 	gtk_widget_set_valign (label4, GTK_ALIGN_CENTER);
-#else
+#elif !HAVE_GTK3
 	gtk_misc_set_alignment (GTK_MISC (label4), 0, 0.5);
 #endif
 
@@ -2086,7 +2086,7 @@ servlist_open_networks (void)
 #if HAVE_GTK3
 	gtk_widget_set_halign (label5, GTK_ALIGN_START);
 	gtk_widget_set_valign (label5, GTK_ALIGN_CENTER);
-#else
+#elif !HAVE_GTK3
 	gtk_misc_set_alignment (GTK_MISC (label5), 0, 0.5);
 #endif
 
@@ -2098,7 +2098,7 @@ servlist_open_networks (void)
 #if HAVE_GTK3
 	gtk_widget_set_halign (label6, GTK_ALIGN_START);
 	gtk_widget_set_valign (label6, GTK_ALIGN_CENTER);
-#else
+#elif !HAVE_GTK3
 	gtk_misc_set_alignment (GTK_MISC (label6), 0, 0.5);
 #endif
 

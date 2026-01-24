@@ -155,7 +155,7 @@ joind_show_dialog (server *serv)
 #if HAVE_GTK3
 	gtk_widget_set_halign (image1, GTK_ALIGN_CENTER);
 	gtk_widget_set_valign (image1, GTK_ALIGN_START);
-#else
+#elif !HAVE_GTK3
 	gtk_misc_set_alignment (GTK_MISC (image1), 0.5f, 0.06f);
 #endif
 
@@ -174,7 +174,7 @@ joind_show_dialog (server *serv)
 #if HAVE_GTK3
 	gtk_widget_set_halign (label, GTK_ALIGN_START);
 	gtk_widget_set_valign (label, GTK_ALIGN_CENTER);
-#else
+#elif !HAVE_GTK3
 	gtk_misc_set_alignment (GTK_MISC (label), 0, 0.5);
 #endif
 
@@ -185,7 +185,7 @@ joind_show_dialog (server *serv)
 #if HAVE_GTK3
 	gtk_widget_set_halign (label, GTK_ALIGN_START);
 	gtk_widget_set_valign (label, GTK_ALIGN_CENTER);
-#else
+#elif !HAVE_GTK3
 	gtk_misc_set_alignment (GTK_MISC (label), 0, 0.5);
 #endif
 
@@ -195,7 +195,7 @@ joind_show_dialog (server *serv)
 #if HAVE_GTK3
 	gtk_widget_set_halign (label, GTK_ALIGN_START);
 	gtk_widget_set_valign (label, GTK_ALIGN_CENTER);
-#else
+#elif !HAVE_GTK3
 	gtk_misc_set_alignment (GTK_MISC (label), 0, 0.5);
 #endif
 
@@ -228,7 +228,7 @@ joind_show_dialog (server *serv)
 #if HAVE_GTK3
 	gtk_widget_set_halign (label, GTK_ALIGN_START);
 	gtk_widget_set_valign (label, GTK_ALIGN_CENTER);
-#else
+#elif !HAVE_GTK3
 	gtk_misc_set_alignment (GTK_MISC (label), 0, 0.5);
 #endif
 
@@ -246,7 +246,7 @@ joind_show_dialog (server *serv)
 #if HAVE_GTK3
 	gtk_widget_set_halign (label, GTK_ALIGN_START);
 	gtk_widget_set_valign (label, GTK_ALIGN_CENTER);
-#else
+#elif !HAVE_GTK3
 	gtk_misc_set_alignment (GTK_MISC (label), 0, 0.5);
 #endif
 

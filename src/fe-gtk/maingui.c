@@ -108,7 +108,7 @@ mg_set_label_alignment_start (GtkWidget *widget)
 #if HAVE_GTK3
 	gtk_widget_set_halign (widget, GTK_ALIGN_START);
 	gtk_widget_set_valign (widget, GTK_ALIGN_CENTER);
-#else
+#elif !HAVE_GTK3
 	gtk_misc_set_alignment (GTK_MISC (widget), 0, 0.5);
 #endif
 }
