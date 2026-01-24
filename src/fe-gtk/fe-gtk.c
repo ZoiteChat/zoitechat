@@ -675,7 +675,8 @@ fe_win32_apply_theme_for_dark_mode (GtkSettings *settings, gboolean enabled)
 	}
 	else if (g_getenv ("GTK2_RC_FILES"))
 	{
-		env_changed = g_unsetenv ("GTK2_RC_FILES");
+		g_unsetenv ("GTK2_RC_FILES");
+		env_changed = TRUE;
 	}
 
 	g_free (new_env);
