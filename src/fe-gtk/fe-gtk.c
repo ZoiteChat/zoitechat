@@ -343,6 +343,92 @@ static gboolean auto_dark_mode_enabled = FALSE;
 #ifdef G_OS_WIN32
 static char *fe_win32_light_theme = NULL;
 static char *fe_win32_dark_theme = NULL;
+static char *fe_win32_light_gtkrc = NULL;
+static char *fe_win32_dark_gtkrc = NULL;
+static char *fe_win32_original_gtkrc_env = NULL;
+
+static const char *
+fe_win32_get_gtkrc_dir (void)
+{
+	static char *gtkrc_dir = NULL;
+
+	if (!gtkrc_dir)
+	{
+		char *install_dir = g_win32_get_package_installation_directory_of_module (NULL);
+		if (!install_dir)
+			install_dir = g_strdup (".");
+
+		gtkrc_dir = g_build_filename (install_dir, "etc", "gtk-2.0", NULL);
+		g_free (install_dir);
+	}
+
+	return gtkrc_dir;
+}
+
+static char *
+fe_win32_get_gtkrc_path (const char *name)
+{
+	const char *gtkrc_dir = fe_win32_get_gtkrc_dir ();
+
+	if (!gtkrc_dir || !name || name[0] == '\0')
+		return NULL;
+
+	return g_build_filename (gtkrc_dir, name, NULL);
+}
+
+static char *
+fe_win32_extract_theme_name (const char *gtkrc_path)
+{
+	char *contents = NULL;
+	char *match = NULL;
+	char *result = NULL;
+	GMatchInfo *match_info = NULL;
+	GError *error = NULL;
+	static const char *patterns[] = {
+		"gtk-theme-name\\s*=\\s*\"([^\"]+)\"",
+		"gtk-theme-name\\s*=\\s*'([^']+)'"
+	};
+	gsize len = 0;
+	int i;
+
+	if (!gtkrc_path || !g_file_test (gtkrc_path, G_FILE_TEST_EXISTS))
+		return NULL;
+
+	if (!g_file_get_contents (gtkrc_path, &contents, &len, &error))
+	{
+		g_clear_error (&error);
+		return NULL;
+	}
+
+	for (i = 0; i < (int) G_N_ELEMENTS (patterns); i++)
+	{
+		GRegex *regex = g_regex_new (patterns[i], G_REGEX_MULTILINE, 0, NULL);
+		if (!regex)
+			continue;
+
+		if (g_regex_match (regex, contents, 0, &match_info))
+		{
+			match = g_match_info_fetch (match_info, 1);
+			if (match && match[0] != '\0')
+			{
+				result = g_strdup (match);
+				g_free (match);
+				g_match_info_free (match_info);
+				g_regex_unref (regex);
+				break;
+			}
+		}
+
+		g_free (match);
+		if (match_info)
+			g_match_info_free (match_info);
+		match_info = NULL;
+		g_regex_unref (regex);
+	}
+
+	g_free (contents);
+	return result;
+}
 
 static gboolean
 fe_win32_theme_exists (const char *theme_name)
@@ -408,7 +494,13 @@ fe_win32_update_theme_cache (GtkSettings *settings)
 	char *current_theme = NULL;
 	char *light_theme = NULL;
 	char *derived_dark = NULL;
+	char *explicit_light_theme = NULL;
+	char *explicit_dark_theme = NULL;
+	char *gtkrc_light = NULL;
+	char *gtkrc_dark = NULL;
 	char *suffix = NULL;
+	gboolean have_explicit_light;
+	gboolean have_explicit_dark;
 	int i;
 	static const char *dark_suffixes[] = { "-Dark", "-dark" };
 
@@ -422,39 +514,115 @@ fe_win32_update_theme_cache (GtkSettings *settings)
 		return;
 	}
 
-	light_theme = fe_win32_strip_dark_suffix (current_theme);
-	if (!light_theme || !fe_win32_theme_exists (light_theme))
+	gtkrc_light = fe_win32_get_gtkrc_path ("gtkrc.light");
+	gtkrc_dark = fe_win32_get_gtkrc_path ("gtkrc.dark");
+	explicit_light_theme = fe_win32_extract_theme_name (gtkrc_light);
+	explicit_dark_theme = fe_win32_extract_theme_name (gtkrc_dark);
+
+	if (explicit_light_theme && !fe_win32_theme_exists (explicit_light_theme))
 	{
-		g_free (light_theme);
-		if (fe_win32_theme_exists (current_theme))
+		g_free (explicit_light_theme);
+		explicit_light_theme = NULL;
+	}
+	if (explicit_dark_theme && !fe_win32_theme_exists (explicit_dark_theme))
+	{
+		g_free (explicit_dark_theme);
+		explicit_dark_theme = NULL;
+	}
+
+	have_explicit_light = explicit_light_theme != NULL;
+	have_explicit_dark = explicit_dark_theme != NULL;
+
+	if (have_explicit_light || have_explicit_dark)
+	{
+		char *stripped_dark = NULL;
+
+		if (have_explicit_light)
+			light_theme = explicit_light_theme;
+		else if (have_explicit_dark)
+		{
+			stripped_dark = fe_win32_strip_dark_suffix (explicit_dark_theme);
+			if (stripped_dark && fe_win32_theme_exists (stripped_dark))
+				light_theme = stripped_dark;
+			else
+			{
+				g_free (stripped_dark);
+				light_theme = g_strdup (current_theme);
+			}
+		}
+		else
 			light_theme = g_strdup (current_theme);
+
+		if (have_explicit_light)
+			explicit_light_theme = NULL;
+		derived_dark = have_explicit_dark ? explicit_dark_theme : NULL;
+		if (have_explicit_dark)
+			explicit_dark_theme = NULL;
+
+		g_free (fe_win32_light_gtkrc);
+		fe_win32_light_gtkrc = have_explicit_light ? gtkrc_light : NULL;
+		if (!have_explicit_light)
+			g_free (gtkrc_light);
+		gtkrc_light = NULL;
+
+		g_free (fe_win32_dark_gtkrc);
+		fe_win32_dark_gtkrc = have_explicit_dark ? gtkrc_dark : NULL;
+		if (!have_explicit_dark)
+			g_free (gtkrc_dark);
+		gtkrc_dark = NULL;
+	}
+	else
+	{
+		g_free (fe_win32_light_gtkrc);
+		fe_win32_light_gtkrc = NULL;
+		g_free (fe_win32_dark_gtkrc);
+		fe_win32_dark_gtkrc = NULL;
+	}
+
+	g_free (explicit_light_theme);
+	g_free (explicit_dark_theme);
+	g_free (gtkrc_light);
+	g_free (gtkrc_dark);
+
+	if (!light_theme)
+	{
+		light_theme = fe_win32_strip_dark_suffix (current_theme);
+		if (!light_theme || !fe_win32_theme_exists (light_theme))
+		{
+			g_free (light_theme);
+			if (fe_win32_theme_exists (current_theme))
+				light_theme = g_strdup (current_theme);
+		}
 	}
 
 	if (!light_theme)
 		light_theme = g_strdup ("MS-Windows");
 
-	for (i = 0; i < (int) G_N_ELEMENTS (dark_suffixes); i++)
+	if (!derived_dark)
 	{
-		suffix = g_strconcat (light_theme, dark_suffixes[i], NULL);
-		if (fe_win32_theme_exists (suffix))
+		for (i = 0; i < (int) G_N_ELEMENTS (dark_suffixes); i++)
 		{
-			derived_dark = suffix;
-			break;
+			suffix = g_strconcat (light_theme, dark_suffixes[i], NULL);
+			if (fe_win32_theme_exists (suffix))
+			{
+				derived_dark = suffix;
+				break;
+			}
+			g_free (suffix);
+			suffix = NULL;
 		}
-		g_free (suffix);
-		suffix = NULL;
-	}
 
-	if (!derived_dark && fe_win32_theme_exists (current_theme))
-	{
-		char *stripped = fe_win32_strip_dark_suffix (current_theme);
-		if (stripped && g_strcmp0 (stripped, light_theme) == 0)
-			derived_dark = g_strdup (current_theme);
-		g_free (stripped);
-	}
+		if (!derived_dark && fe_win32_theme_exists (current_theme))
+		{
+			char *stripped = fe_win32_strip_dark_suffix (current_theme);
+			if (stripped && g_strcmp0 (stripped, light_theme) == 0)
+				derived_dark = g_strdup (current_theme);
+			g_free (stripped);
+		}
 
-	if (!derived_dark && fe_win32_theme_exists ("MS-Windows-Dark"))
-		derived_dark = g_strdup ("MS-Windows-Dark");
+		if (!derived_dark && fe_win32_theme_exists ("MS-Windows-Dark"))
+			derived_dark = g_strdup ("MS-Windows-Dark");
+	}
 
 	g_free (fe_win32_light_theme);
 	fe_win32_light_theme = light_theme;
@@ -470,30 +638,75 @@ fe_win32_apply_theme_for_dark_mode (GtkSettings *settings, gboolean enabled)
 {
 	const char *theme_name;
 	char *current_theme = NULL;
+	char *new_env = NULL;
+	const char *target_gtkrc;
 	GList *toplevels = NULL;
 	GList *iter = NULL;
+	gboolean env_changed = FALSE;
+	gboolean theme_changed = FALSE;
 
 	if (!settings)
 		return;
 
+	if (!fe_win32_original_gtkrc_env)
+	{
+		const char *env = g_getenv ("GTK2_RC_FILES");
+		if (env && env[0])
+			fe_win32_original_gtkrc_env = g_strdup (env);
+	}
+
 	fe_win32_update_theme_cache (settings);
+
+	target_gtkrc = enabled ? fe_win32_dark_gtkrc : fe_win32_light_gtkrc;
+	if (target_gtkrc)
+	{
+		if (fe_win32_original_gtkrc_env && fe_win32_original_gtkrc_env[0])
+			new_env = g_strconcat (fe_win32_original_gtkrc_env, G_SEARCHPATH_SEPARATOR_S, target_gtkrc, NULL);
+		else
+			new_env = g_strdup (target_gtkrc);
+
+		if (g_strcmp0 (g_getenv ("GTK2_RC_FILES"), new_env) != 0)
+			env_changed = g_setenv ("GTK2_RC_FILES", new_env, TRUE);
+	}
+	else if (fe_win32_original_gtkrc_env && fe_win32_original_gtkrc_env[0])
+	{
+		if (g_strcmp0 (g_getenv ("GTK2_RC_FILES"), fe_win32_original_gtkrc_env) != 0)
+			env_changed = g_setenv ("GTK2_RC_FILES", fe_win32_original_gtkrc_env, TRUE);
+	}
+	else if (g_getenv ("GTK2_RC_FILES"))
+	{
+		env_changed = g_unsetenv ("GTK2_RC_FILES");
+	}
+
+	g_free (new_env);
 
 	theme_name = enabled ? fe_win32_dark_theme : fe_win32_light_theme;
 	if (!theme_name)
-		return;
-
-	if (!fe_win32_theme_exists (theme_name))
-		return;
-
-	g_object_get (settings, "gtk-theme-name", &current_theme, NULL);
-	if (g_strcmp0 (current_theme, theme_name) == 0)
 	{
-		g_free (current_theme);
+		if (env_changed)
+			goto reset_styles;
 		return;
 	}
+
+	if (!fe_win32_theme_exists (theme_name))
+	{
+		if (env_changed)
+			goto reset_styles;
+		return;
+	}
+
+	g_object_get (settings, "gtk-theme-name", &current_theme, NULL);
+	if (g_strcmp0 (current_theme, theme_name) != 0)
+		theme_changed = TRUE;
 	g_free (current_theme);
 
-	g_object_set (settings, "gtk-theme-name", theme_name, NULL);
+	if (!env_changed && !theme_changed)
+		return;
+
+	if (theme_changed)
+		g_object_set (settings, "gtk-theme-name", theme_name, NULL);
+
+reset_styles:
 	gtk_rc_reparse_all_for_settings (settings, TRUE);
 	gtk_rc_reset_styles (settings);
 
@@ -505,6 +718,8 @@ fe_win32_apply_theme_for_dark_mode (GtkSettings *settings, gboolean enabled)
 		gtk_widget_queue_draw (widget);
 	}
 	g_list_free (toplevels);
+
+	fe_win32_update_theme_cache (settings);
 }
 
 void
