@@ -887,7 +887,7 @@ setup_create_spin (GtkWidget *table, int row, const setting *set)
         gtk_widget_set_valign (rbox, GTK_ALIGN_CENTER);
         gtk_table_attach (GTK_TABLE (table), rbox, 3, 4, row, row + 1,
                                                         GTK_EXPAND | GTK_FILL, GTK_SHRINK | GTK_FILL, 0, 0);
-#else
+#elif !HAVE_GTK3
         align = gtk_alignment_new (0.0, 0.5, 0.0, 0.0);
         gtk_table_attach (GTK_TABLE (table), align, 3, 4, row, row + 1,
                                                         GTK_EXPAND | GTK_FILL, GTK_SHRINK | GTK_FILL, 0, 0);
