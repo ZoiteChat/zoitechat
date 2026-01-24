@@ -761,7 +761,7 @@ load_default_config(void)
 	prefs.hex_gui_input_icon = 1;
 	prefs.hex_gui_input_nick = 1;
 	prefs.hex_gui_input_spell = 1;
-	prefs.hex_gui_input_style = 1;
+	prefs.hex_gui_input_style = 0;
 	prefs.hex_gui_join_dialog = 1;
 	prefs.hex_gui_quit_dialog = 1;
 	/* prefs.hex_gui_slist_skip = 1; */
@@ -777,7 +777,7 @@ load_default_config(void)
 	prefs.hex_gui_tray_blink = 1;
 	prefs.hex_gui_ulist_count = 1;
 	prefs.hex_gui_ulist_icons = 1;
-	prefs.hex_gui_ulist_style = 1;
+	prefs.hex_gui_ulist_style = 0;
 	prefs.hex_gui_win_nick = 1;
 	prefs.hex_gui_win_save = 1;
 	prefs.hex_input_filter_beep = 1;

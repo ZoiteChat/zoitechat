@@ -896,10 +896,6 @@ create_input_style (GtkStyle *style)
 		gtk_rc_parse_string (buf);
 	}
 
-	style->bg[GTK_STATE_NORMAL] = colors[COL_FG];
-	style->base[GTK_STATE_NORMAL] = colors[COL_BG];
-	style->text[GTK_STATE_NORMAL] = colors[COL_FG];
-
 	return style;
 }
 

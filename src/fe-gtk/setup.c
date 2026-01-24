@@ -204,7 +204,7 @@ static const char *const tabcompmenu[] =
 static const setting inputbox_settings[] =
 {
         {ST_HEADER, N_("Input Box"),0,0,0},
-        {ST_TOGGLE, N_("Use the text box font and colors"), P_OFFINTNL(hex_gui_input_style),0,0,0},
+        {ST_TOGGLE, N_("Use the text box font"), P_OFFINTNL(hex_gui_input_style),0,0,0},
         {ST_TOGGLE, N_("Render colors and attributes"), P_OFFINTNL (hex_gui_input_attr),0,0,0},
         {ST_TOGGLE, N_("Show nick box"), P_OFFINTNL(hex_gui_input_nick),0,0,1},
         {ST_TOGGLE, N_("Show user mode icon in nick box"), P_OFFINTNL(hex_gui_input_icon),0,0,0},
@@ -268,7 +268,7 @@ static const setting userlist_settings[] =
 {
         {ST_HEADER,     N_("User List"),0,0,0},
         {ST_TOGGLE, N_("Show hostnames in user list"), P_OFFINTNL(hex_gui_ulist_show_hosts), 0, 0, 0},
-        {ST_TOGGLE, N_("Use the Text box font and colors"), P_OFFINTNL(hex_gui_ulist_style),0,0,0},
+        {ST_TOGGLE, N_("Use the text box font in the user list"), P_OFFINTNL(hex_gui_ulist_style),0,0,0},
         {ST_TOGGLE, N_("Show icons for user modes"), P_OFFINTNL(hex_gui_ulist_icons), N_("Use graphical icons instead of text symbols in the user list."), 0, 0},
         {ST_TOGGLE, N_("Color nicknames in userlist"), P_OFFINTNL(hex_gui_ulist_color), N_("Will color nicknames the same as in chat."), 0, 0},
         {ST_TOGGLE, N_("Show user count in channels"), P_OFFINTNL(hex_gui_ulist_count), 0, 0, 0},
@@ -2427,8 +2427,6 @@ setup_create_tree (GtkWidget *box, GtkWidget *book)
 static void
 setup_apply_entry_style (GtkWidget *entry)
 {
-        gtk_widget_modify_base (entry, GTK_STATE_NORMAL, &colors[COL_BG]);
-        gtk_widget_modify_text (entry, GTK_STATE_NORMAL, &colors[COL_FG]);
         gtk_widget_modify_font (entry, input_style->font_desc);
 }
 
@@ -2441,19 +2439,8 @@ setup_apply_to_sess (session_gui *gui)
         if (prefs.hex_gui_ulist_style)
                 gtk_widget_modify_font (gui->user_tree, input_style->font_desc);
 
-	if (prefs.hex_gui_ulist_style || fe_dark_mode_is_enabled ())
-	{
-		gtk_widget_modify_base (gui->user_tree, GTK_STATE_NORMAL, &colors[COL_BG]);
-		if (fe_dark_mode_is_enabled ())
-			gtk_widget_modify_text (gui->user_tree, GTK_STATE_NORMAL, &colors[COL_FG]);
-		else
-			gtk_widget_modify_text (gui->user_tree, GTK_STATE_NORMAL, NULL);
-        }
-        else
-        {
-                gtk_widget_modify_base (gui->user_tree, GTK_STATE_NORMAL, NULL);
-                gtk_widget_modify_text (gui->user_tree, GTK_STATE_NORMAL, NULL);
-        }
+        gtk_widget_modify_base (gui->user_tree, GTK_STATE_NORMAL, NULL);
+        gtk_widget_modify_text (gui->user_tree, GTK_STATE_NORMAL, NULL);
 
         if (prefs.hex_gui_input_style)
         {

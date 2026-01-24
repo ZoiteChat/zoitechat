@@ -2209,8 +2209,6 @@ mg_limit_entry_cb (GtkWidget * igad, gpointer userdata)
 static void
 mg_apply_entry_style (GtkWidget *entry)
 {
-        gtk_widget_modify_base (entry, GTK_STATE_NORMAL, &colors[COL_BG]);
-        gtk_widget_modify_text (entry, GTK_STATE_NORMAL, &colors[COL_FG]);
         gtk_widget_modify_font (entry, input_style->font_desc);
 }
 
@@ -2642,19 +2640,7 @@ mg_create_userlist (session_gui *gui, GtkWidget *box)
                 gtk_widget_modify_font (ulist, input_style->font_desc);
         }
 
-        /*
-         * Keep the user list in sync with the chat palette.
-         *
-         * - When "Use the text box font and colors" is enabled, we already want the
-         *   palette background.
-         * - When "Dark mode" is enabled, we also force the user list to use the
-         *   palette colors so it doesn't stay blindingly white on GTK2 themes.
-         */
-        if (prefs.hex_gui_ulist_style || fe_dark_mode_is_enabled ())
-        {
-                gtk_widget_modify_base (ulist, GTK_STATE_NORMAL, &colors[COL_BG]);
-                gtk_widget_modify_text (ulist, GTK_STATE_NORMAL, &colors[COL_FG]);
-        }
+        /* Keep user list colors theme-driven for GTK2 theme compatibility. */
 
         mg_create_meters (gui, vbox);
 
