@@ -341,6 +341,9 @@ fe_system_prefers_dark (void)
 static gboolean auto_dark_mode_enabled = FALSE;
 
 #ifdef G_OS_WIN32
+static char *fe_win32_light_theme = NULL;
+static char *fe_win32_dark_theme = NULL;
+
 static gboolean
 fe_win32_theme_exists (const char *theme_name)
 {
@@ -384,12 +387,88 @@ fe_win32_theme_exists (const char *theme_name)
 	return FALSE;
 }
 
+static char *
+fe_win32_strip_dark_suffix (const char *theme_name)
+{
+	size_t len;
+
+	if (!theme_name)
+		return NULL;
+
+	len = strlen (theme_name);
+	if (len > 5 && g_ascii_strcasecmp (theme_name + len - 5, "-dark") == 0)
+		return g_strndup (theme_name, len - 5);
+
+	return NULL;
+}
+
+static void
+fe_win32_update_theme_cache (GtkSettings *settings)
+{
+	char *current_theme = NULL;
+	char *light_theme = NULL;
+	char *derived_dark = NULL;
+	char *suffix = NULL;
+	int i;
+	static const char *dark_suffixes[] = { "-Dark", "-dark" };
+
+	if (!settings)
+		return;
+
+	g_object_get (settings, "gtk-theme-name", &current_theme, NULL);
+	if (!current_theme || current_theme[0] == '\0')
+	{
+		g_free (current_theme);
+		return;
+	}
+
+	light_theme = fe_win32_strip_dark_suffix (current_theme);
+	if (!light_theme || !fe_win32_theme_exists (light_theme))
+	{
+		g_free (light_theme);
+		if (fe_win32_theme_exists (current_theme))
+			light_theme = g_strdup (current_theme);
+	}
+
+	if (!light_theme)
+		light_theme = g_strdup ("MS-Windows");
+
+	for (i = 0; i < (int) G_N_ELEMENTS (dark_suffixes); i++)
+	{
+		suffix = g_strconcat (light_theme, dark_suffixes[i], NULL);
+		if (fe_win32_theme_exists (suffix))
+		{
+			derived_dark = suffix;
+			break;
+		}
+		g_free (suffix);
+		suffix = NULL;
+	}
+
+	if (!derived_dark && fe_win32_theme_exists (current_theme))
+	{
+		char *stripped = fe_win32_strip_dark_suffix (current_theme);
+		if (stripped && g_strcmp0 (stripped, light_theme) == 0)
+			derived_dark = g_strdup (current_theme);
+		g_free (stripped);
+	}
+
+	if (!derived_dark && fe_win32_theme_exists ("MS-Windows-Dark"))
+		derived_dark = g_strdup ("MS-Windows-Dark");
+
+	g_free (fe_win32_light_theme);
+	fe_win32_light_theme = light_theme;
+
+	g_free (fe_win32_dark_theme);
+	fe_win32_dark_theme = derived_dark;
+
+	g_free (current_theme);
+}
+
 static void
 fe_win32_apply_theme_for_dark_mode (GtkSettings *settings, gboolean enabled)
 {
-	const char *dark_theme = "MS-Windows-Dark";
-	const char *light_theme = "MS-Windows";
-	const char *theme_name = enabled ? dark_theme : light_theme;
+	const char *theme_name;
 	char *current_theme = NULL;
 	GList *toplevels = NULL;
 	GList *iter = NULL;
@@ -397,16 +476,14 @@ fe_win32_apply_theme_for_dark_mode (GtkSettings *settings, gboolean enabled)
 	if (!settings)
 		return;
 
-	if (prefs.hex_gui_dark_mode != ZOITECHAT_DARK_MODE_AUTO)
+	fe_win32_update_theme_cache (settings);
+
+	theme_name = enabled ? fe_win32_dark_theme : fe_win32_light_theme;
+	if (!theme_name)
 		return;
 
 	if (!fe_win32_theme_exists (theme_name))
-	{
-		if (enabled && fe_win32_theme_exists (light_theme))
-			theme_name = light_theme;
-		else
-			return;
-	}
+		return;
 
 	g_object_get (settings, "gtk-theme-name", &current_theme, NULL);
 	if (g_strcmp0 (current_theme, theme_name) == 0)
@@ -429,6 +506,17 @@ fe_win32_apply_theme_for_dark_mode (GtkSettings *settings, gboolean enabled)
 	}
 	g_list_free (toplevels);
 }
+
+void
+fe_win32_apply_theme_for_mode (unsigned int mode)
+{
+	GtkSettings *settings = gtk_settings_get_default ();
+
+	if (!settings)
+		return;
+
+	fe_win32_apply_theme_for_dark_mode (settings, fe_dark_mode_is_enabled_for (mode));
+}
 #endif
 
 static void
@@ -439,6 +527,11 @@ fe_auto_dark_mode_changed (GtkSettings *settings, GParamSpec *pspec, gpointer da
 	(void) settings;
 	(void) pspec;
 	(void) data;
+
+#ifdef G_OS_WIN32
+	if (settings && prefs.hex_gui_dark_mode != ZOITECHAT_DARK_MODE_AUTO)
+		fe_win32_update_theme_cache (settings);
+#endif
 
 	if (prefs.hex_gui_dark_mode != ZOITECHAT_DARK_MODE_AUTO)
 		return;
@@ -541,7 +634,7 @@ fe_init (void)
 	{
 		auto_dark_mode_enabled = fe_system_prefers_dark ();
 #ifdef G_OS_WIN32
-		fe_win32_apply_theme_for_dark_mode (settings, auto_dark_mode_enabled);
+		fe_win32_apply_theme_for_dark_mode (settings, fe_dark_mode_is_enabled ());
 #endif
 	}
 

@@ -2657,6 +2657,10 @@ setup_apply (struct zoitechatprefs *pr)
 
 	if (prefs.hex_gui_dark_mode == ZOITECHAT_DARK_MODE_AUTO)
 		fe_set_auto_dark_mode_state (fe_dark_mode_is_enabled_for (ZOITECHAT_DARK_MODE_AUTO));
+#ifdef G_OS_WIN32
+	else if (prefs.hex_gui_dark_mode != old_dark_mode)
+		fe_win32_apply_theme_for_mode (prefs.hex_gui_dark_mode);
+#endif
 
 #ifdef WIN32
         /* merge hex_font_main and hex_font_alternative into hex_font_normal */
