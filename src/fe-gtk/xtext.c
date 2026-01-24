@@ -727,7 +727,15 @@ gtk_xtext_unrealize (GtkWidget * widget)
 	backend_deinit (GTK_XTEXT (widget));
 
 	/* if there are still events in the queue, this'll avoid segfault */
+#if HAVE_GTK3
+	{
+		GdkWindow *window = gtk_widget_get_window (widget);
+		if (window)
+			gdk_window_set_user_data (window, NULL);
+	}
+#else
 	gdk_window_set_user_data (widget->window, NULL);
+#endif
 
 	if (parent_class->unrealize)
 		(* GTK_WIDGET_CLASS (parent_class)->unrealize) (widget);
@@ -776,7 +784,9 @@ gtk_xtext_clear_background (GtkWidget *widget)
 #if !HAVE_GTK3
 	gdk_window_set_back_pixmap (widget->window, NULL, FALSE);
 #else
-	gdk_window_set_background_pattern (widget->window, NULL);
+	GdkWindow *window = gtk_widget_get_window (widget);
+	if (window)
+		gdk_window_set_background_pattern (window, NULL);
 #endif
 }
 
@@ -785,30 +795,56 @@ gtk_xtext_realize (GtkWidget * widget)
 {
 	GtkXText *xtext;
 	GdkWindowAttr attributes;
+	GdkWindow *window;
+	GtkAllocation allocation;
+	GdkWindow *parent_window;
+	gint attributes_mask;
 
 	gtk_widget_set_realized (widget, TRUE);
 	xtext = GTK_XTEXT (widget);
 
-	attributes.x = widget->allocation.x;
-	attributes.y = widget->allocation.y;
-	attributes.width = widget->allocation.width;
-	attributes.height = widget->allocation.height;
+#if HAVE_GTK3
+	gtk_widget_get_allocation (widget, &allocation);
+	parent_window = gtk_widget_get_parent_window (widget);
+#else
+	allocation = widget->allocation;
+	parent_window = widget->parent->window;
+#endif
+
+	attributes.x = allocation.x;
+	attributes.y = allocation.y;
+	attributes.width = allocation.width;
+	attributes.height = allocation.height;
 	attributes.wclass = GDK_INPUT_OUTPUT;
 	attributes.window_type = GDK_WINDOW_CHILD;
 	attributes.event_mask = gtk_widget_get_events (widget) |
 		GDK_EXPOSURE_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK
 		| GDK_POINTER_MOTION_MASK | GDK_LEAVE_NOTIFY_MASK;
 
+#if !HAVE_GTK3
 	attributes.colormap = gtk_widget_get_colormap (widget);
 	attributes.visual = gtk_widget_get_visual (widget);
+#else
+	attributes.visual = gtk_widget_get_visual (widget);
+#endif
 
-	widget->window = gdk_window_new (widget->parent->window, &attributes,
-												GDK_WA_X | GDK_WA_Y | GDK_WA_VISUAL |
-												GDK_WA_COLORMAP);
+#if HAVE_GTK3
+	attributes_mask = GDK_WA_X | GDK_WA_Y | GDK_WA_VISUAL;
+#else
+	attributes_mask = GDK_WA_X | GDK_WA_Y | GDK_WA_VISUAL | GDK_WA_COLORMAP;
+#endif
 
-	gdk_window_set_user_data (widget->window, widget);
+	window = gdk_window_new (parent_window, &attributes, attributes_mask);
 
-	xtext->depth = gdk_window_get_visual (widget->window)->depth;
+#if HAVE_GTK3
+	gtk_widget_set_window (widget, window);
+#else
+	widget->window = window;
+#endif
+
+	gdk_window_set_user_data (window, widget);
+
+	xtext->depth = gdk_window_get_visual (window)->depth;
 
 	/* for the separator bar (light) */
 	xtext->light_gc.red = 1.0;
@@ -835,15 +871,15 @@ gtk_xtext_realize (GtkWidget * widget)
 	xtext_set_bg (xtext, XTEXT_BG);
 
 	/* draw directly to window */
-	xtext->draw_window = widget->window;
+	xtext->draw_window = window;
 
 	if (xtext->background_surface)
 	{
 		xtext->ts_x = xtext->ts_y = 0;
 	}
 
-	xtext->hand_cursor = gdk_cursor_new_for_display (gdk_window_get_display (widget->window), GDK_HAND1);
-	xtext->resize_cursor = gdk_cursor_new_for_display (gdk_window_get_display (widget->window), GDK_LEFT_SIDE);
+	xtext->hand_cursor = gdk_cursor_new_for_display (gdk_window_get_display (window), GDK_HAND1);
+	xtext->resize_cursor = gdk_cursor_new_for_display (gdk_window_get_display (window), GDK_LEFT_SIDE);
 
 	gtk_xtext_clear_background (widget);
 
