@@ -316,8 +316,7 @@ menu_quick_item (char *cmd, char *label, GtkWidget * menu, int flags,
 				gtk_box_pack_start (GTK_BOX (box), image, FALSE, FALSE, 0);
 			gtk_box_pack_start (GTK_BOX (box), label_widget, FALSE, FALSE, 0);
 			gtk_container_add (GTK_CONTAINER (item), box);
-#endif
-#if !HAVE_GTK3
+#else
 			item = gtk_image_menu_item_new_with_mnemonic (label);
 			if (img)
 				gtk_image_menu_item_set_image ((GtkImageMenuItem *)item, img);
@@ -2043,8 +2042,7 @@ create_icon_menu (char *labeltext, void *stock_name, int is_stock)
 		gtk_box_pack_start (GTK_BOX (box), image, FALSE, FALSE, 0);
 	gtk_box_pack_start (GTK_BOX (box), label_widget, FALSE, FALSE, 0);
 	gtk_container_add (GTK_CONTAINER (item), box);
-#endif
-#if !HAVE_GTK3
+#else
 	item = gtk_image_menu_item_new_with_mnemonic (labeltext);
 	gtk_image_menu_item_set_image ((GtkImageMenuItem *)item, img);
 	gtk_widget_show (img);

@@ -649,8 +649,7 @@ sexy_spell_entry_icon_menu_item (const char *label, const char *stock_name)
 		gtk_box_pack_start (GTK_BOX (box), image, FALSE, FALSE, 0);
 	gtk_box_pack_start (GTK_BOX (box), label_widget, FALSE, FALSE, 0);
 	gtk_container_add (GTK_CONTAINER (item), box);
-#endif
-#if !HAVE_GTK3
+#else
 	GtkWidget *image;
 
 	item = gtk_image_menu_item_new_with_label (label);
