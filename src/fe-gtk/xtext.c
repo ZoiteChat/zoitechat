@@ -733,7 +733,8 @@ gtk_xtext_unrealize (GtkWidget * widget)
 #if HAVE_GTK3
 	if (window)
 		gdk_window_set_user_data (window, NULL);
-#else
+#endif
+#if !HAVE_GTK3
 	gdk_window_set_user_data (widget->window, NULL);
 #endif
 
@@ -811,7 +812,8 @@ gtk_xtext_realize (GtkWidget * widget)
 	gtk_widget_set_realized (widget, TRUE);
 	gtk_widget_get_allocation (widget, &allocation);
 	parent_window = gtk_widget_get_parent_window (widget);
-#else
+#endif
+#if !HAVE_GTK3
 	gtk_widget_set_realized (widget, TRUE);
 	allocation = widget->allocation;
 	parent_window = widget->parent->window;
