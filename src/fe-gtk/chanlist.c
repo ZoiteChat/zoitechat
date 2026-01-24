@@ -136,7 +136,7 @@ chanlist_icon_menu_item (const char *label, const char *icon_name,
 
 	item = gtk_menu_item_new ();
 	box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 6);
-	image = gtk_image_new_from_icon_name (icon_name, GTK_ICON_SIZE_MENU);
+	image = icon_name ? gtk_image_new_from_icon_name (icon_name, GTK_ICON_SIZE_MENU) : NULL;
 	label_widget = gtk_label_new_with_mnemonic (label);
 	if (image)
 		gtk_box_pack_start (GTK_BOX (box), image, FALSE, FALSE, 0);

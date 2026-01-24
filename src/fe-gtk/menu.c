@@ -2004,33 +2004,43 @@ menu_set_fullscreen (session_gui *gui, int full)
 GtkWidget *
 create_icon_menu (char *labeltext, void *stock_name, int is_stock)
 {
-	GtkWidget *item, *img;
+	GtkWidget *item;
 #if HAVE_GTK3
 	GtkWidget *box;
 	GtkWidget *label_widget;
+	GtkWidget *image = NULL;
 	const char *icon_name;
+#endif
+#if !HAVE_GTK3
+	GtkWidget *img;
 #endif
 
 	if (is_stock)
 	{
 #if HAVE_GTK3
 		icon_name = gtkutil_icon_name_from_stock (stock_name);
-		img = NULL;
 		if (icon_name)
-			img = gtk_image_new_from_icon_name (icon_name, GTK_ICON_SIZE_MENU);
+			image = gtk_image_new_from_icon_name (icon_name, GTK_ICON_SIZE_MENU);
 #endif
 #if !HAVE_GTK3
 		img = gtk_image_new_from_stock (stock_name, GTK_ICON_SIZE_MENU);
 #endif
 	}
 	else
+	{
+#if HAVE_GTK3
+		image = gtk_image_new_from_pixbuf (*((GdkPixbuf **)stock_name));
+#endif
+#if !HAVE_GTK3
 		img = gtk_image_new_from_pixbuf (*((GdkPixbuf **)stock_name));
+#endif
+	}
 #if HAVE_GTK3
 	item = gtk_menu_item_new ();
 	box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 6);
 	label_widget = gtk_label_new_with_mnemonic (labeltext);
-	if (img)
-		gtk_box_pack_start (GTK_BOX (box), img, FALSE, FALSE, 0);
+	if (image)
+		gtk_box_pack_start (GTK_BOX (box), image, FALSE, FALSE, 0);
 	gtk_box_pack_start (GTK_BOX (box), label_widget, FALSE, FALSE, 0);
 	gtk_container_add (GTK_CONTAINER (item), box);
 #endif
