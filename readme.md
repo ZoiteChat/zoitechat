@@ -14,6 +14,24 @@
 
   </div>
 
+<!-- Badge reference definitions -->
+[github-version-img]: https://img.shields.io/github/v/release/ZoiteChat/zoitechat?display_name=tag&sort=semver
+[github-version-uri]: https://github.com/ZoiteChat/zoitechat/releases/latest
+
+[github-downloads-img]: https://img.shields.io/github/downloads/ZoiteChat/zoitechat/total
+[github-downloads-uri]: https://github.com/ZoiteChat/zoitechat/releases
+
+[github-size-img]: https://img.shields.io/github/repo-size/ZoiteChat/zoitechat
+[github-size-uri]: https://github.com/ZoiteChat/zoitechat
+
+[github-commit-img]: https://img.shields.io/github/last-commit/ZoiteChat/zoitechat
+[github-commit-uri]: https://github.com/ZoiteChat/zoitechat/commits
+
+[contribs-all-img]: https://img.shields.io/github/contributors/ZoiteChat/zoitechat
+
+<br />
+<br />
+
 
 ZoiteChat is an HexChat based IRC client for Windows and UNIX-like operating systems.  
 See [IRCHelp.org](http://irchelp.org) for information about IRC in general.  
