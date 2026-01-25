@@ -22,8 +22,8 @@
 
 */
 
-#ifndef PLUGIN_HEXCHAT_H
-#define PLUGIN_HEXCHAT_H
+#ifndef PLUGIN_ZOITECHAT_H
+#define PLUGIN_ZOITECHAT_H
 
 gchar *get_config_filename(void);
 int irc_nick_cmp (const char *, const char *);

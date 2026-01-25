@@ -54,7 +54,7 @@ config_h.set('GLIB_VERSION_MIN_REQUIRED', 'GLIB_VERSION_2_36')
 config_h.set('HAVE_MEMRCHR', cc.has_function('memrchr'))
 config_h.set('HAVE_STRINGS_H', cc.has_header('strings.h'))
 
-config_h.set_quoted('HEXCHATLIBDIR',
+config_h.set_quoted('ZOITECHATLIBDIR',
   join_paths(get_option('prefix'), get_option('libdir'), 'zoitechat/plugins')
 )
 

@@ -19,8 +19,8 @@
  * xclaesse@gmail.com
  */
 
-#ifndef HEXCHAT_DBUS_PLUGIN_H
-#define HEXCHAT_DBUS_PLUGIN_H
+#ifndef ZOITECHAT_DBUS_PLUGIN_H
+#define ZOITECHAT_DBUS_PLUGIN_H
 
 int	dbus_plugin_init	(zoitechat_plugin *plugin_handle,
 				 char **plugin_name,

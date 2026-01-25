@@ -38,7 +38,7 @@ export PANGO_SYSCONFDIR="$bundle_etc"
 
 export OPENSSL_CONF="/System/Library/OpenSSL/openssl.cnf"
 
-export HEXCHAT_LIBDIR="$bundle_lib/zoitechat/plugins"
+export ZOITECHAT_LIBDIR="$bundle_lib/zoitechat/plugins"
 
 APP=name
 I18NDIR="$bundle_data/locale"

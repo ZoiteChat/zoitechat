@@ -22,8 +22,8 @@
 
 */
 
-#ifndef PLUGIN_HEXCHAT_FISHLIM_UTILS_H
-#define PLUGIN_HEXCHAT_FISHLIM_UTILS_H
+#ifndef PLUGIN_ZOITECHAT_FISHLIM_UTILS_H
+#define PLUGIN_ZOITECHAT_FISHLIM_UTILS_H
 
 #include <stddef.h>
 #include "fish.h"

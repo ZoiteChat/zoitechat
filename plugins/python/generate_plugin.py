@@ -13,7 +13,7 @@ with open(sys.argv[1]) as f:
     for line in f:
         if line.startswith('#define'):
             continue
-        elif line.endswith('HEXCHAT_PLUGIN_H\n'):
+        elif line.endswith('ZOITECHAT_PLUGIN_H\n'):
             continue
         elif 'time.h' in line:
             output.append('typedef int... time_t;')
@@ -70,7 +70,7 @@ int zoitechat_plugin_init(zoitechat_plugin *plugin_handle,
     }
 
     ph = plugin_handle;
-    return _on_plugin_init(name_out, description_out, version_out, arg, HEXCHATLIBDIR);
+    return _on_plugin_init(name_out, description_out, version_out, arg, ZOITECHATLIBDIR);
 }
 
 int zoitechat_plugin_deinit(void)

@@ -113,7 +113,7 @@ incoming_hilight_cb (char *word[], gpointer userdata)
 	{
 		show_notificationf (word[2], _("Highlighted message from: %s (%s)"), word[1], zoitechat_get_info (ph, "channel"));
 	}
-	return HEXCHAT_EAT_NONE;
+	return ZOITECHAT_EAT_NONE;
 }
 
 static int
@@ -139,7 +139,7 @@ incoming_message_cb (char *word[], gpointer userdata)
 	if (alert) {
 		show_notificationf(word[2], _("Channel message from: %s (%s)"), word[1], zoitechat_get_info(ph, "channel"));
 	}
-	return HEXCHAT_EAT_NONE;
+	return ZOITECHAT_EAT_NONE;
 }
 
 static int
@@ -189,7 +189,7 @@ incoming_priv_cb (char *word[], gpointer userdata)
 		else
 			show_notificationf (word[2], _("Private message from: %s (%s)"), word[1], network);
 	}
-	return HEXCHAT_EAT_NONE;
+	return ZOITECHAT_EAT_NONE;
 }
 
 static int
@@ -199,10 +199,10 @@ tray_cmd_cb (char *word[], char *word_eol[], gpointer userdata)
 	{
 		if (should_alert ())
 			show_notification (word[3], word_eol[4]);
-		return HEXCHAT_EAT_ALL;
+		return ZOITECHAT_EAT_ALL;
 	}
 
-	return HEXCHAT_EAT_NONE;
+	return ZOITECHAT_EAT_NONE;
 }
 
 int
@@ -222,24 +222,24 @@ notification_plugin_init (zoitechat_plugin *plugin_handle, char **plugin_name, c
 		return 0;
 	}
 
-	zoitechat_hook_print (ph, "Channel Msg Hilight", HEXCHAT_PRI_LOWEST, incoming_hilight_cb, NULL);
-	zoitechat_hook_print (ph, "Channel Action Hilight", HEXCHAT_PRI_LOWEST, incoming_hilight_cb, NULL);
+	zoitechat_hook_print (ph, "Channel Msg Hilight", ZOITECHAT_PRI_LOWEST, incoming_hilight_cb, NULL);
+	zoitechat_hook_print (ph, "Channel Action Hilight", ZOITECHAT_PRI_LOWEST, incoming_hilight_cb, NULL);
 
-	zoitechat_hook_print (ph, "Channel Message", HEXCHAT_PRI_LOWEST, incoming_message_cb, NULL);
-	zoitechat_hook_print (ph, "Channel Action", HEXCHAT_PRI_LOWEST, incoming_message_cb, NULL);
-	zoitechat_hook_print (ph, "Channel Notice", HEXCHAT_PRI_LOWEST, incoming_message_cb, NULL);
+	zoitechat_hook_print (ph, "Channel Message", ZOITECHAT_PRI_LOWEST, incoming_message_cb, NULL);
+	zoitechat_hook_print (ph, "Channel Action", ZOITECHAT_PRI_LOWEST, incoming_message_cb, NULL);
+	zoitechat_hook_print (ph, "Channel Notice", ZOITECHAT_PRI_LOWEST, incoming_message_cb, NULL);
 
-	zoitechat_hook_print (ph, "Private Message", HEXCHAT_PRI_LOWEST, incoming_priv_cb, NULL);
-	zoitechat_hook_print (ph, "Private Message to Dialog", HEXCHAT_PRI_LOWEST, incoming_priv_cb, NULL);
-	zoitechat_hook_print (ph, "Private Action", HEXCHAT_PRI_LOWEST, incoming_priv_cb, NULL);
-	zoitechat_hook_print (ph, "Private Action to Dialog", HEXCHAT_PRI_LOWEST, incoming_priv_cb, NULL);
+	zoitechat_hook_print (ph, "Private Message", ZOITECHAT_PRI_LOWEST, incoming_priv_cb, NULL);
+	zoitechat_hook_print (ph, "Private Message to Dialog", ZOITECHAT_PRI_LOWEST, incoming_priv_cb, NULL);
+	zoitechat_hook_print (ph, "Private Action", ZOITECHAT_PRI_LOWEST, incoming_priv_cb, NULL);
+	zoitechat_hook_print (ph, "Private Action to Dialog", ZOITECHAT_PRI_LOWEST, incoming_priv_cb, NULL);
 
 	/* Special events treated as priv */
-	zoitechat_hook_print (ph, "Notice", HEXCHAT_PRI_LOWEST, incoming_priv_cb, GINT_TO_POINTER (1));
-	zoitechat_hook_print (ph, "Invited", HEXCHAT_PRI_LOWEST, incoming_priv_cb, GINT_TO_POINTER (2));
-	zoitechat_hook_print (ph, "DCC Offer", HEXCHAT_PRI_LOWEST, incoming_priv_cb, GINT_TO_POINTER (3));
+	zoitechat_hook_print (ph, "Notice", ZOITECHAT_PRI_LOWEST, incoming_priv_cb, GINT_TO_POINTER (1));
+	zoitechat_hook_print (ph, "Invited", ZOITECHAT_PRI_LOWEST, incoming_priv_cb, GINT_TO_POINTER (2));
+	zoitechat_hook_print (ph, "DCC Offer", ZOITECHAT_PRI_LOWEST, incoming_priv_cb, GINT_TO_POINTER (3));
 
-	zoitechat_hook_command (ph, "TRAY", HEXCHAT_PRI_HIGH, tray_cmd_cb, NULL, NULL);
+	zoitechat_hook_command (ph, "TRAY", ZOITECHAT_PRI_HIGH, tray_cmd_cb, NULL, NULL);
 	
 	return 1;
 }

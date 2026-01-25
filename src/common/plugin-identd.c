@@ -73,7 +73,7 @@ identd_cleanup_response_cb (gpointer userdata)
 static int
 identd_command_cb (char *word[], char *word_eol[], void *userdata)
 {
-	g_return_val_if_fail (responses != NULL, HEXCHAT_EAT_ALL);
+	g_return_val_if_fail (responses != NULL, ZOITECHAT_EAT_ALL);
 
 	if (!g_strcmp0 (word[2], "reload"))
 	{
@@ -86,11 +86,11 @@ identd_command_cb (char *word[], char *word_eol[], void *userdata)
 		identd_start_server ();
 
 		if (service)
-			return HEXCHAT_EAT_ALL;
+			return ZOITECHAT_EAT_ALL;
 	}
 
 	if (service == NULL) /* If we are not running plugins can handle it */
-		return HEXCHAT_EAT_HEXCHAT;
+		return ZOITECHAT_EAT_ZOITECHAT;
 
 	if (word[2] && *word[2] && word[3] && *word[3])
 	{
@@ -108,7 +108,7 @@ identd_command_cb (char *word[], char *word_eol[], void *userdata)
 		zoitechat_command (ph, "HELP IDENTD");
 	}
 
-	return HEXCHAT_EAT_ALL;
+	return ZOITECHAT_EAT_ALL;
 }
 
 static void
@@ -258,7 +258,7 @@ identd_plugin_init (zoitechat_plugin *plugin_handle, char **plugin_name,
 
 
 	responses = g_hash_table_new_full (NULL, NULL, NULL, g_free);
-	zoitechat_hook_command (ph, "IDENTD", HEXCHAT_PRI_NORM, identd_command_cb,
+	zoitechat_hook_command (ph, "IDENTD", ZOITECHAT_PRI_NORM, identd_command_cb,
 						_("IDENTD <port> <username>"), NULL);
 
 	identd_start_server ();

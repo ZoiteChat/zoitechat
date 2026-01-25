@@ -222,7 +222,7 @@ sysinfo_cb (char *word[], char *word_eol[], void *userdata)
 	else
 		print_info (cmd, announce);
 
-	return HEXCHAT_EAT_ALL;
+	return ZOITECHAT_EAT_ALL;
 }
 
 int
@@ -233,7 +233,7 @@ zoitechat_plugin_init (zoitechat_plugin *plugin_handle, char **plugin_name, char
 	*plugin_desc = desc;
 	*plugin_version = version;
 
-	zoitechat_hook_command (ph, "SYSINFO", HEXCHAT_PRI_NORM, sysinfo_cb, sysinfo_help, NULL);
+	zoitechat_hook_command (ph, "SYSINFO", ZOITECHAT_PRI_NORM, sysinfo_cb, sysinfo_help, NULL);
 
 	zoitechat_command (ph, "MENU ADD \"Window/Send System Info\" \"SYSINFO\"");
 	zoitechat_printf (ph, _("%s plugin loaded\n"), name);

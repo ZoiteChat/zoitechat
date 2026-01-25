@@ -19,8 +19,8 @@
 
 #include "proto-irc.h"
 
-#ifndef HEXCHAT_NOTIFY_H
-#define HEXCHAT_NOTIFY_H
+#ifndef ZOITECHAT_NOTIFY_H
+#define ZOITECHAT_NOTIFY_H
 
 struct notify
 {

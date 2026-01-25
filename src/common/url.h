@@ -17,8 +17,8 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
  */
 
-#ifndef HEXCHAT_URL_H
-#define HEXCHAT_URL_H
+#ifndef ZOITECHAT_URL_H
+#define ZOITECHAT_URL_H
 
 extern void *url_tree;
 

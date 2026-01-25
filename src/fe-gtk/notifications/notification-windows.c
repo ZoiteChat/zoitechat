@@ -47,7 +47,7 @@ notification_backend_init (const char **error)
 	/* Temporarily suppress the "DLL could not be loaded" dialog box before trying to load hcnotifications-winrt.dll */
 	original_error_mode = GetErrorMode ();
 	SetErrorMode(SEM_FAILCRITICALERRORS);
-	module = module_load (HEXCHATLIBDIR "\\hcnotifications-winrt.dll");
+	module = module_load (ZOITECHATLIBDIR "\\hcnotifications-winrt.dll");
 	SetErrorMode (original_error_mode);
 
 	if (module == NULL)

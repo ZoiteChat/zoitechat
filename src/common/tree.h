@@ -17,8 +17,8 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
  */
 
-#ifndef HEXCHAT_TREE_H
-#define HEXCHAT_TREE_H
+#ifndef ZOITECHAT_TREE_H
+#define ZOITECHAT_TREE_H
 
 #include <glib.h>
 

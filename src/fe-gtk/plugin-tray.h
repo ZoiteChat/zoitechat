@@ -17,8 +17,8 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
  */
 
-#ifndef HEXCHAT_PLUGIN_TRAY_H
-#define HEXCHAT_PLUGIN_TRAY_H
+#ifndef ZOITECHAT_PLUGIN_TRAY_H
+#define ZOITECHAT_PLUGIN_TRAY_H
 
 int tray_plugin_init (void *, char **, char **, char **, char *);
 int tray_plugin_deinit (void *);

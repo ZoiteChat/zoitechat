@@ -17,8 +17,8 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
  */
 
-#ifndef HEXCHAT_PLUGIN_IDENTD_H
-#define HEXCHAT_PLUGIN_IDENTD_H
+#ifndef ZOITECHAT_PLUGIN_IDENTD_H
+#define ZOITECHAT_PLUGIN_IDENTD_H
 
 int identd_plugin_init (zoitechat_plugin *plugin_handle, char **plugin_name,
 				char **plugin_desc, char **plugin_version, char *arg);

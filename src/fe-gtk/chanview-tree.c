@@ -98,11 +98,11 @@ cv_tree_init (chanview *cv)
 	int wid1, wid2;
 	static const GtkTargetEntry dnd_src_target[] =
 	{
-		{"HEXCHAT_CHANVIEW", GTK_TARGET_SAME_APP, 75 }
+		{"ZOITECHAT_CHANVIEW", GTK_TARGET_SAME_APP, 75 }
 	};
 	static const GtkTargetEntry dnd_dest_target[] =
 	{
-		{"HEXCHAT_USERLIST", GTK_TARGET_SAME_APP, 75 }
+		{"ZOITECHAT_USERLIST", GTK_TARGET_SAME_APP, 75 }
 	};
 
 	win = gtk_scrolled_window_new (0, 0);

@@ -283,7 +283,7 @@ char *decrypt_raw_message(const char *message, const char *key) {
         zoitechat_printf(ph, ">%s< ", word[i]);
     }
     zoitechat_printf(ph, "\n");
-    return HEXCHAT_EAT_NONE;
+    return ZOITECHAT_EAT_NONE;
 }*/
 
 /**
@@ -299,7 +299,7 @@ static int handle_outgoing(char *word[], char *word_eol[], void *userdata) {
     const char *channel = zoitechat_get_info(ph, "channel");
 
     /* Check if we can encrypt */
-    if (!fish_nick_has_key(channel)) return HEXCHAT_EAT_NONE;
+    if (!fish_nick_has_key(channel)) return ZOITECHAT_EAT_NONE;
 
     command = g_string_new("");
     g_string_printf(command, "PRIVMSG %s :+OK ", channel);
@@ -307,7 +307,7 @@ static int handle_outgoing(char *word[], char *word_eol[], void *userdata) {
     encrypted_list = fish_encrypt_for_nick(channel, word_eol[1], &mode, get_prefix_length() + command->len);
     if (!encrypted_list) {
         g_string_free(command, TRUE);
-        return HEXCHAT_EAT_NONE;
+        return ZOITECHAT_EAT_NONE;
     }
 
     /* Get prefix for own nick if any */
@@ -333,7 +333,7 @@ static int handle_outgoing(char *word[], char *word_eol[], void *userdata) {
     g_string_free(command, TRUE);
     g_slist_free_full(encrypted_list, g_free);
 
-    return HEXCHAT_EAT_HEXCHAT;
+    return ZOITECHAT_EAT_ZOITECHAT;
 }
 
 /**
@@ -350,7 +350,7 @@ static int handle_incoming(char *word[], char *word_eol[], zoitechat_event_attrs
     GString *message;
 
     if (!irc_parse_message((const char **)word, &prefix, &command, &parameters_offset))
-        return HEXCHAT_EAT_NONE;
+        return ZOITECHAT_EAT_NONE;
 
     /* Topic (command 332) has an extra parameter */
     if (!strcmp(command, "332"))
@@ -367,7 +367,7 @@ static int handle_incoming(char *word[], char *word_eol[], zoitechat_event_attrs
 
     /* Nothing to decrypt */
     if (decrypted == NULL)
-        return HEXCHAT_EAT_NONE;
+        return ZOITECHAT_EAT_NONE;
 
     /* Build decrypted message */
 
@@ -395,7 +395,7 @@ static int handle_incoming(char *word[], char *word_eol[], zoitechat_event_attrs
     zoitechat_command(ph, message->str);
     g_string_free (message, TRUE);
 
-    return HEXCHAT_EAT_HEXCHAT;
+    return ZOITECHAT_EAT_ZOITECHAT;
 }
 
 static int handle_keyx_notice(char *word[], char *word_eol[], void *userdata) {
@@ -407,10 +407,10 @@ static int handle_keyx_notice(char *word[], char *word_eol[], void *userdata) {
     enum fish_mode mode = FISH_ECB_MODE;
 
     if (!*dh_message || !*dh_pubkey || strlen(dh_pubkey) != 181)
-        return HEXCHAT_EAT_NONE;
+        return ZOITECHAT_EAT_NONE;
 
     if (!irc_parse_message((const char**)word, &prefix, NULL, NULL) || !prefix)
-        return HEXCHAT_EAT_NONE;
+        return ZOITECHAT_EAT_NONE;
 
     sender = irc_prefix_get_nick(prefix);
     query_ctx = find_context_on_network(sender);
@@ -447,7 +447,7 @@ static int handle_keyx_notice(char *word[], char *word_eol[], void *userdata) {
     } else {
         /* Regular notice */
         g_free(sender);
-        return HEXCHAT_EAT_NONE;
+        return ZOITECHAT_EAT_NONE;
     }
 
     if (dh1080_compute_key(priv_key, dh_pubkey, &secret_key)) {
@@ -461,7 +461,7 @@ static int handle_keyx_notice(char *word[], char *word_eol[], void *userdata) {
 cleanup:
     g_free(sender);
     g_free(priv_key);
-    return HEXCHAT_EAT_ALL;
+    return ZOITECHAT_EAT_ALL;
 }
 
 /**
@@ -475,7 +475,7 @@ static int handle_setkey(char *word[], char *word_eol[], void *userdata) {
     /* Check syntax */
     if (*word[2] == '\0') {
         zoitechat_printf(ph, "%s\n", usage_setkey);
-        return HEXCHAT_EAT_HEXCHAT;
+        return ZOITECHAT_EAT_ZOITECHAT;
     }
 
     if (*word[3] == '\0') {
@@ -503,7 +503,7 @@ static int handle_setkey(char *word[], char *word_eol[], void *userdata) {
         zoitechat_printf(ph, "\00305Failed to store key in addon_fishlim.conf\n");
     }
 
-    return HEXCHAT_EAT_HEXCHAT;
+    return ZOITECHAT_EAT_ZOITECHAT;
 }
 
 /**
@@ -523,7 +523,7 @@ static int handle_delkey(char *word[], char *word_eol[], void *userdata) {
         /* Only allow channel or dialog */
         if (ctx_type < 2 || ctx_type > 3) {
             zoitechat_printf(ph, "%s\n", usage_delkey);
-            return HEXCHAT_EAT_HEXCHAT;
+            return ZOITECHAT_EAT_ZOITECHAT;
         }
     }
 
@@ -535,7 +535,7 @@ static int handle_delkey(char *word[], char *word_eol[], void *userdata) {
     }
     g_free(nick);
 
-    return HEXCHAT_EAT_HEXCHAT;
+    return ZOITECHAT_EAT_ZOITECHAT;
 }
 
 static int handle_keyx(char *word[], char *word_eol[], void *userdata) {
@@ -558,7 +558,7 @@ static int handle_keyx(char *word[], char *word_eol[], void *userdata) {
 
     if ((query_ctx && ctx_type != 3) || (!query_ctx && !irc_is_query(target))) {
         zoitechat_print(ph, "You can only exchange keys with individuals");
-        return HEXCHAT_EAT_ALL;
+        return ZOITECHAT_EAT_ALL;
     }
 
     if (dh1080_generate_key(&priv_key, &pub_key)) {
@@ -572,7 +572,7 @@ static int handle_keyx(char *word[], char *word_eol[], void *userdata) {
         zoitechat_print(ph, "Failed to generate keys");
     }
 
-    return HEXCHAT_EAT_ALL;
+    return ZOITECHAT_EAT_ALL;
 }
 
 /**
@@ -587,12 +587,12 @@ static int handle_crypt_topic(char *word[], char *word_eol[], void *userdata) {
 
     if (!*topic) {
         zoitechat_print(ph, usage_topic);
-        return HEXCHAT_EAT_ALL;
+        return ZOITECHAT_EAT_ALL;
     }
 
     if (zoitechat_list_int(ph, NULL, "type") != 2) {
         zoitechat_printf(ph, "Please change to the channel window where you want to set the topic!");
-        return HEXCHAT_EAT_ALL;
+        return ZOITECHAT_EAT_ALL;
     }
 
     target = zoitechat_get_info(ph, "channel");
@@ -600,7 +600,7 @@ static int handle_crypt_topic(char *word[], char *word_eol[], void *userdata) {
     /* Check if we can encrypt */
     if (!fish_nick_has_key(target)) {
         zoitechat_printf(ph, "/topic+ error, no key found for %s", target);
-        return HEXCHAT_EAT_ALL;
+        return ZOITECHAT_EAT_ALL;
     }
 
     command = g_string_new("");
@@ -610,7 +610,7 @@ static int handle_crypt_topic(char *word[], char *word_eol[], void *userdata) {
     if (!encrypted_list) {
         g_string_free(command, TRUE);
         zoitechat_printf(ph, "/topic+ error, can't encrypt %s", target);
-        return HEXCHAT_EAT_ALL;
+        return ZOITECHAT_EAT_ALL;
     }
 
     zoitechat_commandf(ph, "%s%s", command->str, (char *) encrypted_list->data);
@@ -618,7 +618,7 @@ static int handle_crypt_topic(char *word[], char *word_eol[], void *userdata) {
     g_string_free(command, TRUE);
     g_slist_free_full(encrypted_list, g_free);
 
-    return HEXCHAT_EAT_ALL;
+    return ZOITECHAT_EAT_ALL;
 }
 
 /**
@@ -634,13 +634,13 @@ static int handle_crypt_notice(char *word[], char *word_eol[], void *userdata) {
 
     if (!*target || !*notice) {
         zoitechat_print(ph, usage_notice);
-        return HEXCHAT_EAT_ALL;
+        return ZOITECHAT_EAT_ALL;
     }
 
     /* Check if we can encrypt */
     if (!fish_nick_has_key(target)) {
         zoitechat_printf(ph, "/notice+ error, no key found for %s.", target);
-        return HEXCHAT_EAT_ALL;
+        return ZOITECHAT_EAT_ALL;
     }
 
     command = g_string_new("");
@@ -650,7 +650,7 @@ static int handle_crypt_notice(char *word[], char *word_eol[], void *userdata) {
     if (!encrypted_list) {
         g_string_free(command, TRUE);
         zoitechat_printf(ph, "/notice+ error, can't encrypt %s", target);
-        return HEXCHAT_EAT_ALL;
+        return ZOITECHAT_EAT_ALL;
     }
 
     notice_flag = g_strconcat("[", fish_modes[mode], "] ", notice, NULL);
@@ -668,7 +668,7 @@ static int handle_crypt_notice(char *word[], char *word_eol[], void *userdata) {
     g_string_free(command, TRUE);
     g_slist_free_full(encrypted_list, g_free);
 
-    return HEXCHAT_EAT_ALL;
+    return ZOITECHAT_EAT_ALL;
 }
 
 /**
@@ -686,13 +686,13 @@ static int handle_crypt_msg(char *word[], char *word_eol[], void *userdata) {
 
     if (!*target || !*message) {
         zoitechat_print(ph, usage_msg);
-        return HEXCHAT_EAT_ALL;
+        return ZOITECHAT_EAT_ALL;
     }
 
     /* Check if we can encrypt */
     if (!fish_nick_has_key(target)) {
         zoitechat_printf(ph, "/msg+ error, no key found for %s", target);
-        return HEXCHAT_EAT_ALL;
+        return ZOITECHAT_EAT_ALL;
     }
 
     command = g_string_new("");
@@ -702,7 +702,7 @@ static int handle_crypt_msg(char *word[], char *word_eol[], void *userdata) {
     if (!encrypted_list) {
         g_string_free(command, TRUE);
         zoitechat_printf(ph, "/msg+ error, can't encrypt %s", target);
-        return HEXCHAT_EAT_ALL;
+        return ZOITECHAT_EAT_ALL;
     }
 
     /* Send encrypted messages */
@@ -731,7 +731,7 @@ static int handle_crypt_msg(char *word[], char *word_eol[], void *userdata) {
         zoitechat_emit_print(ph, "Message Send", target, message);
     }
 
-    return HEXCHAT_EAT_ALL;
+    return ZOITECHAT_EAT_ALL;
 }
 
 static int handle_crypt_me(char *word[], char *word_eol[], void *userdata) {
@@ -742,7 +742,7 @@ static int handle_crypt_me(char *word[], char *word_eol[], void *userdata) {
 
     /* Check if we can encrypt */
     if (!fish_nick_has_key(channel)) {
-        return HEXCHAT_EAT_NONE;
+        return ZOITECHAT_EAT_NONE;
     }
 
     command = g_string_new("");
@@ -753,7 +753,7 @@ static int handle_crypt_me(char *word[], char *word_eol[], void *userdata) {
     if (!encrypted_list) {
         g_string_free(command, TRUE);
         zoitechat_printf(ph, "/me error, can't encrypt %s", channel);
-        return HEXCHAT_EAT_ALL;
+        return ZOITECHAT_EAT_ALL;
     }
 
     zoitechat_emit_print(ph, "Your Action", zoitechat_get_info(ph, "nick"), word_eol[2], NULL);
@@ -769,7 +769,7 @@ static int handle_crypt_me(char *word[], char *word_eol[], void *userdata) {
     g_string_free(command, TRUE);
     g_slist_free_full(encrypted_list, g_free);
 
-    return HEXCHAT_EAT_ALL;
+    return ZOITECHAT_EAT_ALL;
 }
 
 /**
@@ -798,22 +798,22 @@ int zoitechat_plugin_init(zoitechat_plugin *plugin_handle,
     *version = plugin_version;
 
     /* Register commands */
-    zoitechat_hook_command(ph, "SETKEY", HEXCHAT_PRI_NORM, handle_setkey, usage_setkey, NULL);
-    zoitechat_hook_command(ph, "DELKEY", HEXCHAT_PRI_NORM, handle_delkey, usage_delkey, NULL);
-    zoitechat_hook_command(ph, "KEYX", HEXCHAT_PRI_NORM, handle_keyx, usage_keyx, NULL);
-    zoitechat_hook_command(ph, "TOPIC+", HEXCHAT_PRI_NORM, handle_crypt_topic, usage_topic, NULL);
-    zoitechat_hook_command(ph, "NOTICE+", HEXCHAT_PRI_NORM, handle_crypt_notice, usage_notice, NULL);
-    zoitechat_hook_command(ph, "MSG+", HEXCHAT_PRI_NORM, handle_crypt_msg, usage_msg, NULL);
-    zoitechat_hook_command(ph, "ME", HEXCHAT_PRI_NORM, handle_crypt_me, NULL, NULL);
+    zoitechat_hook_command(ph, "SETKEY", ZOITECHAT_PRI_NORM, handle_setkey, usage_setkey, NULL);
+    zoitechat_hook_command(ph, "DELKEY", ZOITECHAT_PRI_NORM, handle_delkey, usage_delkey, NULL);
+    zoitechat_hook_command(ph, "KEYX", ZOITECHAT_PRI_NORM, handle_keyx, usage_keyx, NULL);
+    zoitechat_hook_command(ph, "TOPIC+", ZOITECHAT_PRI_NORM, handle_crypt_topic, usage_topic, NULL);
+    zoitechat_hook_command(ph, "NOTICE+", ZOITECHAT_PRI_NORM, handle_crypt_notice, usage_notice, NULL);
+    zoitechat_hook_command(ph, "MSG+", ZOITECHAT_PRI_NORM, handle_crypt_msg, usage_msg, NULL);
+    zoitechat_hook_command(ph, "ME", ZOITECHAT_PRI_NORM, handle_crypt_me, NULL, NULL);
 
     /* Add handlers */
-    zoitechat_hook_command(ph, "", HEXCHAT_PRI_NORM, handle_outgoing, NULL, NULL);
-    zoitechat_hook_server(ph, "NOTICE", HEXCHAT_PRI_HIGHEST, handle_keyx_notice, NULL);
-    zoitechat_hook_server_attrs(ph, "NOTICE", HEXCHAT_PRI_NORM, handle_incoming, NULL);
-    zoitechat_hook_server_attrs(ph, "PRIVMSG", HEXCHAT_PRI_NORM, handle_incoming, NULL);
-    /* zoitechat_hook_server(ph, "RAW LINE", HEXCHAT_PRI_NORM, handle_debug, NULL); */
-    zoitechat_hook_server_attrs(ph, "TOPIC", HEXCHAT_PRI_NORM, handle_incoming, NULL);
-    zoitechat_hook_server_attrs(ph, "332", HEXCHAT_PRI_NORM, handle_incoming, NULL);
+    zoitechat_hook_command(ph, "", ZOITECHAT_PRI_NORM, handle_outgoing, NULL, NULL);
+    zoitechat_hook_server(ph, "NOTICE", ZOITECHAT_PRI_HIGHEST, handle_keyx_notice, NULL);
+    zoitechat_hook_server_attrs(ph, "NOTICE", ZOITECHAT_PRI_NORM, handle_incoming, NULL);
+    zoitechat_hook_server_attrs(ph, "PRIVMSG", ZOITECHAT_PRI_NORM, handle_incoming, NULL);
+    /* zoitechat_hook_server(ph, "RAW LINE", ZOITECHAT_PRI_NORM, handle_debug, NULL); */
+    zoitechat_hook_server_attrs(ph, "TOPIC", ZOITECHAT_PRI_NORM, handle_incoming, NULL);
+    zoitechat_hook_server_attrs(ph, "332", ZOITECHAT_PRI_NORM, handle_incoming, NULL);
 
     if (!fish_init())
         return 0;

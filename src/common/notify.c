@@ -478,7 +478,7 @@ notify_markonline (server *serv, char *word[], const message_tags_data *tags_dat
 			   about 27 people */
 			if (i > PDIWORDS - 5)
 			{
-				/*fprintf (stderr, _("*** HEXCHAT WARNING: notify list too large.\n"));*/
+				/*fprintf (stderr, _("*** ZOITECHAT WARNING: notify list too large.\n"));*/
 				break;
 			}
 		}
@@ -515,7 +515,7 @@ notify_checklist_for_server (server *serv)
 				/* LAME: we can't send more than 512 bytes to the server, but     *
 				 * if we split it in two packets, our offline detection wouldn't  *
 				 work                                                           */
-				/*fprintf (stderr, _("*** HEXCHAT WARNING: notify list too large.\n"));*/
+				/*fprintf (stderr, _("*** ZOITECHAT WARNING: notify list too large.\n"));*/
 				break;
 			}
 		}

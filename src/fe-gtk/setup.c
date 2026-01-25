@@ -2268,7 +2268,7 @@ setup_snd_filereq_cb (GtkWidget *entry, char *file)
                         /* Use just the filename if the given sound file is in the default <config>/sounds directory.
                          * We're comparing absolute paths so this won't work in portable mode which uses a relative path.
                          */
-                        if (!strcmp (g_path_get_dirname (file), g_build_filename (get_xdir (), HEXCHAT_SOUND_DIR, NULL)))
+                        if (!strcmp (g_path_get_dirname (file), g_build_filename (get_xdir (), ZOITECHAT_SOUND_DIR, NULL)))
                         {
                                 gtk_entry_set_text (GTK_ENTRY (entry), g_path_get_basename (file));
                         }
@@ -2283,7 +2283,7 @@ setup_snd_filereq_cb (GtkWidget *entry, char *file)
 static void
 setup_snd_browse_cb (GtkWidget *button, GtkEntry *entry)
 {
-        char *sounds_dir = g_build_filename (get_xdir (), HEXCHAT_SOUND_DIR, NULL);
+        char *sounds_dir = g_build_filename (get_xdir (), ZOITECHAT_SOUND_DIR, NULL);
         char *filter = NULL;
         int filter_type;
 #ifdef WIN32 /* win32 only supports wav, others could support anything */

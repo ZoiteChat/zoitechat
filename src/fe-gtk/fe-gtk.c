@@ -539,7 +539,7 @@ log_handler (const gchar   *log_domain,
 {
 	session *sess;
 
-	/* if (getenv ("HEXCHAT_WARNING_IGNORE")) this gets ignored sometimes, so simply just disable all warnings */
+	/* if (getenv ("ZOITECHAT_WARNING_IGNORE")) this gets ignored sometimes, so simply just disable all warnings */
 		return;
 
 	sess = find_dialog (serv_list->data, "(warnings)");
@@ -547,7 +547,7 @@ log_handler (const gchar   *log_domain,
 		sess = new_ircwindow (serv_list->data, "(warnings)", SESS_DIALOG, 0);
 
 	PrintTextf (sess, "%s\t%s\n", log_domain, message);
-	if (getenv ("HEXCHAT_WARNING_ABORT"))
+	if (getenv ("ZOITECHAT_WARNING_ABORT"))
 		abort ();
 }
 

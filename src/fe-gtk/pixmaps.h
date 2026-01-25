@@ -17,8 +17,8 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
  */
 
-#ifndef HEXCHAT_PIXMAPS_H
-#define HEXCHAT_PIXMAPS_H
+#ifndef ZOITECHAT_PIXMAPS_H
+#define ZOITECHAT_PIXMAPS_H
 
 #include <cairo.h>
 

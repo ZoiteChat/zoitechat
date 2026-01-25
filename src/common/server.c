@@ -396,7 +396,7 @@ server_read (GIOChannel *source, GIOCondition condition, server *serv)
 				serv->linebuf[serv->pos] = lbuf[i];
 				if (serv->pos >= (sizeof (serv->linebuf) - 1))
 					fprintf (stderr,
-								"*** HEXCHAT WARNING: Buffer overflow - non-compliant server!\n");
+								"*** ZOITECHAT WARNING: Buffer overflow - non-compliant server!\n");
 				else
 					serv->pos++;
 			}

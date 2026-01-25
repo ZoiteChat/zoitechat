@@ -17,8 +17,8 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
  */
 
-#ifndef HEXCHAT_FKEYS_H
-#define HEXCHAT_FKEYS_H
+#ifndef ZOITECHAT_FKEYS_H
+#define ZOITECHAT_FKEYS_H
 
 /* These are cp'ed from history.c --AGL */
 #define STATE_SHIFT		GDK_SHIFT_MASK

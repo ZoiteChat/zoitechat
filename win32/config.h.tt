@@ -7,8 +7,8 @@
 #define ISO_CODES_LOCALEDIR LOCALEDIR
 #define PACKAGE_NAME "zoitechat"
 #define PACKAGE_VERSION "<#= [string]::Join('.', $versionParts) #>"
-#define HEXCHATLIBDIR ".\\plugins"
-#define HEXCHATSHAREDIR "."
+#define ZOITECHATLIBDIR ".\\plugins"
+#define ZOITECHATSHAREDIR "."
 #define OLD_PERL
 #define GETTEXT_PACKAGE "zoitechat"
 #define PACKAGE_TARNAME "zoitechat-<#= [string]::Join('.', $versionParts) #>"

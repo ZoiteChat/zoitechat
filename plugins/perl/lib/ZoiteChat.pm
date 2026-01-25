@@ -36,7 +36,7 @@ sub PRI_LOW ();
 sub PRI_LOWEST ();
 
 sub EAT_NONE ();
-sub EAT_HEXCHAT ();
+sub EAT_ZOITECHAT ();
 sub EAT_PLUGIN ();
 sub EAT_ALL ();
 
@@ -60,7 +60,7 @@ BEGIN {
 our %EXPORT_TAGS = (
 	constants => [
 		qw(PRI_HIGHEST PRI_HIGH PRI_NORM PRI_LOW PRI_LOWEST), # priorities
-		qw(EAT_NONE EAT_HEXCHAT EAT_XCHAT EAT_PLUGIN EAT_ALL), # callback return values
+		qw(EAT_NONE EAT_ZOITECHAT EAT_XCHAT EAT_PLUGIN EAT_ALL), # callback return values
 		qw(FD_READ FD_WRITE FD_EXCEPTION FD_NOTSOCKET), # fd flags
 		qw(KEEP REMOVE), # timers
 	],

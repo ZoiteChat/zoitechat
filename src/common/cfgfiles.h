@@ -19,8 +19,8 @@
 
 /* cfgfiles.h */
 
-#ifndef HEXCHAT_CFGFILES_H
-#define HEXCHAT_CFGFILES_H
+#ifndef ZOITECHAT_CFGFILES_H
+#define ZOITECHAT_CFGFILES_H
 
 #include "zoitechat.h"
 
@@ -82,6 +82,6 @@ struct prefs
 #define TYPE_INT 1
 #define TYPE_BOOL 2
 
-#define HEXCHAT_SOUND_DIR "sounds"
+#define ZOITECHAT_SOUND_DIR "sounds"
 
 #endif

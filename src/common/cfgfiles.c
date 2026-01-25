@@ -35,7 +35,7 @@
 #include <io.h>
 #else
 #include <unistd.h>
-#define HEXCHAT_DIR "zoitechat"
+#define ZOITECHAT_DIR "zoitechat"
 #endif
 
 #define DEF_FONT "Monospace 9"
@@ -305,7 +305,7 @@ get_xdir (void)
 	if (!xdir)
 	{
 #ifndef WIN32
-		xdir = g_build_filename (g_get_user_config_dir (), HEXCHAT_DIR, NULL);
+		xdir = g_build_filename (g_get_user_config_dir (), ZOITECHAT_DIR, NULL);
 #else
 		wchar_t* roaming_path_wide;
 		gchar* roaming_path;
@@ -936,7 +936,7 @@ make_config_dirs (void)
 	}
 	g_free (buf);
 
-	buf = g_build_filename (get_xdir (), HEXCHAT_SOUND_DIR, NULL);
+	buf = g_build_filename (get_xdir (), ZOITECHAT_SOUND_DIR, NULL);
 	if (g_mkdir (buf, 0700) != 0)
 	{
 		g_free (buf);
