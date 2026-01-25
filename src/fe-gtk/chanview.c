@@ -124,14 +124,12 @@ chanview_apply_theme (chanview *cv)
 	w = GTK_WIDGET (tv->tree);
 	if (fe_dark_mode_is_enabled () || prefs.hex_gui_dark_mode == ZOITECHAT_DARK_MODE_LIGHT)
 	{
-		gtk_widget_modify_base (w, GTK_STATE_NORMAL, &colors[COL_BG]);
-		gtk_widget_modify_text (w, GTK_STATE_NORMAL, &colors[COL_FG]);
+		gtkutil_apply_palette (w, &colors[COL_BG], &colors[COL_FG], NULL);
 	}
 	else
 	{
 		/* Revert back to theme defaults. */
-		gtk_widget_modify_base (w, GTK_STATE_NORMAL, NULL);
-		gtk_widget_modify_text (w, GTK_STATE_NORMAL, NULL);
+		gtkutil_apply_palette (w, NULL, NULL, NULL);
 	}
 }
 

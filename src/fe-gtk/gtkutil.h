@@ -22,6 +22,7 @@
 
 #include <gtk/gtk.h>
 #include "../common/fe.h"
+#include "palette.h"
 
 typedef void (*filereqcallback) (void *, char *file);
 
@@ -47,6 +48,8 @@ gboolean gtkutil_treemodel_string_to_iter (GtkTreeModel *model, gchar *pathstr, 
 gboolean gtkutil_treeview_get_selected_iter (GtkTreeView *view, GtkTreeIter *iter_ret);
 gboolean gtkutil_treeview_get_selected (GtkTreeView *view, GtkTreeIter *iter_ret, ...);
 gboolean gtkutil_tray_icon_supported (GtkWindow *window);
+void gtkutil_apply_palette (GtkWidget *widget, const PaletteColor *bg, const PaletteColor *fg,
+                            const PangoFontDescription *font_desc);
 
 #if defined (WIN32) || defined (__APPLE__)
 gboolean gtkutil_find_font (const char *fontname);

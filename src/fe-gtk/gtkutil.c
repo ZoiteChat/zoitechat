@@ -128,6 +128,79 @@ gtkutil_image_new_from_stock (const char *stock, GtkIconSize size)
 }
 #endif
 
+void
+gtkutil_apply_palette (GtkWidget *widget, const PaletteColor *bg, const PaletteColor *fg,
+                       const PangoFontDescription *font_desc)
+{
+	if (!widget)
+		return;
+
+#if HAVE_GTK3
+	{
+		static const char *class_name = "zoitechat-palette";
+		GtkStyleContext *context = gtk_widget_get_style_context (widget);
+		GtkCssProvider *provider = g_object_get_data (G_OBJECT (widget),
+		                                             "zoitechat-palette-provider");
+		GString *css;
+		gchar *bg_color = NULL;
+		gchar *fg_color = NULL;
+		gchar *font_str = NULL;
+
+		if (!bg && !fg && !font_desc)
+		{
+			gtk_style_context_remove_class (context, class_name);
+			if (provider)
+			{
+				gtk_style_context_remove_provider (context, GTK_STYLE_PROVIDER (provider));
+				g_object_set_data (G_OBJECT (widget), "zoitechat-palette-provider", NULL);
+			}
+			return;
+		}
+
+		if (!provider)
+		{
+			provider = gtk_css_provider_new ();
+			g_object_set_data_full (G_OBJECT (widget), "zoitechat-palette-provider",
+			                        provider, g_object_unref);
+		}
+
+		css = g_string_new (".");
+		g_string_append (css, class_name);
+		g_string_append (css, " {");
+		if (bg)
+		{
+			bg_color = gdk_rgba_to_string (bg);
+			g_string_append_printf (css, " background-color: %s;", bg_color);
+		}
+		if (fg)
+		{
+			fg_color = gdk_rgba_to_string (fg);
+			g_string_append_printf (css, " color: %s;", fg_color);
+		}
+		if (font_desc)
+		{
+			font_str = pango_font_description_to_string (font_desc);
+			g_string_append_printf (css, " font: %s;", font_str);
+		}
+		g_string_append (css, " }");
+
+		gtk_css_provider_load_from_data (provider, css->str, -1, NULL);
+		gtk_style_context_add_provider (context, GTK_STYLE_PROVIDER (provider),
+		                                GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+		gtk_style_context_add_class (context, class_name);
+
+		g_string_free (css, TRUE);
+		g_free (bg_color);
+		g_free (fg_color);
+		g_free (font_str);
+	}
+#else
+	gtk_widget_modify_base (widget, GTK_STATE_NORMAL, bg);
+	gtk_widget_modify_text (widget, GTK_STATE_NORMAL, fg);
+	gtk_widget_modify_font (widget, (PangoFontDescription *) font_desc);
+#endif
+}
+
 static void
 gtkutil_file_req_destroy (GtkWidget * wid, struct file_req *freq)
 {

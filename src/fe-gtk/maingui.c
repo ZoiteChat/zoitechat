@@ -2284,9 +2284,8 @@ mg_limit_entry_cb (GtkWidget * igad, gpointer userdata)
 static void
 mg_apply_entry_style (GtkWidget *entry)
 {
-        gtk_widget_modify_base (entry, GTK_STATE_NORMAL, &colors[COL_BG]);
-        gtk_widget_modify_text (entry, GTK_STATE_NORMAL, &colors[COL_FG]);
-        gtk_widget_modify_font (entry, input_style->font_desc);
+        gtkutil_apply_palette (entry, &colors[COL_BG], &colors[COL_FG],
+                               input_style->font_desc);
 }
 
 static void
@@ -2712,11 +2711,6 @@ mg_create_userlist (session_gui *gui, GtkWidget *box)
 
         gui->user_tree = ulist = userlist_create (vbox);
 
-        if (prefs.hex_gui_ulist_style)
-        {
-                gtk_widget_modify_font (ulist, input_style->font_desc);
-        }
-
         /*
          * Keep the user list in sync with the chat palette.
          *
@@ -2727,8 +2721,8 @@ mg_create_userlist (session_gui *gui, GtkWidget *box)
          */
         if (prefs.hex_gui_ulist_style || fe_dark_mode_is_enabled ())
         {
-                gtk_widget_modify_base (ulist, GTK_STATE_NORMAL, &colors[COL_BG]);
-                gtk_widget_modify_text (ulist, GTK_STATE_NORMAL, &colors[COL_FG]);
+                gtkutil_apply_palette (ulist, &colors[COL_BG], &colors[COL_FG],
+                                       prefs.hex_gui_ulist_style ? input_style->font_desc : NULL);
         }
 
         mg_create_meters (gui, vbox);
