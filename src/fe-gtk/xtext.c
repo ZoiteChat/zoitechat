@@ -571,6 +571,38 @@ gtk_xtext_adjustment_set (xtext_buffer *buf, int fire_signal)
 
 	if (buf->xtext->buffer == buf)
 	{
+#if HAVE_GTK3
+		GtkAllocation allocation;
+		gdouble lower = 0;
+		gdouble upper = buf->num_lines;
+		gdouble value = gtk_adjustment_get_value (adj);
+		gdouble page_size;
+
+		if (upper == 0)
+			upper = 1;
+
+		gtk_widget_get_allocation (GTK_WIDGET (buf->xtext), &allocation);
+		page_size = allocation.height / buf->xtext->fontsize;
+
+		gtk_adjustment_set_lower (adj, lower);
+		gtk_adjustment_set_upper (adj, upper);
+		gtk_adjustment_set_page_size (adj, page_size);
+		gtk_adjustment_set_page_increment (adj, page_size);
+
+		if (value > upper - page_size)
+		{
+			buf->scrollbar_down = TRUE;
+			value = upper - page_size;
+		}
+
+		if (value < 0)
+			value = 0;
+
+		gtk_adjustment_set_value (adj, value);
+
+		if (fire_signal)
+			gtk_adjustment_value_changed (adj);
+#else
 		adj->lower = 0;
 		adj->upper = buf->num_lines;
 
@@ -592,6 +624,7 @@ gtk_xtext_adjustment_set (xtext_buffer *buf, int fire_signal)
 
 		if (fire_signal)
 			gtk_adjustment_changed (adj);
+#endif
 	}
 }
 
@@ -5166,6 +5199,38 @@ gtk_xtext_buffer_show (GtkXText *xtext, xtext_buffer *buf, int render)
 	/* now change to the new buffer */
 	xtext->buffer = buf;
 	dontscroll (buf);	/* force scrolling off */
+#if HAVE_GTK3
+	{
+		gdouble value = buf->old_value;
+		gdouble upper = buf->num_lines;
+		gdouble page_size = gtk_adjustment_get_page_size (xtext->adj);
+
+		gtk_adjustment_set_value (xtext->adj, value);
+		gtk_adjustment_set_upper (xtext->adj, upper);
+
+		/* if the scrollbar was down, keep it down */
+		if (xtext->buffer->scrollbar_down && value < upper - page_size)
+		{
+			value = upper - page_size;
+			gtk_adjustment_set_value (xtext->adj, value);
+		}
+
+		if (upper == 0)
+		{
+			upper = 1;
+			gtk_adjustment_set_upper (xtext->adj, upper);
+		}
+		/* sanity check */
+		else if (value > upper - page_size)
+		{
+			/*buf->pagetop_ent = NULL;*/
+			value = upper - page_size;
+			if (value < 0)
+				value = 0;
+			gtk_adjustment_set_value (xtext->adj, value);
+		}
+	}
+#else
 	xtext->adj->value = buf->old_value;
 	xtext->adj->upper = buf->num_lines;
 
@@ -5186,6 +5251,7 @@ gtk_xtext_buffer_show (GtkXText *xtext, xtext_buffer *buf, int render)
 		if (xtext->adj->value < 0)
 			xtext->adj->value = 0;
 	}
+#endif
 
 	if (render)
 	{
@@ -5196,19 +5262,37 @@ gtk_xtext_buffer_show (GtkXText *xtext, xtext_buffer *buf, int render)
 			buf->window_height = h;
 			gtk_xtext_calc_lines (buf, FALSE);
 			if (buf->scrollbar_down)
+#if HAVE_GTK3
+			{
+				gdouble upper = gtk_adjustment_get_upper (xtext->adj);
+				gdouble page_size = gtk_adjustment_get_page_size (xtext->adj);
+
+				gtk_adjustment_set_value (xtext->adj, upper - page_size);
+			}
+#else
 				gtk_adjustment_set_value (xtext->adj, xtext->adj->upper -
 												  xtext->adj->page_size);
+#endif
 		} else if (buf->window_height != h)
 		{
 			buf->window_height = h;
 			buf->pagetop_ent = NULL;
 			if (buf->scrollbar_down)
+#if HAVE_GTK3
+				gtk_adjustment_set_value (xtext->adj,
+											gtk_adjustment_get_upper (xtext->adj));
+#else
 				xtext->adj->value = xtext->adj->upper;
+#endif
 			gtk_xtext_adjustment_set (buf, FALSE);
 		}
 
 		gtk_xtext_render_page (xtext);
+#if HAVE_GTK3
+		gtk_adjustment_value_changed (xtext->adj);
+#else
 		gtk_adjustment_changed (xtext->adj);
+#endif
 	}
 }
 
