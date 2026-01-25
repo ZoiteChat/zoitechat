@@ -77,12 +77,20 @@ gtkutil_icon_name_from_stock (const char *stock_name)
 		return "document-save";
 	if (strcmp (stock_name, "gtk-save-as") == 0)
 		return "document-save-as";
+	if (strcmp (stock_name, "gtk-add") == 0)
+		return "list-add";
 	if (strcmp (stock_name, "gtk-cancel") == 0)
 		return "dialog-cancel";
 	if (strcmp (stock_name, "gtk-ok") == 0)
 		return "dialog-ok";
+	if (strcmp (stock_name, "gtk-no") == 0)
+		return "dialog-cancel";
+	if (strcmp (stock_name, "gtk-yes") == 0)
+		return "dialog-ok";
 	if (strcmp (stock_name, "gtk-apply") == 0)
 		return "dialog-apply";
+	if (strcmp (stock_name, "gtk-dialog-error") == 0)
+		return "dialog-error";
 	if (strcmp (stock_name, "gtk-copy") == 0)
 		return "edit-copy";
 	if (strcmp (stock_name, "gtk-delete") == 0)
@@ -97,10 +105,16 @@ gtkutil_icon_name_from_stock (const char *stock_name)
 		return "edit-find";
 	if (strcmp (stock_name, "gtk-refresh") == 0)
 		return "view-refresh";
+	if (strcmp (stock_name, "gtk-go-back") == 0)
+		return "go-previous";
+	if (strcmp (stock_name, "gtk-go-forward") == 0)
+		return "go-next";
 	if (strcmp (stock_name, "gtk-index") == 0)
 		return "view-list";
 	if (strcmp (stock_name, "gtk-jump-to") == 0)
 		return "go-jump";
+	if (strcmp (stock_name, "gtk-media-play") == 0)
+		return "media-playback-start";
 	if (strcmp (stock_name, "gtk-preferences") == 0)
 		return "preferences-system";
 	if (strcmp (stock_name, "gtk-help") == 0)
@@ -115,6 +129,10 @@ gtkutil_icon_name_from_stock (const char *stock_name)
 		return "network-connect";
 	if (strcmp (stock_name, "gtk-disconnect") == 0)
 		return "network-disconnect";
+	if (strcmp (stock_name, "gtk-network") == 0)
+		return "network-workgroup";
+	if (strcmp (stock_name, "gtk-spell-check") == 0)
+		return "tools-check-spelling";
 
 	return stock_name;
 }
