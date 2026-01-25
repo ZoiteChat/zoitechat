@@ -128,9 +128,15 @@ gtkutil_image_new_from_stock (const char *stock, GtkIconSize size)
 }
 #endif
 
+#if HAVE_GTK3
 void
-gtkutil_apply_palette (GtkWidget *widget, const PaletteColor *bg, const PaletteColor *fg,
+gtkutil_apply_palette (GtkWidget *widget, const GdkRGBA *bg, const GdkRGBA *fg,
                        const PangoFontDescription *font_desc)
+#else
+void
+gtkutil_apply_palette (GtkWidget *widget, const GdkColor *bg, const GdkColor *fg,
+                       const PangoFontDescription *font_desc)
+#endif
 {
 	if (!widget)
 		return;

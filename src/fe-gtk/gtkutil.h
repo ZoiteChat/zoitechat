@@ -48,8 +48,13 @@ gboolean gtkutil_treemodel_string_to_iter (GtkTreeModel *model, gchar *pathstr, 
 gboolean gtkutil_treeview_get_selected_iter (GtkTreeView *view, GtkTreeIter *iter_ret);
 gboolean gtkutil_treeview_get_selected (GtkTreeView *view, GtkTreeIter *iter_ret, ...);
 gboolean gtkutil_tray_icon_supported (GtkWindow *window);
-void gtkutil_apply_palette (GtkWidget *widget, const PaletteColor *bg, const PaletteColor *fg,
+#if HAVE_GTK3
+void gtkutil_apply_palette (GtkWidget *widget, const GdkRGBA *bg, const GdkRGBA *fg,
                             const PangoFontDescription *font_desc);
+#else
+void gtkutil_apply_palette (GtkWidget *widget, const GdkColor *bg, const GdkColor *fg,
+                            const PangoFontDescription *font_desc);
+#endif
 
 #if defined (WIN32) || defined (__APPLE__)
 gboolean gtkutil_find_font (const char *fontname);
