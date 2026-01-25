@@ -66,73 +66,56 @@ struct file_req
 const char *
 gtkutil_icon_name_from_stock (const char *stock_name)
 {
+	static const struct
+	{
+		const char *stock;
+		const char *icon;
+	} icon_map[] = {
+		{ "gtk-new", "document-new" },
+		{ "gtk-open", "document-open" },
+		{ "gtk-revert-to-saved", "document-open" },
+		{ "gtk-save", "document-save" },
+		{ "gtk-save-as", "document-save-as" },
+		{ "gtk-add", "list-add" },
+		{ "gtk-cancel", "dialog-cancel" },
+		{ "gtk-ok", "dialog-ok" },
+		{ "gtk-no", "dialog-cancel" },
+		{ "gtk-yes", "dialog-ok" },
+		{ "gtk-apply", "dialog-apply" },
+		{ "gtk-dialog-error", "dialog-error" },
+		{ "gtk-copy", "edit-copy" },
+		{ "gtk-delete", "edit-delete" },
+		{ "gtk-remove", "list-remove" },
+		{ "gtk-clear", "edit-clear" },
+		{ "gtk-redo", "edit-redo" },
+		{ "gtk-find", "edit-find" },
+		{ "gtk-justify-left", "edit-find" },
+		{ "gtk-refresh", "view-refresh" },
+		{ "gtk-go-back", "go-previous" },
+		{ "gtk-go-forward", "go-next" },
+		{ "gtk-index", "view-list" },
+		{ "gtk-jump-to", "go-jump" },
+		{ "gtk-media-play", "media-playback-start" },
+		{ "gtk-preferences", "preferences-system" },
+		{ "gtk-help", "help-browser" },
+		{ "gtk-about", "help-about" },
+		{ "gtk-close", "window-close" },
+		{ "gtk-quit", "application-exit" },
+		{ "gtk-connect", "network-connect" },
+		{ "gtk-disconnect", "network-disconnect" },
+		{ "gtk-network", "network-workgroup" },
+		{ "gtk-spell-check", "tools-check-spelling" },
+	};
+	size_t i;
+
 	if (!stock_name)
 		return NULL;
 
-	if (strcmp (stock_name, "gtk-new") == 0)
-		return "document-new";
-	if (strcmp (stock_name, "gtk-open") == 0 || strcmp (stock_name, "gtk-revert-to-saved") == 0)
-		return "document-open";
-	if (strcmp (stock_name, "gtk-save") == 0)
-		return "document-save";
-	if (strcmp (stock_name, "gtk-save-as") == 0)
-		return "document-save-as";
-	if (strcmp (stock_name, "gtk-add") == 0)
-		return "list-add";
-	if (strcmp (stock_name, "gtk-cancel") == 0)
-		return "dialog-cancel";
-	if (strcmp (stock_name, "gtk-ok") == 0)
-		return "dialog-ok";
-	if (strcmp (stock_name, "gtk-no") == 0)
-		return "dialog-cancel";
-	if (strcmp (stock_name, "gtk-yes") == 0)
-		return "dialog-ok";
-	if (strcmp (stock_name, "gtk-apply") == 0)
-		return "dialog-apply";
-	if (strcmp (stock_name, "gtk-dialog-error") == 0)
-		return "dialog-error";
-	if (strcmp (stock_name, "gtk-copy") == 0)
-		return "edit-copy";
-	if (strcmp (stock_name, "gtk-delete") == 0)
-		return "edit-delete";
-	if (strcmp (stock_name, "gtk-remove") == 0)
-		return "list-remove";
-	if (strcmp (stock_name, "gtk-clear") == 0)
-		return "edit-clear";
-	if (strcmp (stock_name, "gtk-redo") == 0)
-		return "edit-redo";
-	if (strcmp (stock_name, "gtk-find") == 0 || strcmp (stock_name, "gtk-justify-left") == 0)
-		return "edit-find";
-	if (strcmp (stock_name, "gtk-refresh") == 0)
-		return "view-refresh";
-	if (strcmp (stock_name, "gtk-go-back") == 0)
-		return "go-previous";
-	if (strcmp (stock_name, "gtk-go-forward") == 0)
-		return "go-next";
-	if (strcmp (stock_name, "gtk-index") == 0)
-		return "view-list";
-	if (strcmp (stock_name, "gtk-jump-to") == 0)
-		return "go-jump";
-	if (strcmp (stock_name, "gtk-media-play") == 0)
-		return "media-playback-start";
-	if (strcmp (stock_name, "gtk-preferences") == 0)
-		return "preferences-system";
-	if (strcmp (stock_name, "gtk-help") == 0)
-		return "help-browser";
-	if (strcmp (stock_name, "gtk-about") == 0)
-		return "help-about";
-	if (strcmp (stock_name, "gtk-close") == 0)
-		return "window-close";
-	if (strcmp (stock_name, "gtk-quit") == 0)
-		return "application-exit";
-	if (strcmp (stock_name, "gtk-connect") == 0)
-		return "network-connect";
-	if (strcmp (stock_name, "gtk-disconnect") == 0)
-		return "network-disconnect";
-	if (strcmp (stock_name, "gtk-network") == 0)
-		return "network-workgroup";
-	if (strcmp (stock_name, "gtk-spell-check") == 0)
-		return "tools-check-spelling";
+	for (i = 0; i < G_N_ELEMENTS (icon_map); i++)
+	{
+		if (strcmp (stock_name, icon_map[i].stock) == 0)
+			return icon_map[i].icon;
+	}
 
 	return stock_name;
 }
