@@ -5289,7 +5289,36 @@ gtk_xtext_buffer_show (GtkXText *xtext, xtext_buffer *buf, int render)
 
 		gtk_xtext_render_page (xtext);
 #if HAVE_GTK3
-		gtk_xtext_adjustment_set (buf, TRUE);
+		{
+			GtkAllocation allocation;
+			gdouble lower = 0;
+			gdouble upper = buf->num_lines;
+			gdouble value = gtk_adjustment_get_value (xtext->adj);
+			gdouble page_size;
+
+			if (upper == 0)
+				upper = 1;
+
+			gtk_widget_get_allocation (GTK_WIDGET (xtext), &allocation);
+			page_size = allocation.height / xtext->fontsize;
+
+			gtk_adjustment_set_lower (xtext->adj, lower);
+			gtk_adjustment_set_upper (xtext->adj, upper);
+			gtk_adjustment_set_page_size (xtext->adj, page_size);
+			gtk_adjustment_set_page_increment (xtext->adj, page_size);
+
+			if (value > upper - page_size)
+			{
+				buf->scrollbar_down = TRUE;
+				value = upper - page_size;
+			}
+
+			if (value < 0)
+				value = 0;
+
+			gtk_adjustment_set_value (xtext->adj, value);
+			gtk_adjustment_value_changed (xtext->adj);
+		}
 #else
 		gtk_adjustment_changed (xtext->adj);
 #endif
