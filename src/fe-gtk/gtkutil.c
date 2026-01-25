@@ -147,6 +147,7 @@ gtkutil_apply_palette (GtkWidget *widget, const GdkColor *bg, const GdkColor *fg
 		GtkStyleContext *context = gtk_widget_get_style_context (widget);
 		GtkCssProvider *provider = g_object_get_data (G_OBJECT (widget),
 		                                             "zoitechat-palette-provider");
+		gboolean new_provider = FALSE;
 		GString *css;
 		gchar *bg_color = NULL;
 		gchar *fg_color = NULL;
@@ -168,6 +169,7 @@ gtkutil_apply_palette (GtkWidget *widget, const GdkColor *bg, const GdkColor *fg
 			provider = gtk_css_provider_new ();
 			g_object_set_data_full (G_OBJECT (widget), "zoitechat-palette-provider",
 			                        provider, g_object_unref);
+			new_provider = TRUE;
 		}
 
 		css = g_string_new (".");
@@ -191,8 +193,11 @@ gtkutil_apply_palette (GtkWidget *widget, const GdkColor *bg, const GdkColor *fg
 		g_string_append (css, " }");
 
 		gtk_css_provider_load_from_data (provider, css->str, -1, NULL);
-		gtk_style_context_add_provider (context, GTK_STYLE_PROVIDER (provider),
-		                                GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+		if (new_provider)
+		{
+			gtk_style_context_add_provider (context, GTK_STYLE_PROVIDER (provider),
+			                                GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+		}
 		gtk_style_context_add_class (context, class_name);
 
 		g_string_free (css, TRUE);
