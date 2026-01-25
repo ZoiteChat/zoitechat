@@ -19,8 +19,8 @@
 
 /* include stuff for internet */
 
-#ifndef HEXCHAT_INET_H
-#define HEXCHAT_INET_H
+#ifndef ZOITECHAT_INET_H
+#define ZOITECHAT_INET_H
 
 #ifndef WIN32
 

@@ -171,7 +171,7 @@ timer_cb (char *word[], char *word_eol[], void *userdata)
 	if (!word[2][0])
 	{
 		timer_showlist ();
-		return HEXCHAT_EAT_HEXCHAT;
+		return ZOITECHAT_EAT_ZOITECHAT;
 	}
 
 	if (g_ascii_strcasecmp (word[2], "-quiet") == 0)
@@ -183,7 +183,7 @@ timer_cb (char *word[], char *word_eol[], void *userdata)
 	if (g_ascii_strcasecmp (word[2 + offset], "-delete") == 0)
 	{
 		timer_del_ref (atoi (word[3 + offset]), quiet);
-		return HEXCHAT_EAT_HEXCHAT;
+		return ZOITECHAT_EAT_ZOITECHAT;
 	}
 
 	if (g_ascii_strcasecmp (word[2 + offset], "-refnum") == 0)
@@ -206,7 +206,7 @@ timer_cb (char *word[], char *word_eol[], void *userdata)
 	else
 		timer_add (ref, (int) timeout * 1000, repeat, command);
 
-	return HEXCHAT_EAT_HEXCHAT;
+	return ZOITECHAT_EAT_ZOITECHAT;
 }
 
 int
@@ -225,7 +225,7 @@ zoitechat_plugin_init
 	*plugin_desc = "IrcII style /TIMER command";
 	*plugin_version = "";
 
-	zoitechat_hook_command (ph, "TIMER", HEXCHAT_PRI_NORM, timer_cb, _(HELP), 0);
+	zoitechat_hook_command (ph, "TIMER", ZOITECHAT_PRI_NORM, timer_cb, _(HELP), 0);
 
 	return 1;       /* return 1 for success */
 }

@@ -622,7 +622,7 @@ static int
 tray_hilight_cb (char *word[], void *userdata)
 {
 	/*if (tray_status == TS_HIGHLIGHT)
-		return HEXCHAT_EAT_NONE;*/
+		return ZOITECHAT_EAT_NONE;*/
 
 	if (prefs.hex_input_tray_hilight)
 	{
@@ -639,14 +639,14 @@ tray_hilight_cb (char *word[], void *userdata)
 								_(DISPLAY_NAME));
 	}
 
-	return HEXCHAT_EAT_NONE;
+	return ZOITECHAT_EAT_NONE;
 }
 
 static int
 tray_message_cb (char *word[], void *userdata)
 {
 	if (/*tray_status == TS_MESSAGE ||*/ tray_status == TS_HIGHLIGHT)
-		return HEXCHAT_EAT_NONE;
+		return ZOITECHAT_EAT_NONE;
 		
 	if (prefs.hex_input_tray_chans)
 	{
@@ -660,7 +660,7 @@ tray_message_cb (char *word[], void *userdata)
 			tray_set_tipf (_("%u channel messages. - %s"), tray_pub_count, _(DISPLAY_NAME));
 	}
 
-	return HEXCHAT_EAT_NONE;
+	return ZOITECHAT_EAT_NONE;
 }
 
 static void
@@ -694,7 +694,7 @@ tray_priv_cb (char *word[], void *userdata)
 {
 	tray_priv (word[1], word[2]);
 
-	return HEXCHAT_EAT_NONE;
+	return ZOITECHAT_EAT_NONE;
 }
 
 static int
@@ -703,7 +703,7 @@ tray_invited_cb (char *word[], void *userdata)
 	if (!prefs.hex_away_omit_alerts || tray_find_away_status () != 1)
 		tray_priv (word[2], "Invited");
 
-	return HEXCHAT_EAT_NONE;
+	return ZOITECHAT_EAT_NONE;
 }
 
 static int
@@ -712,7 +712,7 @@ tray_dcc_cb (char *word[], void *userdata)
 	const char *network;
 
 /*	if (tray_status == TS_FILEOFFER)
-		return HEXCHAT_EAT_NONE;*/
+		return ZOITECHAT_EAT_NONE;*/
 
 	network = zoitechat_get_info (ph, "network");
 	if (!network)
@@ -731,7 +731,7 @@ tray_dcc_cb (char *word[], void *userdata)
 								tray_file_count, word[1], network, _(DISPLAY_NAME));
 	}
 
-	return HEXCHAT_EAT_NONE;
+	return ZOITECHAT_EAT_NONE;
 }
 
 static int
@@ -739,7 +739,7 @@ tray_focus_cb (char *word[], void *userdata)
 {
 	tray_stop_flash ();
 	tray_reset_counts ();
-	return HEXCHAT_EAT_NONE;
+	return ZOITECHAT_EAT_NONE;
 }
 
 static void

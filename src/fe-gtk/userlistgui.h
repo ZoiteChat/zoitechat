@@ -17,8 +17,8 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
  */
 
-#ifndef HEXCHAT_USERLISTGUI_H
-#define HEXCHAT_USERLISTGUI_H
+#ifndef ZOITECHAT_USERLISTGUI_H
+#define ZOITECHAT_USERLISTGUI_H
 
 void userlist_set_value (GtkWidget *treeview, gfloat val);
 gfloat userlist_get_value (GtkWidget *treeview);

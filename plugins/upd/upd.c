@@ -37,7 +37,7 @@ check_cmd (char *word[], char *word_eol[], void *userdata)
 {
 	win_sparkle_check_update_with_ui ();
 
-	return HEXCHAT_EAT_ALL;
+	return ZOITECHAT_EAT_ALL;
 }
 
 int
@@ -52,7 +52,7 @@ zoitechat_plugin_init (zoitechat_plugin *plugin_handle, char **plugin_name, char
 	win_sparkle_set_appcast_url (APPCAST_URL);
 	win_sparkle_init ();
 
-	zoitechat_hook_command (ph, "UPDCHK", HEXCHAT_PRI_NORM, check_cmd, upd_help, NULL);
+	zoitechat_hook_command (ph, "UPDCHK", ZOITECHAT_PRI_NORM, check_cmd, upd_help, NULL);
 	zoitechat_command (ph, "MENU -ishare\\download.png ADD \"Help/Check for Updates\" \"UPDCHK\"");
 	zoitechat_printf (ph, "%s plugin loaded\n", name);
 

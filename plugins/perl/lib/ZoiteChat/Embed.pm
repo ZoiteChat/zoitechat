@@ -247,7 +247,7 @@ sub evaluate {
 		ZoiteChat::print $results[0];
 	}
 
-	return ZoiteChat::EAT_HEXCHAT;
+	return ZoiteChat::EAT_ZOITECHAT;
 };
 
 sub expand_homedir {

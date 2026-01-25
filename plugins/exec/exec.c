@@ -134,7 +134,7 @@ run_command (char *word[], char *word_eol[], void *userdata)
 		zoitechat_command (ph, "help exec");
 	}
 
-	return HEXCHAT_EAT_HEXCHAT;
+	return ZOITECHAT_EAT_ZOITECHAT;
 }
 
 int
@@ -146,7 +146,7 @@ zoitechat_plugin_init (zoitechat_plugin *plugin_handle, char **plugin_name, char
 	*plugin_desc = desc;
 	*plugin_version = version;
 
-	zoitechat_hook_command (ph, "EXEC", HEXCHAT_PRI_NORM, run_command, "Usage: /EXEC [-O] - execute commands inside ZoiteChat", 0);
+	zoitechat_hook_command (ph, "EXEC", ZOITECHAT_PRI_NORM, run_command, "Usage: /EXEC [-O] - execute commands inside ZoiteChat", 0);
 	zoitechat_printf (ph, "%s plugin loaded\n", name);
 
 	return 1;       /* return 1 for success */

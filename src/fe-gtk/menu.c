@@ -1772,7 +1772,7 @@ menu_about (GtkWidget *wid, gpointer sess)
 }
 
 static struct mymenu mymenu[] = {
-	{N_("_ZoiteChat"), 0, 0, M_NEWMENU, MENU_ID_HEXCHAT, 0, 1},
+	{N_("_ZoiteChat"), 0, 0, M_NEWMENU, MENU_ID_ZOITECHAT, 0, 1},
 	{N_("Network Li_st"), menu_open_server_list, (char *)&pix_book, M_MENUPIX, 0, 0, 1, GDK_KEY_s},
 	{0, 0, 0, M_SEP, 0, 0, 0},
 
@@ -2396,7 +2396,7 @@ menu_create_main (void *accel_group, int bar, int away, int toplevel,
 			/* record the English name for /menu */
 			g_object_set_data (G_OBJECT (menu_item), "name", mymenu[i].text);
 #ifdef HAVE_GTK_MAC /* Added to app menu, see below */
-			if (!bar || mymenu[i].id != MENU_ID_HEXCHAT)		
+			if (!bar || mymenu[i].id != MENU_ID_ZOITECHAT)		
 #endif
 				gtk_menu_shell_append (GTK_MENU_SHELL (menu_bar), menu_item);
 			gtk_widget_show (menu_item);
@@ -2502,7 +2502,7 @@ togitem:
 
 #ifdef HAVE_GTK_MAC
 		/* We want ZoiteChat to be the app menu, not including Quit or ZoiteChat itself */
-		if (bar && item && i <= CLOSE_OFFSET + 1 && mymenu[i].id != MENU_ID_HEXCHAT)
+		if (bar && item && i <= CLOSE_OFFSET + 1 && mymenu[i].id != MENU_ID_ZOITECHAT)
 		{
 			if (!submenu || mymenu[i].type == M_MENUSUB)
 				gtkosx_application_insert_app_menu_item (osx_app, item, appmenu_offset++);

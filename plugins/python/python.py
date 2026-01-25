@@ -40,7 +40,7 @@ def redirected_stdout():
     sys.stderr = zoitechat_stdout
 
 
-if os.getenv('HEXCHAT_LOG_PYTHON'):
+if os.getenv('ZOITECHAT_LOG_PYTHON'):
     def log(*args):
         with redirected_stdout():
             print(*args)

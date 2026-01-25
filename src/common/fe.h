@@ -20,8 +20,8 @@
 #include "userlist.h"
 #include "dcc.h"
 
-#ifndef HEXCHAT_FE_H
-#define HEXCHAT_FE_H
+#ifndef ZOITECHAT_FE_H
+#define ZOITECHAT_FE_H
 
 /* for storage of /menu entries */
 typedef struct

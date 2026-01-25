@@ -2489,8 +2489,8 @@ mg_create_textarea (session *sess, GtkWidget *box)
         };
         static const GtkTargetEntry dnd_dest_targets[] =
         {
-                {"HEXCHAT_CHANVIEW", GTK_TARGET_SAME_APP, 75 },
-                {"HEXCHAT_USERLIST", GTK_TARGET_SAME_APP, 75 }
+                {"ZOITECHAT_CHANVIEW", GTK_TARGET_SAME_APP, 75 },
+                {"ZOITECHAT_USERLIST", GTK_TARGET_SAME_APP, 75 }
         };
 
         vbox = gtk_vbox_new (FALSE, 0);
@@ -4183,7 +4183,7 @@ mg_is_gui_target (GdkDragContext *context)
         target_name = gdk_atom_name (gdk_drag_context_list_targets (context)->data);
         if (target_name)
         {
-                /* if it's not HEXCHAT_CHANVIEW or HEXCHAT_USERLIST */
+                /* if it's not ZOITECHAT_CHANVIEW or ZOITECHAT_USERLIST */
                 /* we should ignore it. */
                 if (target_name[0] != 'H')
                 {

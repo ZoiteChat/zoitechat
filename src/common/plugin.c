@@ -466,11 +466,11 @@ plugin_get_libdir (void)
 {
 	const char *libdir;
 
-	libdir = g_getenv ("HEXCHAT_LIBDIR");
+	libdir = g_getenv ("ZOITECHAT_LIBDIR");
 	if (libdir && *libdir)
 		return libdir;
 	else
-		return HEXCHATLIBDIR;
+		return ZOITECHATLIBDIR;
 }
 
 void
@@ -608,14 +608,14 @@ plugin_hook_run (session *sess, char *name, char *word[], char *word_eol[],
 			break;
 		}
 
-		if ((ret & HEXCHAT_EAT_HEXCHAT) && (ret & HEXCHAT_EAT_PLUGIN))
+		if ((ret & ZOITECHAT_EAT_ZOITECHAT) && (ret & ZOITECHAT_EAT_PLUGIN))
 		{
 			eat = 1;
 			goto xit;
 		}
-		if (ret & HEXCHAT_EAT_PLUGIN)
+		if (ret & ZOITECHAT_EAT_PLUGIN)
 			goto xit;	/* stop running plugins */
-		if (ret & HEXCHAT_EAT_HEXCHAT)
+		if (ret & ZOITECHAT_EAT_ZOITECHAT)
 			eat = 1;	/* eventually we'll return 1, but continue running plugins */
 
 		list = next;
@@ -801,11 +801,11 @@ plugin_fd_cb (GIOChannel *source, GIOCondition condition, zoitechat_hook *hook)
 	typedef int (zoitechat_fd_cb2) (int fd, int flags, void *user_data, GIOChannel *);
 
 	if (condition & G_IO_IN)
-		flags |= HEXCHAT_FD_READ;
+		flags |= ZOITECHAT_FD_READ;
 	if (condition & G_IO_OUT)
-		flags |= HEXCHAT_FD_WRITE;
+		flags |= ZOITECHAT_FD_WRITE;
 	if (condition & G_IO_PRI)
-		flags |= HEXCHAT_FD_EXCEPTION;
+		flags |= ZOITECHAT_FD_EXCEPTION;
 
 	ret = ((zoitechat_fd_cb2 *)hook->callback) (hook->pri, flags, hook->userdata, source);
 

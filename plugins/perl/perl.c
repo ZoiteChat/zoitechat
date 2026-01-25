@@ -337,11 +337,11 @@ fd_cb (int fd, int flags, void *userdata)
 	if (SvTRUE (ERRSV)) {
 		zoitechat_printf (ph, "Error in fd callback %s", SvPV_nolen (ERRSV));
 		if (!SvOK (POPs)) {}		  /* remove undef from the top of the stack */
-		retVal = HEXCHAT_EAT_ALL;
+		retVal = ZOITECHAT_EAT_ALL;
 	} else {
 		if (count != 1) {
 			zoitechat_print (ph, "Fd handler should only return 1 value.");
-			retVal = HEXCHAT_EAT_NONE;
+			retVal = ZOITECHAT_EAT_NONE;
 		} else {
 			retVal = POPi;
 			if (retVal == 0) {
@@ -398,11 +398,11 @@ timer_cb (void *userdata)
 	if (SvTRUE (ERRSV)) {
 		zoitechat_printf (ph, "Error in timer callback %s", SvPV_nolen (ERRSV));
 		if (!SvOK (POPs)) {}		  /* remove undef from the top of the stack */
-		retVal = HEXCHAT_EAT_ALL;
+		retVal = ZOITECHAT_EAT_ALL;
 	} else {
 		if (count != 1) {
 			zoitechat_print (ph, "Timer handler should only return 1 value.");
-			retVal = HEXCHAT_EAT_NONE;
+			retVal = ZOITECHAT_EAT_NONE;
 		} else {
 			retVal = POPi;
 			if (retVal == 0) {
@@ -438,7 +438,7 @@ server_cb (char *word[], char *word_eol[], void *userdata)
 	SAVETMPS;
 
 	if (data->depth)
-		return HEXCHAT_EAT_NONE;
+		return ZOITECHAT_EAT_NONE;
 
 	/*               zoitechat_printf (ph, */
 	/*                               "Received %d words in server callback", av_len (wd)); */
@@ -457,11 +457,11 @@ server_cb (char *word[], char *word_eol[], void *userdata)
 	if (SvTRUE (ERRSV)) {
 		zoitechat_printf (ph, "Error in server callback %s", SvPV_nolen (ERRSV));
 		if (!SvOK (POPs)) {}		  /* remove undef from the top of the stack */
-		retVal = HEXCHAT_EAT_NONE;
+		retVal = ZOITECHAT_EAT_NONE;
 	} else {
 		if (count != 1) {
 			zoitechat_print (ph, "Server handler should only return 1 value.");
-			retVal = HEXCHAT_EAT_NONE;
+			retVal = ZOITECHAT_EAT_NONE;
 		} else {
 			retVal = POPi;
 		}
@@ -487,7 +487,7 @@ command_cb (char *word[], char *word_eol[], void *userdata)
 	SAVETMPS;
 	
 	if (data->depth)
-		return HEXCHAT_EAT_NONE;
+		return ZOITECHAT_EAT_NONE;
 
 	/*               zoitechat_printf (ph, "Received %d words in command callback", */
 	/*                               av_len (wd)); */
@@ -506,11 +506,11 @@ command_cb (char *word[], char *word_eol[], void *userdata)
 	if (SvTRUE (ERRSV)) {
 		zoitechat_printf (ph, "Error in command callback %s", SvPV_nolen (ERRSV));
 		if (!SvOK (POPs)) {}		  /* remove undef from the top of the stack */
-		retVal = HEXCHAT_EAT_HEXCHAT;
+		retVal = ZOITECHAT_EAT_ZOITECHAT;
 	} else {
 		if (count != 1) {
 			zoitechat_print (ph, "Command handler should only return 1 value.");
-			retVal = HEXCHAT_EAT_NONE;
+			retVal = ZOITECHAT_EAT_NONE;
 		} else {
 			retVal = POPi;
 		}
@@ -541,7 +541,7 @@ print_cb (char *word[], void *userdata)
 	SAVETMPS;
 
 	if (data->depth)
-		return HEXCHAT_EAT_NONE;
+		return ZOITECHAT_EAT_NONE;
 
 	wd = newAV ();
 	sv_2mortal ((SV *) wd);
@@ -582,11 +582,11 @@ print_cb (char *word[], void *userdata)
 	if (SvTRUE (ERRSV)) {
 		zoitechat_printf (ph, "Error in print callback %s", SvPV_nolen (ERRSV));
 		if (!SvOK (POPs)) {}		  /* remove undef from the top of the stack */
-		retVal = HEXCHAT_EAT_NONE;
+		retVal = ZOITECHAT_EAT_NONE;
 	} else {
 		if (count != 1) {
 			zoitechat_print (ph, "Print handler should only return 1 value.");
-			retVal = HEXCHAT_EAT_NONE;
+			retVal = ZOITECHAT_EAT_NONE;
 		} else {
 			retVal = POPi;
 		}
@@ -1022,7 +1022,7 @@ XS (XS_ZoiteChat_hook_fd)
 		data = NULL;
 
 #ifdef WIN32
-		if ((flags & HEXCHAT_FD_NOTSOCKET) == 0) {
+		if ((flags & ZOITECHAT_FD_NOTSOCKET) == 0) {
 			/* this _get_osfhandle if from win32iop.h in the perl distribution,
 			 *  not the one provided by Windows
 			 */ 
@@ -1356,21 +1356,21 @@ xs_init (pTHX)
 		exit (1);
 	}
 
-	newCONSTSUB (stash, "PRI_HIGHEST", newSViv (HEXCHAT_PRI_HIGHEST));
-	newCONSTSUB (stash, "PRI_HIGH", newSViv (HEXCHAT_PRI_HIGH));
-	newCONSTSUB (stash, "PRI_NORM", newSViv (HEXCHAT_PRI_NORM));
-	newCONSTSUB (stash, "PRI_LOW", newSViv (HEXCHAT_PRI_LOW));
-	newCONSTSUB (stash, "PRI_LOWEST", newSViv (HEXCHAT_PRI_LOWEST));
+	newCONSTSUB (stash, "PRI_HIGHEST", newSViv (ZOITECHAT_PRI_HIGHEST));
+	newCONSTSUB (stash, "PRI_HIGH", newSViv (ZOITECHAT_PRI_HIGH));
+	newCONSTSUB (stash, "PRI_NORM", newSViv (ZOITECHAT_PRI_NORM));
+	newCONSTSUB (stash, "PRI_LOW", newSViv (ZOITECHAT_PRI_LOW));
+	newCONSTSUB (stash, "PRI_LOWEST", newSViv (ZOITECHAT_PRI_LOWEST));
 
-	newCONSTSUB (stash, "EAT_NONE", newSViv (HEXCHAT_EAT_NONE));
-	newCONSTSUB (stash, "EAT_HEXCHAT", newSViv (HEXCHAT_EAT_HEXCHAT));
-	newCONSTSUB (stash, "EAT_XCHAT", newSViv (HEXCHAT_EAT_HEXCHAT)); /* for compatibility */
-	newCONSTSUB (stash, "EAT_PLUGIN", newSViv (HEXCHAT_EAT_PLUGIN));
-	newCONSTSUB (stash, "EAT_ALL", newSViv (HEXCHAT_EAT_ALL));
-	newCONSTSUB (stash, "FD_READ", newSViv (HEXCHAT_FD_READ));
-	newCONSTSUB (stash, "FD_WRITE", newSViv (HEXCHAT_FD_WRITE));
-	newCONSTSUB (stash, "FD_EXCEPTION", newSViv (HEXCHAT_FD_EXCEPTION));
-	newCONSTSUB (stash, "FD_NOTSOCKET", newSViv (HEXCHAT_FD_NOTSOCKET));
+	newCONSTSUB (stash, "EAT_NONE", newSViv (ZOITECHAT_EAT_NONE));
+	newCONSTSUB (stash, "EAT_ZOITECHAT", newSViv (ZOITECHAT_EAT_ZOITECHAT));
+	newCONSTSUB (stash, "EAT_XCHAT", newSViv (ZOITECHAT_EAT_ZOITECHAT)); /* for compatibility */
+	newCONSTSUB (stash, "EAT_PLUGIN", newSViv (ZOITECHAT_EAT_PLUGIN));
+	newCONSTSUB (stash, "EAT_ALL", newSViv (ZOITECHAT_EAT_ALL));
+	newCONSTSUB (stash, "FD_READ", newSViv (ZOITECHAT_FD_READ));
+	newCONSTSUB (stash, "FD_WRITE", newSViv (ZOITECHAT_FD_WRITE));
+	newCONSTSUB (stash, "FD_EXCEPTION", newSViv (ZOITECHAT_FD_EXCEPTION));
+	newCONSTSUB (stash, "FD_NOTSOCKET", newSViv (ZOITECHAT_FD_NOTSOCKET));
 	newCONSTSUB (stash, "KEEP", newSViv (1));
 	newCONSTSUB (stash, "REMOVE", newSViv (0));
 
@@ -1509,10 +1509,10 @@ perl_command_unloadall (char *word[], char *word_eol[], void *userdata)
 {
 	if (my_perl != NULL) {
 		execute_perl (sv_2mortal (newSVpv ("ZoiteChat::Embed::unload_all", 0)), "");
-		return HEXCHAT_EAT_HEXCHAT;
+		return ZOITECHAT_EAT_ZOITECHAT;
 	}
 
-	return HEXCHAT_EAT_HEXCHAT;
+	return ZOITECHAT_EAT_ZOITECHAT;
 }
 
 static int
@@ -1521,11 +1521,11 @@ perl_command_reloadall (char *word[], char *word_eol[], void *userdata)
 	if (my_perl != NULL) {
 		execute_perl (sv_2mortal (newSVpv ("ZoiteChat::Embed::reload_all", 0)), "");
 
-		return HEXCHAT_EAT_HEXCHAT;
+		return ZOITECHAT_EAT_ZOITECHAT;
 	} else {
 		perl_auto_load( NULL );
 	}
-	return HEXCHAT_EAT_HEXCHAT;
+	return ZOITECHAT_EAT_ZOITECHAT;
 }
 
 static int
@@ -1536,10 +1536,10 @@ perl_command_load (char *word[], char *word_eol[], void *userdata)
 	if (file != NULL )
 	{
 		perl_load_file (file);
-		return HEXCHAT_EAT_HEXCHAT;
+		return ZOITECHAT_EAT_ZOITECHAT;
 	}
 
-	return HEXCHAT_EAT_NONE;
+	return ZOITECHAT_EAT_NONE;
 }
 
 static int
@@ -1549,10 +1549,10 @@ perl_command_unload (char *word[], char *word_eol[], void *userdata)
 	
 	if (my_perl != NULL && file != NULL) {
 		execute_perl (sv_2mortal (newSVpv ("ZoiteChat::Embed::unload", 0)), file);
-		return HEXCHAT_EAT_HEXCHAT;
+		return ZOITECHAT_EAT_ZOITECHAT;
 	}
 
-	return HEXCHAT_EAT_NONE;
+	return ZOITECHAT_EAT_NONE;
 }
 
 static int
@@ -1562,13 +1562,13 @@ perl_command_reload (char *word[], char *word_eol[], void *eat)
 	
 	if (my_perl != NULL && file != NULL) {
 		execute_perl (sv_2mortal (newSVpv ("ZoiteChat::Embed::reload", 0)), file);
-		return HEXCHAT_EAT_HEXCHAT;
+		return ZOITECHAT_EAT_ZOITECHAT;
 	}
 	
 	if (eat)
-		return HEXCHAT_EAT_HEXCHAT;
+		return ZOITECHAT_EAT_ZOITECHAT;
 	else
-		return HEXCHAT_EAT_NONE;
+		return ZOITECHAT_EAT_NONE;
 }
 
 static int
@@ -1577,7 +1577,7 @@ perl_command_eval (char *word[], char *word_eol[], void *userdata)
 	if (my_perl != NULL)
 		execute_perl (sv_2mortal (newSVpv ("ZoiteChat::Embed::evaluate", 0)), word_eol[2]);
 
-	return HEXCHAT_EAT_HEXCHAT;
+	return ZOITECHAT_EAT_ZOITECHAT;
 }
 
 void
@@ -1612,19 +1612,19 @@ zoitechat_plugin_init (zoitechat_plugin * plugin_handle, char **plugin_name,
 	*plugin_desc = "Perl scripting interface";
 	*plugin_version = PACKAGE_VERSION;
 
-	zoitechat_hook_command (ph, "load", HEXCHAT_PRI_NORM, perl_command_load, 0, 0);
-	zoitechat_hook_command (ph, "unload", HEXCHAT_PRI_NORM, perl_command_unload, 0,
+	zoitechat_hook_command (ph, "load", ZOITECHAT_PRI_NORM, perl_command_load, 0, 0);
+	zoitechat_hook_command (ph, "unload", ZOITECHAT_PRI_NORM, perl_command_unload, 0,
 							  0);
-	zoitechat_hook_command (ph, "reload", HEXCHAT_PRI_NORM, perl_command_reload, 0,
+	zoitechat_hook_command (ph, "reload", ZOITECHAT_PRI_NORM, perl_command_reload, 0,
 							  0);
-	zoitechat_hook_command (ph, "pl_reload", HEXCHAT_PRI_NORM, perl_command_reload,
+	zoitechat_hook_command (ph, "pl_reload", ZOITECHAT_PRI_NORM, perl_command_reload,
 							  "Reloads a Perl script. Syntax: /pl_reload <filename.pl>", (int*)1);
-	zoitechat_hook_command (ph, "unloadall", HEXCHAT_PRI_NORM,
+	zoitechat_hook_command (ph, "unloadall", ZOITECHAT_PRI_NORM,
 							  perl_command_unloadall, "Unloads all loaded Perl scripts.", 0);
-	zoitechat_hook_command (ph, "reloadall", HEXCHAT_PRI_NORM,
+	zoitechat_hook_command (ph, "reloadall", ZOITECHAT_PRI_NORM,
 							  perl_command_reloadall, "Realoads all loaded Perl scripts.", 0);
 
-	zoitechat_hook_command (ph, "pl", HEXCHAT_PRI_NORM,
+	zoitechat_hook_command (ph, "pl", ZOITECHAT_PRI_NORM,
 							  perl_command_eval, "Evaluates Perl code. Syntax: /pl <perl code>", 0);
 
 	/*perl_init (); */

@@ -17,8 +17,8 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
  */
 
-#ifndef HEXCHAT_MAINGUI_H
-#define HEXCHAT_MAINGUI_H
+#ifndef ZOITECHAT_MAINGUI_H
+#define ZOITECHAT_MAINGUI_H
 
 extern GtkStyle *input_style;
 extern GtkWidget *parent_window;

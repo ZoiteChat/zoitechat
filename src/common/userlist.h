@@ -20,8 +20,8 @@
 #include <time.h>
 #include "proto-irc.h"
 
-#ifndef HEXCHAT_USERLIST_H
-#define HEXCHAT_USERLIST_H
+#ifndef ZOITECHAT_USERLIST_H
+#define ZOITECHAT_USERLIST_H
 
 struct User
 {

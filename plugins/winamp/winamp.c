@@ -76,7 +76,7 @@ winamp(char *word[], char *word_eol[], void *userdata)
 			if (!current_play)
 			{
 				zoitechat_print (ph, "Winamp: Error getting song information.");
-				return HEXCHAT_EAT_ALL;
+				return ZOITECHAT_EAT_ALL;
 			}
 
 			if (strchr(current_play, '-'))
@@ -120,7 +120,7 @@ winamp(char *word[], char *word_eol[], void *userdata)
 	{
 		zoitechat_print(ph, "Winamp not found.\n");
 	}
-	return HEXCHAT_EAT_ALL;
+	return ZOITECHAT_EAT_ALL;
 }
 
 int
@@ -137,7 +137,7 @@ zoitechat_plugin_init(zoitechat_plugin *plugin_handle,
 	*plugin_desc = "Winamp plugin for ZoiteChat";
 	*plugin_version = "0.6";
 
-	zoitechat_hook_command (ph, "WINAMP", HEXCHAT_PRI_NORM, winamp, "Usage: /WINAMP [PAUSE|PLAY|STOP|NEXT|PREV|START] - control Winamp or show what's currently playing", 0);
+	zoitechat_hook_command (ph, "WINAMP", ZOITECHAT_PRI_NORM, winamp, "Usage: /WINAMP [PAUSE|PLAY|STOP|NEXT|PREV|START] - control Winamp or show what's currently playing", 0);
    	zoitechat_command (ph, "MENU -ishare\\music.png ADD \"Window/Display Current Song (Winamp)\" \"WINAMP\"");
 
 	zoitechat_print (ph, "Winamp plugin loaded\n");

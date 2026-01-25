@@ -18,26 +18,26 @@
  */
 
 /* You can distribute this header with your plugins for easy compilation */
-#ifndef HEXCHAT_PLUGIN_H
-#define HEXCHAT_PLUGIN_H
+#ifndef ZOITECHAT_PLUGIN_H
+#define ZOITECHAT_PLUGIN_H
 
 #include <time.h>
 
-#define HEXCHAT_PRI_HIGHEST	127
-#define HEXCHAT_PRI_HIGH		64
-#define HEXCHAT_PRI_NORM		0
-#define HEXCHAT_PRI_LOW		(-64)
-#define HEXCHAT_PRI_LOWEST	(-128)
+#define ZOITECHAT_PRI_HIGHEST	127
+#define ZOITECHAT_PRI_HIGH		64
+#define ZOITECHAT_PRI_NORM		0
+#define ZOITECHAT_PRI_LOW		(-64)
+#define ZOITECHAT_PRI_LOWEST	(-128)
 
-#define HEXCHAT_FD_READ		1
-#define HEXCHAT_FD_WRITE		2
-#define HEXCHAT_FD_EXCEPTION	4
-#define HEXCHAT_FD_NOTSOCKET	8
+#define ZOITECHAT_FD_READ		1
+#define ZOITECHAT_FD_WRITE		2
+#define ZOITECHAT_FD_EXCEPTION	4
+#define ZOITECHAT_FD_NOTSOCKET	8
 
-#define HEXCHAT_EAT_NONE		0	/* pass it on through! */
-#define HEXCHAT_EAT_HEXCHAT		1	/* don't let ZoiteChat see this event */
-#define HEXCHAT_EAT_PLUGIN	2	/* don't let other plugins see this event */
-#define HEXCHAT_EAT_ALL		(HEXCHAT_EAT_HEXCHAT|HEXCHAT_EAT_PLUGIN)	/* don't let anything see this event */
+#define ZOITECHAT_EAT_NONE		0	/* pass it on through! */
+#define ZOITECHAT_EAT_ZOITECHAT		1	/* don't let ZoiteChat see this event */
+#define ZOITECHAT_EAT_PLUGIN	2	/* don't let other plugins see this event */
+#define ZOITECHAT_EAT_ALL		(ZOITECHAT_EAT_ZOITECHAT|ZOITECHAT_EAT_PLUGIN)	/* don't let anything see this event */
 
 #ifdef __cplusplus
 extern "C" {
@@ -407,50 +407,50 @@ zoitechat_pluginpref_list (zoitechat_plugin *ph,
 		char *dest);
 
 #if !defined(PLUGIN_C) && (defined(WIN32) || defined(__CYGWIN__))
-#ifndef HEXCHAT_PLUGIN_HANDLE
-#define HEXCHAT_PLUGIN_HANDLE (ph)
+#ifndef ZOITECHAT_PLUGIN_HANDLE
+#define ZOITECHAT_PLUGIN_HANDLE (ph)
 #endif
-#define zoitechat_hook_command ((HEXCHAT_PLUGIN_HANDLE)->zoitechat_hook_command)
-#define zoitechat_event_attrs_create ((HEXCHAT_PLUGIN_HANDLE)->zoitechat_event_attrs_create)
-#define zoitechat_event_attrs_free ((HEXCHAT_PLUGIN_HANDLE)->zoitechat_event_attrs_free)
-#define zoitechat_hook_server ((HEXCHAT_PLUGIN_HANDLE)->zoitechat_hook_server)
-#define zoitechat_hook_server_attrs ((HEXCHAT_PLUGIN_HANDLE)->zoitechat_hook_server_attrs)
-#define zoitechat_hook_print ((HEXCHAT_PLUGIN_HANDLE)->zoitechat_hook_print)
-#define zoitechat_hook_print_attrs ((HEXCHAT_PLUGIN_HANDLE)->zoitechat_hook_print_attrs)
-#define zoitechat_hook_timer ((HEXCHAT_PLUGIN_HANDLE)->zoitechat_hook_timer)
-#define zoitechat_hook_fd ((HEXCHAT_PLUGIN_HANDLE)->zoitechat_hook_fd)
-#define zoitechat_unhook ((HEXCHAT_PLUGIN_HANDLE)->zoitechat_unhook)
-#define zoitechat_print ((HEXCHAT_PLUGIN_HANDLE)->zoitechat_print)
-#define zoitechat_printf ((HEXCHAT_PLUGIN_HANDLE)->zoitechat_printf)
-#define zoitechat_command ((HEXCHAT_PLUGIN_HANDLE)->zoitechat_command)
-#define zoitechat_commandf ((HEXCHAT_PLUGIN_HANDLE)->zoitechat_commandf)
-#define zoitechat_nickcmp ((HEXCHAT_PLUGIN_HANDLE)->zoitechat_nickcmp)
-#define zoitechat_set_context ((HEXCHAT_PLUGIN_HANDLE)->zoitechat_set_context)
-#define zoitechat_find_context ((HEXCHAT_PLUGIN_HANDLE)->zoitechat_find_context)
-#define zoitechat_get_context ((HEXCHAT_PLUGIN_HANDLE)->zoitechat_get_context)
-#define zoitechat_get_info ((HEXCHAT_PLUGIN_HANDLE)->zoitechat_get_info)
-#define zoitechat_get_prefs ((HEXCHAT_PLUGIN_HANDLE)->zoitechat_get_prefs)
-#define zoitechat_list_get ((HEXCHAT_PLUGIN_HANDLE)->zoitechat_list_get)
-#define zoitechat_list_free ((HEXCHAT_PLUGIN_HANDLE)->zoitechat_list_free)
-#define zoitechat_list_fields ((HEXCHAT_PLUGIN_HANDLE)->zoitechat_list_fields)
-#define zoitechat_list_next ((HEXCHAT_PLUGIN_HANDLE)->zoitechat_list_next)
-#define zoitechat_list_str ((HEXCHAT_PLUGIN_HANDLE)->zoitechat_list_str)
-#define zoitechat_list_int ((HEXCHAT_PLUGIN_HANDLE)->zoitechat_list_int)
-#define zoitechat_plugingui_add ((HEXCHAT_PLUGIN_HANDLE)->zoitechat_plugingui_add)
-#define zoitechat_plugingui_remove ((HEXCHAT_PLUGIN_HANDLE)->zoitechat_plugingui_remove)
-#define zoitechat_emit_print ((HEXCHAT_PLUGIN_HANDLE)->zoitechat_emit_print)
-#define zoitechat_emit_print_attrs ((HEXCHAT_PLUGIN_HANDLE)->zoitechat_emit_print_attrs)
-#define zoitechat_list_time ((HEXCHAT_PLUGIN_HANDLE)->zoitechat_list_time)
-#define zoitechat_gettext ((HEXCHAT_PLUGIN_HANDLE)->zoitechat_gettext)
-#define zoitechat_send_modes ((HEXCHAT_PLUGIN_HANDLE)->zoitechat_send_modes)
-#define zoitechat_strip ((HEXCHAT_PLUGIN_HANDLE)->zoitechat_strip)
-#define zoitechat_free ((HEXCHAT_PLUGIN_HANDLE)->zoitechat_free)
-#define zoitechat_pluginpref_set_str ((HEXCHAT_PLUGIN_HANDLE)->zoitechat_pluginpref_set_str)
-#define zoitechat_pluginpref_get_str ((HEXCHAT_PLUGIN_HANDLE)->zoitechat_pluginpref_get_str)
-#define zoitechat_pluginpref_set_int ((HEXCHAT_PLUGIN_HANDLE)->zoitechat_pluginpref_set_int)
-#define zoitechat_pluginpref_get_int ((HEXCHAT_PLUGIN_HANDLE)->zoitechat_pluginpref_get_int)
-#define zoitechat_pluginpref_delete ((HEXCHAT_PLUGIN_HANDLE)->zoitechat_pluginpref_delete)
-#define zoitechat_pluginpref_list ((HEXCHAT_PLUGIN_HANDLE)->zoitechat_pluginpref_list)
+#define zoitechat_hook_command ((ZOITECHAT_PLUGIN_HANDLE)->zoitechat_hook_command)
+#define zoitechat_event_attrs_create ((ZOITECHAT_PLUGIN_HANDLE)->zoitechat_event_attrs_create)
+#define zoitechat_event_attrs_free ((ZOITECHAT_PLUGIN_HANDLE)->zoitechat_event_attrs_free)
+#define zoitechat_hook_server ((ZOITECHAT_PLUGIN_HANDLE)->zoitechat_hook_server)
+#define zoitechat_hook_server_attrs ((ZOITECHAT_PLUGIN_HANDLE)->zoitechat_hook_server_attrs)
+#define zoitechat_hook_print ((ZOITECHAT_PLUGIN_HANDLE)->zoitechat_hook_print)
+#define zoitechat_hook_print_attrs ((ZOITECHAT_PLUGIN_HANDLE)->zoitechat_hook_print_attrs)
+#define zoitechat_hook_timer ((ZOITECHAT_PLUGIN_HANDLE)->zoitechat_hook_timer)
+#define zoitechat_hook_fd ((ZOITECHAT_PLUGIN_HANDLE)->zoitechat_hook_fd)
+#define zoitechat_unhook ((ZOITECHAT_PLUGIN_HANDLE)->zoitechat_unhook)
+#define zoitechat_print ((ZOITECHAT_PLUGIN_HANDLE)->zoitechat_print)
+#define zoitechat_printf ((ZOITECHAT_PLUGIN_HANDLE)->zoitechat_printf)
+#define zoitechat_command ((ZOITECHAT_PLUGIN_HANDLE)->zoitechat_command)
+#define zoitechat_commandf ((ZOITECHAT_PLUGIN_HANDLE)->zoitechat_commandf)
+#define zoitechat_nickcmp ((ZOITECHAT_PLUGIN_HANDLE)->zoitechat_nickcmp)
+#define zoitechat_set_context ((ZOITECHAT_PLUGIN_HANDLE)->zoitechat_set_context)
+#define zoitechat_find_context ((ZOITECHAT_PLUGIN_HANDLE)->zoitechat_find_context)
+#define zoitechat_get_context ((ZOITECHAT_PLUGIN_HANDLE)->zoitechat_get_context)
+#define zoitechat_get_info ((ZOITECHAT_PLUGIN_HANDLE)->zoitechat_get_info)
+#define zoitechat_get_prefs ((ZOITECHAT_PLUGIN_HANDLE)->zoitechat_get_prefs)
+#define zoitechat_list_get ((ZOITECHAT_PLUGIN_HANDLE)->zoitechat_list_get)
+#define zoitechat_list_free ((ZOITECHAT_PLUGIN_HANDLE)->zoitechat_list_free)
+#define zoitechat_list_fields ((ZOITECHAT_PLUGIN_HANDLE)->zoitechat_list_fields)
+#define zoitechat_list_next ((ZOITECHAT_PLUGIN_HANDLE)->zoitechat_list_next)
+#define zoitechat_list_str ((ZOITECHAT_PLUGIN_HANDLE)->zoitechat_list_str)
+#define zoitechat_list_int ((ZOITECHAT_PLUGIN_HANDLE)->zoitechat_list_int)
+#define zoitechat_plugingui_add ((ZOITECHAT_PLUGIN_HANDLE)->zoitechat_plugingui_add)
+#define zoitechat_plugingui_remove ((ZOITECHAT_PLUGIN_HANDLE)->zoitechat_plugingui_remove)
+#define zoitechat_emit_print ((ZOITECHAT_PLUGIN_HANDLE)->zoitechat_emit_print)
+#define zoitechat_emit_print_attrs ((ZOITECHAT_PLUGIN_HANDLE)->zoitechat_emit_print_attrs)
+#define zoitechat_list_time ((ZOITECHAT_PLUGIN_HANDLE)->zoitechat_list_time)
+#define zoitechat_gettext ((ZOITECHAT_PLUGIN_HANDLE)->zoitechat_gettext)
+#define zoitechat_send_modes ((ZOITECHAT_PLUGIN_HANDLE)->zoitechat_send_modes)
+#define zoitechat_strip ((ZOITECHAT_PLUGIN_HANDLE)->zoitechat_strip)
+#define zoitechat_free ((ZOITECHAT_PLUGIN_HANDLE)->zoitechat_free)
+#define zoitechat_pluginpref_set_str ((ZOITECHAT_PLUGIN_HANDLE)->zoitechat_pluginpref_set_str)
+#define zoitechat_pluginpref_get_str ((ZOITECHAT_PLUGIN_HANDLE)->zoitechat_pluginpref_get_str)
+#define zoitechat_pluginpref_set_int ((ZOITECHAT_PLUGIN_HANDLE)->zoitechat_pluginpref_set_int)
+#define zoitechat_pluginpref_get_int ((ZOITECHAT_PLUGIN_HANDLE)->zoitechat_pluginpref_get_int)
+#define zoitechat_pluginpref_delete ((ZOITECHAT_PLUGIN_HANDLE)->zoitechat_pluginpref_delete)
+#define zoitechat_pluginpref_list ((ZOITECHAT_PLUGIN_HANDLE)->zoitechat_pluginpref_list)
 #endif
 
 #ifdef __cplusplus

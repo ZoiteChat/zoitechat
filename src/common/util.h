@@ -30,8 +30,8 @@
  *        --+ Dagmar d'Surreal
  */
 
-#ifndef HEXCHAT_UTIL_H
-#define HEXCHAT_UTIL_H
+#ifndef ZOITECHAT_UTIL_H
+#define ZOITECHAT_UTIL_H
 
 #define rfc_tolower(c) (rfc_tolowertab[(unsigned char)(c)])
 

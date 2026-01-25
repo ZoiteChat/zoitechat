@@ -26,8 +26,8 @@
 
 #include <time.h>			/* need time_t */
 
-#ifndef HEXCHAT_H
-#define HEXCHAT_H
+#ifndef ZOITECHAT_H
+#define ZOITECHAT_H
 
 gboolean zoitechat_theme_path_from_arg (const char *arg, char **path_out);
 gboolean zoitechat_import_theme (const char *path, GError **error);

@@ -135,7 +135,7 @@ dccrecv_cb (char *word[], void *userdata)
 	if (!filename_fs) {
 		zoitechat_printf (ph, "Checksum: Invalid filename (%s)\n", filename);
 		g_free (filename);
-		return HEXCHAT_EAT_NONE;
+		return ZOITECHAT_EAT_NONE;
 	}
 
 	ChecksumCallbackInfo *callback_data = g_new (ChecksumCallbackInfo, 1);
@@ -153,7 +153,7 @@ dccrecv_cb (char *word[], void *userdata)
 	g_object_unref (file);
 	g_object_unref (task);
 
-	return HEXCHAT_EAT_NONE;
+	return ZOITECHAT_EAT_NONE;
 }
 
 static int
@@ -177,7 +177,7 @@ dccoffer_cb (char *word[], void *userdata)
 	g_object_unref (file);
 	g_object_unref (task);
 
-	return HEXCHAT_EAT_NONE;
+	return ZOITECHAT_EAT_NONE;
 }
 
 int
@@ -189,8 +189,8 @@ zoitechat_plugin_init (zoitechat_plugin *plugin_handle, char **plugin_name, char
 	*plugin_desc = desc;
 	*plugin_version = version;
 
-	zoitechat_hook_print (ph, "DCC RECV Complete", HEXCHAT_PRI_NORM, dccrecv_cb, NULL);
-	zoitechat_hook_print (ph, "DCC Offer", HEXCHAT_PRI_NORM, dccoffer_cb, NULL);
+	zoitechat_hook_print (ph, "DCC RECV Complete", ZOITECHAT_PRI_NORM, dccrecv_cb, NULL);
+	zoitechat_hook_print (ph, "DCC Offer", ZOITECHAT_PRI_NORM, dccoffer_cb, NULL);
 
 	zoitechat_printf (ph, "%s plugin loaded\n", name);
 	return 1;

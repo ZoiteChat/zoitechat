@@ -523,7 +523,7 @@ fe_args (int argc, char *argv[])
 		}
 		g_free (exe);
 #else
-		printf ("%s\n", HEXCHATLIBDIR);
+		printf ("%s\n", ZOITECHATLIBDIR);
 #endif
 #endif
 		return 0;

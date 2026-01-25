@@ -17,8 +17,8 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
  */
 
-#ifndef HEXCHAT_BANLIST_H
-#define HEXCHAT_BANLIST_H
+#ifndef ZOITECHAT_BANLIST_H
+#define ZOITECHAT_BANLIST_H
 
 #include "../common/zoitechat.h"
 void banlist_opengui (session *sess);
@@ -72,4 +72,4 @@ typedef struct mode_info_s {
 	void (*tester)(banlist_info *, int);	/* Function returns true to set bit into checkable */
 } mode_info;
 
-#endif /* HEXCHAT_BANLIST_H */
+#endif /* ZOITECHAT_BANLIST_H */

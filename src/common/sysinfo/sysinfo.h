@@ -1,5 +1,5 @@
-#ifndef HEXCHAT_SYSINFO_H
-#define HEXCHAT_SYSINFO_H
+#ifndef ZOITECHAT_SYSINFO_H
+#define ZOITECHAT_SYSINFO_H
 
 #include <glib.h>
 

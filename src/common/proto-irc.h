@@ -20,8 +20,8 @@
 #include <time.h>
 #include "zoitechat.h"
 
-#ifndef HEXCHAT_PROTO_H
-#define HEXCHAT_PROTO_H
+#ifndef ZOITECHAT_PROTO_H
+#define ZOITECHAT_PROTO_H
 
 #define MESSAGE_TAGS_DATA_INIT			\
 	{									\

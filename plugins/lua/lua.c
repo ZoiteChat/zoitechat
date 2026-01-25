@@ -295,7 +295,7 @@ static int api_command_closure(char *word[], char *word_eol[], void *udata)
                 lua_pop(L, 2);
                 zoitechat_printf(ph, "Lua error in command hook: %s", error ? error : "(non-string error)");
                 check_deferred(script);
-                return HEXCHAT_EAT_NONE;
+                return ZOITECHAT_EAT_NONE;
         }
         ret = lua_tointeger(L, -1);
         lua_pop(L, 2);
@@ -313,7 +313,7 @@ static int api_zoitechat_hook_command(lua_State *L)
         lua_pushvalue(L, 2);
         ref = luaL_ref(L, LUA_REGISTRYINDEX);
         help = luaL_optstring(L, 3, NULL);
-        pri = luaL_optinteger(L, 4, HEXCHAT_PRI_NORM);
+        pri = luaL_optinteger(L, 4, ZOITECHAT_PRI_NORM);
         info = g_new(hook_info, 1);
         info->state = L;
         info->ref = ref;
@@ -355,7 +355,7 @@ static int api_print_closure(char *word[], void *udata)
                 lua_pop(L, 2);
                 zoitechat_printf(ph, "Lua error in print hook: %s", error ? error : "(non-string error)");
                 check_deferred(script);
-                return HEXCHAT_EAT_NONE;
+                return ZOITECHAT_EAT_NONE;
         }
         ret = lua_tointeger(L, -1);
         lua_pop(L, 2);
@@ -371,7 +371,7 @@ static int api_zoitechat_hook_print(lua_State *L)
 
         lua_pushvalue(L, 2);
         ref = luaL_ref(L, LUA_REGISTRYINDEX);
-        pri = luaL_optinteger(L, 3, HEXCHAT_PRI_NORM);
+        pri = luaL_optinteger(L, 3, ZOITECHAT_PRI_NORM);
         info = g_new(hook_info, 1);
         info->state = L;
         info->ref = ref;
@@ -424,7 +424,7 @@ static int api_print_attrs_closure(char *word[], zoitechat_event_attrs *attrs, v
                 lua_pop(L, 2);
                 zoitechat_printf(ph, "Lua error in print_attrs hook: %s", error ? error : "(non-string error)");
                 check_deferred(script);
-                return HEXCHAT_EAT_NONE;
+                return ZOITECHAT_EAT_NONE;
         }
         ret = lua_tointeger(L, -1);
         lua_pop(L, 2);
@@ -440,7 +440,7 @@ static int api_zoitechat_hook_print_attrs(lua_State *L)
 
         lua_pushvalue(L, 2);
         ref = luaL_ref(L, LUA_REGISTRYINDEX);
-        pri = luaL_optinteger(L, 3, HEXCHAT_PRI_NORM);
+        pri = luaL_optinteger(L, 3, ZOITECHAT_PRI_NORM);
         info = g_new(hook_info, 1);
         info->state = L;
         info->ref = ref;
@@ -482,7 +482,7 @@ static int api_server_closure(char *word[], char *word_eol[], void *udata)
                 lua_pop(L, 2);
                 zoitechat_printf(ph, "Lua error in server hook: %s", error ? error : "(non-string error)");
                 check_deferred(script);
-                return HEXCHAT_EAT_NONE;
+                return ZOITECHAT_EAT_NONE;
         }
         ret = lua_tointeger(L, -1);
         lua_pop(L, 2);
@@ -498,7 +498,7 @@ static int api_zoitechat_hook_server(lua_State *L)
 
         lua_pushvalue(L, 2);
         ref = luaL_ref(L, LUA_REGISTRYINDEX);
-        pri = luaL_optinteger(L, 3, HEXCHAT_PRI_NORM);
+        pri = luaL_optinteger(L, 3, ZOITECHAT_PRI_NORM);
         info = g_new(hook_info, 1);
         info->state = L;
         info->ref = ref;
@@ -546,7 +546,7 @@ static int api_server_attrs_closure(char *word[], char *word_eol[], zoitechat_ev
                 lua_pop(L, 2);
                 zoitechat_printf(ph, "Lua error in server_attrs hook: %s", error ? error : "(non-string error)");
                 check_deferred(script);
-                return HEXCHAT_EAT_NONE;
+                return ZOITECHAT_EAT_NONE;
         }
         ret = lua_tointeger(L, -1);
         lua_pop(L, 2);
@@ -562,7 +562,7 @@ static int api_zoitechat_hook_server_attrs(lua_State *L)
 
         lua_pushvalue(L, 2);
         ref = luaL_ref(L, LUA_REGISTRYINDEX);
-        pri = luaL_optinteger(L, 3, HEXCHAT_PRI_NORM);
+        pri = luaL_optinteger(L, 3, ZOITECHAT_PRI_NORM);
         info = g_new(hook_info, 1);
         info->state = L;
         info->ref = ref;
@@ -1098,15 +1098,15 @@ static int luaopen_zoitechat(lua_State *L)
         lua_newtable(L);
         luaL_setfuncs(L, api_zoitechat, 0);
 
-        lua_pushinteger(L, HEXCHAT_PRI_HIGHEST); lua_setfield(L, -2, "PRI_HIGHEST");
-        lua_pushinteger(L, HEXCHAT_PRI_HIGH); lua_setfield(L, -2, "PRI_HIGH");
-        lua_pushinteger(L, HEXCHAT_PRI_NORM); lua_setfield(L, -2, "PRI_NORM");
-        lua_pushinteger(L, HEXCHAT_PRI_LOW); lua_setfield(L, -2, "PRI_LOW");
-        lua_pushinteger(L, HEXCHAT_PRI_LOWEST); lua_setfield(L, -2, "PRI_LOWEST");
-        lua_pushinteger(L, HEXCHAT_EAT_NONE); lua_setfield(L, -2, "EAT_NONE");
-        lua_pushinteger(L, HEXCHAT_EAT_HEXCHAT); lua_setfield(L, -2, "EAT_HEXCHAT");
-        lua_pushinteger(L, HEXCHAT_EAT_PLUGIN); lua_setfield(L, -2, "EAT_PLUGIN");
-        lua_pushinteger(L, HEXCHAT_EAT_ALL); lua_setfield(L, -2, "EAT_ALL");
+        lua_pushinteger(L, ZOITECHAT_PRI_HIGHEST); lua_setfield(L, -2, "PRI_HIGHEST");
+        lua_pushinteger(L, ZOITECHAT_PRI_HIGH); lua_setfield(L, -2, "PRI_HIGH");
+        lua_pushinteger(L, ZOITECHAT_PRI_NORM); lua_setfield(L, -2, "PRI_NORM");
+        lua_pushinteger(L, ZOITECHAT_PRI_LOW); lua_setfield(L, -2, "PRI_LOW");
+        lua_pushinteger(L, ZOITECHAT_PRI_LOWEST); lua_setfield(L, -2, "PRI_LOWEST");
+        lua_pushinteger(L, ZOITECHAT_EAT_NONE); lua_setfield(L, -2, "EAT_NONE");
+        lua_pushinteger(L, ZOITECHAT_EAT_ZOITECHAT); lua_setfield(L, -2, "EAT_ZOITECHAT");
+        lua_pushinteger(L, ZOITECHAT_EAT_PLUGIN); lua_setfield(L, -2, "EAT_PLUGIN");
+        lua_pushinteger(L, ZOITECHAT_EAT_ALL); lua_setfield(L, -2, "EAT_ALL");
 
         lua_newtable(L);
         lua_newtable(L);
@@ -1576,26 +1576,26 @@ static int command_load(char *word[], char *word_eol[], void *userdata)
         if(is_lua_file(word[2]))
         {
                 load_script(word[2]);
-                return HEXCHAT_EAT_ALL;
+                return ZOITECHAT_EAT_ALL;
         }
         else
-                return HEXCHAT_EAT_NONE;
+                return ZOITECHAT_EAT_NONE;
 }
 
 static int command_unload(char *word[], char *word_eol[], void *userdata)
 {
         if(unload_script(word[2]))
-                return HEXCHAT_EAT_ALL;
+                return ZOITECHAT_EAT_ALL;
         else
-                return HEXCHAT_EAT_NONE;
+                return ZOITECHAT_EAT_NONE;
 }
 
 static int command_reload(char *word[], char *word_eol[], void *userdata)
 {
         if(reload_script(word[2]))
-                return HEXCHAT_EAT_ALL;
+                return ZOITECHAT_EAT_ALL;
         else
-                return HEXCHAT_EAT_NONE;
+                return ZOITECHAT_EAT_NONE;
 }
 
 static int command_console_exec(char *word[], char *word_eol[], void *userdata)
@@ -1608,9 +1608,9 @@ static int command_console_exec(char *word[], char *word_eol[], void *userdata)
                         zoitechat_printf(ph, "> %s", word_eol[1]);
                         inject_string(interp, word_eol[1]);
                 }
-                return HEXCHAT_EAT_ALL;
+                return ZOITECHAT_EAT_ALL;
         }
-        return HEXCHAT_EAT_NONE;
+        return ZOITECHAT_EAT_NONE;
 }
 
 static void check_deferred(script_info *info)
@@ -1727,7 +1727,7 @@ static int command_lua(char *word[], char *word_eol[], void *userdata)
         {
                 zoitechat_command(ph, "help lua");
         }
-        return HEXCHAT_EAT_ALL;
+        return ZOITECHAT_EAT_ALL;
 }
 
 /* Reinitialization safegaurd */
@@ -1754,11 +1754,11 @@ G_MODULE_EXPORT int zoitechat_plugin_init(zoitechat_plugin *plugin_handle, char 
         ph = plugin_handle;
         initialized = 1;
 
-        zoitechat_hook_command(ph, "", HEXCHAT_PRI_NORM, command_console_exec, NULL, NULL);
-        zoitechat_hook_command(ph, "LOAD", HEXCHAT_PRI_NORM, command_load, NULL, NULL);
-        zoitechat_hook_command(ph, "UNLOAD", HEXCHAT_PRI_NORM, command_unload, NULL, NULL);
-        zoitechat_hook_command(ph, "RELOAD", HEXCHAT_PRI_NORM, command_reload, NULL, NULL);
-        zoitechat_hook_command(ph, "lua", HEXCHAT_PRI_NORM, command_lua, command_help, NULL);
+        zoitechat_hook_command(ph, "", ZOITECHAT_PRI_NORM, command_console_exec, NULL, NULL);
+        zoitechat_hook_command(ph, "LOAD", ZOITECHAT_PRI_NORM, command_load, NULL, NULL);
+        zoitechat_hook_command(ph, "UNLOAD", ZOITECHAT_PRI_NORM, command_unload, NULL, NULL);
+        zoitechat_hook_command(ph, "RELOAD", ZOITECHAT_PRI_NORM, command_reload, NULL, NULL);
+        zoitechat_hook_command(ph, "lua", ZOITECHAT_PRI_NORM, command_lua, command_help, NULL);
 
         zoitechat_printf(ph, "%s version %s loaded.\n", plugin_name, plugin_version);
 

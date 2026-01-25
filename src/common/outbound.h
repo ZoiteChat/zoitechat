@@ -17,8 +17,8 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
  */
 
-#ifndef HEXCHAT_OUTBOUND_H
-#define HEXCHAT_OUTBOUND_H
+#ifndef ZOITECHAT_OUTBOUND_H
+#define ZOITECHAT_OUTBOUND_H
 
 #include "zoitechat.h"
 

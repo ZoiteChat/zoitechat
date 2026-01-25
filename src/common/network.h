@@ -17,8 +17,8 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
  */
 
-#ifndef HEXCHAT_NETWORK_H
-#define HEXCHAT_NETWORK_H
+#ifndef ZOITECHAT_NETWORK_H
+#define ZOITECHAT_NETWORK_H
 
 typedef struct netstore_
 {

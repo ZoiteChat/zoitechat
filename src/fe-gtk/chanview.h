@@ -17,8 +17,8 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
  */
 
-#ifndef HEXCHAT_CHANVIEW_H
-#define HEXCHAT_CHANVIEW_H
+#ifndef ZOITECHAT_CHANVIEW_H
+#define ZOITECHAT_CHANVIEW_H
 
 typedef struct _chanview chanview;
 typedef struct _chan chan;
