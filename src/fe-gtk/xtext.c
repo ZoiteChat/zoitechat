@@ -5289,7 +5289,7 @@ gtk_xtext_buffer_show (GtkXText *xtext, xtext_buffer *buf, int render)
 
 		gtk_xtext_render_page (xtext);
 #if HAVE_GTK3
-		gtk_adjustment_value_changed (xtext->adj);
+		gtk_xtext_adjustment_set (buf, TRUE);
 #else
 		gtk_adjustment_changed (xtext->adj);
 #endif
