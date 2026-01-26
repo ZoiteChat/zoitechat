@@ -23,7 +23,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-#include <glib.h>
+#include <stdint.h>
 
 #ifndef WIN32
 #include <unistd.h>
@@ -54,7 +54,7 @@ net_set_socket_options (int sok)
 }
 
 char *
-net_ip (guint32 addr)
+net_ip (uint32_t addr)
 {
 	struct in_addr ia;
 
@@ -67,13 +67,13 @@ net_store_destroy (netstore * ns)
 {
 	if (ns->ip6_hostent)
 		freeaddrinfo (ns->ip6_hostent);
-	g_free (ns);
+	free (ns);
 }
 
 netstore *
 net_store_new (void)
 {
-	return g_new0 (netstore, 1);
+	return calloc (1, sizeof (netstore));
 }
 
 /* =================== IPV6 ================== */
@@ -121,11 +121,11 @@ net_resolve (netstore * ns, char *hostname, int port, char **real_host)
 					 ipstring, sizeof (ipstring), NULL, 0, NI_NUMERICHOST);
 
 	if (ns->ip6_hostent->ai_canonname)
-		*real_host = g_strdup (ns->ip6_hostent->ai_canonname);
+		*real_host = strdup (ns->ip6_hostent->ai_canonname);
 	else
-		*real_host = g_strdup (hostname);
+		*real_host = strdup (hostname);
 
-	return g_strdup (ipstring);
+	return strdup (ipstring);
 }
 
 /* the only thing making this interface unclean, this shitty sok4, sok6 business */

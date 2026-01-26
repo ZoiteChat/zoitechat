@@ -18,14 +18,13 @@
 
 #include <string.h>
 #include <stdlib.h>
-#include <glib.h>
 #include "history.h"
 
 void
 history_add (struct history *his, char *text)
 {
-	g_free (his->lines[his->realpos]);
-	his->lines[his->realpos] = g_strdup (text);
+	free (his->lines[his->realpos]);
+	his->lines[his->realpos] = strdup (text);
 	his->realpos++;
 	if (his->realpos == HISTORY_SIZE)
 		his->realpos = 0;
@@ -40,7 +39,7 @@ history_free (struct history *his)
 	{
 		if (his->lines[i])
 		{
-			g_free (his->lines[i]);
+			free (his->lines[i]);
 			his->lines[i] = 0;
 		}
 	}
