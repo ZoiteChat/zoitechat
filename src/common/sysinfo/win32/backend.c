@@ -20,7 +20,14 @@
  * THE SOFTWARE.
  */
 
+#include <ctype.h>
+#include <inttypes.h>
+#include <stdarg.h>
+#include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <wchar.h>
 #include <windows.h>
 #include <wbemidl.h>
@@ -47,12 +54,26 @@ static char *read_os_name (IWbemClassObject *object);
 static char *read_cpu_info (IWbemClassObject *object);
 static char *read_vga_name (IWbemClassObject *object);
 
-static guint64 hdd_capacity;
-static guint64 hdd_free_space;
+static uint64_t hdd_capacity;
+static uint64_t hdd_free_space;
 static char *read_hdd_info (IWbemClassObject *object);
 
 static char *bstr_to_utf8 (BSTR bstr);
-static guint64 variant_to_uint64 (VARIANT *variant);
+static uint64_t variant_to_uint64 (VARIANT *variant);
+static char *zoitechat_strdup (const char *value);
+static char *zoitechat_strdup_printf (const char *format, ...);
+static char *zoitechat_strchomp (char *value);
+
+typedef struct
+{
+	char *data;
+	size_t len;
+	size_t cap;
+} StringBuilder;
+
+static bool string_builder_init (StringBuilder *builder);
+static void string_builder_free (StringBuilder *builder);
+static bool string_builder_append (StringBuilder *builder, const char *text);
 
 char *
 sysinfo_get_cpu (void)
@@ -60,7 +81,7 @@ sysinfo_get_cpu (void)
 	if (cpu_info == NULL)
 		cpu_info = query_wmi (QUERY_WMI_CPU);
 
-	return g_strdup (cpu_info);
+	return zoitechat_strdup (cpu_info);
 }
 
 char *
@@ -69,7 +90,12 @@ sysinfo_get_os (void)
 	if (os_name == NULL)
 		os_name = query_wmi (QUERY_WMI_OS);
 
-	return g_strdup_printf ("%s (x%d)", os_name, sysinfo_get_cpu_arch ());
+	if (os_name == NULL)
+	{
+		return NULL;
+	}
+
+	return zoitechat_strdup_printf ("%s (x%d)", os_name, sysinfo_get_cpu_arch ());
 }
 
 int
@@ -124,11 +150,11 @@ sysinfo_get_gpu (void)
 	if (vga_name == NULL)
 		vga_name = query_wmi (QUERY_WMI_VGA);
 
-	return g_strdup (vga_name);
+	return zoitechat_strdup (vga_name);
 }
 
 void
-sysinfo_get_hdd_info (guint64 *hdd_capacity_out, guint64 *hdd_free_space_out)
+sysinfo_get_hdd_info (uint64_t *hdd_capacity_out, uint64_t *hdd_free_space_out)
 {
 	char *hdd_info;
 
@@ -149,7 +175,8 @@ sysinfo_get_hdd_info (guint64 *hdd_capacity_out, guint64 *hdd_free_space_out)
 /* https://msdn.microsoft.com/en-us/library/aa390423 */
 static char *query_wmi (QueryWmiType type)
 {
-	GString *result = NULL;
+	StringBuilder result;
+	bool result_initialized = false;
 	HRESULT hr;
 
 	IWbemLocator *locator = NULL;
@@ -160,7 +187,7 @@ static char *query_wmi (QueryWmiType type)
 	IUnknown *namespaceUnknown = NULL;
 	IEnumWbemClassObject *enumerator = NULL;
 	int i;
-	gboolean atleast_one_appended = FALSE;
+	bool atleast_one_appended = false;
 
 	hr = CoCreateInstance (&CLSID_WbemLocator, 0, CLSCTX_INPROC_SERVER, &IID_IWbemLocator, (LPVOID *) &locator);
 	if (FAILED (hr))
@@ -214,7 +241,11 @@ static char *query_wmi (QueryWmiType type)
 		goto release_query;
 	}
 
-	result = g_string_new ("");
+	if (!string_builder_init (&result))
+	{
+		goto release_query;
+	}
+	result_initialized = true;
 
 	for (i = 0;; i++)
 	{
@@ -256,14 +287,22 @@ static char *query_wmi (QueryWmiType type)
 		{
 			if (atleast_one_appended)
 			{
-				g_string_append (result, ", ");
+				if (!string_builder_append (&result, ", "))
+				{
+					free (line);
+					goto release_query;
+				}
 			}
 
-			g_string_append (result, line);
+			if (!string_builder_append (&result, line))
+			{
+				free (line);
+				goto release_query;
+			}
 
-			g_free (line);
+			free (line);
 
-			atleast_one_appended = TRUE;
+			atleast_one_appended = true;
 		}
 	}
 
@@ -286,12 +325,12 @@ release_locator:
 	SysFreeString (namespaceName);
 
 exit:
-	if (result == NULL)
+	if (!result_initialized || result.data == NULL)
 	{
 		return NULL;
 	}
 
-	return g_string_free (result, FALSE);
+	return result.data;
 }
 
 static char *read_os_name (IWbemClassObject *object)
@@ -315,7 +354,7 @@ static char *read_os_name (IWbemClassObject *object)
 		return NULL;
 	}
 
-	g_strchomp (caption_utf8);
+	zoitechat_strchomp (caption_utf8);
 
 	return caption_utf8;
 }
@@ -326,7 +365,7 @@ static char *read_cpu_info (IWbemClassObject *object)
 	VARIANT name_variant;
 	char *name_utf8;
 	VARIANT max_clock_speed_variant;
-	guint cpu_freq_mhz;
+	uint32_t cpu_freq_mhz;
 	char *result;
 
 	hr = object->lpVtbl->Get (object, L"Name", 0, &name_variant, NULL, NULL);
@@ -347,7 +386,7 @@ static char *read_cpu_info (IWbemClassObject *object)
 	hr = object->lpVtbl->Get (object, L"MaxClockSpeed", 0, &max_clock_speed_variant, NULL, NULL);
 	if (FAILED (hr))
 	{
-		g_free (name_utf8);
+		free (name_utf8);
 
 		return NULL;
 	}
@@ -356,18 +395,18 @@ static char *read_cpu_info (IWbemClassObject *object)
 
 	VariantClear (&max_clock_speed_variant);
 
-	g_strchomp (name_utf8);
+	zoitechat_strchomp (name_utf8);
 
 	if (cpu_freq_mhz > 1000)
 	{
-		result = g_strdup_printf ("%s (%.2fGHz)", name_utf8, cpu_freq_mhz / 1000.f);
+		result = zoitechat_strdup_printf ("%s (%.2fGHz)", name_utf8, cpu_freq_mhz / 1000.f);
 	}
 	else
 	{
-		result = g_strdup_printf ("%s (%" G_GUINT32_FORMAT "MHz)", name_utf8, cpu_freq_mhz);
+		result = zoitechat_strdup_printf ("%s (%" PRIu32 "MHz)", name_utf8, cpu_freq_mhz);
 	}
 
-	g_free (name_utf8);
+	free (name_utf8);
 
 	return result;
 }
@@ -393,7 +432,7 @@ static char *read_vga_name (IWbemClassObject *object)
 		return NULL;
 	}
 
-	return g_strchomp (name_utf8);
+	return zoitechat_strchomp (name_utf8);
 }
 
 static char *read_hdd_info (IWbemClassObject *object)
@@ -401,11 +440,11 @@ static char *read_hdd_info (IWbemClassObject *object)
 	HRESULT hr;
 	VARIANT name_variant;
 	BSTR name_bstr;
-	gsize name_len;
+	size_t name_len;
 	VARIANT capacity_variant;
-	guint64 capacity;
+	uint64_t capacity;
 	VARIANT free_space_variant;
-	guint64 free_space;
+	uint64_t free_space;
 
 	hr = object->lpVtbl->Get (object, L"Name", 0, &name_variant, NULL, NULL);
 	if (FAILED (hr))
@@ -464,10 +503,38 @@ static char *read_hdd_info (IWbemClassObject *object)
 
 static char *bstr_to_utf8 (BSTR bstr)
 {
-	return g_utf16_to_utf8 (bstr, SysStringLen (bstr), NULL, NULL, NULL);
+	int utf8_len;
+	char *utf8;
+
+	if (bstr == NULL)
+	{
+		return NULL;
+	}
+
+	utf8_len = WideCharToMultiByte (CP_UTF8, 0, bstr, SysStringLen (bstr), NULL, 0, NULL, NULL);
+	if (utf8_len <= 0)
+	{
+		return NULL;
+	}
+
+	utf8 = malloc ((size_t) utf8_len + 1);
+	if (utf8 == NULL)
+	{
+		return NULL;
+	}
+
+	if (WideCharToMultiByte (CP_UTF8, 0, bstr, SysStringLen (bstr), utf8, utf8_len, NULL, NULL) <= 0)
+	{
+		free (utf8);
+		return NULL;
+	}
+
+	utf8[utf8_len] = '\0';
+
+	return utf8;
 }
 
-static guint64 variant_to_uint64 (VARIANT *variant)
+static uint64_t variant_to_uint64 (VARIANT *variant)
 {
 	switch (V_VT (variant))
 	{
@@ -480,4 +547,140 @@ static guint64 variant_to_uint64 (VARIANT *variant)
 	default:
 		return 0;
 	}
+}
+
+static char *zoitechat_strdup (const char *value)
+{
+	size_t len;
+	char *copy;
+
+	if (value == NULL)
+	{
+		return NULL;
+	}
+
+	len = strlen (value);
+	copy = malloc (len + 1);
+	if (copy == NULL)
+	{
+		return NULL;
+	}
+
+	memcpy (copy, value, len + 1);
+
+	return copy;
+}
+
+static char *zoitechat_strdup_printf (const char *format, ...)
+{
+	va_list args;
+	va_list args_copy;
+	int length;
+	char *buffer;
+
+	va_start (args, format);
+	va_copy (args_copy, args);
+	length = vsnprintf (NULL, 0, format, args_copy);
+	va_end (args_copy);
+
+	if (length < 0)
+	{
+		va_end (args);
+		return NULL;
+	}
+
+	buffer = malloc ((size_t) length + 1);
+	if (buffer == NULL)
+	{
+		va_end (args);
+		return NULL;
+	}
+
+	vsnprintf (buffer, (size_t) length + 1, format, args);
+	va_end (args);
+
+	return buffer;
+}
+
+static char *zoitechat_strchomp (char *value)
+{
+	size_t len;
+
+	if (value == NULL)
+	{
+		return NULL;
+	}
+
+	len = strlen (value);
+	while (len > 0 && isspace ((unsigned char) value[len - 1]) != 0)
+	{
+		value[len - 1] = '\0';
+		len--;
+	}
+
+	return value;
+}
+
+static bool string_builder_init (StringBuilder *builder)
+{
+	builder->cap = 64;
+	builder->len = 0;
+	builder->data = malloc (builder->cap);
+	if (builder->data == NULL)
+	{
+		return false;
+	}
+
+	builder->data[0] = '\0';
+	return true;
+}
+
+static void string_builder_free (StringBuilder *builder)
+{
+	if (builder->data != NULL)
+	{
+		free (builder->data);
+		builder->data = NULL;
+	}
+	builder->len = 0;
+	builder->cap = 0;
+}
+
+static bool string_builder_append (StringBuilder *builder, const char *text)
+{
+	size_t add_len;
+	size_t needed;
+	size_t new_cap;
+	char *new_data;
+
+	if (text == NULL)
+	{
+		return true;
+	}
+
+	add_len = strlen (text);
+	needed = builder->len + add_len + 1;
+	if (needed > builder->cap)
+	{
+		new_cap = builder->cap;
+		while (new_cap < needed)
+		{
+			new_cap *= 2;
+		}
+
+		new_data = realloc (builder->data, new_cap);
+		if (new_data == NULL)
+		{
+			string_builder_free (builder);
+			return false;
+		}
+
+		builder->data = new_data;
+		builder->cap = new_cap;
+	}
+
+	memcpy (builder->data + builder->len, text, add_len);
+	builder->len += add_len;
+	builder->data[builder->len] = '\0';
+	return true;
 }
