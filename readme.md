@@ -10,7 +10,7 @@
 
 [![Version][github-version-img]][github-version-uri] [![Downloads][github-downloads-img]][github-downloads-uri] [![Size][github-size-img]][github-size-img] [![Last Commit][github-commit-img]][github-commit-img] [![Contributors][contribs-all-img]](#contributors-)
 
-[![View Official Documentation](https://img.shields.io/badge/View_Official_Documentation-526CFE?style=for-the-badge&logo=MaterialForMkDocs&logoColor=white)](https://zoitechat.zoite.net/docs/)
+[![View Official Documentation](https://img.shields.io/badge/View_Official_Documentation-526CFE?style=for-the-badge&logo=MaterialForMkDocs&logoColor=white)](https://docs.zoitechat.zoite.net)
 
   </div>
 
@@ -35,7 +35,7 @@
 
 ZoiteChat is an HexChat based IRC client for Windows and UNIX-like operating systems.  
 See [IRCHelp.org](http://irchelp.org) for information about IRC in general.  
-For more information on ZoiteChat please read our [documentation](https://zoitechat.zoite.net/docs/):
+For more information on ZoiteChat please read our [documentation](https://docs.zoitechat.zoite.net/):
 - [Downloads](https://zoitechat.zoite.net/download)
 
 ---
