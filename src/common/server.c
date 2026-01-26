@@ -54,6 +54,7 @@
 #include "proto-irc.h"
 #include "servlist.h"
 #include "server.h"
+#include "sts.h"
 
 #ifdef USE_OPENSSL
 #include <openssl/ssl.h>		  /* SSL_() */
@@ -1034,6 +1035,8 @@ server_disconnect (session * sess, int sendquit, int err)
 		server_sendquit (sess);
 	}
 
+	sts_reschedule_on_disconnect (serv);
+
 	fe_server_event (serv, FE_SE_DISCONNECT, 0);
 
 	/* close all sockets & io tags */
@@ -1588,6 +1591,15 @@ server_connect (server *serv, char *hostname, int port, int no_login)
 	int pid, read_des[2];
 	session *sess = serv->server_session;
 
+	if (!hostname[0])
+		return;
+
+	safe_strcpy (serv->sts_host, hostname, sizeof (serv->sts_host));
+	if (!sts_apply_policy_for_connection (serv, hostname, &port))
+	{
+		return;
+	}
+
 #ifdef USE_OPENSSL
 	if (!serv->ctx && serv->use_ssl)
 	{
@@ -1598,9 +1610,6 @@ server_connect (server *serv, char *hostname, int port, int no_login)
 		}
 	}
 #endif
-
-	if (!hostname[0])
-		return;
 
 	if (port < 1 || port > 65535)
 	{
@@ -1842,6 +1851,8 @@ server_set_defaults (server *serv)
 	serv->have_sasl = FALSE;
 	serv->have_except = FALSE;
 	serv->have_invite = FALSE;
+	serv->sts_duration_seen = FALSE;
+	serv->sts_upgrade_in_progress = FALSE;
 }
 
 char *
