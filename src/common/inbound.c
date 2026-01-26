@@ -43,6 +43,7 @@
 #include "inbound.h"
 #include "server.h"
 #include "servlist.h"
+#include "sts.h"
 #include "text.h"
 #include "ctcp.h"
 #include "zoitechatc.h"
@@ -1722,6 +1723,25 @@ void
 inbound_cap_del (server *serv, char *nick, char *extensions,
 					 const message_tags_data *tags_data)
 {
+	if (extensions)
+	{
+		char **tokens = g_strsplit (extensions, " ", 0);
+		int i;
+
+		for (i = 0; tokens[i]; i++)
+		{
+			if (!g_strcmp0 (tokens[i], "sts") ||
+				g_str_has_prefix (tokens[i], "sts="))
+			{
+				/* STS cannot be disabled via CAP DEL. */
+				g_strfreev (tokens);
+				return;
+			}
+		}
+
+		g_strfreev (tokens);
+	}
+
 	EMIT_SIGNAL_TIMESTAMP (XP_TE_CAPDEL, serv->server_session, nick, extensions,
 								  NULL, NULL, 0, tags_data->timestamp);
 
@@ -1819,6 +1839,7 @@ inbound_cap_ls (server *serv, char *nick, char *extensions_str,
 {
 	char buffer[500];	/* buffer for requesting capabilities and emitting the signal */
 	gboolean want_cap = FALSE; /* format the CAP REQ string based on previous capabilities being requested or not */
+	gboolean sts_upgrade_triggered = FALSE;
 	char **extensions;
 	int i;
 
@@ -1851,6 +1872,15 @@ inbound_cap_ls (server *serv, char *nick, char *extensions_str,
 		{
 			*value = '\0';
 			value++;
+		}
+
+		if (!g_strcmp0 (extension, "sts"))
+		{
+			if (value)
+			{
+				sts_upgrade_triggered |= sts_handle_capability (serv, value);
+			}
+			continue;
 		}
 
 		/* if the SASL password is set AND auth mode is set to SASL, request SASL auth */
@@ -1887,6 +1917,11 @@ inbound_cap_ls (server *serv, char *nick, char *extensions_str,
 	}
 
 	g_strfreev (extensions);
+
+	if (sts_upgrade_triggered)
+	{
+		return;
+	}
 
 	if (want_cap)
 	{

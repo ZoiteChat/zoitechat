@@ -18,6 +18,7 @@ common_sources = [
   'scram.c',
   'server.c',
   'servlist.c',
+  'sts.c',
 	'text.c',
   'tree.c',
   'url.c',
