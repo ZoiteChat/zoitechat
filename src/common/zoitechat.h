@@ -514,6 +514,7 @@ typedef struct server
 	int joindelay_tag;				/* waiting before we send JOIN */
 	char hostname[128];				/* real ip number */
 	char servername[128];			/* what the server says is its name */
+	char sts_host[128];
 	char password[1024];
 	char nick[NICKLEN];
 	char linebuf[8704];				/* RFC says 512 chars including \r\n, IRCv3 message tags add 8191, plus the NUL byte */
@@ -588,6 +589,8 @@ typedef struct server
 	unsigned int have_sasl:1;		/* SASL capability */
 	unsigned int have_except:1;	/* ban exemptions +e */
 	unsigned int have_invite:1;	/* invite exemptions +I */
+	unsigned int sts_duration_seen:1;
+	unsigned int sts_upgrade_in_progress:1;
 	unsigned int have_cert:1;	/* have loaded a cert */
 	unsigned int use_who:1;			/* whether to use WHO command to get dcc_ip */
 	unsigned int sasl_mech;			/* mechanism for sasl auth */

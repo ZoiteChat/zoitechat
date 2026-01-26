@@ -71,6 +71,7 @@
     <ClCompile Include="servlist.c" />
     <ClCompile Include="ssl.c" />
     <ClCompile Include="scram.c" />
+    <ClCompile Include="sts.c" />
     <ClCompile Include="sysinfo\win32\backend.c" />
     <ClCompile Include="text.c" />
     <ClCompile Include="tree.c" />

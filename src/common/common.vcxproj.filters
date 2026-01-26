@@ -172,6 +172,9 @@
     <ClCompile Include="ssl.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="sts.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="text.c">
       <Filter>Source Files</Filter>
     </ClCompile>
