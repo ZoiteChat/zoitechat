@@ -23,7 +23,9 @@
 #include "config.h"
 
 #include <Spellcheck.h>
-#include <glib.h>
+#include <windows.h>
+
+#include <cstdlib>
 
 #include "typedef.h" // for ssize_t
 #include <enchant-provider.h>
@@ -33,9 +35,24 @@ ENCHANT_PLUGIN_DECLARE ("win8")
 /* --------- Utils ----------*/
 
 static char *
-utf16_to_utf8 (const wchar_t * const str, gboolean from_bcp47)
+utf16_to_utf8 (const wchar_t * const str, bool from_bcp47)
 {
-	char *utf8 = g_utf16_to_utf8 ((gunichar2*)str, -1, nullptr, nullptr, nullptr);
+	if (!str)
+		return nullptr;
+
+	int needed = WideCharToMultiByte (CP_UTF8, 0, str, -1, nullptr, 0, nullptr, nullptr);
+	if (needed <= 0)
+		return nullptr;
+
+	char *utf8 = static_cast<char*>(std::malloc (static_cast<size_t>(needed)));
+	if (!utf8)
+		return nullptr;
+
+	if (WideCharToMultiByte (CP_UTF8, 0, str, -1, utf8, needed, nullptr, nullptr) != needed)
+	{
+		std::free (utf8);
+		return nullptr;
+	}
 	if (utf8 && from_bcp47)
 	{
 		char *p = utf8;
@@ -51,9 +68,27 @@ utf16_to_utf8 (const wchar_t * const str, gboolean from_bcp47)
 }
 
 static wchar_t *
-utf8_to_utf16 (const char * const str, size_t len, gboolean to_bcp47)
+utf8_to_utf16 (const char * const str, int len, bool to_bcp47)
 {
-	wchar_t *utf16 = (wchar_t*)g_utf8_to_utf16 (str, len, nullptr, nullptr, nullptr);
+	if (!str)
+		return nullptr;
+
+	int needed = MultiByteToWideChar (CP_UTF8, 0, str, len, nullptr, 0);
+	if (needed <= 0)
+		return nullptr;
+
+	int alloc_len = (len == -1) ? needed : needed + 1;
+	wchar_t *utf16 = static_cast<wchar_t*>(std::malloc (sizeof (wchar_t) * static_cast<size_t>(alloc_len)));
+	if (!utf16)
+		return nullptr;
+
+	if (MultiByteToWideChar (CP_UTF8, 0, str, len, utf16, needed) != needed)
+	{
+		std::free (utf16);
+		return nullptr;
+	}
+	if (len != -1)
+		utf16[needed] = L'\0';
 	if (utf16 && to_bcp47)
 	{
 		wchar_t *p = utf16;
@@ -69,11 +104,18 @@ utf8_to_utf16 (const char * const str, size_t len, gboolean to_bcp47)
 }
 
 static char **
-enumstring_to_chararray (IEnumString *strings, size_t *out_len, gboolean from_bcp47)
+enumstring_to_chararray (IEnumString *strings, size_t *out_len, bool from_bcp47)
 {
-	char **chars = g_new (char*, 256); /* Hopefully large enough */
+	char **chars = static_cast<char**>(std::calloc (256, sizeof (char*))); /* Hopefully large enough */
 	LPOLESTR wstr = nullptr;
 	size_t i = 0;
+
+	if (!chars)
+	{
+		*out_len = 0;
+		strings->Release ();
+		return nullptr;
+	}
 
 	while (SUCCEEDED (strings->Next (1, &wstr, nullptr)) && i < 256 && wstr)
 	{
@@ -98,33 +140,33 @@ static void
 win8_dict_add_to_personal (EnchantDict *dict, const char *const word, size_t len)
 {
 	auto checker = static_cast<ISpellChecker*>(dict->user_data);
-	wchar_t *wword = utf8_to_utf16 (word, len, FALSE);
+	wchar_t *wword = utf8_to_utf16 (word, static_cast<int>(len), false);
 
 	checker->Add (wword);
-	g_free (wword);
+	std::free (wword);
 }
 
 static void
 win8_dict_add_to_session (EnchantDict *dict, const char *const word, size_t len)
 {
 	auto checker = static_cast<ISpellChecker*>(dict->user_data);
-	wchar_t *wword = utf8_to_utf16 (word, len, FALSE);
+	wchar_t *wword = utf8_to_utf16 (word, static_cast<int>(len), false);
 
 	checker->Ignore (wword);
-	g_free (wword);
+	std::free (wword);
 }
 
 static int
 win8_dict_check (EnchantDict *dict, const char *const word, size_t len)
 {
 	auto checker = static_cast<ISpellChecker*>(dict->user_data);
-	wchar_t *wword = utf8_to_utf16 (word, len, FALSE);
+	wchar_t *wword = utf8_to_utf16 (word, static_cast<int>(len), false);
 	IEnumSpellingError *errors;
 	ISpellingError *error = nullptr;
 	HRESULT hr;
 
 	hr = checker->Check (wword, &errors);
-	g_free (wword);
+	std::free (wword);
 
 	if (FAILED (hr))
 		return -1; /* Error */
@@ -146,12 +188,12 @@ static char **
 win8_dict_suggest (EnchantDict *dict, const char *const word, size_t len, size_t *out_n_suggs)
 {
 	auto checker = static_cast<ISpellChecker*>(dict->user_data);
-	wchar_t *wword = utf8_to_utf16 (word, len, FALSE);
+	wchar_t *wword = utf8_to_utf16 (word, static_cast<int>(len), false);
 	IEnumString *suggestions;
 	HRESULT hr;
 
 	hr = checker->Suggest (wword, &suggestions);
-	g_free (wword);
+	std::free (wword);
 
 	if (FAILED (hr))
 	{
@@ -159,7 +201,7 @@ win8_dict_suggest (EnchantDict *dict, const char *const word, size_t len, size_t
 		return nullptr;
 	}
 
-	return enumstring_to_chararray (suggestions, out_n_suggs, FALSE);
+	return enumstring_to_chararray (suggestions, out_n_suggs, false);
 }
 
 /* ---------- Provider ------------ */
@@ -170,16 +212,16 @@ win8_provider_request_dict (EnchantProvider *provider, const char *const tag)
 	auto factory = static_cast<ISpellCheckerFactory*>(provider->user_data);
 	ISpellChecker *checker;
 	EnchantDict *dict;
-	wchar_t *wtag = utf8_to_utf16 (tag, -1, TRUE);
+	wchar_t *wtag = utf8_to_utf16 (tag, -1, true);
 	HRESULT hr;
 
 	hr = factory->CreateSpellChecker (wtag, &checker);
-	g_free (wtag);
+	std::free (wtag);
 
 	if (FAILED (hr))
 		return nullptr;
 
-	dict = g_new0 (EnchantDict, 1);
+	dict = static_cast<EnchantDict*>(std::calloc (1, sizeof (EnchantDict)));
 	dict->suggest = win8_dict_suggest;
 	dict->check = win8_dict_check;
 	dict->add_to_personal = win8_dict_add_to_personal;
@@ -199,7 +241,7 @@ win8_provider_dispose_dict (EnchantProvider *provider, EnchantDict *dict)
 		auto checker = static_cast<ISpellChecker*>(dict->user_data);
 
 		checker->Release ();
-		g_free (dict);
+		std::free (dict);
 	}
 }
 
@@ -207,12 +249,12 @@ static int
 win8_provider_dictionary_exists (EnchantProvider *provider, const char *const tag)
 {
 	auto factory = static_cast<ISpellCheckerFactory*>(provider->user_data);
-	wchar_t *wtag = utf8_to_utf16 (tag, -1, TRUE);
+	wchar_t *wtag = utf8_to_utf16 (tag, -1, true);
 
 	BOOL is_supported = FALSE;
 	factory->IsSupported (wtag, &is_supported);
 
-	g_free (wtag);
+	std::free (wtag);
 	return is_supported;
 }
 
@@ -229,13 +271,17 @@ win8_provider_list_dicts (EnchantProvider *provider, size_t *out_n_dicts)
 		return nullptr;
 	}
 
-	return enumstring_to_chararray (dicts, out_n_dicts, TRUE);
+	return enumstring_to_chararray (dicts, out_n_dicts, true);
 }
 
 static void
 win8_provider_free_string_list (EnchantProvider *provider, char **str_list)
 {
-	g_strfreev (str_list);
+	if (!str_list)
+		return;
+	for (size_t i = 0; str_list[i]; ++i)
+		std::free (str_list[i]);
+	std::free (str_list);
 }
 
 static void
@@ -246,7 +292,7 @@ win8_provider_dispose (EnchantProvider *provider)
 		auto factory = static_cast<ISpellCheckerFactory*>(provider->user_data);
 
 		factory->Release();
-		g_free (provider);
+		std::free (provider);
 	}
 }
 
@@ -275,7 +321,7 @@ init_enchant_provider (void)
 				CLSCTX_INPROC_SERVER, IID_PPV_ARGS (&factory))))
 		return nullptr;
 
-	provider = g_new0 (EnchantProvider, 1);
+	provider = static_cast<EnchantProvider*>(std::calloc (1, sizeof (EnchantProvider)));
 	provider->dispose = win8_provider_dispose;
 	provider->request_dict = win8_provider_request_dict;
 	provider->dispose_dict = win8_provider_dispose_dict;
