@@ -49,6 +49,7 @@
 #include "notify.h"
 #include "server.h"
 #include "servlist.h"
+#include "sts.h"
 #include "outbound.h"
 #include "text.h"
 #include "url.h"
@@ -1200,6 +1201,7 @@ xchat_init (void)
 	sound_load ();
 	notify_load ();
 	ignore_load ();
+	sts_init ();
 
 	g_snprintf (buf, sizeof (buf),
 		"NAME %s~%s~\n"				"CMD query %%s\n\n"\
@@ -1352,6 +1354,7 @@ zoitechat_exit (void)
 	sound_save ();
 	notify_save ();
 	ignore_save ();
+	sts_cleanup ();
 	free_sessions ();
 	chanopt_save_all (TRUE);
 	servlist_cleanup ();
