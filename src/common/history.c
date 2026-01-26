@@ -1,3 +1,4 @@
+#include <glib.h>
 /* X-Chat
  * Copyright (C) 1998 Peter Zelezny.
  *
@@ -24,7 +25,7 @@ void
 history_add (struct history *his, char *text)
 {
 	free (his->lines[his->realpos]);
-	his->lines[his->realpos] = strdup (text);
+	his->lines[his->realpos] = g_strdup(text);
 	his->realpos++;
 	if (his->realpos == HISTORY_SIZE)
 		his->realpos = 0;

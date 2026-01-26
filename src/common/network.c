@@ -17,9 +17,12 @@
  */
 
 /* ipv4 and ipv6 networking functions with a common interface */
+#define _POSIX_C_SOURCE 200112L
+#include <netdb.h>
 
 #include "config.h"
 
+#include <glib.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -121,11 +124,11 @@ net_resolve (netstore * ns, char *hostname, int port, char **real_host)
 					 ipstring, sizeof (ipstring), NULL, 0, NI_NUMERICHOST);
 
 	if (ns->ip6_hostent->ai_canonname)
-		*real_host = strdup (ns->ip6_hostent->ai_canonname);
+		*real_host = g_strdup(ns->ip6_hostent->ai_canonname);
 	else
-		*real_host = strdup (hostname);
+		*real_host = g_strdup(hostname);
 
-	return strdup (ipstring);
+	return g_strdup(ipstring);
 }
 
 /* the only thing making this interface unclean, this shitty sok4, sok6 business */
