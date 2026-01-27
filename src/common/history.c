@@ -1,4 +1,3 @@
-#include <glib.h>
 /* X-Chat
  * Copyright (C) 1998 Peter Zelezny.
  *
@@ -17,6 +16,7 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
  */
 
+#include <glib.h>
 #include <string.h>
 #include <stdlib.h>
 #include "history.h"
