@@ -18,7 +18,11 @@
 
 /* ipv4 and ipv6 networking functions with a common interface */
 #define _POSIX_C_SOURCE 200112L
-#include <netdb.h>
+#ifdef _WIN32
+#  include <ws2tcpip.h>
+#else
+#  include <netdb.h>
+#endif
 
 #include "config.h"
 
