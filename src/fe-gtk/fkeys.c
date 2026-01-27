@@ -1184,7 +1184,7 @@ key_action_page_switch (GtkWidget * wid, GdkEventKey * evt, char *d1,
 	if (!len)
 		return 1;
 
-	if (strcasecmp(d1, "auto") == 0)
+	if (g_ascii_strcasecmp(d1, "auto") == 0)
 	{
 		/* Auto switch makes no sense in detached sessions */
 		if (!sess->gui->is_tab)

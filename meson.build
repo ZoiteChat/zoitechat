@@ -2,7 +2,7 @@ project('zoitechat', 'c',
   version: '2.17.3',
   meson_version: '>= 0.47.0',
   default_options: [
-    'c_std=gnu89',
+    'c_std=c17',
     'buildtype=debugoptimized',
     'warning_level=1',
   ]

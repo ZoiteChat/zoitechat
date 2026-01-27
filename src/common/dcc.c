@@ -323,8 +323,8 @@ dcc_lookup_proxy (char *host, struct sockaddr_in *addr)
 	h = gethostbyname (host);
 	if (h != NULL && h->h_length == 4 && h->h_addr_list[0] != NULL)
 	{
-		memcpy (&addr->sin_addr, h->h_addr, 4);
-		memcpy (&cache_addr, h->h_addr, 4);
+		memcpy (&addr->sin_addr, h->h_addr_list[0], 4);
+		memcpy (&cache_addr, h->h_addr_list[0], 4);
 		cache_host = g_strdup (host);
 		/* cppcheck-suppress memleak */
 		return TRUE;
