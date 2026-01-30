@@ -5542,25 +5542,17 @@ gtk_xtext_buffer_show (GtkXText *xtext, xtext_buffer *buf, int render)
 	xtext->buffer = buf;
 	dontscroll (buf);	/* force scrolling off */
 	{
+		gdouble lower = 0;
 		gdouble value = buf->old_value;
 		gdouble upper = buf->num_lines;
 		gdouble page_size = xtext_adj_get_page_size (xtext->adj);
 
-		xtext_adj_set_value (xtext->adj, value);
-		xtext_adj_set_upper (xtext->adj, upper);
-
 		/* if the scrollbar was down, keep it down */
 		if (xtext->buffer->scrollbar_down && value < upper - page_size)
-		{
 			value = upper - page_size;
-			xtext_adj_set_value (xtext->adj, value);
-		}
 
 		if (upper == 0)
-		{
 			upper = 1;
-			xtext_adj_set_upper (xtext->adj, upper);
-		}
 		/* sanity check */
 		else if (value > upper - page_size)
 		{
@@ -5568,8 +5560,9 @@ gtk_xtext_buffer_show (GtkXText *xtext, xtext_buffer *buf, int render)
 			value = upper - page_size;
 			if (value < 0)
 				value = 0;
-			xtext_adj_set_value (xtext->adj, value);
 		}
+
+		xtext_adjustment_apply (xtext->adj, lower, upper, value, page_size);
 	}
 
 	if (render)
