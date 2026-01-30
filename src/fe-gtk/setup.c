@@ -2415,9 +2415,9 @@ setup_create_sound_page (void)
                                                         (GtkAttachOptions) (0), 0, 0);
 
 #ifdef GTK_STOCK_MEDIA_PLAY
-        sound_play = gtk_button_new_from_stock (GTK_STOCK_MEDIA_PLAY);
+        sound_play = gtkutil_button_new_from_stock (GTK_STOCK_MEDIA_PLAY, _("_Play"));
 #else
-        sound_play = gtk_button_new_with_mnemonic (_("_Play"));
+        sound_play = gtkutil_button_new_from_stock (NULL, _("_Play"));
 #endif
         g_signal_connect (G_OBJECT (sound_play), "clicked",
                                                         G_CALLBACK (setup_snd_play_cb), sndfile_entry);
@@ -3023,12 +3023,12 @@ setup_window_open (void)
         gtk_box_set_spacing (GTK_BOX (hbbox), 4);
         gtk_box_pack_end (GTK_BOX (vbox), hbbox, FALSE, FALSE, 0);
 
-        cancel_button = wid = gtk_button_new_from_stock (GTK_STOCK_CANCEL);
+        cancel_button = wid = gtkutil_button_new_from_stock (GTK_STOCK_CANCEL, _("_Cancel"));
         g_signal_connect (G_OBJECT (wid), "clicked",
                                                         G_CALLBACK (gtkutil_destroy), win);
         gtk_box_pack_start (GTK_BOX (hbbox), wid, FALSE, FALSE, 0);
 
-        wid = gtk_button_new_from_stock (GTK_STOCK_OK);
+        wid = gtkutil_button_new_from_stock (GTK_STOCK_OK, _("_OK"));
         g_signal_connect (G_OBJECT (wid), "clicked",
                                                         G_CALLBACK (setup_ok_cb), win);
         gtk_box_pack_start (GTK_BOX (hbbox), wid, FALSE, FALSE, 0);

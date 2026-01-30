@@ -119,15 +119,46 @@ gtkutil_icon_name_from_stock (const char *stock_name)
 
 	return stock_name;
 }
+#endif
 
-static GtkWidget *
+GtkWidget *
 gtkutil_image_new_from_stock (const char *stock, GtkIconSize size)
 {
+#if HAVE_GTK3
 	const char *icon_name = gtkutil_icon_name_from_stock (stock);
 
 	return gtk_image_new_from_icon_name (icon_name, size);
-}
+#else
+	return gtk_image_new_from_stock (stock, size);
 #endif
+}
+
+GtkWidget *
+gtkutil_button_new_from_stock (const char *stock, const char *label)
+{
+#if HAVE_GTK3
+	GtkWidget *button = label ? gtk_button_new_with_mnemonic (label) : gtk_button_new ();
+
+	if (stock)
+	{
+		GtkWidget *image = gtkutil_image_new_from_stock (stock, GTK_ICON_SIZE_BUTTON);
+
+		if (image)
+		{
+			gtk_button_set_image (GTK_BUTTON (button), image);
+			gtk_button_set_always_show_image (GTK_BUTTON (button), TRUE);
+		}
+	}
+
+	return button;
+#else
+	if (stock)
+		return gtk_button_new_from_stock (stock);
+	if (label)
+		return gtk_button_new_with_mnemonic (label);
+	return gtk_button_new ();
+#endif
+}
 
 #if HAVE_GTK3
 void
