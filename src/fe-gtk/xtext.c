@@ -943,14 +943,27 @@ gtk_xtext_size_allocate (GtkWidget * widget, GtkAllocation * allocation)
 	if (allocation->width == xtext->buffer->window_width)
 		height_only = TRUE;
 
+#if HAVE_GTK3
+	gtk_widget_set_allocation (widget, allocation);
+#else
 	widget->allocation = *allocation;
+#endif
 	if (gtk_widget_get_realized (GTK_WIDGET(widget)))
 	{
 		xtext->buffer->window_width = allocation->width;
 		xtext->buffer->window_height = allocation->height;
 
-		gdk_window_move_resize (widget->window, allocation->x, allocation->y,
+#if HAVE_GTK3
+		{
+			GdkWindow *window = gtk_widget_get_window (widget);
+			if (window)
+				gdk_window_move_resize (window, allocation->x, allocation->y,
 										allocation->width, allocation->height);
+		}
+#else
+		gdk_window_move_resize (widget->window, allocation->x, allocation->y,
+								allocation->width, allocation->height);
+#endif
 		dontscroll (xtext->buffer);	/* force scrolling off */
 		if (!height_only)
 			gtk_xtext_calc_lines (xtext->buffer, FALSE);
@@ -1132,11 +1145,17 @@ gtk_xtext_draw_sep (GtkXText * xtext, int y)
 {
 	int x, height;
 	cairo_t *cr;
+	GtkAllocation allocation;
 
 	if (y == -1)
 	{
 		y = 0;
+#if HAVE_GTK3
+		gtk_widget_get_allocation (GTK_WIDGET (xtext), &allocation);
+		height = allocation.height;
+#else
 		height = GTK_WIDGET (xtext)->allocation.height;
+#endif
 	} else
 	{
 		height = xtext->fontsize;
@@ -1184,6 +1203,7 @@ gtk_xtext_draw_marker (GtkXText * xtext, textentry * ent, int y)
 {
 	int x, width, render_y;
 	cairo_t *cr;
+	GtkAllocation allocation;
 
 	if (!xtext->marker) return;
 
@@ -1198,7 +1218,12 @@ gtk_xtext_draw_marker (GtkXText * xtext, textentry * ent, int y)
 	else return;
 
 	x = 0;
-	width = GTK_WIDGET (xtext)->allocation.width;
+#if HAVE_GTK3
+	gtk_widget_get_allocation (GTK_WIDGET (xtext), &allocation);
+#else
+	allocation = GTK_WIDGET (xtext)->allocation;
+#endif
+	width = allocation.width;
 
 	cr = xtext_create_context (xtext);
 	xtext_draw_line (xtext, cr, &xtext->marker_gc, x, render_y, x + width, render_y);
@@ -1216,10 +1241,17 @@ gtk_xtext_paint (GtkWidget *widget, GdkRectangle *area)
 	GtkXText *xtext = GTK_XTEXT (widget);
 	textentry *ent_start, *ent_end;
 	int x, y;
+	GtkAllocation allocation;
+
+#if HAVE_GTK3
+	gtk_widget_get_allocation (widget, &allocation);
+#else
+	allocation = widget->allocation;
+#endif
 
 	if (area->x == 0 && area->y == 0 &&
-		 area->height == widget->allocation.height &&
-		 area->width == widget->allocation.width)
+		 area->height == allocation.height &&
+		 area->width == allocation.width)
 	{
 		dontscroll (xtext->buffer);	/* force scrolling off */
 		gtk_xtext_render_page (xtext);
@@ -1247,14 +1279,14 @@ gtk_xtext_paint (GtkWidget *widget, GdkRectangle *area)
 	/* y is the last pixel y location it rendered text at */
 	y = gtk_xtext_render_ents (xtext, ent_start, ent_end);
 
-	if (y && y < widget->allocation.height && !ent_end->next)
+	if (y && y < allocation.height && !ent_end->next)
 	{
 		GdkRectangle rect;
 
 		rect.x = 0;
 		rect.y = y;
-		rect.width = widget->allocation.width;
-		rect.height = widget->allocation.height - y;
+		rect.width = allocation.width;
+		rect.height = allocation.height - y;
 
 		/* fill any space below the last line that also intersects with
 			the exposure rectangle */
@@ -1602,8 +1634,17 @@ gtk_xtext_scrolldown_timeout (GtkXText * xtext)
 	int p_y, win_height;
 	xtext_buffer *buf = xtext->buffer;
 	GtkAdjustment *adj = xtext->adj;
+#if HAVE_GTK3
+	GdkWindow *window = gtk_widget_get_window (GTK_WIDGET (xtext));
+#endif
 
+#if HAVE_GTK3
+	if (!window)
+		return 0;
+	gtk_xtext_get_pointer (window, NULL, &p_y, NULL);
+#else
 	gtk_xtext_get_pointer (GTK_WIDGET (xtext)->window, NULL, &p_y, NULL);
+#endif
 	win_height = gdk_window_get_height (gtk_widget_get_window (GTK_WIDGET (xtext)));
 
 	if (buf->last_ent_end == NULL ||	/* If context has changed OR */
@@ -1636,8 +1677,17 @@ gtk_xtext_scrollup_timeout (GtkXText * xtext)
 	xtext_buffer *buf = xtext->buffer;
 	GtkAdjustment *adj = xtext->adj;
 	int delta_y;
+#if HAVE_GTK3
+	GdkWindow *window = gtk_widget_get_window (GTK_WIDGET (xtext));
+#endif
 
+#if HAVE_GTK3
+	if (!window)
+		return 0;
+	gtk_xtext_get_pointer (window, NULL, &p_y, NULL);
+#else
 	gtk_xtext_get_pointer (GTK_WIDGET (xtext)->window, NULL, &p_y, NULL);
+#endif
 
 	if (buf->last_ent_start == NULL ||	/* If context has changed OR */
 		 buf->pagetop_ent == NULL ||		/* pagetop_ent is reset OR */
@@ -1798,6 +1848,9 @@ static gboolean
 gtk_xtext_leave_notify (GtkWidget * widget, GdkEventCrossing * event)
 {
 	GtkXText *xtext = GTK_XTEXT (widget);
+#if HAVE_GTK3
+	GdkWindow *window = gtk_widget_get_window (widget);
+#endif
 
 	if (xtext->cursor_hand)
 	{
@@ -1805,7 +1858,12 @@ gtk_xtext_leave_notify (GtkWidget * widget, GdkEventCrossing * event)
 		xtext->hilight_start = -1;
 		xtext->hilight_end = -1;
 		xtext->cursor_hand = FALSE;
+#if HAVE_GTK3
+		if (window)
+			gdk_window_set_cursor (window, 0);
+#else
 		gdk_window_set_cursor (widget->window, 0);
+#endif
 		xtext->hilight_ent = NULL;
 	}
 
@@ -1815,7 +1873,12 @@ gtk_xtext_leave_notify (GtkWidget * widget, GdkEventCrossing * event)
 		xtext->hilight_start = -1;
 		xtext->hilight_end = -1;
 		xtext->cursor_resize = FALSE;
+#if HAVE_GTK3
+		if (window)
+			gdk_window_set_cursor (window, 0);
+#else
 		gdk_window_set_cursor (widget->window, 0);
+#endif
 		xtext->hilight_ent = NULL;
 	}
 
@@ -1904,12 +1967,24 @@ gtk_xtext_motion_notify (GtkWidget * widget, GdkEventMotion * event)
 	int redraw, tmp, x, y, offset, len, line_x;
 	textentry *word_ent;
 	int word_type;
+	GdkWindow *window;
+	GtkAllocation allocation;
 
-	gtk_xtext_get_pointer (widget->window, &x, &y, &mask);
+#if HAVE_GTK3
+	window = gtk_widget_get_window (widget);
+	gtk_widget_get_allocation (widget, &allocation);
+#else
+	window = widget->window;
+	allocation = widget->allocation;
+#endif
+	if (!window)
+		return FALSE;
+
+	gtk_xtext_get_pointer (window, &x, &y, &mask);
 
 	if (xtext->moving_separator)
 	{
-		if (x < (3 * widget->allocation.width) / 5 && x > 15)
+		if (x < (3 * allocation.width) / 5 && x > 15)
 		{
 			tmp = xtext->buffer->indent;
 			xtext->buffer->indent = x;
@@ -1959,8 +2034,7 @@ gtk_xtext_motion_notify (GtkWidget * widget, GdkEventMotion * event)
 		{
 			if (!xtext->cursor_resize)
 			{
-				gdk_window_set_cursor (GTK_WIDGET (xtext)->window,
-										  		xtext->resize_cursor);
+				gdk_window_set_cursor (window, xtext->resize_cursor);
 				xtext->cursor_hand = FALSE;
 				xtext->cursor_resize = TRUE;
 			}
@@ -1981,8 +2055,7 @@ gtk_xtext_motion_notify (GtkWidget * widget, GdkEventMotion * event)
 		{
 			if (!xtext->cursor_hand)
 			{
-				gdk_window_set_cursor (GTK_WIDGET (xtext)->window,
-										  		xtext->hand_cursor);
+				gdk_window_set_cursor (window, xtext->hand_cursor);
 				xtext->cursor_hand = TRUE;
 				xtext->cursor_resize = FALSE;
 			}
@@ -2082,12 +2155,19 @@ gtk_xtext_button_release (GtkWidget * widget, GdkEventButton * event)
 	GtkXText *xtext = GTK_XTEXT (widget);
 	unsigned char *word;
 	int old;
+	GtkAllocation allocation;
+
+#if HAVE_GTK3
+	gtk_widget_get_allocation (widget, &allocation);
+#else
+	allocation = widget->allocation;
+#endif
 
 	if (xtext->moving_separator)
 	{
 		xtext->moving_separator = FALSE;
 		old = xtext->buffer->indent;
-		if (event->x < (4 * widget->allocation.width) / 5 && event->x > 15)
+		if (event->x < (4 * allocation.width) / 5 && event->x > 15)
 			xtext->buffer->indent = event->x;
 		gtk_xtext_fix_indent (xtext->buffer);
 		if (xtext->buffer->indent != old)
@@ -2158,8 +2238,17 @@ gtk_xtext_button_press (GtkWidget * widget, GdkEventButton * event)
 	textentry *ent;
 	unsigned char *word;
 	int line_x, x, y, offset, len;
+	GdkWindow *window;
 
-	gtk_xtext_get_pointer (widget->window, &x, &y, &mask);
+#if HAVE_GTK3
+	window = gtk_widget_get_window (widget);
+#else
+	window = widget->window;
+#endif
+	if (!window)
+		return FALSE;
+
+	gtk_xtext_get_pointer (window, &x, &y, &mask);
 
 	if (event->button == 3 || event->button == 2) /* right/middle click */
 	{
@@ -2387,7 +2476,16 @@ gtk_xtext_selection_get (GtkWidget * widget,
 	case TARGET_COMPOUND_TEXT:
 #ifdef GDK_WINDOWING_X11
 		{
-			GdkDisplay *display = gdk_window_get_display (widget->window);
+			GdkDisplay *display;
+#if HAVE_GTK3
+			GdkWindow *window = gtk_widget_get_window (widget);
+
+			if (!window)
+				break;
+			display = gdk_window_get_display (window);
+#else
+			display = gdk_window_get_display (widget->window);
+#endif
 			GdkAtom encoding;
 			gint format;
 			gint new_length;
@@ -2727,6 +2825,9 @@ gtk_xtext_render_flush (GtkXText * xtext, int x, int y, unsigned char *str,
 	int dest_x = 0, dest_y = 0;
 	int tile_x = xtext->ts_x;
 	int tile_y = xtext->ts_y;
+#if HAVE_GTK3
+	GdkWindow *window = gtk_widget_get_window (GTK_WIDGET (xtext));
+#endif
 
 	if (xtext->dont_render || len < 1 || xtext->hidden)
 		return 0;
@@ -2750,8 +2851,15 @@ gtk_xtext_render_flush (GtkXText * xtext, int x, int y, unsigned char *str,
 			goto dounder;
 	}
 
+#if HAVE_GTK3
+	if (!window)
+		return str_width;
+	surface = gdk_window_create_similar_surface (window,
+		CAIRO_CONTENT_COLOR_ALPHA, str_width, xtext->fontsize);
+#else
 	surface = gdk_window_create_similar_surface (GTK_WIDGET (xtext)->window,
 		CAIRO_CONTENT_COLOR_ALPHA, str_width, xtext->fontsize);
+#endif
 	if (surface)
 	{
 		dest_x = x;
@@ -3974,6 +4082,9 @@ gtk_xtext_render_page (GtkXText * xtext)
 	int subline;
 	int startline = xtext->adj->value;
 	int pos, overlap;
+#if HAVE_GTK3
+	GdkWindow *window = gtk_widget_get_window (GTK_WIDGET (xtext));
+#endif
 
 	if(!gtk_widget_get_realized(GTK_WIDGET(xtext)))
 	  return;
@@ -3981,8 +4092,15 @@ gtk_xtext_render_page (GtkXText * xtext)
 	if (xtext->buffer->indent < MARGIN)
 		xtext->buffer->indent = MARGIN;	  /* 2 pixels is our left margin */
 
+#if HAVE_GTK3
+	if (!window)
+		return;
+	width = gdk_window_get_width (window);
+	height = gdk_window_get_height (window);
+#else
 	width = gdk_window_get_width (GTK_WIDGET (xtext)->window);
 	height = gdk_window_get_height (GTK_WIDGET (xtext)->window);
+#endif
 
 	if (width < 34 || height < xtext->fontsize || width < xtext->buffer->indent + 32)
 		return;
@@ -4028,7 +4146,11 @@ gtk_xtext_render_page (GtkXText * xtext)
 			cr = xtext_create_context (xtext);
 			cairo_save (cr);
 			cairo_set_operator (cr, CAIRO_OPERATOR_SOURCE);
+#if HAVE_GTK3
+			surface = xtext_surface_from_window (window);
+#else
 			surface = xtext_surface_from_window (GTK_WIDGET (xtext)->window);
+#endif
 			if (!surface)
 			{
 				cairo_restore (cr);
@@ -4055,7 +4177,11 @@ gtk_xtext_render_page (GtkXText * xtext)
 			cr = xtext_create_context (xtext);
 			cairo_save (cr);
 			cairo_set_operator (cr, CAIRO_OPERATOR_SOURCE);
+#if HAVE_GTK3
+			surface = xtext_surface_from_window (window);
+#else
 			surface = xtext_surface_from_window (GTK_WIDGET (xtext)->window);
+#endif
 			if (!surface)
 			{
 				cairo_restore (cr);
