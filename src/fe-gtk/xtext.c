@@ -259,6 +259,22 @@ xtext_adj_get_page_increment (GtkAdjustment *adj)
 #endif
 }
 
+static void
+xtext_adjustment_apply (GtkAdjustment *adj, gdouble lower, gdouble upper, gdouble value, gdouble page_size)
+{
+#if HAVE_GTK3
+	gtk_adjustment_set_lower (adj, lower);
+	gtk_adjustment_set_upper (adj, upper);
+	gtk_adjustment_set_page_size (adj, page_size);
+	gtk_adjustment_set_value (adj, value);
+#else
+	adj->lower = lower;
+	adj->upper = upper;
+	adj->page_size = page_size;
+	adj->value = value;
+#endif
+}
+
 static inline void
 xtext_adj_set_page_increment (GtkAdjustment *adj, gdouble page_increment)
 {
@@ -689,11 +705,6 @@ gtk_xtext_adjustment_set (xtext_buffer *buf, int fire_signal)
 							  buf->xtext->fontsize;
 #endif
 
-		xtext_adj_set_lower (adj, lower);
-		xtext_adj_set_upper (adj, upper);
-		xtext_adj_set_page_size (adj, page_size);
-		xtext_adj_set_page_increment (adj, page_size);
-
 		if (value > upper - page_size)
 		{
 			buf->scrollbar_down = TRUE;
@@ -703,7 +714,8 @@ gtk_xtext_adjustment_set (xtext_buffer *buf, int fire_signal)
 		if (value < 0)
 			value = 0;
 
-		xtext_adj_set_value (adj, value);
+		xtext_adjustment_apply (adj, lower, upper, value, page_size);
+		xtext_adj_set_page_increment (adj, page_size);
 
 		if (fire_signal)
 		{
@@ -5597,11 +5609,6 @@ gtk_xtext_buffer_show (GtkXText *xtext, xtext_buffer *buf, int render)
 			gtk_widget_get_allocation (GTK_WIDGET (xtext), &allocation);
 			page_size = allocation.height / xtext->fontsize;
 
-			gtk_adjustment_set_lower (xtext->adj, lower);
-			gtk_adjustment_set_upper (xtext->adj, upper);
-			gtk_adjustment_set_page_size (xtext->adj, page_size);
-			gtk_adjustment_set_page_increment (xtext->adj, page_size);
-
 			if (value > upper - page_size)
 			{
 				buf->scrollbar_down = TRUE;
@@ -5611,7 +5618,8 @@ gtk_xtext_buffer_show (GtkXText *xtext, xtext_buffer *buf, int render)
 			if (value < 0)
 				value = 0;
 
-			gtk_adjustment_set_value (xtext->adj, value);
+			xtext_adjustment_apply (xtext->adj, lower, upper, value, page_size);
+			gtk_adjustment_set_page_increment (xtext->adj, page_size);
 			gtk_adjustment_value_changed (xtext->adj);
 		}
 #else
