@@ -878,9 +878,14 @@ gtk_xtext_realize (GtkWidget * widget)
 #if HAVE_GTK3
 	gtk_widget_get_allocation (widget, &allocation);
 	parent_window = gtk_widget_get_parent_window (widget);
+	attributes.visual = gtk_widget_get_visual (widget);
+	attributes_mask = GDK_WA_X | GDK_WA_Y | GDK_WA_VISUAL;
 #else
 	allocation = widget->allocation;
 	parent_window = widget->parent->window;
+	attributes.colormap = gtk_widget_get_colormap (widget);
+	attributes.visual = gtk_widget_get_visual (widget);
+	attributes_mask = GDK_WA_X | GDK_WA_Y | GDK_WA_VISUAL | GDK_WA_COLORMAP;
 #endif
 
 	attributes.x = allocation.x;
@@ -892,19 +897,6 @@ gtk_xtext_realize (GtkWidget * widget)
 	attributes.event_mask = gtk_widget_get_events (widget) |
 		GDK_EXPOSURE_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK
 		| GDK_POINTER_MOTION_MASK | GDK_LEAVE_NOTIFY_MASK;
-
-#if HAVE_GTK3
-	attributes.visual = gtk_widget_get_visual (widget);
-#else
-	attributes.colormap = gtk_widget_get_colormap (widget);
-	attributes.visual = gtk_widget_get_visual (widget);
-#endif
-
-#if HAVE_GTK3
-	attributes_mask = GDK_WA_X | GDK_WA_Y | GDK_WA_VISUAL;
-#else
-	attributes_mask = GDK_WA_X | GDK_WA_Y | GDK_WA_VISUAL | GDK_WA_COLORMAP;
-#endif
 
 	window = gdk_window_new (parent_window, &attributes, attributes_mask);
 
