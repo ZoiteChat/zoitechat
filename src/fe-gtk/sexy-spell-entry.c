@@ -51,6 +51,16 @@
 #include "xtext.h"
 #include "gtkutil.h"
 
+#if HAVE_GTK3
+#define ICON_ADD "list-add"
+#define ICON_REMOVE "list-remove"
+#define ICON_SPELL_CHECK "tools-check-spelling"
+#else
+#define ICON_ADD GTK_STOCK_ADD
+#define ICON_REMOVE GTK_STOCK_REMOVE
+#define ICON_SPELL_CHECK GTK_STOCK_SPELL_CHECK
+#endif
+
 /*
  * Bunch of poop to make enchant into a runtime dependency rather than a
  * compile-time dependency.  This makes it so I don't have to hear the
@@ -716,7 +726,7 @@ build_spelling_menu(SexySpellEntry *entry, const gchar *word)
 
 	/* + Add to Dictionary */
 	label = g_strdup_printf(_("Add \"%s\" to Dictionary"), word);
-	mi = sexy_spell_entry_icon_menu_item (label, GTK_STOCK_ADD);
+	mi = sexy_spell_entry_icon_menu_item (label, ICON_ADD);
 	g_free(label);
 
 	if (g_slist_length(entry->priv->dict_list) == 1) {
@@ -758,7 +768,7 @@ build_spelling_menu(SexySpellEntry *entry, const gchar *word)
 	gtk_menu_shell_append(GTK_MENU_SHELL(topmenu), mi);
 
 	/* - Ignore All */
-	mi = sexy_spell_entry_icon_menu_item (_("Ignore All"), GTK_STOCK_REMOVE);
+	mi = sexy_spell_entry_icon_menu_item (_("Ignore All"), ICON_REMOVE);
 	g_signal_connect(G_OBJECT(mi), "activate", G_CALLBACK(ignore_all), entry);
 	gtk_widget_show_all(mi);
 	gtk_menu_shell_append(GTK_MENU_SHELL(topmenu), mi);
@@ -791,7 +801,7 @@ sexy_spell_entry_populate_popup(SexySpellEntry *entry, GtkMenu *menu, gpointer d
 	gtk_menu_shell_prepend(GTK_MENU_SHELL(menu), mi);
 
 	/* Above the separator, show the suggestions menu */
-	mi = sexy_spell_entry_icon_menu_item (_("Spelling Suggestions"), GTK_STOCK_SPELL_CHECK);
+	mi = sexy_spell_entry_icon_menu_item (_("Spelling Suggestions"), ICON_SPELL_CHECK);
 
 	word = gtk_editable_get_chars(GTK_EDITABLE(entry), start, end);
 	g_assert(word != NULL);
