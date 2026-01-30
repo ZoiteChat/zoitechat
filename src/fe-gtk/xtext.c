@@ -682,7 +682,11 @@ gtk_xtext_new (const XTextColor *palette, int separator)
 	xtext->buffer = gtk_xtext_buffer_new (xtext);
 	xtext->orig_buffer = xtext->buffer;
 
+#if !HAVE_GTK3
 	gtk_widget_set_double_buffered (GTK_WIDGET (xtext), FALSE);
+#else
+	/* GTK3 already uses the GTK render pipeline; no manual double-buffering toggle. */
+#endif
 	gtk_xtext_set_palette (xtext, palette);
 
 	return GTK_WIDGET (xtext);
