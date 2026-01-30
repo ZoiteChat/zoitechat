@@ -1812,7 +1812,9 @@ setup_create_color_button (GtkWidget *table, int num, int row, int col)
         GtkWidget *but;
         GtkWidget *label;
         GtkWidget *box;
+#if !HAVE_GTK3
         GtkWidget *alignment;
+#endif
         char buf[64];
 
         if (num > 31)
@@ -1829,17 +1831,17 @@ setup_create_color_button (GtkWidget *table, int num, int row, int col)
         gtk_event_box_set_visible_window (GTK_EVENT_BOX (box), TRUE);
         gtk_container_add (GTK_CONTAINER (box), label);
         gtk_container_add (GTK_CONTAINER (but), box);
+#if HAVE_GTK3
+        gtk_widget_set_halign (box, GTK_ALIGN_CENTER);
+        gtk_widget_set_valign (box, GTK_ALIGN_CENTER);
+#else
         alignment = gtk_bin_get_child (GTK_BIN (but));
         if (GTK_IS_ALIGNMENT (alignment))
         {
-#if HAVE_GTK3
-                gtk_widget_set_halign (alignment, GTK_ALIGN_CENTER);
-                gtk_widget_set_valign (alignment, GTK_ALIGN_CENTER);
-#elif !HAVE_GTK3
                 gtk_alignment_set (GTK_ALIGNMENT (alignment), 0.5, 0.5, 1.0, 1.0);
                 gtk_alignment_set_padding (GTK_ALIGNMENT (alignment), 0, 0, 0, 0);
-#endif
         }
+#endif
         gtk_widget_show (label);
         gtk_widget_show (box);
         /* win32 build uses this to turn off themeing */
