@@ -706,6 +706,74 @@ static const setting identd_settings[] =
 #define setup_set_int(pr,set,num) *((int *)pr+set->offset)=num
 #define setup_set_str(pr,set,str) strcpy(((char *)pr)+set->offset,str)
 
+typedef enum
+{
+	SETUP_ALIGN_START,
+	SETUP_ALIGN_CENTER,
+	SETUP_ALIGN_FILL
+} setup_align;
+
+#if HAVE_GTK3
+static GtkAlign
+setup_align_to_gtk (setup_align align)
+{
+	switch (align)
+	{
+	case SETUP_ALIGN_FILL:
+		return GTK_ALIGN_FILL;
+	case SETUP_ALIGN_CENTER:
+		return GTK_ALIGN_CENTER;
+	case SETUP_ALIGN_START:
+	default:
+		return GTK_ALIGN_START;
+	}
+}
+#endif
+
+static void
+setup_table_attach (GtkWidget *table, GtkWidget *child,
+		    guint left_attach, guint right_attach,
+		    guint top_attach, guint bottom_attach,
+		    gboolean hexpand, gboolean vexpand,
+		    setup_align halign, setup_align valign,
+		    guint xpad, guint ypad)
+{
+#if HAVE_GTK3
+	gtk_widget_set_hexpand (child, hexpand);
+	gtk_widget_set_vexpand (child, vexpand);
+	gtk_widget_set_halign (child, setup_align_to_gtk (halign));
+	gtk_widget_set_valign (child, setup_align_to_gtk (valign));
+	gtk_widget_set_margin_start (child, xpad);
+	gtk_widget_set_margin_end (child, xpad);
+	gtk_widget_set_margin_top (child, ypad);
+	gtk_widget_set_margin_bottom (child, ypad);
+
+	gtk_table_attach (GTK_TABLE (table), child, left_attach, right_attach,
+			  top_attach, bottom_attach, 0, 0, 0, 0);
+#else
+	GtkAttachOptions xoptions = 0;
+	GtkAttachOptions yoptions = 0;
+
+	if (hexpand)
+		xoptions |= GTK_EXPAND;
+	else
+		xoptions |= GTK_SHRINK;
+	if (halign == SETUP_ALIGN_FILL)
+		xoptions |= GTK_FILL;
+
+	if (vexpand)
+		yoptions |= GTK_EXPAND;
+	else
+		yoptions |= GTK_SHRINK;
+	if (valign == SETUP_ALIGN_FILL)
+		yoptions |= GTK_FILL;
+
+	gtk_table_attach (GTK_TABLE (table), child, left_attach, right_attach,
+			  top_attach, bottom_attach, xoptions, yoptions,
+			  xpad, ypad);
+#endif
+}
+
 
 static void
 setup_3oggle_cb (GtkToggleButton *but, unsigned int *setting)
@@ -763,8 +831,9 @@ setup_create_3oggle (GtkWidget *tab, int row, const setting *set)
         {
                 gtk_widget_set_tooltip_text (label, _(set->tooltip));
         }
-        gtk_table_attach (GTK_TABLE (tab), label, 2, 3, row, row + 1,
-                                                        GTK_SHRINK | GTK_FILL, GTK_SHRINK | GTK_FILL, LABEL_INDENT, 0);
+        setup_table_attach (tab, label, 2, 3, row, row + 1, FALSE, FALSE,
+                            SETUP_ALIGN_START, SETUP_ALIGN_CENTER,
+                            LABEL_INDENT, 0);
 
         wid = gtk_check_button_new ();
         gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (wid),
@@ -823,8 +892,8 @@ setup_create_toggleR (GtkWidget *tab, int row, const setting *set)
                                                         G_CALLBACK (setup_toggle_cb), (gpointer)set);
         if (set->tooltip)
                 gtk_widget_set_tooltip_text (wid, _(set->tooltip));
-        gtk_table_attach (GTK_TABLE (tab), wid, 4, 5, row, row + 1,
-                                                        GTK_EXPAND | GTK_SHRINK | GTK_FILL, GTK_SHRINK | GTK_FILL, 0, 0);
+        setup_table_attach (tab, wid, 4, 5, row, row + 1, TRUE, FALSE,
+                            SETUP_ALIGN_FILL, SETUP_ALIGN_FILL, 0, 0);
 }
 
 static GtkWidget *
@@ -839,8 +908,8 @@ setup_create_toggleL (GtkWidget *tab, int row, const setting *set)
                                                         G_CALLBACK (setup_toggle_cb), (gpointer)set);
         if (set->tooltip)
                 gtk_widget_set_tooltip_text (wid, _(set->tooltip));
-        gtk_table_attach (GTK_TABLE (tab), wid, 2, row==6 ? 6 : 4, row, row + 1,
-                                                        GTK_SHRINK | GTK_FILL, GTK_SHRINK | GTK_FILL, LABEL_INDENT, 0);
+        setup_table_attach (tab, wid, 2, row==6 ? 6 : 4, row, row + 1, FALSE, FALSE,
+                            SETUP_ALIGN_FILL, SETUP_ALIGN_FILL, LABEL_INDENT, 0);
 
         return wid;
 }
@@ -878,19 +947,20 @@ setup_create_spin (GtkWidget *table, int row, const setting *set)
 #elif !HAVE_GTK3
         gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
 #endif
-        gtk_table_attach (GTK_TABLE (table), label, 2, 3, row, row + 1,
-                                                        GTK_SHRINK | GTK_FILL, GTK_SHRINK | GTK_FILL, LABEL_INDENT, 0);
+        setup_table_attach (table, label, 2, 3, row, row + 1, FALSE, FALSE,
+                            SETUP_ALIGN_START, SETUP_ALIGN_CENTER,
+                            LABEL_INDENT, 0);
 
 #if HAVE_GTK3
         rbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
         gtk_widget_set_halign (rbox, GTK_ALIGN_START);
         gtk_widget_set_valign (rbox, GTK_ALIGN_CENTER);
-        gtk_table_attach (GTK_TABLE (table), rbox, 3, 4, row, row + 1,
-                                                        GTK_EXPAND | GTK_FILL, GTK_SHRINK | GTK_FILL, 0, 0);
+        setup_table_attach (table, rbox, 3, 4, row, row + 1, TRUE, FALSE,
+                            SETUP_ALIGN_FILL, SETUP_ALIGN_FILL, 0, 0);
 #elif !HAVE_GTK3
         align = gtk_alignment_new (0.0, 0.5, 0.0, 0.0);
-        gtk_table_attach (GTK_TABLE (table), align, 3, 4, row, row + 1,
-                                                        GTK_EXPAND | GTK_FILL, GTK_SHRINK | GTK_FILL, 0, 0);
+        setup_table_attach (table, align, 3, 4, row, row + 1, TRUE, FALSE,
+                            SETUP_ALIGN_FILL, SETUP_ALIGN_FILL, 0, 0);
 
         rbox = gtk_hbox_new (0, 0);
         gtk_container_add (GTK_CONTAINER (align), rbox);
@@ -956,8 +1026,9 @@ setup_create_hscale (GtkWidget *table, int row, const setting *set)
 #elif !HAVE_GTK3
         gtk_misc_set_alignment (GTK_MISC (wid), 0.0, 0.5);
 #endif
-        gtk_table_attach (GTK_TABLE (table), wid, 2, 3, row, row + 1,
-                                                        GTK_SHRINK | GTK_FILL, GTK_SHRINK | GTK_FILL, LABEL_INDENT, 0);
+        setup_table_attach (table, wid, 2, 3, row, row + 1, FALSE, FALSE,
+                            SETUP_ALIGN_START, SETUP_ALIGN_CENTER,
+                            LABEL_INDENT, 0);
 
         wid = gtk_hscale_new_with_range (0., 255., 1.);
         gtk_scale_set_value_pos (GTK_SCALE (wid), GTK_POS_RIGHT);
@@ -1020,16 +1091,17 @@ setup_create_radio (GtkWidget *table, int row, const setting *set)
 #elif !HAVE_GTK3
         gtk_misc_set_alignment (GTK_MISC (wid), 0.0, 0.5);
 #endif
-        gtk_table_attach (GTK_TABLE (table), wid, 2, 3, row, row + 1,
-                                                        GTK_SHRINK | GTK_FILL, GTK_SHRINK | GTK_FILL, LABEL_INDENT, 0);
+        setup_table_attach (table, wid, 2, 3, row, row + 1, FALSE, FALSE,
+                            SETUP_ALIGN_START, SETUP_ALIGN_CENTER,
+                            LABEL_INDENT, 0);
 
 #if HAVE_GTK3
         hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
 #elif !HAVE_GTK3
         hbox = gtk_hbox_new (0, 0);
 #endif
-        gtk_table_attach (GTK_TABLE (table), hbox, 3, 4, row, row + 1,
-                                                        GTK_SHRINK | GTK_FILL, GTK_SHRINK | GTK_FILL, 0, 0);
+        setup_table_attach (table, hbox, 3, 4, row, row + 1, FALSE, FALSE,
+                            SETUP_ALIGN_FILL, SETUP_ALIGN_FILL, 0, 0);
 
         i = 0;
         group = NULL;
@@ -1092,8 +1164,9 @@ setup_create_id_menu (GtkWidget *table, char *label, int row, char *dest)
 #elif !HAVE_GTK3
         gtk_misc_set_alignment (GTK_MISC (wid), 0.0, 0.5);
 #endif
-        gtk_table_attach (GTK_TABLE (table), wid, 2, 3, row, row + 1,
-                                                        GTK_SHRINK | GTK_FILL, GTK_SHRINK | GTK_FILL, LABEL_INDENT, 0);
+        setup_table_attach (table, wid, 2, 3, row, row + 1, FALSE, FALSE,
+                            SETUP_ALIGN_START, SETUP_ALIGN_CENTER,
+                            LABEL_INDENT, 0);
 
         wid = gtk_option_menu_new ();
         menu = gtk_menu_new ();
@@ -1143,8 +1216,9 @@ setup_create_menu (GtkWidget *table, int row, const setting *set)
 #elif !HAVE_GTK3
         gtk_misc_set_alignment (GTK_MISC (wid), 0.0, 0.5);
 #endif
-        gtk_table_attach (GTK_TABLE (table), wid, 2, 3, row, row + 1,
-                                                        GTK_SHRINK | GTK_FILL, GTK_SHRINK | GTK_FILL, LABEL_INDENT, 0);
+        setup_table_attach (table, wid, 2, 3, row, row + 1, FALSE, FALSE,
+                            SETUP_ALIGN_START, SETUP_ALIGN_CENTER,
+                            LABEL_INDENT, 0);
 
         cbox = gtk_combo_box_text_new ();
 
@@ -1162,8 +1236,8 @@ setup_create_menu (GtkWidget *table, int row, const setting *set)
         box = gtk_hbox_new (0, 0);
 #endif
         gtk_box_pack_start (GTK_BOX (box), cbox, 0, 0, 0);
-        gtk_table_attach (GTK_TABLE (table), box, 3, 4, row, row + 1,
-                                                        GTK_EXPAND | GTK_FILL, GTK_SHRINK | GTK_FILL, 0, 0);
+        setup_table_attach (table, box, 3, 4, row, row + 1, TRUE, FALSE,
+                            SETUP_ALIGN_FILL, SETUP_ALIGN_FILL, 0, 0);
 }
 
 static void
@@ -1295,9 +1369,9 @@ setup_entry_cb (GtkEntry *entry, setting *set)
 static void
 setup_create_label (GtkWidget *table, int row, const setting *set)
 {
-        gtk_table_attach (GTK_TABLE (table), setup_create_italic_label (_(set->label)),
-                                                        set->extra ? 1 : 3, 5, row, row + 1, GTK_FILL,
-                                                        GTK_SHRINK | GTK_FILL, 0, 0);
+        setup_table_attach (table, setup_create_italic_label (_(set->label)),
+                            set->extra ? 1 : 3, 5, row, row + 1, FALSE, FALSE,
+                            SETUP_ALIGN_FILL, SETUP_ALIGN_FILL, 0, 0);
 }
 
 static GtkWidget *
@@ -1313,8 +1387,9 @@ setup_create_entry (GtkWidget *table, int row, const setting *set)
 #elif !HAVE_GTK3
         gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
 #endif
-        gtk_table_attach (GTK_TABLE (table), label, 2, 3, row, row + 1,
-                                                        GTK_SHRINK | GTK_FILL, GTK_SHRINK | GTK_FILL, LABEL_INDENT, 0);
+        setup_table_attach (table, label, 2, 3, row, row + 1, FALSE, FALSE,
+                            SETUP_ALIGN_START, SETUP_ALIGN_CENTER,
+                            LABEL_INDENT, 0);
 
         wid = gtk_entry_new ();
         g_object_set_data (G_OBJECT (wid), "lbl", label);
@@ -1343,11 +1418,11 @@ setup_create_entry (GtkWidget *table, int row, const setting *set)
                                                                 GTK_EXPAND | GTK_FILL, GTK_FILL, 0, 0);
         else
         {
-                gtk_table_attach (GTK_TABLE (table), wid, 3, 5, row, row + 1,
-                                                                GTK_EXPAND | GTK_FILL, GTK_SHRINK, 0, 0);
+                setup_table_attach (table, wid, 3, 5, row, row + 1, TRUE, FALSE,
+                                    SETUP_ALIGN_FILL, SETUP_ALIGN_CENTER, 0, 0);
                 bwid = gtk_button_new_with_label (_("Browse..."));
-                gtk_table_attach (GTK_TABLE (table), bwid, 5, 6, row, row + 1,
-                                                                GTK_SHRINK | GTK_FILL, GTK_FILL, 0, 0);
+                setup_table_attach (table, bwid, 5, 6, row, row + 1, FALSE, FALSE,
+                                    SETUP_ALIGN_FILL, SETUP_ALIGN_FILL, 0, 0);
                 if (set->type == ST_EFILE)
                         g_signal_connect (G_OBJECT (bwid), "clicked",
                                                                         G_CALLBACK (setup_browsefile_cb), wid);
@@ -1381,16 +1456,16 @@ setup_create_header (GtkWidget *table, int row, char *labeltext)
 #elif !HAVE_GTK3
         gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
 #endif
-        gtk_table_attach (GTK_TABLE (table), label, 0, 4, row, row + 1,
-                                                        GTK_SHRINK | GTK_FILL, GTK_SHRINK | GTK_FILL, 0, 5);
+        setup_table_attach (table, label, 0, 4, row, row + 1, FALSE, FALSE,
+                            SETUP_ALIGN_START, SETUP_ALIGN_CENTER, 0, 5);
 }
 
 static void
 setup_create_button (GtkWidget *table, int row, char *label, GCallback callback)
 {
         GtkWidget *but = gtk_button_new_with_label (label);
-        gtk_table_attach (GTK_TABLE (table), but, 2, 3, row, row + 1,
-                                        GTK_SHRINK | GTK_FILL, GTK_SHRINK | GTK_FILL, 0, 5);
+        setup_table_attach (table, but, 2, 3, row, row + 1, FALSE, FALSE,
+                            SETUP_ALIGN_FILL, SETUP_ALIGN_FILL, 0, 5);
         g_signal_connect (G_OBJECT (but), "clicked", callback, NULL);
 }
 
@@ -1529,8 +1604,9 @@ setup_create_dark_mode_menu (GtkWidget *table, int row, const setting *set)
 #elif !HAVE_GTK3
 	gtk_misc_set_alignment (GTK_MISC (wid), 0.0, 0.5);
 #endif
-	gtk_table_attach (GTK_TABLE (table), wid, 2, 3, row, row + 1,
-											GTK_SHRINK | GTK_FILL, GTK_SHRINK | GTK_FILL, LABEL_INDENT, 0);
+	setup_table_attach (table, wid, 2, 3, row, row + 1, FALSE, FALSE,
+			    SETUP_ALIGN_START, SETUP_ALIGN_CENTER,
+			    LABEL_INDENT, 0);
 
 	cbox = gtk_combo_box_text_new ();
 
@@ -1548,8 +1624,8 @@ setup_create_dark_mode_menu (GtkWidget *table, int row, const setting *set)
 	box = gtk_hbox_new (0, 0);
 #endif
 	gtk_box_pack_start (GTK_BOX (box), cbox, 0, 0, 0);
-	gtk_table_attach (GTK_TABLE (table), box, 3, 4, row, row + 1,
-											GTK_EXPAND | GTK_FILL, GTK_SHRINK | GTK_FILL, 0, 0);
+	setup_table_attach (table, box, 3, 4, row, row + 1, TRUE, FALSE,
+			    SETUP_ALIGN_FILL, SETUP_ALIGN_FILL, 0, 0);
 
 	return cbox;
 }
@@ -1769,8 +1845,8 @@ setup_create_color_button (GtkWidget *table, int num, int row, int col)
         /* win32 build uses this to turn off themeing */
         g_object_set_data (G_OBJECT (but), "zoitechat-color", (gpointer)1);
         g_object_set_data (G_OBJECT (but), "zoitechat-color-box", box);
-        gtk_table_attach (GTK_TABLE (table), but, col, col+1, row, row+1,
-                                                        GTK_SHRINK, GTK_SHRINK, 0, 0);
+        setup_table_attach (table, but, col, col + 1, row, row + 1, FALSE, FALSE,
+                            SETUP_ALIGN_CENTER, SETUP_ALIGN_CENTER, 0, 0);
         g_signal_connect (G_OBJECT (but), "clicked",
                                                         G_CALLBACK (setup_color_cb), GINT_TO_POINTER (num));
         setup_color_button_apply (but, &colors[num]);
@@ -1791,8 +1867,9 @@ setup_create_other_colorR (char *text, int num, int row, GtkWidget *tab)
 #elif !HAVE_GTK3
         gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
 #endif
-        gtk_table_attach (GTK_TABLE (tab), label, 5, 9, row, row + 1,
-                                                        GTK_SHRINK | GTK_FILL, GTK_SHRINK | GTK_FILL, LABEL_INDENT, 0);
+        setup_table_attach (tab, label, 5, 9, row, row + 1, FALSE, FALSE,
+                            SETUP_ALIGN_START, SETUP_ALIGN_CENTER,
+                            LABEL_INDENT, 0);
         setup_create_color_button (tab, num, row, 9);
 }
 
@@ -1808,8 +1885,9 @@ setup_create_other_color (char *text, int num, int row, GtkWidget *tab)
 #elif !HAVE_GTK3
         gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
 #endif
-        gtk_table_attach (GTK_TABLE (tab), label, 2, 3, row, row + 1,
-                                                        GTK_SHRINK | GTK_FILL, GTK_SHRINK | GTK_FILL, LABEL_INDENT, 0);
+        setup_table_attach (tab, label, 2, 3, row, row + 1, FALSE, FALSE,
+                            SETUP_ALIGN_START, SETUP_ALIGN_CENTER,
+                            LABEL_INDENT, 0);
         setup_create_color_button (tab, num, row, 3);
 }
 
@@ -1843,8 +1921,9 @@ setup_create_color_page (void)
 #elif !HAVE_GTK3
         gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
 #endif
-        gtk_table_attach (GTK_TABLE (tab), label, 2, 3, 1, 2,
-                                                        GTK_SHRINK | GTK_FILL, GTK_SHRINK | GTK_FILL, LABEL_INDENT, 0);
+        setup_table_attach (tab, label, 2, 3, 1, 2, FALSE, FALSE,
+                            SETUP_ALIGN_START, SETUP_ALIGN_CENTER,
+                            LABEL_INDENT, 0);
 
         for (i = 0; i < 16; i++)
                 setup_create_color_button (tab, i, 1, i+3);
@@ -1856,8 +1935,9 @@ setup_create_color_page (void)
 #elif !HAVE_GTK3
         gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
 #endif
-        gtk_table_attach (GTK_TABLE (tab), label, 2, 3, 2, 3,
-                                                        GTK_SHRINK | GTK_FILL, GTK_SHRINK | GTK_FILL, LABEL_INDENT, 0);
+        setup_table_attach (tab, label, 2, 3, 2, 3, FALSE, FALSE,
+                            SETUP_ALIGN_START, SETUP_ALIGN_CENTER,
+                            LABEL_INDENT, 0);
 
         for (i = 16; i < 32; i++)
                 setup_create_color_button (tab, i, 2, (i+3) - 16);
