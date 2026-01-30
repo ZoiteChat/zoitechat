@@ -1640,20 +1640,18 @@ gtk_xtext_scrolldown_timeout (GtkXText * xtext)
 	int p_y, win_height;
 	xtext_buffer *buf = xtext->buffer;
 	GtkAdjustment *adj = xtext->adj;
-#if HAVE_GTK3
-	GdkWindow *window = gtk_widget_get_window (GTK_WIDGET (xtext));
-#endif
+	GdkWindow *window;
 
 #if HAVE_GTK3
+	window = gtk_widget_get_window (GTK_WIDGET (xtext));
+#endif
+#if !HAVE_GTK3
+	window = GTK_WIDGET (xtext)->window;
+#endif
 	if (!window)
 		return 0;
 	gtk_xtext_get_pointer (window, NULL, &p_y, NULL);
 	win_height = gdk_window_get_height (window);
-#endif
-#if !HAVE_GTK3
-	gtk_xtext_get_pointer (GTK_WIDGET (xtext)->window, NULL, &p_y, NULL);
-	win_height = gdk_window_get_height (GTK_WIDGET (xtext)->window);
-#endif
 
 	if (buf->last_ent_end == NULL ||	/* If context has changed OR */
 		 buf->pagetop_ent == NULL ||	/* pagetop_ent is reset OR */
@@ -1685,18 +1683,17 @@ gtk_xtext_scrollup_timeout (GtkXText * xtext)
 	xtext_buffer *buf = xtext->buffer;
 	GtkAdjustment *adj = xtext->adj;
 	int delta_y;
-#if HAVE_GTK3
-	GdkWindow *window = gtk_widget_get_window (GTK_WIDGET (xtext));
-#endif
+	GdkWindow *window;
 
 #if HAVE_GTK3
+	window = gtk_widget_get_window (GTK_WIDGET (xtext));
+#endif
+#if !HAVE_GTK3
+	window = GTK_WIDGET (xtext)->window;
+#endif
 	if (!window)
 		return 0;
 	gtk_xtext_get_pointer (window, NULL, &p_y, NULL);
-#endif
-#if !HAVE_GTK3
-	gtk_xtext_get_pointer (GTK_WIDGET (xtext)->window, NULL, &p_y, NULL);
-#endif
 
 	if (buf->last_ent_start == NULL ||	/* If context has changed OR */
 		 buf->pagetop_ent == NULL ||		/* pagetop_ent is reset OR */
@@ -1733,9 +1730,7 @@ gtk_xtext_selection_update (GtkXText * xtext, GdkEventMotion * event, int p_y, g
 {
 	int win_height;
 	int moved;
-#if HAVE_GTK3
-	GdkWindow *window = gtk_widget_get_window (GTK_WIDGET (xtext));
-#endif
+	GdkWindow *window;
 
 	if (xtext->scroll_tag)
 	{
@@ -1743,13 +1738,14 @@ gtk_xtext_selection_update (GtkXText * xtext, GdkEventMotion * event, int p_y, g
 	}
 
 #if HAVE_GTK3
+	window = gtk_widget_get_window (GTK_WIDGET (xtext));
+#endif
+#if !HAVE_GTK3
+	window = GTK_WIDGET (xtext)->window;
+#endif
 	if (!window)
 		return;
 	win_height = gdk_window_get_height (window);
-#endif
-#if !HAVE_GTK3
-	win_height = gdk_window_get_height (GTK_WIDGET (xtext)->window);
-#endif
 
 	/* selecting past top of window, scroll up! */
 	if (p_y < 0 && xtext->adj->value >= 0)
@@ -3930,20 +3926,18 @@ gtk_xtext_calc_lines (xtext_buffer *buf, int fire_signal)
 	int width;
 	int height;
 	int lines;
-#if HAVE_GTK3
-	GdkWindow *window = gtk_widget_get_window (GTK_WIDGET (buf->xtext));
-#endif
+	GdkWindow *window;
 
 #if HAVE_GTK3
+	window = gtk_widget_get_window (GTK_WIDGET (buf->xtext));
+#endif
+#if !HAVE_GTK3
+	window = GTK_WIDGET (buf->xtext)->window;
+#endif
 	if (!window)
 		return;
 	height = gdk_window_get_height (window);
 	width = gdk_window_get_width (window);
-#endif
-#if !HAVE_GTK3
-	height = gdk_window_get_height (GTK_WIDGET (buf->xtext)->window);
-	width = gdk_window_get_width (GTK_WIDGET (buf->xtext)->window);
-#endif
 	width -= MARGIN;
 
 	if (width < 30 || height < buf->xtext->fontsize || width < buf->indent + 30)
@@ -4033,23 +4027,21 @@ gtk_xtext_render_ents (GtkXText * xtext, textentry * enta, textentry * entb)
 	int height;
 	int subline;
 	int drawing = FALSE;
-#if HAVE_GTK3
-	GdkWindow *window = gtk_widget_get_window (GTK_WIDGET (xtext));
-#endif
+	GdkWindow *window;
 
 	if (xtext->buffer->indent < MARGIN)
 		xtext->buffer->indent = MARGIN;	  /* 2 pixels is our left margin */
 
 #if HAVE_GTK3
+	window = gtk_widget_get_window (GTK_WIDGET (xtext));
+#endif
+#if !HAVE_GTK3
+	window = GTK_WIDGET (xtext)->window;
+#endif
 	if (!window)
 		return 0;
 	height = gdk_window_get_height (window);
 	width = gdk_window_get_width (window);
-#endif
-#if !HAVE_GTK3
-	height = gdk_window_get_height (GTK_WIDGET (xtext)->window);
-	width = gdk_window_get_width (GTK_WIDGET (xtext)->window);
-#endif
 	width -= MARGIN;
 
 	if (width < 32 || height < xtext->fontsize || width < xtext->buffer->indent + 30)
@@ -4130,9 +4122,7 @@ gtk_xtext_render_page (GtkXText * xtext)
 	int subline;
 	int startline = xtext->adj->value;
 	int pos, overlap;
-#if HAVE_GTK3
-	GdkWindow *window = gtk_widget_get_window (GTK_WIDGET (xtext));
-#endif
+	GdkWindow *window;
 
 	if(!gtk_widget_get_realized(GTK_WIDGET(xtext)))
 	  return;
@@ -4141,15 +4131,15 @@ gtk_xtext_render_page (GtkXText * xtext)
 		xtext->buffer->indent = MARGIN;	  /* 2 pixels is our left margin */
 
 #if HAVE_GTK3
+	window = gtk_widget_get_window (GTK_WIDGET (xtext));
+#endif
+#if !HAVE_GTK3
+	window = GTK_WIDGET (xtext)->window;
+#endif
 	if (!window)
 		return;
 	width = gdk_window_get_width (window);
 	height = gdk_window_get_height (window);
-#endif
-#if !HAVE_GTK3
-	width = gdk_window_get_width (GTK_WIDGET (xtext)->window);
-	height = gdk_window_get_height (GTK_WIDGET (xtext)->window);
-#endif
 
 	if (width < 34 || height < xtext->fontsize || width < xtext->buffer->indent + 32)
 		return;
@@ -4495,9 +4485,7 @@ gtk_xtext_check_ent_visibility (GtkXText * xtext, textentry *find_ent, int add)
 	int lines;
 	xtext_buffer *buf = xtext->buffer;
 	int height;
-#if HAVE_GTK3
-	GdkWindow *window = gtk_widget_get_window (GTK_WIDGET (xtext));
-#endif
+	GdkWindow *window;
 
 	if (find_ent == NULL)
 	{
@@ -4505,13 +4493,14 @@ gtk_xtext_check_ent_visibility (GtkXText * xtext, textentry *find_ent, int add)
 	}
 
 #if HAVE_GTK3
+	window = gtk_widget_get_window (GTK_WIDGET (xtext));
+#endif
+#if !HAVE_GTK3
+	window = GTK_WIDGET (xtext)->window;
+#endif
 	if (!window)
 		return FALSE;
 	height = gdk_window_get_height (window);
-#endif
-#if !HAVE_GTK3
-	height = gdk_window_get_height (GTK_WIDGET (xtext)->window);
-#endif
 
 	ent = buf->pagetop_ent;
 	/* If top line not completely displayed return FALSE */
@@ -5350,9 +5339,7 @@ void
 gtk_xtext_buffer_show (GtkXText *xtext, xtext_buffer *buf, int render)
 {
 	int w, h;
-#if HAVE_GTK3
 	GdkWindow *window;
-#endif
 
 	buf->xtext = xtext;
 
@@ -5378,15 +5365,14 @@ gtk_xtext_buffer_show (GtkXText *xtext, xtext_buffer *buf, int render)
 
 #if HAVE_GTK3
 	window = gtk_widget_get_window (GTK_WIDGET (xtext));
+#endif
+#if !HAVE_GTK3
+	window = GTK_WIDGET (xtext)->window;
+#endif
 	if (!window)
 		return;
 	h = gdk_window_get_height (window);
 	w = gdk_window_get_width (window);
-#endif
-#if !HAVE_GTK3
-	h = gdk_window_get_height (GTK_WIDGET (xtext)->window);
-	w = gdk_window_get_width (GTK_WIDGET (xtext)->window);
-#endif
 
 	/* after a font change */
 	if (buf->needs_recalc)
