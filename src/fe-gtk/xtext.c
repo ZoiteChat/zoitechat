@@ -940,6 +940,7 @@ gtk_xtext_size_allocate (GtkWidget * widget, GtkAllocation * allocation)
 {
 	GtkXText *xtext = GTK_XTEXT (widget);
 	int height_only = FALSE;
+	GdkWindow *window;
 
 	if (allocation->width == xtext->buffer->window_width)
 		height_only = TRUE;
@@ -956,17 +957,14 @@ gtk_xtext_size_allocate (GtkWidget * widget, GtkAllocation * allocation)
 		xtext->buffer->window_height = allocation->height;
 
 #if HAVE_GTK3
-		{
-			GdkWindow *window = gtk_widget_get_window (widget);
-			if (window)
-				gdk_window_move_resize (window, allocation->x, allocation->y,
-										allocation->width, allocation->height);
-		}
+		window = gtk_widget_get_window (widget);
 #endif
 #if !HAVE_GTK3
-		gdk_window_move_resize (widget->window, allocation->x, allocation->y,
-								allocation->width, allocation->height);
+		window = widget->window;
 #endif
+		if (window)
+			gdk_window_move_resize (window, allocation->x, allocation->y,
+									allocation->width, allocation->height);
 		dontscroll (xtext->buffer);	/* force scrolling off */
 		if (!height_only)
 			gtk_xtext_calc_lines (xtext->buffer, FALSE);
@@ -1644,8 +1642,7 @@ gtk_xtext_scrolldown_timeout (GtkXText * xtext)
 
 #if HAVE_GTK3
 	window = gtk_widget_get_window (GTK_WIDGET (xtext));
-#endif
-#if !HAVE_GTK3
+#else
 	window = GTK_WIDGET (xtext)->window;
 #endif
 	if (!window)
@@ -1687,8 +1684,7 @@ gtk_xtext_scrollup_timeout (GtkXText * xtext)
 
 #if HAVE_GTK3
 	window = gtk_widget_get_window (GTK_WIDGET (xtext));
-#endif
-#if !HAVE_GTK3
+#else
 	window = GTK_WIDGET (xtext)->window;
 #endif
 	if (!window)
@@ -1739,8 +1735,7 @@ gtk_xtext_selection_update (GtkXText * xtext, GdkEventMotion * event, int p_y, g
 
 #if HAVE_GTK3
 	window = gtk_widget_get_window (GTK_WIDGET (xtext));
-#endif
-#if !HAVE_GTK3
+#else
 	window = GTK_WIDGET (xtext)->window;
 #endif
 	if (!window)
@@ -4034,8 +4029,7 @@ gtk_xtext_render_ents (GtkXText * xtext, textentry * enta, textentry * entb)
 
 #if HAVE_GTK3
 	window = gtk_widget_get_window (GTK_WIDGET (xtext));
-#endif
-#if !HAVE_GTK3
+#else
 	window = GTK_WIDGET (xtext)->window;
 #endif
 	if (!window)
@@ -4132,8 +4126,7 @@ gtk_xtext_render_page (GtkXText * xtext)
 
 #if HAVE_GTK3
 	window = gtk_widget_get_window (GTK_WIDGET (xtext));
-#endif
-#if !HAVE_GTK3
+#else
 	window = GTK_WIDGET (xtext)->window;
 #endif
 	if (!window)
