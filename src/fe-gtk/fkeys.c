@@ -53,6 +53,19 @@
 #include "textgui.h"
 #include "fkeys.h"
 
+#if HAVE_GTK3
+#define ICON_FKEYS_NEW "document-new"
+#define ICON_FKEYS_DELETE "edit-delete"
+#define ICON_FKEYS_CANCEL "dialog-cancel"
+#define ICON_FKEYS_SAVE "document-save"
+#endif
+#if !HAVE_GTK3
+#define ICON_FKEYS_NEW GTK_STOCK_NEW
+#define ICON_FKEYS_DELETE GTK_STOCK_DELETE
+#define ICON_FKEYS_CANCEL GTK_STOCK_CANCEL
+#define ICON_FKEYS_SAVE GTK_STOCK_SAVE
+#endif
+
 static void replace_handle (GtkWidget * wid);
 void key_check_replace_on_change (GtkEditable *editable, gpointer data);
 void key_action_tab_clean (void);
@@ -830,13 +843,13 @@ key_dialog_show ()
 	gtk_box_pack_start (GTK_BOX (vbox), box, FALSE, FALSE, 2);
 	gtk_container_set_border_width (GTK_CONTAINER (box), 5);
 
-	gtkutil_button (box, GTK_STOCK_NEW, NULL, key_dialog_add,
+	gtkutil_button (box, ICON_FKEYS_NEW, NULL, key_dialog_add,
 					NULL, _("Add"));
-	gtkutil_button (box, GTK_STOCK_DELETE, NULL, key_dialog_delete,
+	gtkutil_button (box, ICON_FKEYS_DELETE, NULL, key_dialog_delete,
 					NULL, _("Delete"));
-	gtkutil_button (box, GTK_STOCK_CANCEL, NULL, key_dialog_close,
+	gtkutil_button (box, ICON_FKEYS_CANCEL, NULL, key_dialog_close,
 					NULL, _("Cancel"));
-	gtkutil_button (box, GTK_STOCK_SAVE, NULL, key_dialog_save,
+	gtkutil_button (box, ICON_FKEYS_SAVE, NULL, key_dialog_save,
 					NULL, _("Save"));
 
 	store = GTK_LIST_STORE (gtk_tree_view_get_model (GTK_TREE_VIEW (view)));

@@ -38,6 +38,17 @@
 #include "palette.h"
 #include "textgui.h"
 
+#if HAVE_GTK3
+#define ICON_TEXTEVENT_SAVE_AS "document-save-as"
+#define ICON_TEXTEVENT_OPEN "document-open"
+#define ICON_TEXTEVENT_OK "dialog-ok"
+#endif
+#if !HAVE_GTK3
+#define ICON_TEXTEVENT_SAVE_AS GTK_STOCK_SAVE_AS
+#define ICON_TEXTEVENT_OPEN GTK_STOCK_OPEN
+#define ICON_TEXTEVENT_OK GTK_STOCK_OK
+#endif
+
 extern struct text_event te[];
 extern char *pntevts_text[];
 extern char *pntevts[];
@@ -473,13 +484,13 @@ pevent_dialog_show ()
 	hbox = gtk_hbutton_box_new ();
 	gtk_button_box_set_layout (GTK_BUTTON_BOX (hbox), GTK_BUTTONBOX_SPREAD);
 	gtk_box_pack_start (GTK_BOX (vbox), hbox, FALSE, FALSE, 4);
-	gtkutil_button (hbox, GTK_STOCK_SAVE_AS, NULL, pevent_save_cb,
+	gtkutil_button (hbox, ICON_TEXTEVENT_SAVE_AS, NULL, pevent_save_cb,
 						 (void *) 1, _("Save As..."));
-	gtkutil_button (hbox, GTK_STOCK_OPEN, NULL, pevent_load_cb,
+	gtkutil_button (hbox, ICON_TEXTEVENT_OPEN, NULL, pevent_load_cb,
 						 NULL, _("Load From..."));
 	gtkutil_button (hbox, NULL, NULL, pevent_test_cb,
 						pevent_dialog_twid, _("Test All"));
-	gtkutil_button (hbox, GTK_STOCK_OK, NULL, pevent_ok_cb,
+	gtkutil_button (hbox, ICON_TEXTEVENT_OK, NULL, pevent_ok_cb,
 						NULL, _("OK"));
 
 	gtk_widget_show_all (pevent_dialog);

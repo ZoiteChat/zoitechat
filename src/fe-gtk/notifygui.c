@@ -37,6 +37,19 @@
 #include "palette.h"
 #include "notifygui.h"
 
+#if HAVE_GTK3
+#define ICON_NOTIFY_NEW "document-new"
+#define ICON_NOTIFY_DELETE "edit-delete"
+#define LABEL_NOTIFY_CANCEL _("_Cancel")
+#define LABEL_NOTIFY_OK _("_OK")
+#endif
+#if !HAVE_GTK3
+#define ICON_NOTIFY_NEW GTK_STOCK_NEW
+#define ICON_NOTIFY_DELETE GTK_STOCK_DELETE
+#define LABEL_NOTIFY_CANCEL GTK_STOCK_CANCEL
+#define LABEL_NOTIFY_OK GTK_STOCK_OK
+#endif
+
 
 /* model for the notify treeview */
 enum
@@ -373,8 +386,8 @@ fe_notify_ask (char *nick, char *networks)
 	char buf[256];
 
 	dialog = gtk_dialog_new_with_buttons (msg, NULL, 0,
-										GTK_STOCK_CANCEL, GTK_RESPONSE_REJECT,
-										GTK_STOCK_OK, GTK_RESPONSE_ACCEPT,
+										LABEL_NOTIFY_CANCEL, GTK_RESPONSE_REJECT,
+										LABEL_NOTIFY_OK, GTK_RESPONSE_ACCEPT,
 										NULL);
 	if (parent_window)
 		gtk_window_set_transient_for (GTK_WINDOW (dialog), GTK_WINDOW (parent_window));
@@ -450,11 +463,11 @@ notify_opengui (void)
 	gtk_box_pack_end (GTK_BOX (vbox), bbox, 0, 0, 0);
 	gtk_widget_show (bbox);
 
-	gtkutil_button (bbox, GTK_STOCK_NEW, 0, notify_add_clicked, 0,
+	gtkutil_button (bbox, ICON_NOTIFY_NEW, 0, notify_add_clicked, 0,
 	                _("Add..."));
 
 	notify_button_remove =
-	gtkutil_button (bbox, GTK_STOCK_DELETE, 0, notify_remove_clicked, 0,
+	gtkutil_button (bbox, ICON_NOTIFY_DELETE, 0, notify_remove_clicked, 0,
 	                _("Remove"));
 
 	notify_button_opendialog =

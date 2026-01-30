@@ -31,6 +31,15 @@
 #include "menu.h"
 #include "gtkutil.h"
 
+#if HAVE_GTK3
+#define ICON_TRAY_PREFERENCES "preferences-system"
+#define ICON_TRAY_QUIT "application-exit"
+#endif
+#if !HAVE_GTK3
+#define ICON_TRAY_PREFERENCES GTK_STOCK_PREFERENCES
+#define ICON_TRAY_QUIT GTK_STOCK_QUIT
+#endif
+
 #ifndef WIN32
 #include <unistd.h>
 #endif
@@ -574,9 +583,9 @@ tray_menu_cb (GtkWidget *widget, guint button, guint time, gpointer userdata)
 	menu_add_plugin_items (menu, "\x5$TRAY", NULL);
 
 	tray_make_item (menu, NULL, tray_menu_quit_cb, NULL);
-	mg_create_icon_item (_("_Preferences"), GTK_STOCK_PREFERENCES, menu, tray_menu_settings, NULL);
+	mg_create_icon_item (_("_Preferences"), ICON_TRAY_PREFERENCES, menu, tray_menu_settings, NULL);
 	tray_make_item (menu, NULL, tray_menu_quit_cb, NULL);
-	mg_create_icon_item (_("_Quit"), GTK_STOCK_QUIT, menu, tray_menu_quit_cb, NULL);
+	mg_create_icon_item (_("_Quit"), ICON_TRAY_QUIT, menu, tray_menu_quit_cb, NULL);
 
 	g_object_ref (menu);
 	g_object_ref_sink (menu);

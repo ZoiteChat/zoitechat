@@ -27,6 +27,13 @@ typedef struct
 	GtkWidget *b2;		/* button2 */
 } tabview;
 
+#if HAVE_GTK3
+#define ICON_CHANVIEW_CLOSE "window-close"
+#endif
+#if !HAVE_GTK3
+#define ICON_CHANVIEW_CLOSE GTK_STOCK_CLOSE
+#endif
+
 static void chanview_populate (chanview *cv);
 
 /* ignore "toggled" signal? */
@@ -372,7 +379,7 @@ cv_tabs_init (chanview *cv)
 		gtk_box_pack_start (GTK_BOX (outer), ((tabview *)cv)->b1, 0, 0, 0);
 	}
 
-	button = gtkutil_button (outer, GTK_STOCK_CLOSE, NULL, cv_tabs_xclick_cb,
+	button = gtkutil_button (outer, ICON_CHANVIEW_CLOSE, NULL, cv_tabs_xclick_cb,
 									 cv, 0);
 	gtk_button_set_relief (GTK_BUTTON (button), GTK_RELIEF_NONE);
 	gtk_widget_set_can_focus (button, FALSE);

@@ -42,6 +42,15 @@
 #include "xtext.h"
 #include "fkeys.h"
 
+#if HAVE_GTK3
+#define ICON_RAWLOG_CLEAR "edit-clear"
+#define ICON_RAWLOG_SAVE_AS "document-save-as"
+#endif
+#if !HAVE_GTK3
+#define ICON_RAWLOG_CLEAR GTK_STOCK_CLEAR
+#define ICON_RAWLOG_SAVE_AS GTK_STOCK_SAVE_AS
+#endif
+
 static void
 close_rawlog (GtkWidget *wid, server *serv)
 {
@@ -131,10 +140,10 @@ open_rawlog (struct server *serv)
 	gtk_button_box_set_layout (GTK_BUTTON_BOX (bbox), GTK_BUTTONBOX_SPREAD);
 	gtk_box_pack_end (GTK_BOX (vbox), bbox, 0, 0, 4);
 
-	gtkutil_button (bbox, GTK_STOCK_CLEAR, NULL, rawlog_clearbutton,
+	gtkutil_button (bbox, ICON_RAWLOG_CLEAR, NULL, rawlog_clearbutton,
 						 serv, _("Clear Raw Log"));
 
-	gtkutil_button (bbox, GTK_STOCK_SAVE_AS, NULL, rawlog_savebutton,
+	gtkutil_button (bbox, ICON_RAWLOG_SAVE_AS, NULL, rawlog_savebutton,
 						 serv, _("Save As..."));
 
 	/* Copy selection to clipboard when Ctrl+Shift+C is pressed AND text auto-copy is disabled */

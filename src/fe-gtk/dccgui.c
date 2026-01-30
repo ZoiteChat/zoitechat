@@ -37,6 +37,19 @@
 #include "palette.h"
 #include "maingui.h"
 
+#if HAVE_GTK3
+#define ICON_DCC_CANCEL "dialog-cancel"
+#define ICON_DCC_ACCEPT "dialog-apply"
+#define ICON_DCC_RESUME "view-refresh"
+#define ICON_DCC_CLEAR "edit-clear"
+#endif
+#if !HAVE_GTK3
+#define ICON_DCC_CANCEL GTK_STOCK_CANCEL
+#define ICON_DCC_ACCEPT GTK_STOCK_APPLY
+#define ICON_DCC_RESUME GTK_STOCK_REFRESH
+#define ICON_DCC_CLEAR GTK_STOCK_CLEAR
+#endif
+
 
 enum	/* DCC SEND/RECV */
 {
@@ -899,10 +912,10 @@ fe_dcc_open_recv_win (int passive)
 	gtk_button_box_set_layout (GTK_BUTTON_BOX (bbox), GTK_BUTTONBOX_SPREAD);
 	gtk_box_pack_end (GTK_BOX (vbox), bbox, FALSE, FALSE, 2);
 
-	dccfwin.abort_button = gtkutil_button (bbox, GTK_STOCK_CANCEL, 0, abort_clicked, 0, _("Abort"));
-	dccfwin.accept_button = gtkutil_button (bbox, GTK_STOCK_APPLY, 0, accept_clicked, 0, _("Accept"));
-	dccfwin.resume_button = gtkutil_button (bbox, GTK_STOCK_REFRESH, 0, resume_clicked, 0, _("Resume"));
-	dccfwin.clear_button = gtkutil_button (bbox, GTK_STOCK_CLEAR, 0, clear_completed, 0, _("Clear"));
+	dccfwin.abort_button = gtkutil_button (bbox, ICON_DCC_CANCEL, 0, abort_clicked, 0, _("Abort"));
+	dccfwin.accept_button = gtkutil_button (bbox, ICON_DCC_ACCEPT, 0, accept_clicked, 0, _("Accept"));
+	dccfwin.resume_button = gtkutil_button (bbox, ICON_DCC_RESUME, 0, resume_clicked, 0, _("Resume"));
+	dccfwin.clear_button = gtkutil_button (bbox, ICON_DCC_CLEAR, 0, clear_completed, 0, _("Clear"));
 	dccfwin.open_button = gtkutil_button (bbox, 0, 0, browse_dcc_folder, 0, _("Open Folder..."));
 	gtk_widget_set_sensitive (dccfwin.accept_button, FALSE);
 	gtk_widget_set_sensitive (dccfwin.resume_button, FALSE);
@@ -1100,8 +1113,8 @@ fe_dcc_open_chat_win (int passive)
 	gtk_button_box_set_layout (GTK_BUTTON_BOX (bbox), GTK_BUTTONBOX_SPREAD);
 	gtk_box_pack_end (GTK_BOX (vbox), bbox, FALSE, FALSE, 2);
 
-	dcccwin.abort_button = gtkutil_button (bbox, GTK_STOCK_CANCEL, 0, abort_chat_clicked, 0, _("Abort"));
-	dcccwin.accept_button = gtkutil_button (bbox, GTK_STOCK_APPLY, 0, accept_chat_clicked, 0, _("Accept"));
+	dcccwin.abort_button = gtkutil_button (bbox, ICON_DCC_CANCEL, 0, abort_chat_clicked, 0, _("Abort"));
+	dcccwin.accept_button = gtkutil_button (bbox, ICON_DCC_ACCEPT, 0, accept_chat_clicked, 0, _("Accept"));
 	gtk_widget_set_sensitive (dcccwin.accept_button, FALSE);
 	gtk_widget_set_sensitive (dcccwin.abort_button, FALSE);
 

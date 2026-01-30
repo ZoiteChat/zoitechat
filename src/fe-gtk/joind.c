@@ -40,6 +40,13 @@
 #include "chanlist.h"
 #include "gtkutil.h"
 
+#if HAVE_GTK3
+#define ICON_JOIND_NETWORK "network-workgroup"
+#endif
+#if !HAVE_GTK3
+#define ICON_JOIND_NETWORK GTK_STOCK_NETWORK
+#endif
+
 
 static void
 joind_radio2_cb (GtkWidget *radio, server *serv)
@@ -158,7 +165,7 @@ joind_show_dialog (server *serv)
 	gtk_widget_show (hbox1);
 	gtk_box_pack_start (GTK_BOX (vbox1), hbox1, TRUE, TRUE, 0);
 
-	image1 = gtkutil_image_new_from_stock (GTK_STOCK_NETWORK, GTK_ICON_SIZE_LARGE_TOOLBAR);
+	image1 = gtkutil_image_new_from_stock (ICON_JOIND_NETWORK, GTK_ICON_SIZE_LARGE_TOOLBAR);
 	gtk_widget_show (image1);
 	gtk_box_pack_start (GTK_BOX (hbox1), image1, FALSE, TRUE, 24);
 #if HAVE_GTK3
