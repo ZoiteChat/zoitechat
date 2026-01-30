@@ -172,100 +172,100 @@ xtext_set_source_color (cairo_t *cr, const XTextColor *color, gdouble alpha)
 static inline gdouble
 xtext_adj_get_value (GtkAdjustment *adj)
 {
-#if HAVE_GTK3
-	return gtk_adjustment_get_value (adj);
-#else
+#if !HAVE_GTK3
 	return adj->value;
+#else
+	return gtk_adjustment_get_value (adj);
 #endif
 }
 
 static inline void
 xtext_adj_set_value (GtkAdjustment *adj, gdouble value)
 {
-#if HAVE_GTK3
-	gtk_adjustment_set_value (adj, value);
-#else
+#if !HAVE_GTK3
 	adj->value = value;
+#else
+	gtk_adjustment_set_value (adj, value);
 #endif
 }
 
 static inline gdouble
 xtext_adj_get_upper (GtkAdjustment *adj)
 {
-#if HAVE_GTK3
-	return gtk_adjustment_get_upper (adj);
-#else
+#if !HAVE_GTK3
 	return adj->upper;
+#else
+	return gtk_adjustment_get_upper (adj);
 #endif
 }
 
 static inline void
 xtext_adj_set_upper (GtkAdjustment *adj, gdouble upper)
 {
-#if HAVE_GTK3
-	gtk_adjustment_set_upper (adj, upper);
-#else
+#if !HAVE_GTK3
 	adj->upper = upper;
+#else
+	gtk_adjustment_set_upper (adj, upper);
 #endif
 }
 
 static inline gdouble
 xtext_adj_get_lower (GtkAdjustment *adj)
 {
-#if HAVE_GTK3
-	return gtk_adjustment_get_lower (adj);
-#else
+#if !HAVE_GTK3
 	return adj->lower;
+#else
+	return gtk_adjustment_get_lower (adj);
 #endif
 }
 
 static inline void
 xtext_adj_set_lower (GtkAdjustment *adj, gdouble lower)
 {
-#if HAVE_GTK3
-	gtk_adjustment_set_lower (adj, lower);
-#else
+#if !HAVE_GTK3
 	adj->lower = lower;
+#else
+	gtk_adjustment_set_lower (adj, lower);
 #endif
 }
 
 static inline gdouble
 xtext_adj_get_page_size (GtkAdjustment *adj)
 {
-#if HAVE_GTK3
-	return gtk_adjustment_get_page_size (adj);
-#else
+#if !HAVE_GTK3
 	return adj->page_size;
+#else
+	return gtk_adjustment_get_page_size (adj);
 #endif
 }
 
 static inline void
 xtext_adj_set_page_size (GtkAdjustment *adj, gdouble page_size)
 {
-#if HAVE_GTK3
-	gtk_adjustment_set_page_size (adj, page_size);
-#else
+#if !HAVE_GTK3
 	adj->page_size = page_size;
+#else
+	gtk_adjustment_set_page_size (adj, page_size);
 #endif
 }
 
 static inline gdouble
 xtext_adj_get_page_increment (GtkAdjustment *adj)
 {
-#if HAVE_GTK3
-	return gtk_adjustment_get_page_increment (adj);
-#else
+#if !HAVE_GTK3
 	return adj->page_increment;
+#else
+	return gtk_adjustment_get_page_increment (adj);
 #endif
 }
 
 static inline void
 xtext_adj_set_page_increment (GtkAdjustment *adj, gdouble page_increment)
 {
-#if HAVE_GTK3
-	gtk_adjustment_set_page_increment (adj, page_increment);
-#else
+#if !HAVE_GTK3
 	adj->page_increment = page_increment;
+#else
+	gtk_adjustment_set_page_increment (adj, page_increment);
 #endif
 }
 
