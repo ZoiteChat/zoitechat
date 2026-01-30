@@ -39,6 +39,21 @@
 #define SERVLIST_X_PADDING 4			/* horizontal paddig in the network editor */
 #define SERVLIST_Y_PADDING 0			/* vertical padding in the network editor */
 
+#if HAVE_GTK3
+#define ICON_SERVLIST_CONNECT "network-connect"
+#define ICON_SERVLIST_ADD "list-add"
+#define ICON_SERVLIST_REMOVE "list-remove"
+#define ICON_SERVLIST_CLOSE "window-close"
+#define ICON_SERVLIST_ERROR "dialog-error"
+#endif
+#if !HAVE_GTK3
+#define ICON_SERVLIST_CONNECT GTK_STOCK_CONNECT
+#define ICON_SERVLIST_ADD GTK_STOCK_ADD
+#define ICON_SERVLIST_REMOVE GTK_STOCK_REMOVE
+#define ICON_SERVLIST_CLOSE GTK_STOCK_CLOSE
+#define ICON_SERVLIST_ERROR GTK_STOCK_DIALOG_ERROR
+#endif
+
 #ifdef USE_OPENSSL
 # define DEFAULT_SERVER "newserver/6697"
 #else
@@ -91,6 +106,22 @@ static session *servlist_sess;
 
 static void servlist_network_row_cb (GtkTreeSelection *sel, gpointer user_data);
 static GtkWidget *servlist_open_edit (GtkWidget *parent, ircnet *net);
+
+#if HAVE_GTK3
+static GtkWidget *
+servlist_icon_button_new (const char *label, const char *icon_name)
+{
+	GtkWidget *button;
+	GtkWidget *image;
+
+	button = gtk_button_new_with_mnemonic (label);
+	image = gtk_image_new_from_icon_name (icon_name, GTK_ICON_SIZE_BUTTON);
+	gtk_button_set_image (GTK_BUTTON (button), image);
+	gtk_button_set_always_show_image (GTK_BUTTON (button), TRUE);
+
+	return button;
+}
+#endif
 
 
 static const char *pages[]=
@@ -1569,7 +1600,7 @@ servlist_username_changed_cb (GtkEntry *entry, gpointer userdata)
 	if (gtk_entry_get_text (entry)[0] == 0)
 	{
 #if HAVE_GTK3
-		gtk_entry_set_icon_from_icon_name (entry, GTK_ENTRY_ICON_SECONDARY, "dialog-error");
+		gtk_entry_set_icon_from_icon_name (entry, GTK_ENTRY_ICON_SECONDARY, ICON_SERVLIST_ERROR);
 #endif
 #if !HAVE_GTK3
 		gtk_entry_set_icon_from_stock (entry, GTK_ENTRY_ICON_SECONDARY, GTK_STOCK_DIALOG_ERROR);
@@ -1601,7 +1632,7 @@ servlist_nick_changed_cb (GtkEntry *entry, gpointer userdata)
 	{
 		entry = GTK_ENTRY(!nick1[0] ? entry_nick1 : entry_nick2);
 #if HAVE_GTK3
-		gtk_entry_set_icon_from_icon_name (entry, GTK_ENTRY_ICON_SECONDARY, "dialog-error");
+		gtk_entry_set_icon_from_icon_name (entry, GTK_ENTRY_ICON_SECONDARY, ICON_SERVLIST_ERROR);
 #endif
 #if !HAVE_GTK3
 		gtk_entry_set_icon_from_stock (entry, GTK_ENTRY_ICON_SECONDARY, GTK_STOCK_DIALOG_ERROR);
@@ -1613,7 +1644,7 @@ servlist_nick_changed_cb (GtkEntry *entry, gpointer userdata)
 	else if (!rfc_casecmp (nick1, nick2))
 	{
 #if HAVE_GTK3
-		gtk_entry_set_icon_from_icon_name (entry, GTK_ENTRY_ICON_SECONDARY, "dialog-error");
+		gtk_entry_set_icon_from_icon_name (entry, GTK_ENTRY_ICON_SECONDARY, ICON_SERVLIST_ERROR);
 #endif
 #if !HAVE_GTK3
 		gtk_entry_set_icon_from_stock (entry, GTK_ENTRY_ICON_SECONDARY, GTK_STOCK_DIALOG_ERROR);
@@ -1895,12 +1926,10 @@ servlist_open_edit (GtkWidget *parent, ircnet *net)
 	gtk_box_pack_start (GTK_BOX (hbox1), vbuttonbox1, FALSE, FALSE, 3);
 
 #if HAVE_GTK3
-	buttonadd = gtk_button_new_with_mnemonic (_("_Add"));
-	gtk_button_set_image (GTK_BUTTON (buttonadd),
-								gtk_image_new_from_icon_name ("list-add", GTK_ICON_SIZE_BUTTON));
+	buttonadd = servlist_icon_button_new (_("_Add"), ICON_SERVLIST_ADD);
 #endif
 #if !HAVE_GTK3
-	buttonadd = gtk_button_new_from_stock ("gtk-add");
+	buttonadd = gtk_button_new_from_stock (GTK_STOCK_ADD);
 #endif
 	g_signal_connect (G_OBJECT (buttonadd), "clicked",
 							G_CALLBACK (servlist_addbutton_cb), notebook);
@@ -1908,12 +1937,10 @@ servlist_open_edit (GtkWidget *parent, ircnet *net)
 	gtk_widget_set_can_default (buttonadd, TRUE);
 
 #if HAVE_GTK3
-	buttonremove = gtk_button_new_with_mnemonic (_("_Remove"));
-	gtk_button_set_image (GTK_BUTTON (buttonremove),
-								gtk_image_new_from_icon_name ("list-remove", GTK_ICON_SIZE_BUTTON));
+	buttonremove = servlist_icon_button_new (_("_Remove"), ICON_SERVLIST_REMOVE);
 #endif
 #if !HAVE_GTK3
-	buttonremove = gtk_button_new_from_stock ("gtk-remove");
+	buttonremove = gtk_button_new_from_stock (GTK_STOCK_REMOVE);
 #endif
 	g_signal_connect (G_OBJECT (buttonremove), "clicked",
 							G_CALLBACK (servlist_deletebutton_cb), notebook);
@@ -1989,12 +2016,10 @@ servlist_open_edit (GtkWidget *parent, ircnet *net)
 	gtk_button_box_set_layout (GTK_BUTTON_BOX (hbuttonbox4), GTK_BUTTONBOX_END);
 
 #if HAVE_GTK3
-	button10 = gtk_button_new_with_mnemonic (_("_Close"));
-	gtk_button_set_image (GTK_BUTTON (button10),
-								gtk_image_new_from_icon_name ("window-close", GTK_ICON_SIZE_BUTTON));
+	button10 = servlist_icon_button_new (_("_Close"), ICON_SERVLIST_CLOSE);
 #endif
 #if !HAVE_GTK3
-	button10 = gtk_button_new_from_stock ("gtk-close");
+	button10 = gtk_button_new_from_stock (GTK_STOCK_CLOSE);
 #endif
 	g_signal_connect (G_OBJECT (button10), "clicked",
 							G_CALLBACK (servlist_edit_close_cb), 0);
@@ -2263,12 +2288,10 @@ servlist_open_networks (void)
 							(GtkAttachOptions) (GTK_FILL), 0, 0);
 
 #if HAVE_GTK3
-	button_add = gtk_button_new_with_mnemonic (_("_Add"));
-	gtk_button_set_image (GTK_BUTTON (button_add),
-								gtk_image_new_from_icon_name ("list-add", GTK_ICON_SIZE_BUTTON));
+	button_add = servlist_icon_button_new (_("_Add"), ICON_SERVLIST_ADD);
 #endif
 #if !HAVE_GTK3
-	button_add = gtk_button_new_from_stock ("gtk-add");
+	button_add = gtk_button_new_from_stock (GTK_STOCK_ADD);
 #endif
 	g_signal_connect (G_OBJECT (button_add), "clicked",
 							G_CALLBACK (servlist_addnet_cb), networks_tree);
@@ -2277,12 +2300,10 @@ servlist_open_networks (void)
 	gtk_widget_set_can_default (button_add, TRUE);
 
 #if HAVE_GTK3
-	button_remove = gtk_button_new_with_mnemonic (_("_Remove"));
-	gtk_button_set_image (GTK_BUTTON (button_remove),
-								gtk_image_new_from_icon_name ("list-remove", GTK_ICON_SIZE_BUTTON));
+	button_remove = servlist_icon_button_new (_("_Remove"), ICON_SERVLIST_REMOVE);
 #endif
 #if !HAVE_GTK3
-	button_remove = gtk_button_new_from_stock ("gtk-remove");
+	button_remove = gtk_button_new_from_stock (GTK_STOCK_REMOVE);
 #endif
 	g_signal_connect (G_OBJECT (button_remove), "clicked",
 							G_CALLBACK (servlist_deletenet_cb), 0);
@@ -2324,12 +2345,10 @@ servlist_open_networks (void)
 	gtk_container_set_border_width (GTK_CONTAINER (hbuttonbox1), 8);
 
 #if HAVE_GTK3
-	button_close = gtk_button_new_with_mnemonic (_("_Close"));
-	gtk_button_set_image (GTK_BUTTON (button_close),
-								gtk_image_new_from_icon_name ("window-close", GTK_ICON_SIZE_BUTTON));
+	button_close = servlist_icon_button_new (_("_Close"), ICON_SERVLIST_CLOSE);
 #endif
 #if !HAVE_GTK3
-	button_close = gtk_button_new_from_stock ("gtk-close");
+	button_close = gtk_button_new_from_stock (GTK_STOCK_CLOSE);
 #endif
 	gtk_widget_show (button_close);
 	g_signal_connect (G_OBJECT (button_close), "clicked",
@@ -2337,7 +2356,7 @@ servlist_open_networks (void)
 	gtk_container_add (GTK_CONTAINER (hbuttonbox1), button_close);
 	gtk_widget_set_can_default (button_close, TRUE);
 
-	button_connect = gtkutil_button (hbuttonbox1, GTK_STOCK_CONNECT, NULL,
+button_connect = gtkutil_button (hbuttonbox1, ICON_SERVLIST_CONNECT, NULL,
 												servlist_connect_cb, NULL, _("C_onnect"));
 	gtk_widget_set_can_default (button_connect, TRUE);
 

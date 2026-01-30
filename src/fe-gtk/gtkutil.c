@@ -384,21 +384,37 @@ gtkutil_file_req (GtkWindow *parent, const char *title, void *callback, void *us
 
 	if (flags & FRF_WRITE)
 	{
+#if HAVE_GTK3
+		dialog = gtk_file_chooser_dialog_new (title, NULL,
+												GTK_FILE_CHOOSER_ACTION_SAVE,
+												_("_Cancel"), GTK_RESPONSE_CANCEL,
+												_("_Save"), GTK_RESPONSE_ACCEPT,
+												NULL);
+#elif !HAVE_GTK3
 		dialog = gtk_file_chooser_dialog_new (title, NULL,
 												GTK_FILE_CHOOSER_ACTION_SAVE,
 												GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
 												GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT,
 												NULL);
+#endif
 
 		if (!(flags & FRF_NOASKOVERWRITE))
 			gtk_file_chooser_set_do_overwrite_confirmation (GTK_FILE_CHOOSER (dialog), TRUE);
 	}
 	else
+#if HAVE_GTK3
+		dialog = gtk_file_chooser_dialog_new (title, NULL,
+												GTK_FILE_CHOOSER_ACTION_OPEN,
+												_("_Cancel"), GTK_RESPONSE_CANCEL,
+												_("_Open"), GTK_RESPONSE_ACCEPT,
+												NULL);
+#elif !HAVE_GTK3
 		dialog = gtk_file_chooser_dialog_new (title, NULL,
 												GTK_FILE_CHOOSER_ACTION_OPEN,
 												GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
 												GTK_STOCK_OK, GTK_RESPONSE_ACCEPT,
 												NULL);
+#endif
 
 	if (filter && filter[0] && (flags & FRF_FILTERISINITIAL))
 	{
@@ -537,10 +553,17 @@ fe_get_str (char *msg, char *def, void *callback, void *userdata)
 	GtkWidget *label;
 	extern GtkWidget *parent_window;
 
+#if HAVE_GTK3
+	dialog = gtk_dialog_new_with_buttons (msg, NULL, 0,
+										_("_Cancel"), GTK_RESPONSE_REJECT,
+										_("_OK"), GTK_RESPONSE_ACCEPT,
+										NULL);
+#elif !HAVE_GTK3
 	dialog = gtk_dialog_new_with_buttons (msg, NULL, 0,
 										GTK_STOCK_CANCEL, GTK_RESPONSE_REJECT,
 										GTK_STOCK_OK, GTK_RESPONSE_ACCEPT,
 										NULL);
+#endif
 
 	gtk_window_set_transient_for (GTK_WINDOW (dialog), GTK_WINDOW (parent_window));
 	gtk_box_set_homogeneous (GTK_BOX (gtk_dialog_get_content_area (GTK_DIALOG (dialog))), TRUE);
@@ -637,10 +660,17 @@ fe_get_int (char *msg, int def, void *callback, void *userdata)
 	GtkAdjustment *adj;
 	extern GtkWidget *parent_window;
 
+#if HAVE_GTK3
+	dialog = gtk_dialog_new_with_buttons (msg, NULL, 0,
+										_("_Cancel"), GTK_RESPONSE_REJECT,
+										_("_OK"), GTK_RESPONSE_ACCEPT,
+										NULL);
+#elif !HAVE_GTK3
 	dialog = gtk_dialog_new_with_buttons (msg, NULL, 0,
 										GTK_STOCK_CANCEL, GTK_RESPONSE_REJECT,
 										GTK_STOCK_OK, GTK_RESPONSE_ACCEPT,
 										NULL);
+#endif
 	gtk_box_set_homogeneous (GTK_BOX (gtk_dialog_get_content_area (GTK_DIALOG (dialog))), TRUE);
 	gtk_window_set_position (GTK_WINDOW (dialog), GTK_WIN_POS_MOUSE);
 	gtk_window_set_transient_for (GTK_WINDOW (dialog), GTK_WINDOW (parent_window));
@@ -682,10 +712,17 @@ fe_get_bool (char *title, char *prompt, void *callback, void *userdata)
 	GtkWidget *prompt_label;
 	extern GtkWidget *parent_window;
 
+#if HAVE_GTK3
+	dialog = gtk_dialog_new_with_buttons (title, NULL, 0,
+		_("_No"), GTK_RESPONSE_REJECT,
+		_("_Yes"), GTK_RESPONSE_ACCEPT,
+		NULL);
+#elif !HAVE_GTK3
 	dialog = gtk_dialog_new_with_buttons (title, NULL, 0,
 		GTK_STOCK_NO, GTK_RESPONSE_REJECT,
 		GTK_STOCK_YES, GTK_RESPONSE_ACCEPT,
 		NULL);
+#endif
 	gtk_box_set_homogeneous (GTK_BOX (gtk_dialog_get_content_area (GTK_DIALOG (dialog))), TRUE);
 	gtk_window_set_position (GTK_WINDOW (dialog), GTK_WIN_POS_MOUSE);
 	gtk_window_set_transient_for (GTK_WINDOW (dialog), GTK_WINDOW (parent_window));

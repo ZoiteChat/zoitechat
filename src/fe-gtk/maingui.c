@@ -60,6 +60,21 @@
 #include <windows.h>
 #endif
 
+#if HAVE_GTK3
+#define ICON_TAB_DETACH "edit-redo"
+#define ICON_TAB_CLOSE "window-close"
+#define ICON_TAB_PREVIOUS "go-previous"
+#define ICON_TAB_NEXT "go-next"
+#define ICON_ENTRY_ERROR "dialog-error"
+#endif
+#if !HAVE_GTK3
+#define ICON_TAB_DETACH GTK_STOCK_REDO
+#define ICON_TAB_CLOSE GTK_STOCK_CLOSE
+#define ICON_TAB_PREVIOUS GTK_STOCK_GO_BACK
+#define ICON_TAB_NEXT GTK_STOCK_GO_FORWARD
+#define ICON_ENTRY_ERROR GTK_STOCK_DIALOG_ERROR
+#endif
+
 #define GUI_SPACING (3)
 #define GUI_BORDER (0)
 
@@ -1822,9 +1837,9 @@ mg_create_tabmenu (session *sess, GdkEventButton *event, chan *ch)
                         menu_addconnectmenu (sess->server, menu);
         }
 
-        mg_create_icon_item (_("_Detach"), GTK_STOCK_REDO, menu,
+        mg_create_icon_item (_("_Detach"), ICON_TAB_DETACH, menu,
                                                                 mg_detach_tab_cb, ch);
-        mg_create_icon_item (_("_Close"), GTK_STOCK_CLOSE, menu,
+        mg_create_icon_item (_("_Close"), ICON_TAB_CLOSE, menu,
                                                                 mg_destroy_tab_cb, ch);
         if (sess && tabmenu_list)
                 menu_create (menu, tabmenu_list, sess->channel, FALSE);
@@ -2347,11 +2362,11 @@ mg_create_chanmodebuttons (session_gui *gui, GtkWidget *box)
 /*static void
 mg_create_link_buttons (GtkWidget *box, gpointer userdata)
 {
-        gtkutil_button (box, GTK_STOCK_CLOSE, _("Close this tab/window"),
+        gtkutil_button (box, ICON_TAB_CLOSE, _("Close this tab/window"),
                                                  mg_x_click_cb, userdata, 0);
 
         if (!userdata)
-        gtkutil_button (box, GTK_STOCK_REDO, _("Attach/Detach this tab"),
+        gtkutil_button (box, ICON_TAB_DETACH, _("Attach/Detach this tab"),
                                                  mg_link_cb, userdata, 0);
 }*/
 
@@ -3297,7 +3312,7 @@ search_handle_event(int search_type, session *sess)
         if (err)
         {
 #if HAVE_GTK3
-                gtk_entry_set_icon_from_icon_name (GTK_ENTRY (sess->gui->shentry), GTK_ENTRY_ICON_SECONDARY, "dialog-error");
+                gtk_entry_set_icon_from_icon_name (GTK_ENTRY (sess->gui->shentry), GTK_ENTRY_ICON_SECONDARY, ICON_ENTRY_ERROR);
 #endif
 #if !HAVE_GTK3
                 gtk_entry_set_icon_from_stock (GTK_ENTRY (sess->gui->shentry), GTK_ENTRY_ICON_SECONDARY, GTK_STOCK_DIALOG_ERROR);
@@ -3323,7 +3338,7 @@ search_handle_event(int search_type, session *sess)
                         if (!last) /* Not found error */
                         {
 #if HAVE_GTK3
-                                gtk_entry_set_icon_from_icon_name (GTK_ENTRY (sess->gui->shentry), GTK_ENTRY_ICON_SECONDARY, "dialog-error");
+                                gtk_entry_set_icon_from_icon_name (GTK_ENTRY (sess->gui->shentry), GTK_ENTRY_ICON_SECONDARY, ICON_ENTRY_ERROR);
 #endif
 #if !HAVE_GTK3
                                 gtk_entry_set_icon_from_stock (GTK_ENTRY (sess->gui->shentry), GTK_ENTRY_ICON_SECONDARY, GTK_STOCK_DIALOG_ERROR);
@@ -3419,7 +3434,7 @@ mg_create_search(session *sess, GtkWidget *box)
 
         close = gtk_button_new ();
 #if HAVE_GTK3
-        gtk_button_set_image (GTK_BUTTON (close), gtk_image_new_from_icon_name ("window-close", GTK_ICON_SIZE_MENU));
+        gtk_button_set_image (GTK_BUTTON (close), gtk_image_new_from_icon_name (ICON_TAB_CLOSE, GTK_ICON_SIZE_MENU));
 #endif
 #if !HAVE_GTK3
         gtk_button_set_image (GTK_BUTTON (close), gtk_image_new_from_stock (GTK_STOCK_CLOSE, GTK_ICON_SIZE_MENU));
@@ -3444,7 +3459,7 @@ mg_create_search(session *sess, GtkWidget *box)
 
         previous = gtk_button_new ();
 #if HAVE_GTK3
-        gtk_button_set_image (GTK_BUTTON (previous), gtk_image_new_from_icon_name ("go-previous", GTK_ICON_SIZE_MENU));
+        gtk_button_set_image (GTK_BUTTON (previous), gtk_image_new_from_icon_name (ICON_TAB_PREVIOUS, GTK_ICON_SIZE_MENU));
 #endif
 #if !HAVE_GTK3
         gtk_button_set_image (GTK_BUTTON (previous), gtk_image_new_from_stock (GTK_STOCK_GO_BACK, GTK_ICON_SIZE_MENU));
@@ -3456,7 +3471,7 @@ mg_create_search(session *sess, GtkWidget *box)
 
         next = gtk_button_new ();
 #if HAVE_GTK3
-        gtk_button_set_image (GTK_BUTTON (next), gtk_image_new_from_icon_name ("go-next", GTK_ICON_SIZE_MENU));
+        gtk_button_set_image (GTK_BUTTON (next), gtk_image_new_from_icon_name (ICON_TAB_NEXT, GTK_ICON_SIZE_MENU));
 #endif
 #if !HAVE_GTK3
         gtk_button_set_image (GTK_BUTTON (next), gtk_image_new_from_stock (GTK_STOCK_GO_FORWARD, GTK_ICON_SIZE_MENU));

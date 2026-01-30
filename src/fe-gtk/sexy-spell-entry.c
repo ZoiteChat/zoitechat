@@ -55,7 +55,8 @@
 #define ICON_ADD "list-add"
 #define ICON_REMOVE "list-remove"
 #define ICON_SPELL_CHECK "tools-check-spelling"
-#else
+#endif
+#if !HAVE_GTK3
 #define ICON_ADD GTK_STOCK_ADD
 #define ICON_REMOVE GTK_STOCK_REMOVE
 #define ICON_SPELL_CHECK GTK_STOCK_SPELL_CHECK
