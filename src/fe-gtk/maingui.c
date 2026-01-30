@@ -1403,6 +1403,10 @@ mg_open_quit_dialog (gboolean minimize_button)
 #endif
         gtk_widget_show (image);
 #if HAVE_GTK3
+        gtk_widget_set_hexpand (image, FALSE);
+        gtk_widget_set_vexpand (image, FALSE);
+        gtk_widget_set_halign (image, GTK_ALIGN_FILL);
+        gtk_widget_set_valign (image, GTK_ALIGN_FILL);
         gtk_grid_attach (GTK_GRID (table1), image, 0, 0, 1, 1);
 #else
         gtk_table_attach (GTK_TABLE (table1), image, 0, 1, 0, 1,
@@ -1413,10 +1417,11 @@ mg_open_quit_dialog (gboolean minimize_button)
         checkbutton1 = gtk_check_button_new_with_mnemonic (_("Don't ask next time."));
         gtk_widget_show (checkbutton1);
 #if HAVE_GTK3
-        gtk_grid_attach (GTK_GRID (table1), checkbutton1, 0, 1, 2, 1);
         gtk_widget_set_hexpand (checkbutton1, TRUE);
+        gtk_widget_set_vexpand (checkbutton1, FALSE);
         gtk_widget_set_halign (checkbutton1, GTK_ALIGN_FILL);
         gtk_widget_set_valign (checkbutton1, GTK_ALIGN_CENTER);
+        gtk_grid_attach (GTK_GRID (table1), checkbutton1, 0, 1, 2, 1);
 #else
         gtk_table_attach (GTK_TABLE (table1), checkbutton1, 0, 2, 1, 2,
                                                         (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
@@ -1434,9 +1439,9 @@ mg_open_quit_dialog (gboolean minimize_button)
         gtk_widget_show (label);
         mg_set_label_alignment_start (label);
 #if HAVE_GTK3
-        gtk_grid_attach (GTK_GRID (table1), label, 1, 0, 1, 1);
         gtk_widget_set_hexpand (label, TRUE);
         gtk_widget_set_vexpand (label, TRUE);
+        gtk_grid_attach (GTK_GRID (table1), label, 1, 0, 1, 1);
 #else
         gtk_table_attach (GTK_TABLE (table1), label, 1, 2, 0, 1,
                                                         (GtkAttachOptions) (GTK_EXPAND | GTK_SHRINK | GTK_FILL),
@@ -1971,11 +1976,11 @@ mg_userlist_button (GtkWidget * box, char *label, char *cmd,
         g_signal_connect (G_OBJECT (wid), "clicked",
                                                         G_CALLBACK (userlist_button_cb), cmd);
 #if HAVE_GTK3
-        gtk_grid_attach (GTK_GRID (box), wid, a, c, b - a, d - c);
         gtk_widget_set_hexpand (wid, TRUE);
         gtk_widget_set_vexpand (wid, TRUE);
         gtk_widget_set_halign (wid, GTK_ALIGN_FILL);
         gtk_widget_set_valign (wid, GTK_ALIGN_FILL);
+        gtk_grid_attach (GTK_GRID (box), wid, a, c, b - a, d - c);
 #else
         gtk_table_attach_defaults (GTK_TABLE (box), wid, a, b, c, d);
 #endif
@@ -2962,6 +2967,10 @@ mg_place_userlist_and_chanview_real (session_gui *gui, GtkWidget *userlist, GtkW
                 case POS_TOP:
 #if HAVE_GTK3
                         gtk_widget_set_margin_bottom (chanview, GUI_SPACING - 1);
+                        gtk_widget_set_hexpand (chanview, FALSE);
+                        gtk_widget_set_vexpand (chanview, FALSE);
+                        gtk_widget_set_halign (chanview, GTK_ALIGN_FILL);
+                        gtk_widget_set_valign (chanview, GTK_ALIGN_FILL);
                         gtk_grid_attach (GTK_GRID (gui->main_table), chanview,
                                                                         1, 1, 1, 1);
 #else
@@ -2975,6 +2984,10 @@ mg_place_userlist_and_chanview_real (session_gui *gui, GtkWidget *userlist, GtkW
                         /* always attach it to something to avoid ref_count=0 */
                         if (prefs.hex_gui_ulist_pos == POS_TOP)
 #if HAVE_GTK3
+                                gtk_widget_set_hexpand (chanview, FALSE);
+                                gtk_widget_set_vexpand (chanview, FALSE);
+                                gtk_widget_set_halign (chanview, GTK_ALIGN_FILL);
+                                gtk_widget_set_valign (chanview, GTK_ALIGN_FILL);
                                 gtk_grid_attach (GTK_GRID (gui->main_table), chanview,
                                                                                 1, 3, 1, 1);
 #else
@@ -2984,6 +2997,10 @@ mg_place_userlist_and_chanview_real (session_gui *gui, GtkWidget *userlist, GtkW
 
                         else
 #if HAVE_GTK3
+                                gtk_widget_set_hexpand (chanview, FALSE);
+                                gtk_widget_set_vexpand (chanview, FALSE);
+                                gtk_widget_set_halign (chanview, GTK_ALIGN_FILL);
+                                gtk_widget_set_valign (chanview, GTK_ALIGN_FILL);
                                 gtk_grid_attach (GTK_GRID (gui->main_table), chanview,
                                                                                 1, 1, 1, 1);
 #else
@@ -2994,6 +3011,10 @@ mg_place_userlist_and_chanview_real (session_gui *gui, GtkWidget *userlist, GtkW
                 default:/* POS_BOTTOM */
 #if HAVE_GTK3
                         gtk_widget_set_margin_top (chanview, 3);
+                        gtk_widget_set_hexpand (chanview, FALSE);
+                        gtk_widget_set_vexpand (chanview, FALSE);
+                        gtk_widget_set_halign (chanview, GTK_ALIGN_FILL);
+                        gtk_widget_set_valign (chanview, GTK_ALIGN_FILL);
                         gtk_grid_attach (GTK_GRID (gui->main_table), chanview,
                                                                         1, 3, 1, 1);
 #else
@@ -3660,9 +3681,11 @@ mg_create_menu (session_gui *gui, GtkWidget *table, int away_state)
         gui->menu = menu_create_main (accel_group, TRUE, away_state, !gui->is_tab,
                                                                                         gui->menu_item);
 #if HAVE_GTK3
-        gtk_grid_attach (GTK_GRID (table), gui->menu, 0, 0, 3, 1);
         gtk_widget_set_hexpand (gui->menu, TRUE);
+        gtk_widget_set_vexpand (gui->menu, FALSE);
         gtk_widget_set_halign (gui->menu, GTK_ALIGN_FILL);
+        gtk_widget_set_valign (gui->menu, GTK_ALIGN_FILL);
+        gtk_grid_attach (GTK_GRID (table), gui->menu, 0, 0, 3, 1);
 #else
         gtk_table_attach (GTK_TABLE (table), gui->menu, 0, 3, 0, 1,
                                                    GTK_EXPAND | GTK_FILL, GTK_SHRINK | GTK_FILL, 0, 0);
@@ -3677,9 +3700,11 @@ mg_create_irctab (session *sess, GtkWidget *table)
 
         vbox = mg_box_new (GTK_ORIENTATION_VERTICAL, FALSE, 0);
 #if HAVE_GTK3
-        gtk_grid_attach (GTK_GRID (table), vbox, 1, 2, 1, 1);
         gtk_widget_set_hexpand (vbox, TRUE);
         gtk_widget_set_vexpand (vbox, TRUE);
+        gtk_widget_set_halign (vbox, GTK_ALIGN_FILL);
+        gtk_widget_set_valign (vbox, GTK_ALIGN_FILL);
+        gtk_grid_attach (GTK_GRID (table), vbox, 1, 2, 1, 1);
 #else
         gtk_table_attach (GTK_TABLE (table), vbox, 1, 2, 2, 3,
                                                    GTK_EXPAND | GTK_FILL, GTK_EXPAND | GTK_FILL, 0, 0);

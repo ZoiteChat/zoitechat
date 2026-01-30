@@ -94,6 +94,22 @@ chanlist_set_label_alignment (GtkWidget *widget)
 #endif
 }
 
+#if HAVE_GTK3
+static void
+chanlist_grid_attach (GtkWidget *grid, GtkWidget *child,
+					  gint column, gint row,
+					  gint width, gint height,
+					  gboolean hexpand, gboolean vexpand,
+					  GtkAlign halign, GtkAlign valign)
+{
+	gtk_widget_set_hexpand (child, hexpand);
+	gtk_widget_set_vexpand (child, vexpand);
+	gtk_widget_set_halign (child, halign);
+	gtk_widget_set_valign (child, valign);
+	gtk_grid_attach (GTK_GRID (grid), child, column, row, width, height);
+}
+#endif
+
 static GtkWidget *
 chanlist_box_new (void)
 {
@@ -925,7 +941,8 @@ chanlist_opengui (server *serv, int do_refresh)
 #endif
 	serv->gui->chanlist_search = wid;
 #if HAVE_GTK3
-	gtk_grid_attach (GTK_GRID (table), wid, 3, 3, 1, 1);
+	chanlist_grid_attach (table, wid, 3, 3, 1, 1, FALSE, FALSE,
+						  GTK_ALIGN_FILL, GTK_ALIGN_FILL);
 #else
 	gtk_table_attach (GTK_TABLE (table), wid, 3, 4, 3, 4,
 							GTK_SHRINK | GTK_FILL, GTK_SHRINK | GTK_FILL, 0, 0);
@@ -941,7 +958,8 @@ chanlist_opengui (server *serv, int do_refresh)
 #endif
 	serv->gui->chanlist_refresh = wid;
 #if HAVE_GTK3
-	gtk_grid_attach (GTK_GRID (table), wid, 3, 2, 1, 1);
+	chanlist_grid_attach (table, wid, 3, 2, 1, 1, FALSE, FALSE,
+						  GTK_ALIGN_FILL, GTK_ALIGN_FILL);
 #else
 	gtk_table_attach (GTK_TABLE (table), wid, 3, 4, 2, 3,
 							GTK_SHRINK | GTK_FILL, GTK_SHRINK | GTK_FILL, 0, 0);
@@ -957,7 +975,8 @@ chanlist_opengui (server *serv, int do_refresh)
 #endif
 	serv->gui->chanlist_savelist = wid;
 #if HAVE_GTK3
-	gtk_grid_attach (GTK_GRID (table), wid, 3, 1, 1, 1);
+	chanlist_grid_attach (table, wid, 3, 1, 1, 1, FALSE, FALSE,
+						  GTK_ALIGN_FILL, GTK_ALIGN_FILL);
 #else
 	gtk_table_attach (GTK_TABLE (table), wid, 3, 4, 1, 2,
 							GTK_SHRINK | GTK_FILL, GTK_SHRINK | GTK_FILL, 0, 0);
@@ -973,7 +992,8 @@ chanlist_opengui (server *serv, int do_refresh)
 #endif
 	serv->gui->chanlist_join = wid;
 #if HAVE_GTK3
-	gtk_grid_attach (GTK_GRID (table), wid, 3, 0, 1, 1);
+	chanlist_grid_attach (table, wid, 3, 0, 1, 1, FALSE, FALSE,
+						  GTK_ALIGN_FILL, GTK_ALIGN_FILL);
 #else
 	gtk_table_attach (GTK_TABLE (table), wid, 3, 4, 0, 1,
 							GTK_SHRINK | GTK_FILL, GTK_SHRINK | GTK_FILL, 0, 0);
@@ -984,7 +1004,8 @@ chanlist_opengui (server *serv, int do_refresh)
 	wid = gtk_label_new (_("Show only:"));
 	chanlist_set_label_alignment (wid);
 #if HAVE_GTK3
-	gtk_grid_attach (GTK_GRID (table), wid, 0, 3, 1, 1);
+	chanlist_grid_attach (table, wid, 0, 3, 1, 1, FALSE, FALSE,
+						  GTK_ALIGN_START, GTK_ALIGN_CENTER);
 #else
 	gtk_table_attach (GTK_TABLE (table), wid, 0, 1, 3, 4,
 							GTK_SHRINK | GTK_FILL, GTK_SHRINK | GTK_FILL, 0, 0);
@@ -994,7 +1015,8 @@ chanlist_opengui (server *serv, int do_refresh)
 	hbox = chanlist_box_new ();
 	gtk_box_set_spacing (GTK_BOX (hbox), 9);
 #if HAVE_GTK3
-	gtk_grid_attach (GTK_GRID (table), hbox, 1, 3, 1, 1);
+	chanlist_grid_attach (table, hbox, 1, 3, 1, 1, FALSE, FALSE,
+						  GTK_ALIGN_FILL, GTK_ALIGN_FILL);
 #else
 	gtk_table_attach (GTK_TABLE (table), hbox, 1, 2, 3, 4,
 							GTK_FILL, GTK_FILL, 0, 0);
@@ -1035,7 +1057,8 @@ chanlist_opengui (server *serv, int do_refresh)
 	wid = gtk_label_new (_("Look in:"));
 	chanlist_set_label_alignment (wid);
 #if HAVE_GTK3
-	gtk_grid_attach (GTK_GRID (table), wid, 0, 2, 1, 1);
+	chanlist_grid_attach (table, wid, 0, 2, 1, 1, FALSE, FALSE,
+						  GTK_ALIGN_START, GTK_ALIGN_CENTER);
 #else
 	gtk_table_attach (GTK_TABLE (table), wid, 0, 1, 2, 3,
 							GTK_SHRINK | GTK_FILL, GTK_SHRINK | GTK_FILL, 0, 0);
@@ -1045,7 +1068,8 @@ chanlist_opengui (server *serv, int do_refresh)
 	hbox = chanlist_box_new ();
 	gtk_box_set_spacing (GTK_BOX (hbox), 12);
 #if HAVE_GTK3
-	gtk_grid_attach (GTK_GRID (table), hbox, 1, 2, 1, 1);
+	chanlist_grid_attach (table, hbox, 1, 2, 1, 1, FALSE, FALSE,
+						  GTK_ALIGN_FILL, GTK_ALIGN_FILL);
 #else
 	gtk_table_attach (GTK_TABLE (table), hbox, 1, 2, 2, 3,
 							GTK_FILL, GTK_FILL, 0, 0);
@@ -1075,7 +1099,8 @@ chanlist_opengui (server *serv, int do_refresh)
 	wid = gtk_label_new (_("Search type:"));
 	chanlist_set_label_alignment (wid);
 #if HAVE_GTK3
-	gtk_grid_attach (GTK_GRID (table), wid, 0, 1, 1, 1);
+	chanlist_grid_attach (table, wid, 0, 1, 1, 1, FALSE, FALSE,
+						  GTK_ALIGN_START, GTK_ALIGN_CENTER);
 #else
 	gtk_table_attach (GTK_TABLE (table), wid, 0, 1, 1, 2,
 							GTK_SHRINK | GTK_FILL, GTK_SHRINK | GTK_FILL, 0, 0);
@@ -1088,7 +1113,8 @@ chanlist_opengui (server *serv, int do_refresh)
 	gtk_combo_box_text_append_text (GTK_COMBO_BOX_TEXT (wid), _("Regular Expression"));
 	gtk_combo_box_set_active (GTK_COMBO_BOX (wid), serv->gui->chanlist_search_type);
 #if HAVE_GTK3
-	gtk_grid_attach (GTK_GRID (table), wid, 1, 1, 1, 1);
+	chanlist_grid_attach (table, wid, 1, 1, 1, 1, FALSE, FALSE,
+						  GTK_ALIGN_FILL, GTK_ALIGN_CENTER);
 #else
 	gtk_table_attach (GTK_TABLE (table), wid, 1, 2, 1, 2,
 							GTK_SHRINK | GTK_FILL, GTK_SHRINK | GTK_FILL, 0, 0);
@@ -1102,7 +1128,8 @@ chanlist_opengui (server *serv, int do_refresh)
 	wid = gtk_label_new (_("Find:"));
 	chanlist_set_label_alignment (wid);
 #if HAVE_GTK3
-	gtk_grid_attach (GTK_GRID (table), wid, 0, 0, 1, 1);
+	chanlist_grid_attach (table, wid, 0, 0, 1, 1, FALSE, FALSE,
+						  GTK_ALIGN_START, GTK_ALIGN_CENTER);
 #else
 	gtk_table_attach (GTK_TABLE (table), wid, 0, 1, 0, 1,
 							GTK_SHRINK | GTK_FILL, GTK_SHRINK | GTK_FILL, 0, 0);
@@ -1117,8 +1144,8 @@ chanlist_opengui (server *serv, int do_refresh)
 							  G_CALLBACK (chanlist_search_pressed),
 							  (gpointer) serv);
 #if HAVE_GTK3
-	gtk_grid_attach (GTK_GRID (table), wid, 1, 0, 1, 1);
-	gtk_widget_set_hexpand (wid, TRUE);
+	chanlist_grid_attach (table, wid, 1, 0, 1, 1, TRUE, FALSE,
+						  GTK_ALIGN_FILL, GTK_ALIGN_CENTER);
 #else
 	gtk_table_attach (GTK_TABLE (table), wid, 1, 2, 0, 1,
 							GTK_EXPAND | GTK_FILL, 0, 0, 0);
@@ -1132,7 +1159,8 @@ chanlist_opengui (server *serv, int do_refresh)
 
 	wid = gtk_vseparator_new ();
 #if HAVE_GTK3
-	gtk_grid_attach (GTK_GRID (table), wid, 2, 0, 1, 5);
+	chanlist_grid_attach (table, wid, 2, 0, 1, 5, FALSE, FALSE,
+						  GTK_ALIGN_FILL, GTK_ALIGN_FILL);
 #else
 	gtk_table_attach (GTK_TABLE (table), wid, 2, 3, 0, 5,
 							GTK_SHRINK | GTK_FILL, GTK_SHRINK | GTK_FILL, 0, 0);
