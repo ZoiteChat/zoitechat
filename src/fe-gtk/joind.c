@@ -38,6 +38,7 @@
 #include "../common/fe.h"
 #include "fe-gtk.h"
 #include "chanlist.h"
+#include "gtkutil.h"
 
 
 static void
@@ -157,7 +158,7 @@ joind_show_dialog (server *serv)
 	gtk_widget_show (hbox1);
 	gtk_box_pack_start (GTK_BOX (vbox1), hbox1, TRUE, TRUE, 0);
 
-	image1 = gtk_image_new_from_stock (GTK_STOCK_NETWORK, GTK_ICON_SIZE_LARGE_TOOLBAR);
+	image1 = gtkutil_image_new_from_stock (GTK_STOCK_NETWORK, GTK_ICON_SIZE_LARGE_TOOLBAR);
 	gtk_widget_show (image1);
 	gtk_box_pack_start (GTK_BOX (hbox1), image1, FALSE, TRUE, 24);
 #if HAVE_GTK3
@@ -277,7 +278,7 @@ joind_show_dialog (server *serv)
 	gtk_widget_show (dialog_action_area1);
 	gtk_button_box_set_layout (GTK_BUTTON_BOX (dialog_action_area1), GTK_BUTTONBOX_END);
 
-	okbutton1 = gtk_button_new_from_stock ("gtk-ok");
+	okbutton1 = gtkutil_button_new_from_stock ("gtk-ok", _("_OK"));
 	gtk_widget_show (okbutton1);
 	gtk_box_pack_end (GTK_BOX (gtk_dialog_get_action_area (GTK_DIALOG (dialog1))), okbutton1, FALSE, TRUE, 0);
 	gtk_widget_set_can_default (okbutton1, TRUE);

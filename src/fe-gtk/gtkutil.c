@@ -128,7 +128,7 @@ gtkutil_image_new_from_stock (const char *stock, GtkIconSize size)
 	const char *icon_name = gtkutil_icon_name_from_stock (stock);
 
 	return gtk_image_new_from_icon_name (icon_name, size);
-#else
+#elif !HAVE_GTK3
 	return gtk_image_new_from_stock (stock, size);
 #endif
 }
@@ -151,7 +151,7 @@ gtkutil_button_new_from_stock (const char *stock, const char *label)
 	}
 
 	return button;
-#else
+#elif !HAVE_GTK3
 	if (stock)
 		return gtk_button_new_from_stock (stock);
 	if (label)
