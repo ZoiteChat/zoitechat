@@ -774,6 +774,13 @@ gtk_xtext_dispose (GObject *object)
 	if (G_OBJECT_CLASS (parent_class)->dispose)
 		(*G_OBJECT_CLASS (parent_class)->dispose) (object);
 }
+
+static void
+gtk_xtext_finalize (GObject *object)
+{
+	if (G_OBJECT_CLASS (parent_class)->finalize)
+		(*G_OBJECT_CLASS (parent_class)->finalize) (object);
+}
 #endif
 
 static void
@@ -2646,6 +2653,7 @@ gtk_xtext_class_init (GtkXTextClass * class)
 
 #if HAVE_GTK3
 	object_class->dispose = gtk_xtext_dispose;
+	object_class->finalize = gtk_xtext_finalize;
 #else
 	object_class->destroy = gtk_xtext_destroy;
 #endif
