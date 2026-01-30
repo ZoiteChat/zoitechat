@@ -880,7 +880,8 @@ gtk_xtext_realize (GtkWidget * widget)
 	parent_window = gtk_widget_get_parent_window (widget);
 	attributes.visual = gtk_widget_get_visual (widget);
 	attributes_mask = GDK_WA_X | GDK_WA_Y | GDK_WA_VISUAL;
-#else
+#endif
+#if !HAVE_GTK3
 	allocation = widget->allocation;
 	parent_window = widget->parent->window;
 	attributes.colormap = gtk_widget_get_colormap (widget);
