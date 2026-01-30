@@ -2618,13 +2618,15 @@ gtk_xtext_class_init (GtkXTextClass * class)
 	GtkXTextClass *xtext_class;
 #if HAVE_GTK3
 	GObjectClass *object_class;
-#else
+#endif
+#if !HAVE_GTK3
 	GtkObjectClass *object_class;
 #endif
 
 #if HAVE_GTK3
 	object_class = G_OBJECT_CLASS (class);
-#else
+#endif
+#if !HAVE_GTK3
 	object_class = (GtkObjectClass *) class;
 #endif
 	widget_class = (GtkWidgetClass *) class;
