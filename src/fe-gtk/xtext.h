@@ -21,6 +21,9 @@
 #define ZOITECHAT_XTEXT_H
 
 #include <gtk/gtk.h>
+#if !HAVE_GTK3
+#include <gtk/gtkobject.h>
+#endif
 #include <cairo.h>
 #include "xtext-color.h"
 

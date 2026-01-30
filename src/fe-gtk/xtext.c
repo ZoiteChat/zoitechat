@@ -689,10 +689,8 @@ gtk_xtext_new (const XTextColor *palette, int separator)
 }
 
 static void
-gtk_xtext_destroy (GtkObject * object)
+gtk_xtext_cleanup (GtkXText *xtext)
 {
-	GtkXText *xtext = GTK_XTEXT (object);
-
 	if (xtext->add_io_tag)
 	{
 		g_source_remove (xtext->add_io_tag);
@@ -750,10 +748,33 @@ gtk_xtext_destroy (GtkObject * object)
 		gtk_xtext_buffer_free (xtext->orig_buffer);
 		xtext->orig_buffer = NULL;
 	}
+}
+
+#if !HAVE_GTK3
+static void
+gtk_xtext_destroy (GtkObject * object)
+{
+	GtkXText *xtext = GTK_XTEXT (object);
+
+	gtk_xtext_cleanup (xtext);
 
 	if (GTK_OBJECT_CLASS (parent_class)->destroy)
 		(*GTK_OBJECT_CLASS (parent_class)->destroy) (object);
 }
+#endif
+
+#if HAVE_GTK3
+static void
+gtk_xtext_dispose (GObject *object)
+{
+	GtkXText *xtext = GTK_XTEXT (object);
+
+	gtk_xtext_cleanup (xtext);
+
+	if (G_OBJECT_CLASS (parent_class)->dispose)
+		(*G_OBJECT_CLASS (parent_class)->dispose) (object);
+}
+#endif
 
 static void
 gtk_xtext_unrealize (GtkWidget * widget)
@@ -2586,11 +2607,19 @@ gtk_xtext_scroll_adjustments (GtkXText *xtext, GtkAdjustment *hadj, GtkAdjustmen
 static void
 gtk_xtext_class_init (GtkXTextClass * class)
 {
-	GtkObjectClass *object_class;
 	GtkWidgetClass *widget_class;
 	GtkXTextClass *xtext_class;
+#if HAVE_GTK3
+	GObjectClass *object_class;
+#else
+	GtkObjectClass *object_class;
+#endif
 
+#if HAVE_GTK3
+	object_class = G_OBJECT_CLASS (class);
+#else
 	object_class = (GtkObjectClass *) class;
+#endif
 	widget_class = (GtkWidgetClass *) class;
 	xtext_class = (GtkXTextClass *) class;
 
@@ -2615,7 +2644,11 @@ gtk_xtext_class_init (GtkXTextClass * class)
 							G_TYPE_NONE,
 							2, GTK_TYPE_ADJUSTMENT, GTK_TYPE_ADJUSTMENT);
 
+#if HAVE_GTK3
+	object_class->dispose = gtk_xtext_dispose;
+#else
 	object_class->destroy = gtk_xtext_destroy;
+#endif
 
 	widget_class->realize = gtk_xtext_realize;
 	widget_class->unrealize = gtk_xtext_unrealize;
