@@ -1642,7 +1642,8 @@ gtk_xtext_scrolldown_timeout (GtkXText * xtext)
 
 #if HAVE_GTK3
 	window = gtk_widget_get_window (GTK_WIDGET (xtext));
-#else
+#endif
+#if !HAVE_GTK3
 	window = GTK_WIDGET (xtext)->window;
 #endif
 	if (!window)
@@ -1684,7 +1685,8 @@ gtk_xtext_scrollup_timeout (GtkXText * xtext)
 
 #if HAVE_GTK3
 	window = gtk_widget_get_window (GTK_WIDGET (xtext));
-#else
+#endif
+#if !HAVE_GTK3
 	window = GTK_WIDGET (xtext)->window;
 #endif
 	if (!window)
@@ -1735,7 +1737,8 @@ gtk_xtext_selection_update (GtkXText * xtext, GdkEventMotion * event, int p_y, g
 
 #if HAVE_GTK3
 	window = gtk_widget_get_window (GTK_WIDGET (xtext));
-#else
+#endif
+#if !HAVE_GTK3
 	window = GTK_WIDGET (xtext)->window;
 #endif
 	if (!window)
@@ -4029,7 +4032,8 @@ gtk_xtext_render_ents (GtkXText * xtext, textentry * enta, textentry * entb)
 
 #if HAVE_GTK3
 	window = gtk_widget_get_window (GTK_WIDGET (xtext));
-#else
+#endif
+#if !HAVE_GTK3
 	window = GTK_WIDGET (xtext)->window;
 #endif
 	if (!window)
@@ -4126,7 +4130,8 @@ gtk_xtext_render_page (GtkXText * xtext)
 
 #if HAVE_GTK3
 	window = gtk_widget_get_window (GTK_WIDGET (xtext));
-#else
+#endif
+#if !HAVE_GTK3
 	window = GTK_WIDGET (xtext)->window;
 #endif
 	if (!window)
