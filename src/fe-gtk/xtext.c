@@ -4270,7 +4270,9 @@ gtk_xtext_render_page (GtkXText * xtext)
 	int width;
 	int height;
 	int subline;
-	int startline = xtext_adj_get_value (xtext->adj);
+	gdouble adj_value = xtext_adj_get_value (xtext->adj);
+	gdouble adj_page_size = xtext_adj_get_page_size (xtext->adj);
+	int startline = adj_value;
 	int pos, overlap;
 	GdkWindow *window;
 
@@ -4294,7 +4296,7 @@ gtk_xtext_render_page (GtkXText * xtext)
 	if (width < 34 || height < xtext->fontsize || width < xtext->buffer->indent + 32)
 		return;
 
-	xtext->pixel_offset = (xtext_adj_get_value (xtext->adj) - startline) *
+	xtext->pixel_offset = (adj_value - startline) *
 		xtext->fontsize;
 
 	subline = line = 0;
@@ -4307,10 +4309,10 @@ gtk_xtext_render_page (GtkXText * xtext)
 	xtext->buffer->pagetop_subline = subline;
 	xtext->buffer->pagetop_line = startline;
 
-	if (xtext->buffer->num_lines <= xtext_adj_get_page_size (xtext->adj))
+	if (xtext->buffer->num_lines <= adj_page_size)
 		dontscroll (xtext->buffer);
 
-	pos = xtext_adj_get_value (xtext->adj) * xtext->fontsize;
+	pos = adj_value * xtext->fontsize;
 	overlap = xtext->buffer->last_pixel_pos - pos;
 	xtext->buffer->last_pixel_pos = pos;
 
