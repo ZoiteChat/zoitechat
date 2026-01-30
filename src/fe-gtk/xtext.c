@@ -874,13 +874,11 @@ gtk_xtext_realize (GtkWidget * widget)
 
 	xtext = GTK_XTEXT (widget);
 
-#if HAVE_GTK3
 	gtk_widget_set_realized (widget, TRUE);
+#if HAVE_GTK3
 	gtk_widget_get_allocation (widget, &allocation);
 	parent_window = gtk_widget_get_parent_window (widget);
-#endif
-#if !HAVE_GTK3
-	gtk_widget_set_realized (widget, TRUE);
+#else
 	allocation = widget->allocation;
 	parent_window = widget->parent->window;
 #endif
@@ -895,10 +893,10 @@ gtk_xtext_realize (GtkWidget * widget)
 		GDK_EXPOSURE_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK
 		| GDK_POINTER_MOTION_MASK | GDK_LEAVE_NOTIFY_MASK;
 
-#if !HAVE_GTK3
-	attributes.colormap = gtk_widget_get_colormap (widget);
+#if HAVE_GTK3
 	attributes.visual = gtk_widget_get_visual (widget);
 #else
+	attributes.colormap = gtk_widget_get_colormap (widget);
 	attributes.visual = gtk_widget_get_visual (widget);
 #endif
 
