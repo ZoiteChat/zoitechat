@@ -1898,7 +1898,8 @@ servlist_open_edit (GtkWidget *parent, ircnet *net)
 	buttonadd = gtk_button_new_with_mnemonic (_("_Add"));
 	gtk_button_set_image (GTK_BUTTON (buttonadd),
 								gtk_image_new_from_icon_name ("list-add", GTK_ICON_SIZE_BUTTON));
-#elif !HAVE_GTK3
+#endif
+#if !HAVE_GTK3
 	buttonadd = gtk_button_new_from_stock ("gtk-add");
 #endif
 	g_signal_connect (G_OBJECT (buttonadd), "clicked",
@@ -1910,7 +1911,8 @@ servlist_open_edit (GtkWidget *parent, ircnet *net)
 	buttonremove = gtk_button_new_with_mnemonic (_("_Remove"));
 	gtk_button_set_image (GTK_BUTTON (buttonremove),
 								gtk_image_new_from_icon_name ("list-remove", GTK_ICON_SIZE_BUTTON));
-#elif !HAVE_GTK3
+#endif
+#if !HAVE_GTK3
 	buttonremove = gtk_button_new_from_stock ("gtk-remove");
 #endif
 	g_signal_connect (G_OBJECT (buttonremove), "clicked",
@@ -1990,7 +1992,8 @@ servlist_open_edit (GtkWidget *parent, ircnet *net)
 	button10 = gtk_button_new_with_mnemonic (_("_Close"));
 	gtk_button_set_image (GTK_BUTTON (button10),
 								gtk_image_new_from_icon_name ("window-close", GTK_ICON_SIZE_BUTTON));
-#elif !HAVE_GTK3
+#endif
+#if !HAVE_GTK3
 	button10 = gtk_button_new_from_stock ("gtk-close");
 #endif
 	g_signal_connect (G_OBJECT (button10), "clicked",
@@ -2263,7 +2266,8 @@ servlist_open_networks (void)
 	button_add = gtk_button_new_with_mnemonic (_("_Add"));
 	gtk_button_set_image (GTK_BUTTON (button_add),
 								gtk_image_new_from_icon_name ("list-add", GTK_ICON_SIZE_BUTTON));
-#elif !HAVE_GTK3
+#endif
+#if !HAVE_GTK3
 	button_add = gtk_button_new_from_stock ("gtk-add");
 #endif
 	g_signal_connect (G_OBJECT (button_add), "clicked",
@@ -2276,7 +2280,8 @@ servlist_open_networks (void)
 	button_remove = gtk_button_new_with_mnemonic (_("_Remove"));
 	gtk_button_set_image (GTK_BUTTON (button_remove),
 								gtk_image_new_from_icon_name ("list-remove", GTK_ICON_SIZE_BUTTON));
-#elif !HAVE_GTK3
+#endif
+#if !HAVE_GTK3
 	button_remove = gtk_button_new_from_stock ("gtk-remove");
 #endif
 	g_signal_connect (G_OBJECT (button_remove), "clicked",
@@ -2322,7 +2327,8 @@ servlist_open_networks (void)
 	button_close = gtk_button_new_with_mnemonic (_("_Close"));
 	gtk_button_set_image (GTK_BUTTON (button_close),
 								gtk_image_new_from_icon_name ("window-close", GTK_ICON_SIZE_BUTTON));
-#elif !HAVE_GTK3
+#endif
+#if !HAVE_GTK3
 	button_close = gtk_button_new_from_stock ("gtk-close");
 #endif
 	gtk_widget_show (button_close);
