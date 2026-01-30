@@ -115,7 +115,11 @@ chanlist_icon_button (const char *label, const char *icon_name,
 	GtkWidget *image;
 
 	button = gtk_button_new_with_mnemonic (label);
+#if HAVE_GTK3
 	image = gtk_image_new_from_icon_name (icon_name, GTK_ICON_SIZE_MENU);
+#elif !HAVE_GTK3
+	image = gtk_image_new_from_stock (icon_name, GTK_ICON_SIZE_MENU);
+#endif
 	gtk_button_set_image (GTK_BUTTON (button), image);
 	gtk_button_set_use_underline (GTK_BUTTON (button), TRUE);
 	g_signal_connect (G_OBJECT (button), "clicked", callback, userdata);
