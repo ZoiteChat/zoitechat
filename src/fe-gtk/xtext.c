@@ -2710,7 +2710,15 @@ gtk_xtext_scroll_adjustments (GtkXText *xtext, GtkAdjustment *hadj, GtkAdjustmen
 	if (xtext->adj != vadj)
 	{
 		xtext->adj = vadj;
+#if HAVE_GTK3
+		if (g_object_is_floating (xtext->adj))
+			g_object_ref_sink (xtext->adj);
+		else
+			g_object_ref (xtext->adj);
+#endif
+#if !HAVE_GTK3
 		g_object_ref_sink (xtext->adj);
+#endif
 
 		xtext->vc_signal_tag = g_signal_connect (xtext->adj, "value-changed",
 							G_CALLBACK (gtk_xtext_adjustment_changed),
