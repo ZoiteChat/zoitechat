@@ -1353,29 +1353,29 @@ process_named_msg (session *sess, char *type, char *word[], char *word_eol[],
 		switch (t)
 		{
 			case WORDL('C','A','P','\0'):
-				if (strncasecmp (word[4], "ACK", 3) == 0)
+				if (g_ascii_strncasecmp(word[4], "ACK", 3) == 0)
 				{
 					inbound_cap_ack (serv, word[1], 
 										  word[5][0] == ':' ? word_eol[5] + 1 : word_eol[5],
 										  tags_data);
 				}
-				else if (strncasecmp (word[4], "LS", 2) == 0 || strncasecmp (word[4], "NEW", 3) == 0)
+				else if (g_ascii_strncasecmp(word[4], "LS", 2) == 0 || g_ascii_strncasecmp(word[4], "NEW", 3) == 0)
 				{
 					inbound_cap_ls (serv, word[1], 
 										 word[5][0] == ':' ? word_eol[5] + 1 : word_eol[5],
 										 tags_data);
 				}
-				else if (strncasecmp (word[4], "NAK", 3) == 0)
+				else if (g_ascii_strncasecmp(word[4], "NAK", 3) == 0)
 				{
 					inbound_cap_nak (serv, word[5][0] == ':' ? word_eol[5] + 1 : word_eol[5], tags_data);
 				}
-				else if (strncasecmp (word[4], "LIST", 4) == 0)	
+				else if (g_ascii_strncasecmp(word[4], "LIST", 4) == 0)	
 				{
 					inbound_cap_list (serv, word[1], 
 											word[5][0] == ':' ? word_eol[5] + 1 : word_eol[5],
 											tags_data);
 				}
-				else if (strncasecmp (word[4], "DEL", 3) == 0)
+				else if (g_ascii_strncasecmp(word[4], "DEL", 3) == 0)
 				{
 					inbound_cap_del (serv, word[1],
 											word[5][0] == ':' ? word_eol[5] + 1 : word_eol[5],
