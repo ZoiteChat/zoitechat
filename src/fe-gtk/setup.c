@@ -1035,8 +1035,8 @@ setup_create_hscale (GtkWidget *table, int row, const setting *set)
         gtk_range_set_value (GTK_RANGE (wid), setup_get_int (&setup_prefs, set));
         g_signal_connect (G_OBJECT(wid), "value_changed",
                                                         G_CALLBACK (setup_hscale_cb), (gpointer)set);
-        gtk_table_attach (GTK_TABLE (table), wid, 3, 6, row, row + 1,
-                                                        GTK_EXPAND | GTK_FILL, GTK_FILL, 0, 0);
+        setup_table_attach (table, wid, 3, 6, row, row + 1, TRUE, FALSE,
+                            SETUP_ALIGN_FILL, SETUP_ALIGN_FILL, 0, 0);
 
 #ifndef WIN32 /* Windows always supports this */
         /* Only used for transparency currently */
@@ -1196,8 +1196,8 @@ setup_create_id_menu (GtkWidget *table, char *label, int row, char *dest)
         gtk_option_menu_set_menu (GTK_OPTION_MENU (wid), menu);
         gtk_option_menu_set_history (GTK_OPTION_MENU (wid), def);
 
-        gtk_table_attach (GTK_TABLE (table), wid, 3, 4, row, row + 1,
-                                                        GTK_SHRINK | GTK_FILL, GTK_SHRINK | GTK_FILL, 0, 0);
+        setup_table_attach (table, wid, 3, 4, row, row + 1, FALSE, FALSE,
+                            SETUP_ALIGN_FILL, SETUP_ALIGN_FILL, 0, 0);
 }
 
 */
@@ -1414,8 +1414,8 @@ setup_create_entry (GtkWidget *table, int row, const setting *set)
                 gtk_widget_set_sensitive (wid, FALSE);
 
         if (set->type == ST_ENTRY)
-                gtk_table_attach (GTK_TABLE (table), wid, 3, 6, row, row + 1,
-                                                                GTK_EXPAND | GTK_FILL, GTK_FILL, 0, 0);
+                setup_table_attach (table, wid, 3, 6, row, row + 1, TRUE, FALSE,
+                                    SETUP_ALIGN_FILL, SETUP_ALIGN_FILL, 0, 0);
         else
         {
                 setup_table_attach (table, wid, 3, 5, row, row + 1, TRUE, FALSE,
@@ -1969,8 +1969,9 @@ setup_create_color_page (void)
 #elif !HAVE_GTK3
         gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
 #endif
-        gtk_table_attach (GTK_TABLE (tab), label, 2, 3, 16, 17,
-                                                        GTK_SHRINK | GTK_FILL, GTK_SHRINK | GTK_FILL, LABEL_INDENT, 0); */
+        setup_table_attach (tab, label, 2, 3, 16, 17, FALSE, FALSE,
+                            SETUP_ALIGN_FILL, SETUP_ALIGN_FILL,
+                            LABEL_INDENT, 0); */
 
         for (i = 0; i < 3; i++)
         {
@@ -2468,39 +2469,29 @@ setup_create_sound_page (void)
 
         sound_label = gtk_label_new_with_mnemonic (_("Sound file:"));
         gtk_widget_show (sound_label);
-        gtk_table_attach (GTK_TABLE (table1), sound_label, 0, 1, 0, 1,
-                                                        (GtkAttachOptions) (GTK_FILL),
-                                                        (GtkAttachOptions) (0), 0, 0);
-#if HAVE_GTK3
-        gtk_widget_set_halign (sound_label, GTK_ALIGN_START);
-        gtk_widget_set_valign (sound_label, GTK_ALIGN_CENTER);
-#elif !HAVE_GTK3
-        gtk_misc_set_alignment (GTK_MISC (sound_label), 0, 0.5);
-#endif
+        setup_table_attach (table1, sound_label, 0, 1, 0, 1, FALSE, FALSE,
+                            SETUP_ALIGN_START, SETUP_ALIGN_CENTER, 0, 0);
 
         sndfile_entry = gtk_entry_new ();
         g_signal_connect (G_OBJECT (sndfile_entry), "changed",
                                                         G_CALLBACK (setup_snd_changed_cb), sound_tree);
         gtk_widget_show (sndfile_entry);
-        gtk_table_attach (GTK_TABLE (table1), sndfile_entry, 0, 1, 1, 2,
-                                                        (GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
-                                                        (GtkAttachOptions) (0), 0, 0);
+        setup_table_attach (table1, sndfile_entry, 0, 1, 1, 2, TRUE, FALSE,
+                            SETUP_ALIGN_FILL, SETUP_ALIGN_FILL, 0, 0);
 
         sound_browse = gtk_button_new_with_mnemonic (_("_Browse..."));
         g_signal_connect (G_OBJECT (sound_browse), "clicked",
                                                         G_CALLBACK (setup_snd_browse_cb), sndfile_entry);
         gtk_widget_show (sound_browse);
-        gtk_table_attach (GTK_TABLE (table1), sound_browse, 1, 2, 1, 2,
-                                                        (GtkAttachOptions) (GTK_FILL),
-                                                        (GtkAttachOptions) (0), 0, 0);
+        setup_table_attach (table1, sound_browse, 1, 2, 1, 2, FALSE, FALSE,
+                            SETUP_ALIGN_FILL, SETUP_ALIGN_FILL, 0, 0);
 
         sound_play = gtkutil_button_new_from_stock ("gtk-media-play", _("_Play"));
         g_signal_connect (G_OBJECT (sound_play), "clicked",
                                                         G_CALLBACK (setup_snd_play_cb), sndfile_entry);
         gtk_widget_show (sound_play);
-        gtk_table_attach (GTK_TABLE (table1), sound_play, 2, 3, 1, 2,
-                                                        (GtkAttachOptions) (GTK_FILL),
-                                                        (GtkAttachOptions) (0), 0, 0);
+        setup_table_attach (table1, sound_play, 2, 3, 1, 2, FALSE, FALSE,
+                            SETUP_ALIGN_FILL, SETUP_ALIGN_FILL, 0, 0);
 
         setup_snd_row_cb (sel, NULL);
 
