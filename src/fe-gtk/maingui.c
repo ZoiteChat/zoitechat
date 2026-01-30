@@ -1380,7 +1380,11 @@ mg_open_quit_dialog (gboolean minimize_button)
         gtk_table_set_col_spacings (GTK_TABLE (table1), 12);
 #endif
 
+#if HAVE_GTK3
+        image = gtk_image_new_from_icon_name ("dialog-warning", GTK_ICON_SIZE_DIALOG);
+#else
         image = gtk_image_new_from_stock ("gtk-dialog-warning", GTK_ICON_SIZE_DIALOG);
+#endif
         gtk_widget_show (image);
 #if HAVE_GTK3
         gtk_grid_attach (GTK_GRID (table1), image, 0, 0, 1, 1);
@@ -1436,13 +1440,25 @@ mg_open_quit_dialog (gboolean minimize_button)
                 gtk_dialog_add_action_widget (GTK_DIALOG (dialog), button, 1);
         }
 
+#if HAVE_GTK3
+        button = gtk_button_new_with_mnemonic (_("_Cancel"));
+        gtk_button_set_image (GTK_BUTTON (button),
+                              gtk_image_new_from_icon_name ("dialog-cancel", GTK_ICON_SIZE_BUTTON));
+#else
         button = gtk_button_new_from_stock ("gtk-cancel");
+#endif
         gtk_widget_show (button);
         gtk_dialog_add_action_widget (GTK_DIALOG (dialog), button,
                                                                                         GTK_RESPONSE_CANCEL);
         gtk_widget_grab_focus (button);
 
+#if HAVE_GTK3
+        button = gtk_button_new_with_mnemonic (_("_Quit"));
+        gtk_button_set_image (GTK_BUTTON (button),
+                              gtk_image_new_from_icon_name ("application-exit", GTK_ICON_SIZE_BUTTON));
+#else
         button = gtk_button_new_from_stock ("gtk-quit");
+#endif
         gtk_widget_show (button);
         gtk_dialog_add_action_widget (GTK_DIALOG (dialog), button, 0);
 
@@ -3399,7 +3415,11 @@ mg_create_search(session *sess, GtkWidget *box)
         gtk_box_pack_start(GTK_BOX(box), gui->shbox, FALSE, FALSE, 0);
 
         close = gtk_button_new ();
+#if HAVE_GTK3
+        gtk_button_set_image (GTK_BUTTON (close), gtk_image_new_from_icon_name ("window-close", GTK_ICON_SIZE_MENU));
+#else
         gtk_button_set_image (GTK_BUTTON (close), gtk_image_new_from_stock (GTK_STOCK_CLOSE, GTK_ICON_SIZE_MENU));
+#endif
         gtk_button_set_relief(GTK_BUTTON(close), GTK_RELIEF_NONE);
         gtk_widget_set_can_focus (close, FALSE);
         gtk_box_pack_start(GTK_BOX(gui->shbox), close, FALSE, FALSE, 0);
@@ -3419,14 +3439,22 @@ mg_create_search(session *sess, GtkWidget *box)
         gtk_entry_set_icon_tooltip_text (GTK_ENTRY (sess->gui->shentry), GTK_ENTRY_ICON_SECONDARY, _("Search hit end or not found."));
 
         previous = gtk_button_new ();
+#if HAVE_GTK3
+        gtk_button_set_image (GTK_BUTTON (previous), gtk_image_new_from_icon_name ("go-previous", GTK_ICON_SIZE_MENU));
+#else
         gtk_button_set_image (GTK_BUTTON (previous), gtk_image_new_from_stock (GTK_STOCK_GO_BACK, GTK_ICON_SIZE_MENU));
+#endif
         gtk_button_set_relief(GTK_BUTTON(previous), GTK_RELIEF_NONE);
         gtk_widget_set_can_focus (previous, FALSE);
         gtk_box_pack_start(GTK_BOX(gui->shbox), previous, FALSE, FALSE, 0);
         g_signal_connect(G_OBJECT(previous), "clicked", G_CALLBACK(mg_search_handle_previous), sess);
 
         next = gtk_button_new ();
+#if HAVE_GTK3
+        gtk_button_set_image (GTK_BUTTON (next), gtk_image_new_from_icon_name ("go-next", GTK_ICON_SIZE_MENU));
+#else
         gtk_button_set_image (GTK_BUTTON (next), gtk_image_new_from_stock (GTK_STOCK_GO_FORWARD, GTK_ICON_SIZE_MENU));
+#endif
         gtk_button_set_relief(GTK_BUTTON(next), GTK_RELIEF_NONE);
         gtk_widget_set_can_focus (next, FALSE);
         gtk_box_pack_start(GTK_BOX(gui->shbox), next, FALSE, FALSE, 0);
