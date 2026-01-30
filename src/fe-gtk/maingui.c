@@ -1421,6 +1421,8 @@ mg_open_quit_dialog (gboolean minimize_button)
         gtk_widget_set_vexpand (checkbutton1, FALSE);
         gtk_widget_set_halign (checkbutton1, GTK_ALIGN_FILL);
         gtk_widget_set_valign (checkbutton1, GTK_ALIGN_CENTER);
+        gtk_widget_set_margin_top (checkbutton1, 4);
+        gtk_widget_set_margin_bottom (checkbutton1, 4);
         gtk_grid_attach (GTK_GRID (table1), checkbutton1, 0, 1, 2, 1);
 #else
         gtk_table_attach (GTK_TABLE (table1), checkbutton1, 0, 2, 1, 2,
@@ -1441,6 +1443,9 @@ mg_open_quit_dialog (gboolean minimize_button)
 #if HAVE_GTK3
         gtk_widget_set_hexpand (label, TRUE);
         gtk_widget_set_vexpand (label, TRUE);
+        gtk_widget_set_halign (label, GTK_ALIGN_FILL);
+        gtk_widget_set_valign (label, GTK_ALIGN_CENTER);
+        gtk_label_set_xalign (GTK_LABEL (label), 0.0f);
         gtk_grid_attach (GTK_GRID (table1), label, 1, 0, 1, 1);
 #else
         gtk_table_attach (GTK_TABLE (table1), label, 1, 2, 0, 1,
@@ -2984,12 +2989,14 @@ mg_place_userlist_and_chanview_real (session_gui *gui, GtkWidget *userlist, GtkW
                         /* always attach it to something to avoid ref_count=0 */
                         if (prefs.hex_gui_ulist_pos == POS_TOP)
 #if HAVE_GTK3
+                        {
                                 gtk_widget_set_hexpand (chanview, FALSE);
                                 gtk_widget_set_vexpand (chanview, FALSE);
                                 gtk_widget_set_halign (chanview, GTK_ALIGN_FILL);
                                 gtk_widget_set_valign (chanview, GTK_ALIGN_FILL);
                                 gtk_grid_attach (GTK_GRID (gui->main_table), chanview,
                                                                                 1, 3, 1, 1);
+                        }
 #else
                                 gtk_table_attach (GTK_TABLE (gui->main_table), chanview,
                                                                                 1, 2, 3, 4, GTK_FILL, GTK_FILL, 0, 0);
@@ -2997,12 +3004,14 @@ mg_place_userlist_and_chanview_real (session_gui *gui, GtkWidget *userlist, GtkW
 
                         else
 #if HAVE_GTK3
+                        {
                                 gtk_widget_set_hexpand (chanview, FALSE);
                                 gtk_widget_set_vexpand (chanview, FALSE);
                                 gtk_widget_set_halign (chanview, GTK_ALIGN_FILL);
                                 gtk_widget_set_valign (chanview, GTK_ALIGN_FILL);
                                 gtk_grid_attach (GTK_GRID (gui->main_table), chanview,
                                                                                 1, 1, 1, 1);
+                        }
 #else
                                 gtk_table_attach (GTK_TABLE (gui->main_table), chanview,
                                                                                 1, 2, 1, 2, GTK_FILL, GTK_FILL, 0, 0);
