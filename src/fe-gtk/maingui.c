@@ -1382,7 +1382,8 @@ mg_open_quit_dialog (gboolean minimize_button)
 
 #if HAVE_GTK3
         image = gtk_image_new_from_icon_name ("dialog-warning", GTK_ICON_SIZE_DIALOG);
-#else
+#endif
+#if !HAVE_GTK3
         image = gtk_image_new_from_stock ("gtk-dialog-warning", GTK_ICON_SIZE_DIALOG);
 #endif
         gtk_widget_show (image);
@@ -1444,7 +1445,8 @@ mg_open_quit_dialog (gboolean minimize_button)
         button = gtk_button_new_with_mnemonic (_("_Cancel"));
         gtk_button_set_image (GTK_BUTTON (button),
                               gtk_image_new_from_icon_name ("dialog-cancel", GTK_ICON_SIZE_BUTTON));
-#else
+#endif
+#if !HAVE_GTK3
         button = gtk_button_new_from_stock ("gtk-cancel");
 #endif
         gtk_widget_show (button);
@@ -1456,7 +1458,8 @@ mg_open_quit_dialog (gboolean minimize_button)
         button = gtk_button_new_with_mnemonic (_("_Quit"));
         gtk_button_set_image (GTK_BUTTON (button),
                               gtk_image_new_from_icon_name ("application-exit", GTK_ICON_SIZE_BUTTON));
-#else
+#endif
+#if !HAVE_GTK3
         button = gtk_button_new_from_stock ("gtk-quit");
 #endif
         gtk_widget_show (button);
@@ -3417,7 +3420,8 @@ mg_create_search(session *sess, GtkWidget *box)
         close = gtk_button_new ();
 #if HAVE_GTK3
         gtk_button_set_image (GTK_BUTTON (close), gtk_image_new_from_icon_name ("window-close", GTK_ICON_SIZE_MENU));
-#else
+#endif
+#if !HAVE_GTK3
         gtk_button_set_image (GTK_BUTTON (close), gtk_image_new_from_stock (GTK_STOCK_CLOSE, GTK_ICON_SIZE_MENU));
 #endif
         gtk_button_set_relief(GTK_BUTTON(close), GTK_RELIEF_NONE);
@@ -3441,7 +3445,8 @@ mg_create_search(session *sess, GtkWidget *box)
         previous = gtk_button_new ();
 #if HAVE_GTK3
         gtk_button_set_image (GTK_BUTTON (previous), gtk_image_new_from_icon_name ("go-previous", GTK_ICON_SIZE_MENU));
-#else
+#endif
+#if !HAVE_GTK3
         gtk_button_set_image (GTK_BUTTON (previous), gtk_image_new_from_stock (GTK_STOCK_GO_BACK, GTK_ICON_SIZE_MENU));
 #endif
         gtk_button_set_relief(GTK_BUTTON(previous), GTK_RELIEF_NONE);
@@ -3452,7 +3457,8 @@ mg_create_search(session *sess, GtkWidget *box)
         next = gtk_button_new ();
 #if HAVE_GTK3
         gtk_button_set_image (GTK_BUTTON (next), gtk_image_new_from_icon_name ("go-next", GTK_ICON_SIZE_MENU));
-#else
+#endif
+#if !HAVE_GTK3
         gtk_button_set_image (GTK_BUTTON (next), gtk_image_new_from_stock (GTK_STOCK_GO_FORWARD, GTK_ICON_SIZE_MENU));
 #endif
         gtk_button_set_relief(GTK_BUTTON(next), GTK_RELIEF_NONE);
