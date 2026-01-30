@@ -128,7 +128,11 @@ typedef struct {
 
 struct _GtkXText
 {
+#if HAVE_GTK3
+	GtkWidget parent_instance;
+#else
 	GtkWidget widget;
+#endif
 
 	xtext_buffer *buffer;
 	xtext_buffer *orig_buffer;
