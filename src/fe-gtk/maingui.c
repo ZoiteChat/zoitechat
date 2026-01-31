@@ -3709,7 +3709,12 @@ mg_create_tabs (session_gui *gui)
 
         gui->chanview = chanview_new (prefs.hex_gui_tab_layout, prefs.hex_gui_tab_trunc,
                                                                                         prefs.hex_gui_tab_sort, use_icons,
-                                                                                        prefs.hex_gui_ulist_style ? input_style : NULL);
+#if HAVE_GTK3
+                                                                                        prefs.hex_gui_ulist_style && input_style ? input_style->font_desc : NULL
+#else
+                                                                                        prefs.hex_gui_ulist_style ? input_style : NULL
+#endif
+        );
         chanview_set_callbacks (gui->chanview, mg_switch_tab_cb, mg_xbutton_cb,
                                                                         mg_tab_contextmenu_cb, (void *)mg_tabs_compare);
         mg_place_userlist_and_chanview (gui);
