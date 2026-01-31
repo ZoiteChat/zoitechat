@@ -192,7 +192,12 @@ void
 fe_tray_set_tooltip (const char *text)
 {
 	if (sticon)
+#if HAVE_GTK3
+		g_object_set (G_OBJECT (sticon), "tooltip-text", text, NULL);
+#endif
+#if !HAVE_GTK3
 		gtk_status_icon_set_tooltip_text (sticon, text);
+#endif
 }
 
 static void
@@ -430,9 +435,19 @@ tray_menu_restore_cb (GtkWidget *item, gpointer userdata)
 static void
 tray_menu_notify_cb (GObject *tray, GParamSpec *pspec, gpointer user_data)
 {
+#if HAVE_GTK3
+	gboolean embedded = FALSE;
+#endif
+
 	if (sticon)
 	{
+#if HAVE_GTK3
+		g_object_get (G_OBJECT (sticon), "embedded", &embedded, NULL);
+		if (!embedded)
+#endif
+#if !HAVE_GTK3
 		if (!gtk_status_icon_is_embedded (sticon))
+#endif
 		{
 			tray_restore_timer = g_timeout_add(500, (GSourceFunc)tray_menu_try_restore, NULL);
 		}
