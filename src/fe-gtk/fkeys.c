@@ -689,7 +689,30 @@ key_dialog_treeview_new (GtkWidget *box)
 	g_signal_connect (G_OBJECT (gtk_tree_view_get_selection (GTK_TREE_VIEW(view))),
 					"changed", G_CALLBACK (key_dialog_selection_changed), NULL);
 
+#if HAVE_GTK3
+	gtk_widget_set_name (view, "fkeys-treeview");
+	{
+		GtkCssProvider *provider = gtk_css_provider_new ();
+		GtkStyleContext *context = gtk_widget_get_style_context (view);
+
+		gtk_css_provider_load_from_data (
+			provider,
+			"treeview#fkeys-treeview row:nth-child(odd) {"
+			" background-color: @theme_base_color;"
+			"}"
+			"treeview#fkeys-treeview row:nth-child(even) {"
+			" background-color: shade(@theme_base_color, 0.96);"
+			"}",
+			-1,
+			NULL);
+		gtk_style_context_add_provider (context, GTK_STYLE_PROVIDER (provider),
+										GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+		g_object_unref (provider);
+	}
+#endif
+#if !HAVE_GTK3
 	gtk_tree_view_set_rules_hint (GTK_TREE_VIEW (view), TRUE);
+#endif
 
 	render = gtk_cell_renderer_accel_new ();
 	g_object_set (render, "editable", TRUE,
