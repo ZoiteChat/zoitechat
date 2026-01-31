@@ -151,6 +151,49 @@ tray_icon_from_file (const char *filename)
 	return icon;
 }
 
+static char *
+tray_gtk3_cache_pixbuf_icon (const char *basename, GdkPixbuf *pixbuf)
+{
+	char *cache_dir;
+	char *filename;
+	char *path;
+
+	if (!pixbuf || !basename)
+		return NULL;
+
+	cache_dir = g_build_filename (g_get_user_cache_dir (), "zoitechat", "tray-icons", NULL);
+	if (g_mkdir_with_parents (cache_dir, 0700) != 0)
+	{
+		g_free (cache_dir);
+		return NULL;
+	}
+
+	filename = g_strdup_printf ("%s.png", basename);
+	path = g_build_filename (cache_dir, filename, NULL);
+	g_free (filename);
+	g_free (cache_dir);
+
+	if (!g_file_test (path, G_FILE_TEST_EXISTS))
+		gdk_pixbuf_save (pixbuf, path, "png", NULL, NULL);
+
+	return path;
+}
+
+static char *
+tray_gtk3_fallback_icon_path_for_name (const char *name)
+{
+	if (g_strcmp0 (name, ICON_NORMAL_NAME) == 0)
+		return tray_gtk3_cache_pixbuf_icon ("tray_normal", pix_tray_normal);
+	if (g_strcmp0 (name, ICON_MSG_NAME) == 0)
+		return tray_gtk3_cache_pixbuf_icon ("tray_message", pix_tray_message);
+	if (g_strcmp0 (name, ICON_HILIGHT_NAME) == 0)
+		return tray_gtk3_cache_pixbuf_icon ("tray_highlight", pix_tray_highlight);
+	if (g_strcmp0 (name, ICON_FILE_NAME) == 0)
+		return tray_gtk3_cache_pixbuf_icon ("tray_fileoffer", pix_tray_fileoffer);
+
+	return NULL;
+}
+
 static void
 tray_gtk3_icons_init (void)
 {
@@ -177,6 +220,7 @@ static const char *
 tray_gtk3_icon_to_name (TrayIcon icon, char **allocated)
 {
 	const char * const *names;
+	GtkIconTheme *theme;
 	GFile *file;
 
 	if (!icon)
@@ -186,7 +230,15 @@ tray_gtk3_icon_to_name (TrayIcon icon, char **allocated)
 	{
 		names = g_themed_icon_get_names (G_THEMED_ICON (icon));
 		if (names && names[0])
-			return names[0];
+		{
+			theme = gtk_icon_theme_get_default ();
+			if (theme && gtk_icon_theme_has_icon (theme, names[0]))
+				return names[0];
+
+			*allocated = tray_gtk3_fallback_icon_path_for_name (names[0]);
+			if (*allocated)
+				return *allocated;
+		}
 	}
 
 	if (G_IS_FILE_ICON (icon))
