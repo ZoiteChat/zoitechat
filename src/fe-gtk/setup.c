@@ -3087,8 +3087,13 @@ setup_window_open (void)
         setup_create_tree (hbox, setup_create_pages (hbox));
 
         /* prepare the button box */
+#if HAVE_GTK3
+        hbbox = gtk_button_box_new (GTK_ORIENTATION_HORIZONTAL);
+        gtk_button_box_set_layout (GTK_BUTTON_BOX (hbbox), GTK_BUTTONBOX_END);
+#elif !HAVE_GTK3
         hbbox = gtk_hbutton_box_new ();
         gtk_button_box_set_layout (GTK_BUTTON_BOX (hbbox), GTK_BUTTONBOX_END);
+#endif
         gtk_box_set_spacing (GTK_BOX (hbbox), 4);
         gtk_box_pack_end (GTK_BOX (vbox), hbbox, FALSE, FALSE, 0);
 

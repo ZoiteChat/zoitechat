@@ -481,8 +481,13 @@ pevent_dialog_show ()
 	gtk_container_add (GTK_CONTAINER (wid), pevent_dialog_twid);
 	gtk_xtext_set_font (GTK_XTEXT (pevent_dialog_twid), prefs.hex_text_font);
 
+#if HAVE_GTK3
+	hbox = gtk_button_box_new (GTK_ORIENTATION_HORIZONTAL);
+	gtk_button_box_set_layout (GTK_BUTTON_BOX (hbox), GTK_BUTTONBOX_SPREAD);
+#elif !HAVE_GTK3
 	hbox = gtk_hbutton_box_new ();
 	gtk_button_box_set_layout (GTK_BUTTON_BOX (hbox), GTK_BUTTONBOX_SPREAD);
+#endif
 	gtk_box_pack_start (GTK_BOX (vbox), hbox, FALSE, FALSE, 4);
 	gtkutil_button (hbox, ICON_TEXTEVENT_SAVE_AS, NULL, pevent_save_cb,
 						 (void *) 1, _("Save As..."));
