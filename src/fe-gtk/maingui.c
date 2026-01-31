@@ -1871,7 +1871,11 @@ mg_create_tabmenu (session *sess, GdkEventButton *event, chan *ch)
         g_object_unref (menu);
         g_signal_connect (G_OBJECT (menu), "selection-done",
                                                         G_CALLBACK (mg_menu_destroy), NULL);
+#if HAVE_GTK3
+        gtk_menu_popup_at_pointer (GTK_MENU (menu), (GdkEvent *)event);
+#else
         gtk_menu_popup (GTK_MENU (menu), NULL, NULL, NULL, NULL, 0, event->time);
+#endif
 }
 
 static gboolean
@@ -3377,7 +3381,14 @@ mg_emoji_button_cb (GtkWidget *widget, session_gui *gui)
         GtkWidget *menu;
 
         menu = mg_create_emoji_menu (gui);
+#if HAVE_GTK3
+        gtk_menu_popup_at_widget (GTK_MENU (menu), widget,
+                                  GDK_GRAVITY_SOUTH_WEST,
+                                  GDK_GRAVITY_NORTH_WEST,
+                                  NULL);
+#else
         gtk_menu_popup (GTK_MENU (menu), NULL, NULL, NULL, NULL, 0, gtk_get_current_event_time ());
+#endif
 }
 
 /* Search bar adapted from Conspire's by William Pitcock */
