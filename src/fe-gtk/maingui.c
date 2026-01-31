@@ -2845,12 +2845,20 @@ mg_create_center (session *sess, session_gui *gui, GtkWidget *box)
         gui->vpane_right = gtk_vpaned_new ();
 #endif
 
-        /* sep between left and xtext */
-        gui->hpane_left = gtk_hpaned_new ();
-        gtk_paned_set_position (GTK_PANED (gui->hpane_left), prefs.hex_gui_pane_left_size);
+	/* sep between left and xtext */
+#if HAVE_GTK3
+	gui->hpane_left = gtk_paned_new (GTK_ORIENTATION_HORIZONTAL);
+#elif !HAVE_GTK3
+	gui->hpane_left = gtk_hpaned_new ();
+#endif
+	gtk_paned_set_position (GTK_PANED (gui->hpane_left), prefs.hex_gui_pane_left_size);
 
-        /* sep between xtext and right side */
-        gui->hpane_right = gtk_hpaned_new ();
+	/* sep between xtext and right side */
+#if HAVE_GTK3
+	gui->hpane_right = gtk_paned_new (GTK_ORIENTATION_HORIZONTAL);
+#elif !HAVE_GTK3
+	gui->hpane_right = gtk_hpaned_new ();
+#endif
 
         if (prefs.hex_gui_win_swap)
         {
