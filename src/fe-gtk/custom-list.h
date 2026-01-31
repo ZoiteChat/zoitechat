@@ -22,9 +22,6 @@
 
 #include <gtk/gtk.h>
 
-#if HAVE_GTK3
-G_DECLARE_DERIVABLE_TYPE (CustomList, custom_list, CUSTOM, LIST, GObject)
-#else
 typedef struct _CustomList CustomList;
 typedef struct _CustomListClass CustomListClass;
 
@@ -39,7 +36,6 @@ GType custom_list_get_type (void);
 #define CUSTOM_IS_LIST(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), CUSTOM_TYPE_LIST))
 #define CUSTOM_IS_LIST_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass),  CUSTOM_TYPE_LIST))
 #define CUSTOM_LIST_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj),  CUSTOM_TYPE_LIST, CustomListClass))
-#endif
 
 /* The data columns that we export via the tree model interface */
 

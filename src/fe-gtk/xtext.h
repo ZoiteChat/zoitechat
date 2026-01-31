@@ -137,7 +137,7 @@ struct _GtkXText
 #if HAVE_GTK3
 	GtkWidget parent_instance;
 #else
-	GtkWidget widget;
+	GtkWidget parent;
 #endif
 
 	xtext_buffer *buffer;
