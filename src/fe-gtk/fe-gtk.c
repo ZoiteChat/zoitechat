@@ -404,6 +404,16 @@ create_input_style (InputStyle *style)
 	static int done_rc = FALSE;
 #if HAVE_GTK3
 	static GtkCssProvider *input_css_provider = NULL;
+	static char *last_theme_name = NULL;
+	static gboolean last_dark_mode = FALSE;
+	static gboolean last_input_style = FALSE;
+	static gboolean last_colors_set = FALSE;
+	static guint16 last_fg_red;
+	static guint16 last_fg_green;
+	static guint16 last_fg_blue;
+	static guint16 last_bg_red;
+	static guint16 last_bg_green;
+	static guint16 last_bg_blue;
 #endif
 
 #if HAVE_GTK3
@@ -424,28 +434,32 @@ create_input_style (InputStyle *style)
 		style->font_desc = pango_font_description_from_string ("sans 11");
 	}
 
-	if (prefs.hex_gui_input_style && !done_rc)
+	if (prefs.hex_gui_input_style)
 	{
 #if !HAVE_GTK3
-		GtkSettings *settings = gtk_settings_get_default ();
-		char *theme_name;
-
-		/* gnome-themes-standard 3.20+ relies on images to do theming
-		 * so we have to override that. */
-		g_object_get (settings, "gtk-theme-name", &theme_name, NULL);
-		if (g_str_has_prefix (theme_name, "Adwaita") || g_str_has_prefix (theme_name, "Yaru"))
-			gtk_rc_parse_string (adwaita_workaround_rc);
-		g_free (theme_name);
-
+		if (!done_rc)
 		{
-			guint16 red;
-			guint16 green;
-			guint16 blue;
+			GtkSettings *settings = gtk_settings_get_default ();
+			char *theme_name;
 
-			palette_color_get_rgb16 (&colors[COL_FG], &red, &green, &blue);
-			sprintf (buf, cursor_color_rc, (red >> 8), (green >> 8), (blue >> 8));
+			/* gnome-themes-standard 3.20+ relies on images to do theming
+			 * so we have to override that. */
+			g_object_get (settings, "gtk-theme-name", &theme_name, NULL);
+			if (g_str_has_prefix (theme_name, "Adwaita") || g_str_has_prefix (theme_name, "Yaru"))
+				gtk_rc_parse_string (adwaita_workaround_rc);
+			g_free (theme_name);
+
+			{
+				guint16 red;
+				guint16 green;
+				guint16 blue;
+
+				palette_color_get_rgb16 (&colors[COL_FG], &red, &green, &blue);
+				sprintf (buf, cursor_color_rc, (red >> 8), (green >> 8), (blue >> 8));
+			}
+			gtk_rc_parse_string (buf);
+			done_rc = TRUE;
 		}
-		gtk_rc_parse_string (buf);
 #else
 		GtkSettings *settings = gtk_settings_get_default ();
 		GdkScreen *screen = gdk_screen_get_default ();
@@ -459,67 +473,103 @@ create_input_style (InputStyle *style)
 		guint16 bg_red;
 		guint16 bg_green;
 		guint16 bg_blue;
+		gboolean dark_mode = fe_dark_mode_is_enabled ();
+		gboolean needs_reload;
 
 		g_object_get (settings, "gtk-theme-name", &theme_name, NULL);
 
-		if (!input_css_provider)
-			input_css_provider = gtk_css_provider_new ();
-
 		palette_color_get_rgb16 (&colors[COL_FG], &fg_red, &fg_green, &fg_blue);
 		palette_color_get_rgb16 (&colors[COL_BG], &bg_red, &bg_green, &bg_blue);
-		g_snprintf (buf, sizeof (buf), "#%02x%02x%02x",
-			(fg_red >> 8), (fg_green >> 8), (fg_blue >> 8));
-		g_snprintf (cursor_rc, sizeof (cursor_rc), cursor_color_rc,
-			(fg_red >> 8), (fg_green >> 8), (fg_blue >> 8));
-		cursor_color_start = g_strstr_len (cursor_rc, -1, "cursor-color=\"");
-		if (cursor_color_start)
-		{
-			cursor_color_start += strlen ("cursor-color=\"");
-			g_strlcpy (cursor_color, cursor_color_start, sizeof (cursor_color));
-			cursor_color[7] = '\0';
-		}
-		else
-		{
-			g_strlcpy (cursor_color, buf, sizeof (cursor_color));
-		}
-		{
-			GString *css = g_string_new ("#zoitechat-inputbox {");
+		needs_reload = !done_rc
+			|| !last_input_style
+			|| last_dark_mode != dark_mode
+			|| g_strcmp0 (last_theme_name, theme_name) != 0
+			|| !last_colors_set
+			|| last_fg_red != fg_red
+			|| last_fg_green != fg_green
+			|| last_fg_blue != fg_blue
+			|| last_bg_red != bg_red
+			|| last_bg_green != bg_green
+			|| last_bg_blue != bg_blue;
 
-			/* GTK3 equivalents for adwaita_workaround_rc/cursor_color_rc. */
-			if (adwaita_workaround_rc[0] != '\0'
-				&& (g_str_has_prefix (theme_name, "Adwaita")
-					|| g_str_has_prefix (theme_name, "Yaru")))
-				g_string_append (css, "background-image: none;");
+		if (needs_reload)
+		{
+			if (!input_css_provider)
+				input_css_provider = gtk_css_provider_new ();
 
-			g_string_append_printf (
-				css,
-				"background-color: #%02x%02x%02x;"
-				"color: #%02x%02x%02x;"
-				"caret-color: %s;"
-				"}"
-				"#zoitechat-inputbox text {"
-				"color: #%02x%02x%02x;"
-				"caret-color: %s;"
-				"}",
-				(bg_red >> 8), (bg_green >> 8), (bg_blue >> 8),
-				(fg_red >> 8), (fg_green >> 8), (fg_blue >> 8),
-				cursor_color,
-				(fg_red >> 8), (fg_green >> 8), (fg_blue >> 8),
-				cursor_color);
-			gtk_css_provider_load_from_data (input_css_provider, css->str, -1, NULL);
-			g_string_free (css, TRUE);
+			g_snprintf (buf, sizeof (buf), "#%02x%02x%02x",
+				(fg_red >> 8), (fg_green >> 8), (fg_blue >> 8));
+			g_snprintf (cursor_rc, sizeof (cursor_rc), cursor_color_rc,
+				(fg_red >> 8), (fg_green >> 8), (fg_blue >> 8));
+			cursor_color_start = g_strstr_len (cursor_rc, -1, "cursor-color=\"");
+			if (cursor_color_start)
+			{
+				cursor_color_start += strlen ("cursor-color=\"");
+				g_strlcpy (cursor_color, cursor_color_start, sizeof (cursor_color));
+				cursor_color[7] = '\0';
+			}
+			else
+			{
+				g_strlcpy (cursor_color, buf, sizeof (cursor_color));
+			}
+			{
+				GString *css = g_string_new ("#zoitechat-inputbox {");
+
+				/* GTK3 equivalents for adwaita_workaround_rc/cursor_color_rc. */
+				if (adwaita_workaround_rc[0] != '\0'
+					&& (g_str_has_prefix (theme_name, "Adwaita")
+						|| g_str_has_prefix (theme_name, "Yaru")))
+					g_string_append (css, "background-image: none;");
+
+				g_string_append_printf (
+					css,
+					"background-color: #%02x%02x%02x;"
+					"color: #%02x%02x%02x;"
+					"caret-color: %s;"
+					"}"
+					"#zoitechat-inputbox text {"
+					"color: #%02x%02x%02x;"
+					"caret-color: %s;"
+					"}",
+					(bg_red >> 8), (bg_green >> 8), (bg_blue >> 8),
+					(fg_red >> 8), (fg_green >> 8), (fg_blue >> 8),
+					cursor_color,
+					(fg_red >> 8), (fg_green >> 8), (fg_blue >> 8),
+					cursor_color);
+				gtk_css_provider_load_from_data (input_css_provider, css->str, -1, NULL);
+				g_string_free (css, TRUE);
+			}
+
+			if (screen)
+				gtk_style_context_add_provider_for_screen (
+					screen,
+					GTK_STYLE_PROVIDER (input_css_provider),
+					GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+
+			done_rc = TRUE;
+			last_input_style = TRUE;
+			last_dark_mode = dark_mode;
+			last_colors_set = TRUE;
+			last_fg_red = fg_red;
+			last_fg_green = fg_green;
+			last_fg_blue = fg_blue;
+			last_bg_red = bg_red;
+			last_bg_green = bg_green;
+			last_bg_blue = bg_blue;
+			g_free (last_theme_name);
+			last_theme_name = g_strdup (theme_name);
 		}
-
-		if (screen)
-			gtk_style_context_add_provider_for_screen (
-				screen,
-				GTK_STYLE_PROVIDER (input_css_provider),
-				GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
 
 		g_free (theme_name);
 #endif
-		done_rc = TRUE;
 	}
+#if HAVE_GTK3
+	else
+	{
+		done_rc = FALSE;
+		last_input_style = FALSE;
+	}
+#endif
 
 #if !HAVE_GTK3
 	style->bg[GTK_STATE_NORMAL] = colors[COL_FG];
