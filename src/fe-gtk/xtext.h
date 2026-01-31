@@ -148,6 +148,7 @@ struct _GtkXText
 	cairo_surface_t *background_surface;	/* 0 = use palette[19] */
 	GdkWindow *draw_window;			/* points to ->window */
 	cairo_surface_t *draw_surface;	/* temporary surface for offscreen draws */
+	cairo_t *draw_cr;					/* GTK3 draw context */
 	GdkCursor *hand_cursor;
 	GdkCursor *resize_cursor;
 

@@ -321,6 +321,8 @@ xtext_create_context (GtkXText *xtext)
 {
 	if (xtext->draw_surface)
 		return cairo_create (xtext->draw_surface);
+	if (xtext->draw_cr)
+		return cairo_reference (xtext->draw_cr);
 
 	return gdk_cairo_create (xtext->draw_window);
 }
@@ -634,6 +636,7 @@ gtk_xtext_init (GtkXText * xtext)
 	xtext->background_surface = NULL;
 	xtext->draw_window = NULL;
 	xtext->draw_surface = NULL;
+	xtext->draw_cr = NULL;
 	xtext->io_tag = 0;
 	xtext->add_io_tag = 0;
 	xtext->scroll_tag = 0;
@@ -1367,12 +1370,15 @@ gtk_xtext_draw_marker (GtkXText * xtext, textentry * ent, int y)
 }
 
 static void
-gtk_xtext_paint (GtkWidget *widget, GdkRectangle *area)
+gtk_xtext_render (GtkWidget *widget, GdkRectangle *area, cairo_t *cr)
 {
 	GtkXText *xtext = GTK_XTEXT (widget);
 	textentry *ent_start, *ent_end;
 	int x, y;
 	GtkAllocation allocation;
+	cairo_t *old_cr = xtext->draw_cr;
+
+	xtext->draw_cr = cr;
 
 #if HAVE_GTK3
 	gtk_widget_get_allocation (widget, &allocation);
@@ -1387,7 +1393,7 @@ gtk_xtext_paint (GtkWidget *widget, GdkRectangle *area)
 	{
 		dontscroll (xtext->buffer);	/* force scrolling off */
 		gtk_xtext_render_page (xtext);
-		return;
+		goto done;
 	}
 
 	ent_start = gtk_xtext_find_char (xtext, area->x, area->y, NULL, NULL);
@@ -1438,14 +1444,47 @@ xit:
 	x = xtext->buffer->indent - ((xtext->space_width + 1) / 2);
 	if (area->x <= x)
 		gtk_xtext_draw_sep (xtext, -1);
+
+done:
+	xtext->draw_cr = old_cr;
 }
 
+static void
+gtk_xtext_paint (GtkWidget *widget, GdkRectangle *area)
+{
+	gtk_xtext_render (widget, area, NULL);
+}
+
+#if HAVE_GTK3
+static gboolean
+gtk_xtext_draw (GtkWidget *widget, cairo_t *cr)
+{
+	GdkRectangle area;
+
+	if (!gdk_cairo_get_clip_rectangle (cr, &area))
+	{
+		GtkAllocation allocation;
+
+		gtk_widget_get_allocation (widget, &allocation);
+		area.x = 0;
+		area.y = 0;
+		area.width = allocation.width;
+		area.height = allocation.height;
+	}
+
+	gtk_xtext_render (widget, &area, cr);
+	return FALSE;
+}
+#endif
+
+#if !HAVE_GTK3
 static gboolean
 gtk_xtext_expose (GtkWidget * widget, GdkEventExpose * event)
 {
-	gtk_xtext_paint (widget, &event->area);
+	gtk_xtext_render (widget, &event->area, NULL);
 	return FALSE;
 }
+#endif
 
 /* render a selection that has extended or contracted upward */
 
@@ -2784,7 +2823,12 @@ gtk_xtext_class_init (GtkXTextClass * class)
 	widget_class->motion_notify_event = gtk_xtext_motion_notify;
 	widget_class->selection_clear_event = (void *)gtk_xtext_selection_kill;
 	widget_class->selection_get = gtk_xtext_selection_get;
+#if HAVE_GTK3
+	widget_class->draw = gtk_xtext_draw;
+#endif
+#if !HAVE_GTK3
 	widget_class->expose_event = gtk_xtext_expose;
+#endif
 	widget_class->scroll_event = gtk_xtext_scroll;
 	widget_class->leave_notify_event = gtk_xtext_leave_notify;
 	widget_class->set_scroll_adjustments_signal = xtext_signals[SET_SCROLL_ADJUSTMENTS];
