@@ -107,7 +107,12 @@ struct _SexySpellEntryPriv
 };
 
 static void sexy_spell_entry_class_init(SexySpellEntryClass *klass);
+#if HAVE_GTK3
+static void sexy_spell_entry_editable_init (GtkEditableInterface *iface);
+#endif
+#if !HAVE_GTK3
 static void sexy_spell_entry_editable_init (GtkEditableClass *iface);
+#endif
 static void sexy_spell_entry_init(SexySpellEntry *entry);
 static void sexy_spell_entry_finalize(GObject *obj);
 static void sexy_spell_entry_destroy(GObject *obj);
@@ -286,10 +291,19 @@ sexy_spell_entry_class_init(SexySpellEntryClass *klass)
 	}
 }
 
+#if HAVE_GTK3
+static void
+sexy_spell_entry_editable_init (GtkEditableInterface *iface)
+{
+}
+#endif
+
+#if !HAVE_GTK3
 static void
 sexy_spell_entry_editable_init (GtkEditableClass *iface)
 {
 }
+#endif
 
 static gint
 gtk_entry_find_position (GtkEntry *entry, gint x)
