@@ -2642,7 +2642,12 @@ mg_create_textarea (session *sess, GtkWidget *box)
         g_signal_connect (G_OBJECT (xtext), "word_click",
                                                         G_CALLBACK (mg_word_clicked), NULL);
 
+#if HAVE_GTK3
+        gui->vscrollbar = gtk_scrollbar_new (GTK_ORIENTATION_VERTICAL,
+                                             GTK_XTEXT (xtext)->adj);
+#elif !HAVE_GTK3
         gui->vscrollbar = gtk_vscrollbar_new (GTK_XTEXT (xtext)->adj);
+#endif
         gtk_box_pack_start (GTK_BOX (inbox), gui->vscrollbar, FALSE, TRUE, 0);
 
         gtk_drag_dest_set (gui->vscrollbar, 5, dnd_dest_targets, 2,
@@ -2827,10 +2832,18 @@ mg_create_center (session *sess, session_gui *gui, GtkWidget *box)
         GtkWidget *vbox, *hbox, *book;
 
         /* sep between top and bottom of left side */
+#if HAVE_GTK3
+        gui->vpane_left = gtk_paned_new (GTK_ORIENTATION_VERTICAL);
+#elif !HAVE_GTK3
         gui->vpane_left = gtk_vpaned_new ();
+#endif
 
         /* sep between top and bottom of right side */
+#if HAVE_GTK3
+        gui->vpane_right = gtk_paned_new (GTK_ORIENTATION_VERTICAL);
+#elif !HAVE_GTK3
         gui->vpane_right = gtk_vpaned_new ();
+#endif
 
         /* sep between left and xtext */
         gui->hpane_left = gtk_hpaned_new ();

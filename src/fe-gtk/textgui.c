@@ -462,7 +462,11 @@ pevent_dialog_show ()
 											 TRUE, FALSE, pevent_dialog_close, NULL,
 											 600, 455, &vbox, 0);
 
+#if HAVE_GTK3
+	pane = gtk_paned_new (GTK_ORIENTATION_VERTICAL);
+#elif !HAVE_GTK3
 	pane = gtk_vpaned_new ();
+#endif
 	gtk_box_pack_start (GTK_BOX (vbox), pane, TRUE, TRUE, 0);
 	
 	pevent_dialog_list = pevent_treeview_new (pane);
