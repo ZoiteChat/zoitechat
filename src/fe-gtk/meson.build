@@ -30,19 +30,30 @@ zoitechat_gtk_sources = [
 
 zoitechat_gtk_cflags = []
 
+zoitechat_gtk_deps = [
+  zoitechat_common_dep,
+  libgmodule_dep, # used by libsexy
+]
+
 if get_option('gtk3')
   gtk_dep = dependency('gtk+-3.0', version: '>= 3.22')
   zoitechat_gtk_cflags += '-DHAVE_GTK3'
+
+  appindicator_dep = dependency('ayatana-appindicator3-0.1', required: false)
+  if appindicator_dep.found()
+    zoitechat_gtk_deps += appindicator_dep
+    zoitechat_gtk_cflags += '-DHAVE_AYATANA_APPINDICATOR'
+  else
+    appindicator_dep = dependency('appindicator3-0.1', required: true)
+    zoitechat_gtk_deps += appindicator_dep
+    zoitechat_gtk_cflags += '-DHAVE_APPINDICATOR'
+  endif
 else
   gtk_dep = dependency('gtk+-2.0', version: '>= 2.24.0')
   zoitechat_gtk_cflags += '-DHAVE_GTK2'
 endif
 
-zoitechat_gtk_deps = [
-  zoitechat_common_dep,
-  libgmodule_dep, # used by libsexy
-  gtk_dep
-]
+zoitechat_gtk_deps += gtk_dep
 
 if gtk_dep.get_pkgconfig_variable('target') == 'x11'
   zoitechat_gtk_deps += dependency('x11')

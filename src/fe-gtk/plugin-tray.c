@@ -32,6 +32,11 @@
 #include "gtkutil.h"
 
 #if HAVE_GTK3
+#if defined(HAVE_AYATANA_APPINDICATOR)
+#include <libayatana-appindicator/app-indicator.h>
+#else
+#include <libappindicator/app-indicator.h>
+#endif
 #define ICON_TRAY_PREFERENCES "preferences-system"
 #define ICON_TRAY_QUIT "application-exit"
 #endif
@@ -63,7 +68,7 @@ typedef enum
 } WinStatus;
 
 #if HAVE_GTK3
-/* GTK3: keep GtkStatusIcon and use tooltip/text properties for tray tooltips. */
+/* GTK3: use AppIndicator/StatusNotifier item for tray integration. */
 typedef const char *TrayIcon;
 typedef char *TrayCustomIcon;
 #define tray_icon_from_file(f) g_strdup(f)
@@ -88,12 +93,238 @@ typedef GdkPixbuf* TrayCustomIcon;
 #endif
 #define TIMEOUT 500
 
-static GtkStatusIcon *sticon;
+void tray_apply_setup (void);
+static gboolean tray_menu_try_restore (void);
+static void tray_cleanup (void);
+static void tray_init (void);
+static void tray_menu_restore_cb (GtkWidget *item, gpointer userdata);
+static void tray_menu_notify_cb (GObject *tray, GParamSpec *pspec, gpointer user_data);
+#if HAVE_GTK3
+static void tray_menu_show_cb (GtkWidget *menu, gpointer userdata);
+#endif
+#if !HAVE_GTK3
+static void tray_menu_cb (GtkWidget *widget, guint button, guint time, gpointer userdata);
+#endif
+
+typedef struct
+{
+	gboolean (*init)(void);
+	void (*set_icon)(TrayIcon icon);
+	void (*set_tooltip)(const char *text);
+	gboolean (*is_embedded)(void);
+	void (*cleanup)(void);
+} TrayBackendOps;
+
+#if HAVE_GTK3
+static AppIndicator *tray_indicator;
+static GtkWidget *tray_menu;
+#endif
+#if !HAVE_GTK3
+static GtkStatusIcon *tray_status_icon;
+#endif
+static gboolean tray_backend_active = FALSE;
+
+#if HAVE_GTK3
+static void
+tray_app_indicator_set_icon (TrayIcon icon)
+{
+	if (!tray_indicator)
+		return;
+
+	app_indicator_set_icon_full (tray_indicator, icon, _(DISPLAY_NAME));
+	app_indicator_set_status (tray_indicator, APP_INDICATOR_STATUS_ACTIVE);
+}
+
+static void
+tray_app_indicator_set_tooltip (const char *text)
+{
+	if (!tray_indicator)
+		return;
+
+	app_indicator_set_title (tray_indicator, text ? text : "");
+}
+
+static gboolean
+tray_app_indicator_is_embedded (void)
+{
+	gboolean connected = TRUE;
+	GObjectClass *klass;
+
+	if (!tray_indicator)
+		return FALSE;
+
+	klass = G_OBJECT_GET_CLASS (tray_indicator);
+	if (klass && g_object_class_find_property (klass, "connected"))
+	{
+		g_object_get (tray_indicator, "connected", &connected, NULL);
+	}
+
+	return connected;
+}
+
+static void
+tray_app_indicator_cleanup (void)
+{
+	if (tray_indicator)
+	{
+		g_object_unref (tray_indicator);
+		tray_indicator = NULL;
+	}
+
+	if (tray_menu)
+	{
+		gtk_widget_destroy (tray_menu);
+		tray_menu = NULL;
+	}
+}
+
+static gboolean
+tray_app_indicator_init (void)
+{
+	GObjectClass *klass;
+
+	tray_indicator = app_indicator_new ("zoitechat", ICON_NORMAL,
+		APP_INDICATOR_CATEGORY_COMMUNICATIONS);
+	if (!tray_indicator)
+		return FALSE;
+
+	tray_menu = gtk_menu_new ();
+	g_signal_connect (G_OBJECT (tray_menu), "show",
+		G_CALLBACK (tray_menu_show_cb), NULL);
+	app_indicator_set_menu (tray_indicator, GTK_MENU (tray_menu));
+	app_indicator_set_status (tray_indicator, APP_INDICATOR_STATUS_ACTIVE);
+
+	klass = G_OBJECT_GET_CLASS (tray_indicator);
+	if (klass && g_object_class_find_property (klass, "connected"))
+	{
+		g_signal_connect (G_OBJECT (tray_indicator), "notify::connected",
+			G_CALLBACK (tray_menu_notify_cb), NULL);
+	}
+
+	return TRUE;
+}
+
+static const TrayBackendOps tray_backend_ops = {
+	tray_app_indicator_init,
+	tray_app_indicator_set_icon,
+	tray_app_indicator_set_tooltip,
+	tray_app_indicator_is_embedded,
+	tray_app_indicator_cleanup
+};
+#endif
+
+#if !HAVE_GTK3
+static void
+tray_status_icon_set_icon (TrayIcon icon)
+{
+	if (!tray_status_icon)
+		return;
+
+	gtk_status_icon_set_from_pixbuf (tray_status_icon, icon);
+}
+
+static void
+tray_status_icon_set_tooltip (const char *text)
+{
+	if (!tray_status_icon)
+		return;
+
+	gtk_status_icon_set_tooltip_text (tray_status_icon, text);
+}
+
+static gboolean
+tray_status_icon_is_embedded (void)
+{
+	if (!tray_status_icon)
+		return FALSE;
+
+	return gtk_status_icon_is_embedded (tray_status_icon);
+}
+
+static void
+tray_status_icon_cleanup (void)
+{
+	if (tray_status_icon)
+	{
+		g_object_unref (tray_status_icon);
+		tray_status_icon = NULL;
+	}
+}
+
+static gboolean
+tray_status_icon_init (void)
+{
+	tray_status_icon = gtk_status_icon_new_from_pixbuf (ICON_NORMAL);
+	if (!tray_status_icon)
+		return FALSE;
+
+	g_signal_connect (G_OBJECT (tray_status_icon), "popup-menu",
+		G_CALLBACK (tray_menu_cb), tray_status_icon);
+
+	g_signal_connect (G_OBJECT (tray_status_icon), "activate",
+		G_CALLBACK (tray_menu_restore_cb), NULL);
+
+	g_signal_connect (G_OBJECT (tray_status_icon), "notify::embedded",
+		G_CALLBACK (tray_menu_notify_cb), NULL);
+
+	return TRUE;
+}
+
+static const TrayBackendOps tray_backend_ops = {
+	tray_status_icon_init,
+	tray_status_icon_set_icon,
+	tray_status_icon_set_tooltip,
+	tray_status_icon_is_embedded,
+	tray_status_icon_cleanup
+};
+#endif
+
+static gboolean
+tray_backend_init (void)
+{
+	if (!tray_backend_ops.init)
+		return FALSE;
+
+	tray_backend_active = tray_backend_ops.init ();
+	return tray_backend_active;
+}
+
+static void
+tray_backend_set_icon (TrayIcon icon)
+{
+	if (tray_backend_active && tray_backend_ops.set_icon)
+		tray_backend_ops.set_icon (icon);
+}
+
+static void
+tray_backend_set_tooltip (const char *text)
+{
+	if (tray_backend_active && tray_backend_ops.set_tooltip)
+		tray_backend_ops.set_tooltip (text);
+}
+
+static gboolean
+tray_backend_is_embedded (void)
+{
+	if (!tray_backend_active || !tray_backend_ops.is_embedded)
+		return FALSE;
+
+	return tray_backend_ops.is_embedded ();
+}
+
+static void
+tray_backend_cleanup (void)
+{
+	if (tray_backend_ops.cleanup)
+		tray_backend_ops.cleanup ();
+
+	tray_backend_active = FALSE;
+}
 static gint flash_tag;
 static TrayIconState tray_icon_state;
 static TrayIcon tray_flash_icon;
 static TrayIconState tray_flash_state;
-#ifdef WIN32
+#if !HAVE_GTK3 && defined(WIN32)
 static guint tray_menu_timer;
 static gint64 tray_menu_inactivetime;
 #endif
@@ -107,13 +338,6 @@ static int tray_pub_count = 0;
 static int tray_hilight_count = 0;
 static int tray_file_count = 0;
 static int tray_restore_timer = 0;
-
-
-void tray_apply_setup (void);
-static gboolean tray_menu_try_restore (void);
-static void tray_cleanup (void);
-static void tray_init (void);
-
 
 static WinStatus
 tray_get_window_status (void)
@@ -168,83 +392,24 @@ tray_count_networks (void)
 static void
 tray_set_icon_state (TrayIcon icon, TrayIconState state)
 {
-#if HAVE_GTK3
-	gtk_status_icon_set_from_icon_name (sticon, icon);
-#endif
-#if !HAVE_GTK3
-	gtk_status_icon_set_from_pixbuf (sticon, icon);
-#endif
+	tray_backend_set_icon (icon);
 	tray_icon_state = state;
 }
 
 static void
 tray_set_custom_icon_state (TrayCustomIcon icon, TrayIconState state)
 {
-#if HAVE_GTK3
-	gtk_status_icon_set_from_file (sticon, icon);
-#endif
-#if !HAVE_GTK3
-	gtk_status_icon_set_from_pixbuf (sticon, icon);
-#endif
+	tray_backend_set_icon (icon);
 	tray_icon_state = state;
-}
-
-static void
-tray_set_tooltip_text (GtkStatusIcon *icon, const char *text)
-{
-#if HAVE_GTK3
-	GObjectClass *klass;
-
-	if (!icon)
-		return;
-
-	klass = G_OBJECT_GET_CLASS (icon);
-	if (klass && g_object_class_find_property (klass, "tooltip-text"))
-	{
-		g_object_set (G_OBJECT (icon), "tooltip-text", text, NULL);
-	}
-	else if (klass && g_object_class_find_property (klass, "title"))
-	{
-		g_object_set (G_OBJECT (icon), "title", text, NULL);
-	}
-#endif
-#if !HAVE_GTK3
-	gtk_status_icon_set_tooltip_text (icon, text);
-#endif
-}
-
-static gboolean
-tray_is_embedded (GtkStatusIcon *icon)
-{
-#if HAVE_GTK3
-	GObjectClass *klass;
-	gboolean embedded = TRUE;
-
-	if (!icon)
-		return FALSE;
-
-	klass = G_OBJECT_GET_CLASS (icon);
-	if (klass && g_object_class_find_property (klass, "embedded"))
-		g_object_get (G_OBJECT (icon), "embedded", &embedded, NULL);
-
-	return embedded;
-#endif
-#if !HAVE_GTK3
-	return gtk_status_icon_is_embedded (icon);
-#endif
 }
 
 void
 fe_tray_set_tooltip (const char *text)
 {
-	if (!sticon)
+	if (!tray_backend_active)
 		return;
-#if HAVE_GTK3
-	tray_set_tooltip_text (sticon, text);
-#endif
-#if !HAVE_GTK3
-	tray_set_tooltip_text (sticon, text);
-#endif
+
+	tray_backend_set_tooltip (text);
 }
 
 static void
@@ -272,7 +437,7 @@ tray_stop_flash (void)
 		flash_tag = 0;
 	}
 
-	if (sticon)
+	if (tray_backend_active)
 	{
 		tray_set_icon_state (ICON_NORMAL, TRAY_ICON_NORMAL);
 		nets = tray_count_networks ();
@@ -341,7 +506,7 @@ tray_timeout_cb (gpointer userdata)
 static void
 tray_set_flash (TrayIcon icon, TrayIconState state)
 {
-	if (!sticon)
+	if (!tray_backend_active)
 		return;
 
 	/* already flashing the same icon */
@@ -365,7 +530,7 @@ void
 fe_tray_set_flash (const char *filename1, const char *filename2, int tout)
 {
 	tray_apply_setup ();
-	if (!sticon)
+	if (!tray_backend_active)
 		return;
 
 	tray_stop_flash ();
@@ -385,7 +550,7 @@ void
 fe_tray_set_icon (feicon icon)
 {
 	tray_apply_setup ();
-	if (!sticon)
+	if (!tray_backend_active)
 		return;
 
 	tray_stop_flash ();
@@ -410,7 +575,7 @@ void
 fe_tray_set_file (const char *filename)
 {
 	tray_apply_setup ();
-	if (!sticon)
+	if (!tray_backend_active)
 		return;
 
 	tray_stop_flash ();
@@ -431,7 +596,7 @@ tray_toggle_visibility (gboolean force_hide)
 	static int fullscreen;
 	GtkWindow *win;
 
-	if (!sticon)
+	if (!tray_backend_active)
 		return FALSE;
 
 	/* ph may have an invalid context now */
@@ -476,25 +641,22 @@ tray_toggle_visibility (gboolean force_hide)
 static void
 tray_menu_restore_cb (GtkWidget *item, gpointer userdata)
 {
+	(void)item;
+	(void)userdata;
+
 	tray_toggle_visibility (FALSE);
 }
 
 static void
 tray_menu_notify_cb (GObject *tray, GParamSpec *pspec, gpointer user_data)
 {
-	if (sticon)
+	(void)tray;
+	(void)pspec;
+	(void)user_data;
+
+	if (tray_backend_active)
 	{
-#if HAVE_GTK3
-		if (!tray_is_embedded (sticon))
-			tray_restore_timer = g_timeout_add(500, (GSourceFunc)tray_menu_try_restore, NULL);
-		else if (tray_restore_timer)
-		{
-			g_source_remove (tray_restore_timer);
-			tray_restore_timer = 0;
-		}
-#endif
-#if !HAVE_GTK3
-		if (!tray_is_embedded (sticon))
+		if (!tray_backend_is_embedded ())
 		{
 			tray_restore_timer = g_timeout_add(500, (GSourceFunc)tray_menu_try_restore, NULL);
 		}
@@ -506,7 +668,6 @@ tray_menu_notify_cb (GObject *tray, GParamSpec *pspec, gpointer user_data)
 				tray_restore_timer = 0;
 			}
 		}
-#endif
 	}
 }
 
@@ -521,6 +682,9 @@ tray_menu_try_restore (void)
 static void
 tray_menu_quit_cb (GtkWidget *item, gpointer userdata)
 {
+	(void)item;
+	(void)userdata;
+
 	mg_open_quit_dialog (FALSE);
 }
 
@@ -598,9 +762,12 @@ blink_item (unsigned int *setting, GtkWidget *menu, char *label)
 }
 #endif
 
+#if !HAVE_GTK3
 static void
 tray_menu_destroy (GtkWidget *menu, gpointer userdata)
 {
+	(void)userdata;
+
 	gtk_widget_destroy (menu);
 	g_object_unref (menu);
 #ifdef WIN32
@@ -612,6 +779,8 @@ tray_menu_destroy (GtkWidget *menu, gpointer userdata)
 static gboolean
 tray_menu_enter_cb (GtkWidget *menu)
 {
+	(void)menu;
+
 	tray_menu_inactivetime = 0;
 	return FALSE;
 }
@@ -619,6 +788,8 @@ tray_menu_enter_cb (GtkWidget *menu)
 static gboolean
 tray_menu_left_cb (GtkWidget *menu)
 {
+	(void)menu;
+
 	tray_menu_inactivetime = g_get_real_time ();
 	return FALSE;
 }
@@ -635,33 +806,27 @@ tray_check_hide (GtkWidget *menu)
 	return G_SOURCE_CONTINUE;
 }
 #endif
+#endif
 
 static void
 tray_menu_settings (GtkWidget * wid, gpointer none)
 {
+	(void)wid;
+	(void)none;
+
 	extern void setup_open (void);
 	setup_open ();
 }
 
 static void
-tray_menu_cb (GtkWidget *widget, guint button, guint time, gpointer userdata)
+tray_menu_populate (GtkWidget *menu)
 {
-	static GtkWidget *menu;
 	GtkWidget *submenu;
 	GtkWidget *item;
 	int away_status;
 
 	/* ph may have an invalid context now */
 	zoitechat_set_context (ph, zoitechat_find_context (ph, NULL, NULL));
-
-	/* close any old menu */
-	if (G_IS_OBJECT (menu))
-	{
-		tray_menu_destroy (menu, NULL);
-	}
-
-	menu = gtk_menu_new ();
-	/*gtk_menu_set_screen (GTK_MENU (menu), gtk_widget_get_screen (widget));*/
 
 	if (tray_get_window_status () == WS_HIDDEN)
 		tray_make_item (menu, _("_Restore Window"), tray_menu_restore_cb, NULL);
@@ -695,24 +860,67 @@ tray_menu_cb (GtkWidget *widget, guint button, guint time, gpointer userdata)
 	mg_create_icon_item (_("_Preferences"), ICON_TRAY_PREFERENCES, menu, tray_menu_settings, NULL);
 	tray_make_item (menu, NULL, tray_menu_quit_cb, NULL);
 	mg_create_icon_item (_("_Quit"), ICON_TRAY_QUIT, menu, tray_menu_quit_cb, NULL);
+}
+
+#if HAVE_GTK3
+static void
+tray_menu_clear (GtkWidget *menu)
+{
+	GList *children;
+	GList *iter;
+
+	children = gtk_container_get_children (GTK_CONTAINER (menu));
+	for (iter = children; iter; iter = iter->next)
+		gtk_widget_destroy (GTK_WIDGET (iter->data));
+	g_list_free (children);
+}
+
+static void
+tray_menu_show_cb (GtkWidget *menu, gpointer userdata)
+{
+	(void)userdata;
+
+	tray_menu_clear (menu);
+	tray_menu_populate (menu);
+}
+#endif
+
+#if !HAVE_GTK3
+static void
+tray_menu_cb (GtkWidget *widget, guint button, guint time, gpointer userdata)
+{
+	static GtkWidget *menu;
+
+	(void)widget;
+
+	/* close any old menu */
+	if (G_IS_OBJECT (menu))
+	{
+		tray_menu_destroy (menu, NULL);
+	}
+
+	menu = gtk_menu_new ();
+	/*gtk_menu_set_screen (GTK_MENU (menu), gtk_widget_get_screen (widget));*/
+	tray_menu_populate (menu);
 
 	g_object_ref (menu);
 	g_object_ref_sink (menu);
 	g_object_unref (menu);
 	g_signal_connect (G_OBJECT (menu), "selection-done",
-							G_CALLBACK (tray_menu_destroy), NULL);
+		G_CALLBACK (tray_menu_destroy), NULL);
 #ifdef WIN32
 	g_signal_connect (G_OBJECT (menu), "leave-notify-event",
-							G_CALLBACK (tray_menu_left_cb), NULL);
+		G_CALLBACK (tray_menu_left_cb), NULL);
 	g_signal_connect (G_OBJECT (menu), "enter-notify-event",
-							G_CALLBACK (tray_menu_enter_cb), NULL);
+		G_CALLBACK (tray_menu_enter_cb), NULL);
 
 	tray_menu_timer = g_timeout_add (500, (GSourceFunc)tray_check_hide, menu);
 #endif
 
 	gtk_menu_popup (GTK_MENU (menu), NULL, NULL, NULL,
-						 userdata, button, time);
+		userdata, button, time);
 }
+#endif
 
 static void
 tray_init (void)
@@ -724,24 +932,10 @@ tray_init (void)
 	custom_icon1 = NULL;
 	custom_icon2 = NULL;
 
-#if HAVE_GTK3
-	sticon = gtk_status_icon_new_from_icon_name (ICON_NORMAL);
-#endif
-#if !HAVE_GTK3
-	sticon = gtk_status_icon_new_from_pixbuf (ICON_NORMAL);
-#endif
-	if (!sticon)
+	if (!tray_backend_init ())
 		return;
 	tray_icon_state = TRAY_ICON_NORMAL;
-
-	g_signal_connect (G_OBJECT (sticon), "popup-menu",
-							G_CALLBACK (tray_menu_cb), sticon);
-
-	g_signal_connect (G_OBJECT (sticon), "activate",
-							G_CALLBACK (tray_menu_restore_cb), NULL);
-
-	g_signal_connect (G_OBJECT (sticon), "notify::embedded",
-							G_CALLBACK (tray_menu_notify_cb), NULL);
+	tray_set_icon_state (ICON_NORMAL, TRAY_ICON_NORMAL);
 }
 
 static int
@@ -873,17 +1067,14 @@ tray_cleanup (void)
 {
 	tray_stop_flash ();
 
-	if (sticon)
-	{
-		g_object_unref ((GObject *)sticon);
-		sticon = NULL;
-	}
+	if (tray_backend_active)
+		tray_backend_cleanup ();
 }
 
 void
 tray_apply_setup (void)
 {
-	if (sticon)
+	if (tray_backend_active)
 	{
 		if (!prefs.hex_gui_tray)
 			tray_cleanup ();
