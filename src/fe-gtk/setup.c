@@ -748,8 +748,8 @@ setup_table_attach (GtkWidget *table, GtkWidget *child,
 	gtk_widget_set_margin_top (child, ypad);
 	gtk_widget_set_margin_bottom (child, ypad);
 
-	gtk_table_attach (GTK_TABLE (table), child, left_attach, right_attach,
-			  top_attach, bottom_attach, 0, 0, 0, 0);
+	gtk_grid_attach (GTK_GRID (table), child, left_attach, top_attach,
+			 right_attach - left_attach, bottom_attach - top_attach);
 #else
 	GtkAttachOptions xoptions = 0;
 	GtkAttachOptions yoptions = 0;
@@ -801,7 +801,8 @@ setup_headlabel (GtkWidget *tab, int row, int col, char *text)
 #elif !HAVE_GTK3
         gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
 #endif
-        gtk_table_attach (GTK_TABLE (tab), label, col, col + 1, row, row + 1, 0, 0, 4, 0);
+        setup_table_attach (tab, label, col, col + 1, row, row + 1, FALSE, FALSE,
+                            SETUP_ALIGN_START, SETUP_ALIGN_CENTER, 4, 0);
 }
 
 static void
@@ -840,21 +841,24 @@ setup_create_3oggle (GtkWidget *tab, int row, const setting *set)
                                                                                         setup_get_int3 (&setup_prefs, offsets[0]));
         g_signal_connect (G_OBJECT (wid), "toggled",
                                                         G_CALLBACK (setup_3oggle_cb), ((int *)&setup_prefs) + offsets[0]);
-        gtk_table_attach (GTK_TABLE (tab), wid, 3, 4, row, row + 1, 0, 0, 0, 0);
+        setup_table_attach (tab, wid, 3, 4, row, row + 1, FALSE, FALSE,
+                            SETUP_ALIGN_CENTER, SETUP_ALIGN_CENTER, 0, 0);
 
         wid = gtk_check_button_new ();
         gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (wid),
                                                                                         setup_get_int3 (&setup_prefs, offsets[1]));
         g_signal_connect (G_OBJECT (wid), "toggled",
                                                         G_CALLBACK (setup_3oggle_cb), ((int *)&setup_prefs) + offsets[1]);
-        gtk_table_attach (GTK_TABLE (tab), wid, 4, 5, row, row + 1, 0, 0, 0, 0);
+        setup_table_attach (tab, wid, 4, 5, row, row + 1, FALSE, FALSE,
+                            SETUP_ALIGN_CENTER, SETUP_ALIGN_CENTER, 0, 0);
 
         wid = gtk_check_button_new ();
         gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (wid),
                                                                                         setup_get_int3 (&setup_prefs, offsets[2]));
         g_signal_connect (G_OBJECT (wid), "toggled",
                                                         G_CALLBACK (setup_3oggle_cb), ((int *)&setup_prefs) + offsets[2]);
-        gtk_table_attach (GTK_TABLE (tab), wid, 5, 6, row, row + 1, 0, 0, 0, 0);
+        setup_table_attach (tab, wid, 5, 6, row, row + 1, FALSE, FALSE,
+                            SETUP_ALIGN_CENTER, SETUP_ALIGN_CENTER, 0, 0);
 }
 
 static void
@@ -1474,10 +1478,17 @@ setup_create_frame (void)
 {
         GtkWidget *tab;
 
+#if HAVE_GTK3
+        tab = gtk_grid_new ();
+        gtk_container_set_border_width (GTK_CONTAINER (tab), 6);
+        gtk_grid_set_row_spacing (GTK_GRID (tab), 2);
+        gtk_grid_set_column_spacing (GTK_GRID (tab), 3);
+#else
         tab = gtk_table_new (3, 2, FALSE);
         gtk_container_set_border_width (GTK_CONTAINER (tab), 6);
         gtk_table_set_row_spacings (GTK_TABLE (tab), 2);
         gtk_table_set_col_spacings (GTK_TABLE (tab), 3);
+#endif
 
         return tab;
 }
@@ -1908,11 +1919,19 @@ setup_create_color_page (void)
 #endif
         gtk_container_set_border_width (GTK_CONTAINER (box), 6);
 
+#if HAVE_GTK3
+        tab = gtk_grid_new ();
+        gtk_container_set_border_width (GTK_CONTAINER (tab), 6);
+        gtk_grid_set_row_spacing (GTK_GRID (tab), 2);
+        gtk_grid_set_column_spacing (GTK_GRID (tab), 3);
+        gtk_container_add (GTK_CONTAINER (box), tab);
+#else
         tab = gtk_table_new (9, 2, FALSE);
         gtk_container_set_border_width (GTK_CONTAINER (tab), 6);
         gtk_table_set_row_spacings (GTK_TABLE (tab), 2);
         gtk_table_set_col_spacings (GTK_TABLE (tab), 3);
         gtk_container_add (GTK_CONTAINER (box), tab);
+#endif
 
         setup_create_header (tab, 0, N_("Text Colors"));
 
@@ -2463,11 +2482,19 @@ setup_create_sound_page (void)
         gtk_container_add (GTK_CONTAINER (scrolledwindow1), sound_tree);
         gtk_tree_view_set_rules_hint (GTK_TREE_VIEW (sound_tree), TRUE);
 
+#if HAVE_GTK3
+        table1 = gtk_grid_new ();
+        gtk_widget_show (table1);
+        gtk_box_pack_start (GTK_BOX (vbox2), table1, FALSE, TRUE, 8);
+        gtk_grid_set_row_spacing (GTK_GRID (table1), 2);
+        gtk_grid_set_column_spacing (GTK_GRID (table1), 4);
+#else
         table1 = gtk_table_new (2, 3, FALSE);
         gtk_widget_show (table1);
         gtk_box_pack_start (GTK_BOX (vbox2), table1, FALSE, TRUE, 8);
         gtk_table_set_row_spacings (GTK_TABLE (table1), 2);
         gtk_table_set_col_spacings (GTK_TABLE (table1), 4);
+#endif
 
         sound_label = gtk_label_new_with_mnemonic (_("Sound file:"));
         gtk_widget_show (sound_label);

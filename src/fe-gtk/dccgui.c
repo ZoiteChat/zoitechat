@@ -768,7 +768,7 @@ dcc_detail_label (char *text, GtkWidget *box, int num)
 	gtk_widget_set_vexpand (label, FALSE);
 	gtk_widget_set_halign (label, GTK_ALIGN_START);
 	gtk_widget_set_valign (label, GTK_ALIGN_START);
-	gtk_table_attach (GTK_TABLE (box), label, 0, 1, 0 + num, 1 + num, 0, 0, 0, 0);
+	gtk_grid_attach (GTK_GRID (box), label, 0, 0 + num, 1, 1);
 #elif !HAVE_GTK3
 	gtk_misc_set_alignment (GTK_MISC (label), 0, 0);
 	gtk_table_attach (GTK_TABLE (box), label, 0, 1, 0 + num, 1 + num,
@@ -782,7 +782,7 @@ dcc_detail_label (char *text, GtkWidget *box, int num)
 	gtk_widget_set_vexpand (label, FALSE);
 	gtk_widget_set_halign (label, GTK_ALIGN_START);
 	gtk_widget_set_valign (label, GTK_ALIGN_START);
-	gtk_table_attach (GTK_TABLE (box), label, 1, 2, 0 + num, 1 + num, 0, 0, 0, 0);
+	gtk_grid_attach (GTK_GRID (box), label, 1, 0 + num, 1, 1);
 #elif !HAVE_GTK3
 	gtk_misc_set_alignment (GTK_MISC (label), 0, 0);
 	gtk_table_attach (GTK_TABLE (box), label, 1, 2, 0 + num, 1 + num,
@@ -881,8 +881,13 @@ fe_dcc_open_recv_win (int passive)
 	g_signal_connect (G_OBJECT (view), "row-activated",
 							G_CALLBACK (dcc_dclick_cb), NULL);
 
+#if HAVE_GTK3
+	table = gtk_grid_new ();
+	gtk_grid_set_column_spacing (GTK_GRID (table), 16);
+#else
 	table = gtk_table_new (1, 3, FALSE);
 	gtk_table_set_col_spacings (GTK_TABLE (table), 16);
+#endif
 	gtk_box_pack_start (GTK_BOX (vbox), table, 0, 0, 0);
 
 	radio = gtk_radio_button_new_with_mnemonic (NULL, _("Both"));
@@ -893,7 +898,7 @@ fe_dcc_open_recv_win (int passive)
 	gtk_widget_set_vexpand (radio, FALSE);
 	gtk_widget_set_halign (radio, GTK_ALIGN_FILL);
 	gtk_widget_set_valign (radio, GTK_ALIGN_FILL);
-	gtk_table_attach (GTK_TABLE (table), radio, 3, 4, 0, 1, 0, 0, 0, 0);
+	gtk_grid_attach (GTK_GRID (table), radio, 3, 0, 1, 1);
 #else
 	gtk_table_attach (GTK_TABLE (table), radio, 3, 4, 0, 1, GTK_FILL, GTK_FILL, 0, 0);
 #endif
@@ -907,7 +912,7 @@ fe_dcc_open_recv_win (int passive)
 	gtk_widget_set_vexpand (radio, FALSE);
 	gtk_widget_set_halign (radio, GTK_ALIGN_FILL);
 	gtk_widget_set_valign (radio, GTK_ALIGN_FILL);
-	gtk_table_attach (GTK_TABLE (table), radio, 1, 2, 0, 1, 0, 0, 0, 0);
+	gtk_grid_attach (GTK_GRID (table), radio, 1, 0, 1, 1);
 #else
 	gtk_table_attach (GTK_TABLE (table), radio, 1, 2, 0, 1, GTK_FILL, GTK_FILL, 0, 0);
 #endif
@@ -921,7 +926,7 @@ fe_dcc_open_recv_win (int passive)
 	gtk_widget_set_vexpand (radio, FALSE);
 	gtk_widget_set_halign (radio, GTK_ALIGN_FILL);
 	gtk_widget_set_valign (radio, GTK_ALIGN_FILL);
-	gtk_table_attach (GTK_TABLE (table), radio, 2, 3, 0, 1, 0, 0, 0, 0);
+	gtk_grid_attach (GTK_GRID (table), radio, 2, 0, 1, 1);
 #else
 	gtk_table_attach (GTK_TABLE (table), radio, 2, 3, 0, 1, GTK_FILL, GTK_FILL, 0, 0);
 #endif
@@ -932,15 +937,22 @@ fe_dcc_open_recv_win (int passive)
 	gtk_widget_set_vexpand (exp, FALSE);
 	gtk_widget_set_halign (exp, GTK_ALIGN_FILL);
 	gtk_widget_set_valign (exp, GTK_ALIGN_FILL);
-	gtk_table_attach (GTK_TABLE (table), exp, 0, 1, 0, 1, 0, 0, 0, 0);
+	gtk_grid_attach (GTK_GRID (table), exp, 0, 0, 1, 1);
 #else
 	gtk_table_attach (GTK_TABLE (table), exp, 0, 1, 0, 1, GTK_EXPAND | GTK_FILL, GTK_FILL, 0, 0);
 #endif
 
+#if HAVE_GTK3
+	detailbox = gtk_grid_new ();
+	gtk_grid_set_column_spacing (GTK_GRID (detailbox), 6);
+	gtk_grid_set_row_spacing (GTK_GRID (detailbox), 2);
+	gtk_container_set_border_width (GTK_CONTAINER (detailbox), 6);
+#else
 	detailbox = gtk_table_new (3, 3, FALSE);
 	gtk_table_set_col_spacings (GTK_TABLE (detailbox), 6);
 	gtk_table_set_row_spacings (GTK_TABLE (detailbox), 2);
 	gtk_container_set_border_width (GTK_CONTAINER (detailbox), 6);
+#endif
 	g_signal_connect (G_OBJECT (exp), "activate",
 							G_CALLBACK (dcc_exp_cb), detailbox);
 #if HAVE_GTK3
@@ -948,7 +960,7 @@ fe_dcc_open_recv_win (int passive)
 	gtk_widget_set_vexpand (detailbox, FALSE);
 	gtk_widget_set_halign (detailbox, GTK_ALIGN_FILL);
 	gtk_widget_set_valign (detailbox, GTK_ALIGN_FILL);
-	gtk_table_attach (GTK_TABLE (table), detailbox, 0, 4, 1, 2, 0, 0, 0, 0);
+	gtk_grid_attach (GTK_GRID (table), detailbox, 0, 1, 4, 1);
 #else
 	gtk_table_attach (GTK_TABLE (table), detailbox, 0, 4, 1, 2, GTK_EXPAND | GTK_FILL, GTK_FILL, 0, 0);
 #endif

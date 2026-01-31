@@ -1323,8 +1323,8 @@ servlist_table_attach (GtkWidget *table, GtkWidget *child,
 	gtk_widget_set_margin_end (child, xpad);
 	gtk_widget_set_margin_top (child, ypad);
 	gtk_widget_set_margin_bottom (child, ypad);
-	gtk_table_attach (GTK_TABLE (table), child, left_attach, right_attach,
-					  top_attach, bottom_attach, 0, 0, 0, 0);
+	gtk_grid_attach (GTK_GRID (table), child, left_attach, top_attach,
+					 right_attach - left_attach, bottom_attach - top_attach);
 #else
 	GtkAttachOptions xoptions = 0;
 	GtkAttachOptions yoptions = 0;
@@ -2031,10 +2031,17 @@ servlist_open_edit (GtkWidget *parent, ircnet *net)
 
 
 	/* Checkboxes and entries */
+#if HAVE_GTK3
+	table3 = gtk_grid_new ();
+	gtk_box_pack_start (GTK_BOX (vbox5), table3, FALSE, FALSE, 0);
+	gtk_grid_set_row_spacing (GTK_GRID (table3), 2);
+	gtk_grid_set_column_spacing (GTK_GRID (table3), 8);
+#else
 	table3 = gtk_table_new (13, 2, FALSE);
 	gtk_box_pack_start (GTK_BOX (vbox5), table3, FALSE, FALSE, 0);
 	gtk_table_set_row_spacings (GTK_TABLE (table3), 2);
 	gtk_table_set_col_spacings (GTK_TABLE (table3), 8);
+#endif
 
 	check = servlist_create_check (0, !(net->flags & FLAG_CYCLE), table3, 0, 0, _("Connect to selected server only"));
 	gtk_widget_set_tooltip_text (check, _("Don't cycle through all the servers when the connection fails."));
@@ -2198,12 +2205,21 @@ servlist_open_networks (void)
 	label2 = bold_label (_("User Information"));
 	gtk_box_pack_start (GTK_BOX (vbox1), label2, FALSE, FALSE, 0);
 
+#if HAVE_GTK3
+	table1 = gtk_grid_new ();
+	gtk_widget_show (table1);
+	gtk_box_pack_start (GTK_BOX (vbox1), table1, FALSE, FALSE, 0);
+	gtk_container_set_border_width (GTK_CONTAINER (table1), 8);
+	gtk_grid_set_row_spacing (GTK_GRID (table1), 2);
+	gtk_grid_set_column_spacing (GTK_GRID (table1), 4);
+#else
 	table1 = gtk_table_new (5, 2, FALSE);
 	gtk_widget_show (table1);
 	gtk_box_pack_start (GTK_BOX (vbox1), table1, FALSE, FALSE, 0);
 	gtk_container_set_border_width (GTK_CONTAINER (table1), 8);
 	gtk_table_set_row_spacings (GTK_TABLE (table1), 2);
 	gtk_table_set_col_spacings (GTK_TABLE (table1), 4);
+#endif
 
 	label3 = gtk_label_new_with_mnemonic (_("_Nick name:"));
 	gtk_widget_show (label3);
@@ -2314,12 +2330,21 @@ servlist_open_networks (void)
 	label1 = bold_label (_("Networks"));
 	gtk_box_pack_start (GTK_BOX (vbox2), label1, FALSE, FALSE, 0);
 
+#if HAVE_GTK3
+	table4 = gtk_grid_new ();
+	gtk_widget_show (table4);
+	gtk_box_pack_start (GTK_BOX (vbox2), table4, TRUE, TRUE, 0);
+	gtk_container_set_border_width (GTK_CONTAINER (table4), 8);
+	gtk_grid_set_row_spacing (GTK_GRID (table4), 2);
+	gtk_grid_set_column_spacing (GTK_GRID (table4), 3);
+#else
 	table4 = gtk_table_new (2, 2, FALSE);
 	gtk_widget_show (table4);
 	gtk_box_pack_start (GTK_BOX (vbox2), table4, TRUE, TRUE, 0);
 	gtk_container_set_border_width (GTK_CONTAINER (table4), 8);
 	gtk_table_set_row_spacings (GTK_TABLE (table4), 2);
 	gtk_table_set_col_spacings (GTK_TABLE (table4), 3);
+#endif
 
 	scrolledwindow3 = gtk_scrolled_window_new (NULL, NULL);
 	gtk_widget_show (scrolledwindow3);
