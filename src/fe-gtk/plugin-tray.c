@@ -46,12 +46,14 @@
 
 typedef enum	/* current icon status */
 {
-	TS_NONE,
-	TS_MESSAGE,
-	TS_HIGHLIGHT,
-	TS_FILEOFFER,
-	TS_CUSTOM /* plugin */
-} TrayStatus;
+	TRAY_ICON_NONE,
+	TRAY_ICON_NORMAL,
+	TRAY_ICON_MESSAGE,
+	TRAY_ICON_HIGHLIGHT,
+	TRAY_ICON_FILEOFFER,
+	TRAY_ICON_CUSTOM1,
+	TRAY_ICON_CUSTOM2
+} TrayIconState;
 
 typedef enum
 {
@@ -60,7 +62,21 @@ typedef enum
 	WS_HIDDEN
 } WinStatus;
 
+#if HAVE_GTK3
+typedef const char *TrayIcon;
+typedef char *TrayCustomIcon;
+#define tray_icon_from_file(f) g_strdup(f)
+#define tray_icon_free(i) g_free(i)
+
+#define ICON_NORMAL "net.zoite.Zoitechat"
+#define ICON_MSG "mail-unread"
+#define ICON_HILIGHT "dialog-warning"
+#define ICON_FILE "folder-download"
+#endif
+
+#if !HAVE_GTK3
 typedef GdkPixbuf* TrayIcon;
+typedef GdkPixbuf* TrayCustomIcon;
 #define tray_icon_from_file(f) gdk_pixbuf_new_from_file(f,NULL)
 #define tray_icon_free(i) g_object_unref(i)
 
@@ -68,19 +84,22 @@ typedef GdkPixbuf* TrayIcon;
 #define ICON_MSG pix_tray_message
 #define ICON_HILIGHT pix_tray_highlight
 #define ICON_FILE pix_tray_fileoffer
+#endif
 #define TIMEOUT 500
 
 static GtkStatusIcon *sticon;
 static gint flash_tag;
-static TrayStatus tray_status;
+static TrayIconState tray_icon_state;
+static TrayIcon tray_flash_icon;
+static TrayIconState tray_flash_state;
 #ifdef WIN32
 static guint tray_menu_timer;
 static gint64 tray_menu_inactivetime;
 #endif
 static zoitechat_plugin *ph;
 
-static TrayIcon custom_icon1;
-static TrayIcon custom_icon2;
+static TrayCustomIcon custom_icon1;
+static TrayCustomIcon custom_icon2;
 
 static int tray_priv_count = 0;
 static int tray_pub_count = 0;
@@ -145,6 +164,30 @@ tray_count_networks (void)
 	return cons;
 }
 
+static void
+tray_set_icon_state (TrayIcon icon, TrayIconState state)
+{
+#if HAVE_GTK3
+	gtk_status_icon_set_from_icon_name (sticon, icon);
+#endif
+#if !HAVE_GTK3
+	gtk_status_icon_set_from_pixbuf (sticon, icon);
+#endif
+	tray_icon_state = state;
+}
+
+static void
+tray_set_custom_icon_state (TrayCustomIcon icon, TrayIconState state)
+{
+#if HAVE_GTK3
+	gtk_status_icon_set_from_file (sticon, icon);
+#endif
+#if !HAVE_GTK3
+	gtk_status_icon_set_from_pixbuf (sticon, icon);
+#endif
+	tray_icon_state = state;
+}
+
 void
 fe_tray_set_tooltip (const char *text)
 {
@@ -179,7 +222,7 @@ tray_stop_flash (void)
 
 	if (sticon)
 	{
-		gtk_status_icon_set_from_pixbuf (sticon, ICON_NORMAL);
+		tray_set_icon_state (ICON_NORMAL, TRAY_ICON_NORMAL);
 		nets = tray_count_networks ();
 		chans = tray_count_channels ();
 		if (nets)
@@ -201,7 +244,8 @@ tray_stop_flash (void)
 		custom_icon2 = NULL;
 	}
 
-	tray_status = TS_NONE;
+	tray_flash_icon = NULL;
+	tray_flash_state = TRAY_ICON_NONE;
 }
 
 static void
@@ -214,40 +258,42 @@ tray_reset_counts (void)
 }
 
 static int
-tray_timeout_cb (TrayIcon icon)
+tray_timeout_cb (gpointer userdata)
 {
+	(void)userdata;
+
 	if (custom_icon1)
 	{
-		if (gtk_status_icon_get_pixbuf (sticon) == custom_icon1)
+		if (tray_icon_state == TRAY_ICON_CUSTOM1)
 		{
 			if (custom_icon2)
-				gtk_status_icon_set_from_pixbuf (sticon, custom_icon2);
+				tray_set_custom_icon_state (custom_icon2, TRAY_ICON_CUSTOM2);
 			else
-				gtk_status_icon_set_from_pixbuf (sticon, ICON_NORMAL);
+				tray_set_icon_state (ICON_NORMAL, TRAY_ICON_NORMAL);
 		}
 		else
 		{
-			gtk_status_icon_set_from_pixbuf (sticon, custom_icon1);
+			tray_set_custom_icon_state (custom_icon1, TRAY_ICON_CUSTOM1);
 		}
 	}
 	else
 	{
-		if (gtk_status_icon_get_pixbuf (sticon) == ICON_NORMAL)
-			gtk_status_icon_set_from_pixbuf (sticon, icon);
+		if (tray_icon_state == TRAY_ICON_NORMAL)
+			tray_set_icon_state (tray_flash_icon, tray_flash_state);
 		else
-			gtk_status_icon_set_from_pixbuf (sticon, ICON_NORMAL);
+			tray_set_icon_state (ICON_NORMAL, TRAY_ICON_NORMAL);
 	}
 	return 1;
 }
 
 static void
-tray_set_flash (TrayIcon icon)
+tray_set_flash (TrayIcon icon, TrayIconState state)
 {
 	if (!sticon)
 		return;
 
 	/* already flashing the same icon */
-	if (flash_tag && gtk_status_icon_get_pixbuf (sticon) == icon)
+	if (flash_tag && tray_icon_state == state)
 		return;
 
 	/* no flashing if window is focused */
@@ -256,9 +302,11 @@ tray_set_flash (TrayIcon icon)
 
 	tray_stop_flash ();
 
-	gtk_status_icon_set_from_pixbuf (sticon, icon);
+	tray_flash_icon = icon;
+	tray_flash_state = state;
+	tray_set_icon_state (icon, state);
 	if (prefs.hex_gui_tray_blink)
-		flash_tag = g_timeout_add (TIMEOUT, (GSourceFunc) tray_timeout_cb, icon);
+		flash_tag = g_timeout_add (TIMEOUT, (GSourceFunc) tray_timeout_cb, NULL);
 }
 
 void
@@ -277,9 +325,8 @@ fe_tray_set_flash (const char *filename1, const char *filename2, int tout)
 	if (filename2)
 		custom_icon2 = tray_icon_from_file (filename2);
 
-	gtk_status_icon_set_from_pixbuf (sticon, custom_icon1);
+	tray_set_custom_icon_state (custom_icon1, TRAY_ICON_CUSTOM1);
 	flash_tag = g_timeout_add (tout, (GSourceFunc) tray_timeout_cb, NULL);
-	tray_status = TS_CUSTOM;
 }
 
 void
@@ -297,13 +344,13 @@ fe_tray_set_icon (feicon icon)
 		break;
 	case FE_ICON_MESSAGE:
 	case FE_ICON_PRIVMSG:
-		tray_set_flash (ICON_MSG);
+		tray_set_flash (ICON_MSG, TRAY_ICON_MESSAGE);
 		break;
 	case FE_ICON_HIGHLIGHT:
-		tray_set_flash (ICON_HILIGHT);
+		tray_set_flash (ICON_HILIGHT, TRAY_ICON_HIGHLIGHT);
 		break;
 	case FE_ICON_FILEOFFER:
-		tray_set_flash (ICON_FILE);
+		tray_set_flash (ICON_FILE, TRAY_ICON_FILEOFFER);
 	}
 }
 
@@ -319,8 +366,7 @@ fe_tray_set_file (const char *filename)
 	if (filename)
 	{
 		custom_icon1 = tray_icon_from_file (filename);
-		gtk_status_icon_set_from_pixbuf (sticon, custom_icon1);
-		tray_status = TS_CUSTOM;
+		tray_set_custom_icon_state (custom_icon1, TRAY_ICON_CUSTOM1);
 	}
 }
 
@@ -609,13 +655,21 @@ static void
 tray_init (void)
 {
 	flash_tag = 0;
-	tray_status = TS_NONE;
+	tray_icon_state = TRAY_ICON_NONE;
+	tray_flash_icon = NULL;
+	tray_flash_state = TRAY_ICON_NONE;
 	custom_icon1 = NULL;
 	custom_icon2 = NULL;
 
+#if HAVE_GTK3
+	sticon = gtk_status_icon_new_from_icon_name (ICON_NORMAL);
+#endif
+#if !HAVE_GTK3
 	sticon = gtk_status_icon_new_from_pixbuf (ICON_NORMAL);
+#endif
 	if (!sticon)
 		return;
+	tray_icon_state = TRAY_ICON_NORMAL;
 
 	g_signal_connect (G_OBJECT (sticon), "popup-menu",
 							G_CALLBACK (tray_menu_cb), sticon);
@@ -630,12 +684,12 @@ tray_init (void)
 static int
 tray_hilight_cb (char *word[], void *userdata)
 {
-	/*if (tray_status == TS_HIGHLIGHT)
+	/*if (tray_icon_state == TRAY_ICON_HIGHLIGHT)
 		return ZOITECHAT_EAT_NONE;*/
 
 	if (prefs.hex_input_tray_hilight)
 	{
-		tray_set_flash (ICON_HILIGHT);
+		tray_set_flash (ICON_HILIGHT, TRAY_ICON_HIGHLIGHT);
 
 		/* FIXME: hides any previous private messages */
 		tray_hilight_count++;
@@ -654,12 +708,12 @@ tray_hilight_cb (char *word[], void *userdata)
 static int
 tray_message_cb (char *word[], void *userdata)
 {
-	if (/*tray_status == TS_MESSAGE ||*/ tray_status == TS_HIGHLIGHT)
+	if (/*tray_icon_state == TRAY_ICON_MESSAGE ||*/ tray_icon_state == TRAY_ICON_HIGHLIGHT)
 		return ZOITECHAT_EAT_NONE;
 		
 	if (prefs.hex_input_tray_chans)
 	{
-		tray_set_flash (ICON_MSG);
+		tray_set_flash (ICON_MSG, TRAY_ICON_MESSAGE);
 
 		tray_pub_count++;
 		if (tray_pub_count == 1)
@@ -686,7 +740,7 @@ tray_priv (char *from, char *text)
 
 	if (prefs.hex_input_tray_priv)
 	{
-		tray_set_flash (ICON_MSG);
+		tray_set_flash (ICON_MSG, TRAY_ICON_MESSAGE);
 
 		tray_priv_count++;
 		if (tray_priv_count == 1)
@@ -720,7 +774,7 @@ tray_dcc_cb (char *word[], void *userdata)
 {
 	const char *network;
 
-/*	if (tray_status == TS_FILEOFFER)
+/*	if (tray_icon_state == TRAY_ICON_FILEOFFER)
 		return ZOITECHAT_EAT_NONE;*/
 
 	network = zoitechat_get_info (ph, "network");
@@ -729,7 +783,7 @@ tray_dcc_cb (char *word[], void *userdata)
 
 	if (prefs.hex_input_tray_priv && (!prefs.hex_away_omit_alerts || tray_find_away_status () != 1))
 	{
-		tray_set_flash (ICON_FILE);
+		tray_set_flash (ICON_FILE, TRAY_ICON_FILEOFFER);
 
 		tray_file_count++;
 		if (tray_file_count == 1)
