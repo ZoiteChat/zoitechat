@@ -192,7 +192,7 @@ dcc_store_color (GtkListStore *store, GtkTreeIter *iter, int column, int color_i
 	if (color_index != 1)
 		color = &colors[color_index];
 
-#if GTK_CHECK_VERSION(3,0,0)
+#if HAVE_GTK3
 	if (color)
 	{
 		GdkRGBA rgba = *color;

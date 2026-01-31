@@ -38,7 +38,7 @@
 #include "../common/cfgfiles.h"
 #include "../common/typedef.h"
 
-#if GTK_CHECK_VERSION(3,0,0)
+#if HAVE_GTK3
 #define PALETTE_COLOR_INIT(r, g, b) { (r) / 65535.0, (g) / 65535.0, (b) / 65535.0, 1.0 }
 #else
 #define PALETTE_COLOR_INIT(r, g, b) { 0, (r), (g), (b) }
@@ -47,7 +47,7 @@
 static void
 palette_color_set_rgb16 (PaletteColor *color, guint16 red, guint16 green, guint16 blue)
 {
-#if GTK_CHECK_VERSION(3,0,0)
+#if HAVE_GTK3
 	char color_string[16];
 	GdkRGBA parsed = { 0 };
 	gboolean parsed_ok;
@@ -82,7 +82,7 @@ palette_color_from_gdk (const PaletteColor *color)
 {
 	XTextColor result;
 
-#if GTK_CHECK_VERSION(3,0,0)
+#if HAVE_GTK3
 	result.red = color->red;
 	result.green = color->green;
 	result.blue = color->blue;
@@ -227,7 +227,7 @@ palette_user_set_color (int idx, const PaletteColor *col)
 		user_colors_valid = TRUE;
 	}
 
-#if GTK_CHECK_VERSION(3,0,0)
+#if HAVE_GTK3
 	user_colors[idx] = *col;
 #else
 	user_colors[idx].red = col->red;
@@ -252,7 +252,7 @@ palette_dark_set_color (int idx, const PaletteColor *col)
 		dark_user_colors_valid = TRUE;
 	}
 
-#if GTK_CHECK_VERSION(3,0,0)
+#if HAVE_GTK3
 	dark_user_colors[idx] = *col;
 #else
 	dark_user_colors[idx].red = col->red;

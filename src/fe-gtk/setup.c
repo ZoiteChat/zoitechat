@@ -1692,7 +1692,7 @@ setup_color_button_apply (GtkWidget *button, const PaletteColor *color)
 {
 	GtkWidget *target = g_object_get_data (G_OBJECT (button), "zoitechat-color-box");
 	GtkWidget *apply_widget = GTK_IS_WIDGET (target) ? target : button;
-#if GTK_CHECK_VERSION(3,0,0)
+#if HAVE_GTK3
 	GtkStateFlags states[] = {
 		GTK_STATE_FLAG_NORMAL,
 		GTK_STATE_FLAG_PRELIGHT,
@@ -1712,7 +1712,7 @@ setup_color_button_apply (GtkWidget *button, const PaletteColor *color)
 	guint i;
 
 	for (i = 0; i < G_N_ELEMENTS (states); i++)
-#if GTK_CHECK_VERSION(3,0,0)
+#if HAVE_GTK3
 		gtk_widget_override_background_color (apply_widget, states[i], color);
 #else
 		gtk_widget_modify_bg (apply_widget, states[i], color);
@@ -1720,7 +1720,7 @@ setup_color_button_apply (GtkWidget *button, const PaletteColor *color)
 
 	if (apply_widget != button)
 		for (i = 0; i < G_N_ELEMENTS (states); i++)
-#if GTK_CHECK_VERSION(3,0,0)
+#if HAVE_GTK3
 			gtk_widget_override_background_color (button, states[i], color);
 #else
 			gtk_widget_modify_bg (button, states[i], color);
@@ -1729,7 +1729,7 @@ setup_color_button_apply (GtkWidget *button, const PaletteColor *color)
 	gtk_widget_queue_draw (button);
 }
 
-#if GTK_CHECK_VERSION(3,0,0)
+#if HAVE_GTK3
 typedef struct
 {
 	GtkWidget *button;
@@ -1812,7 +1812,7 @@ setup_color_ok_cb (GtkWidget *button, GtkWidget *dialog)
 static void
 setup_color_cb (GtkWidget *button, gpointer userdata)
 {
-#if GTK_CHECK_VERSION(3,0,0)
+#if HAVE_GTK3
         GtkWidget *dialog;
         PaletteColor *color;
         GdkRGBA rgba;
@@ -2802,7 +2802,7 @@ setup_create_tree (GtkWidget *box, GtkWidget *book)
 static void
 setup_apply_entry_style (GtkWidget *entry)
 {
-#if GTK_CHECK_VERSION(3,0,0)
+#if HAVE_GTK3
         gtk_widget_override_background_color (entry, GTK_STATE_FLAG_NORMAL, &colors[COL_BG]);
         gtk_widget_override_color (entry, GTK_STATE_FLAG_NORMAL, &colors[COL_FG]);
         gtk_widget_override_font (entry, input_style->font_desc);
@@ -2828,7 +2828,7 @@ setup_apply_to_sess (session_gui *gui)
 #endif
         }
 
-#if GTK_CHECK_VERSION(3,0,0)
+#if HAVE_GTK3
         if (prefs.hex_gui_ulist_style || fe_dark_mode_is_enabled ())
 	{
 		gtk_widget_override_background_color (gui->user_tree, GTK_STATE_FLAG_NORMAL, &colors[COL_BG]);

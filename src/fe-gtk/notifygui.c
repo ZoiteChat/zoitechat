@@ -91,7 +91,7 @@ notify_treecell_property_mapper (GtkTreeViewColumn *col, GtkCellRenderer *cell,
 	gtk_tree_model_get (GTK_TREE_MODEL (model), iter, 
 	                    COLOUR_COLUMN, &colour,
 	                    model_column, &text, -1);
-#if GTK_CHECK_VERSION(3,0,0)
+#if HAVE_GTK3
 	g_object_set (G_OBJECT (cell), "text", text,
 	              PALETTE_FOREGROUND_PROPERTY, colour, NULL);
 	if (colour)
@@ -108,7 +108,7 @@ notify_treecell_property_mapper (GtkTreeViewColumn *col, GtkCellRenderer *cell,
 static void
 notify_store_color (GtkListStore *store, GtkTreeIter *iter, const PaletteColor *color)
 {
-#if GTK_CHECK_VERSION(3,0,0)
+#if HAVE_GTK3
 	if (color)
 	{
 		GdkRGBA rgba = *color;
