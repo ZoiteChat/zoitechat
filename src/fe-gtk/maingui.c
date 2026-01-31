@@ -124,7 +124,6 @@ mg_apply_font_css (GtkWidget *widget, const PangoFontDescription *desc,
 {
 	GtkStyleContext *context;
 	GtkCssProvider *provider;
-	char *font_str;
 	GString *css;
 
 	if (!widget || !desc)
@@ -141,13 +140,13 @@ mg_apply_font_css (GtkWidget *widget, const PangoFontDescription *desc,
 		g_object_set_data_full (G_OBJECT (widget), provider_key, provider, g_object_unref);
 	}
 
-	font_str = pango_font_description_to_string (desc);
 	css = g_string_new (".");
 	g_string_append (css, class_name);
-	g_string_append_printf (css, " { font: %s; }", font_str);
+	g_string_append (css, " {");
+	gtkutil_append_font_css (css, desc);
+	g_string_append (css, " }");
 	gtk_css_provider_load_from_data (provider, css->str, -1, NULL);
 	g_string_free (css, TRUE);
-	g_free (font_str);
 
 	gtk_style_context_add_class (context, class_name);
 	gtk_style_context_add_provider (context, GTK_STYLE_PROVIDER (provider),

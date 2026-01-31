@@ -53,6 +53,7 @@ gboolean gtkutil_tray_icon_supported (GtkWindow *window);
 #if HAVE_GTK3
 void gtkutil_apply_palette (GtkWidget *widget, const GdkRGBA *bg, const GdkRGBA *fg,
                             const PangoFontDescription *font_desc);
+void gtkutil_append_font_css (GString *css, const PangoFontDescription *font_desc);
 #else
 void gtkutil_apply_palette (GtkWidget *widget, const GdkColor *bg, const GdkColor *fg,
                             const PangoFontDescription *font_desc);

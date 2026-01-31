@@ -162,6 +162,118 @@ gtkutil_button_new_from_stock (const char *stock, const char *label)
 
 #if HAVE_GTK3
 void
+gtkutil_append_font_css (GString *css, const PangoFontDescription *font_desc)
+{
+	PangoFontMask mask;
+
+	if (!font_desc)
+		return;
+
+	mask = pango_font_description_get_set_fields (font_desc);
+
+	if (mask & PANGO_FONT_MASK_FAMILY)
+	{
+		const char *family = pango_font_description_get_family (font_desc);
+
+		if (family && *family)
+			g_string_append_printf (css, " font-family: \"%s\";", family);
+	}
+
+	if (mask & PANGO_FONT_MASK_STYLE)
+	{
+		const char *style = "normal";
+
+		switch (pango_font_description_get_style (font_desc))
+		{
+		case PANGO_STYLE_ITALIC:
+			style = "italic";
+			break;
+		case PANGO_STYLE_OBLIQUE:
+			style = "oblique";
+			break;
+		default:
+			style = "normal";
+			break;
+		}
+
+		g_string_append_printf (css, " font-style: %s;", style);
+	}
+
+	if (mask & PANGO_FONT_MASK_VARIANT)
+	{
+		const char *variant = "normal";
+
+		if (pango_font_description_get_variant (font_desc) == PANGO_VARIANT_SMALL_CAPS)
+			variant = "small-caps";
+
+		g_string_append_printf (css, " font-variant: %s;", variant);
+	}
+
+	if (mask & PANGO_FONT_MASK_WEIGHT)
+	{
+		int weight = (int) pango_font_description_get_weight (font_desc);
+
+		if (weight < 100)
+			weight = 100;
+		if (weight > 900)
+			weight = 900;
+
+		g_string_append_printf (css, " font-weight: %d;", weight);
+	}
+
+	if (mask & PANGO_FONT_MASK_STRETCH)
+	{
+		const char *stretch = "normal";
+
+		switch (pango_font_description_get_stretch (font_desc))
+		{
+		case PANGO_STRETCH_ULTRA_CONDENSED:
+			stretch = "ultra-condensed";
+			break;
+		case PANGO_STRETCH_EXTRA_CONDENSED:
+			stretch = "extra-condensed";
+			break;
+		case PANGO_STRETCH_CONDENSED:
+			stretch = "condensed";
+			break;
+		case PANGO_STRETCH_SEMI_CONDENSED:
+			stretch = "semi-condensed";
+			break;
+		case PANGO_STRETCH_SEMI_EXPANDED:
+			stretch = "semi-expanded";
+			break;
+		case PANGO_STRETCH_EXPANDED:
+			stretch = "expanded";
+			break;
+		case PANGO_STRETCH_EXTRA_EXPANDED:
+			stretch = "extra-expanded";
+			break;
+		case PANGO_STRETCH_ULTRA_EXPANDED:
+			stretch = "ultra-expanded";
+			break;
+		default:
+			stretch = "normal";
+			break;
+		}
+
+		g_string_append_printf (css, " font-stretch: %s;", stretch);
+	}
+
+	if (mask & PANGO_FONT_MASK_SIZE)
+	{
+		double size = (double) pango_font_description_get_size (font_desc) / PANGO_SCALE;
+		char size_buf[G_ASCII_DTOSTR_BUF_SIZE];
+		const char *unit = "pt";
+
+		if (pango_font_description_get_size_is_absolute (font_desc))
+			unit = "px";
+
+		g_ascii_formatd (size_buf, sizeof (size_buf), "%.2f", size);
+		g_string_append_printf (css, " font-size: %s%s;", size_buf, unit);
+	}
+}
+
+void
 gtkutil_apply_palette (GtkWidget *widget, const GdkRGBA *bg, const GdkRGBA *fg,
                        const PangoFontDescription *font_desc)
 #else
@@ -183,7 +295,6 @@ gtkutil_apply_palette (GtkWidget *widget, const GdkColor *bg, const GdkColor *fg
 		GString *css;
 		gchar *bg_color = NULL;
 		gchar *fg_color = NULL;
-		gchar *font_str = NULL;
 
 		if (!bg && !fg && !font_desc)
 		{
@@ -217,11 +328,7 @@ gtkutil_apply_palette (GtkWidget *widget, const GdkColor *bg, const GdkColor *fg
 			fg_color = gdk_rgba_to_string (fg);
 			g_string_append_printf (css, " color: %s;", fg_color);
 		}
-		if (font_desc)
-		{
-			font_str = pango_font_description_to_string (font_desc);
-			g_string_append_printf (css, " font: %s;", font_str);
-		}
+		gtkutil_append_font_css (css, font_desc);
 		g_string_append (css, " }");
 
 		gtk_css_provider_load_from_data (provider, css->str, -1, NULL);
@@ -235,7 +342,6 @@ gtkutil_apply_palette (GtkWidget *widget, const GdkColor *bg, const GdkColor *fg
 		g_string_free (css, TRUE);
 		g_free (bg_color);
 		g_free (fg_color);
-		g_free (font_str);
 	}
 #else
 	gtk_widget_modify_base (widget, GTK_STATE_NORMAL, bg);

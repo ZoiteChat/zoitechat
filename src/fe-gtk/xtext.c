@@ -293,7 +293,7 @@ xtext_surface_from_window (GdkWindow *window)
 	int height;
 	cairo_t *cr;
 
-	if (!window)
+	if (!window || !GDK_IS_WINDOW (window))
 		return NULL;
 
 	width = gdk_window_get_width (window);
@@ -925,14 +925,39 @@ gtk_xtext_get_pointer (GdkWindow *window, gint *x, gint *y, GdkModifierType *mas
 #if !HAVE_GTK3
 	gdk_window_get_pointer (window, x, y, mask);
 #else
-	GdkDisplay *display = gdk_window_get_display (window);
-	GdkSeat *seat = gdk_display_get_default_seat (display);
-	GdkDevice *device = gdk_seat_get_pointer (seat);
+	GdkDisplay *display;
+	GdkSeat *seat;
+	GdkDevice *device;
 	gint root_x = 0;
 	gint root_y = 0;
 	gint win_x = 0;
 	gint win_y = 0;
 
+	if (!window || !GDK_IS_WINDOW (window))
+	{
+		if (x)
+			*x = 0;
+		if (y)
+			*y = 0;
+		if (mask)
+			*mask = 0;
+		return;
+	}
+
+	display = gdk_window_get_display (window);
+	if (!display)
+	{
+		if (x)
+			*x = 0;
+		if (y)
+			*y = 0;
+		if (mask)
+			*mask = 0;
+		return;
+	}
+
+	seat = gdk_display_get_default_seat (display);
+	device = gdk_seat_get_pointer (seat);
 	if (!device)
 	{
 		if (x)
@@ -1049,8 +1074,16 @@ gtk_xtext_realize (GtkWidget * widget)
 		xtext->ts_x = xtext->ts_y = 0;
 	}
 
-	xtext->hand_cursor = gdk_cursor_new_for_display (gdk_window_get_display (window), GDK_HAND1);
-	xtext->resize_cursor = gdk_cursor_new_for_display (gdk_window_get_display (window), GDK_LEFT_SIDE);
+	if (window && GDK_IS_WINDOW (window))
+	{
+		GdkDisplay *display = gdk_window_get_display (window);
+
+		if (display)
+		{
+			xtext->hand_cursor = gdk_cursor_new_for_display (display, GDK_HAND1);
+			xtext->resize_cursor = gdk_cursor_new_for_display (display, GDK_LEFT_SIDE);
+		}
+	}
 
 	gtk_xtext_clear_background (widget);
 
@@ -2712,9 +2745,11 @@ gtk_xtext_selection_get (GtkWidget * widget,
 #if HAVE_GTK3
 			GdkWindow *window = gtk_widget_get_window (widget);
 
-			if (!window)
+			if (!window || !GDK_IS_WINDOW (window))
 				break;
 			display = gdk_window_get_display (window);
+			if (!display)
+				break;
 #endif
 #if !HAVE_GTK3
 			display = gdk_window_get_display (widget->window);
