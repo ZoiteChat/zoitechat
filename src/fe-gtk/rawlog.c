@@ -128,7 +128,13 @@ open_rawlog (struct server *serv)
 	scrolledwindow = gtk_scrolled_window_new (NULL, NULL);
 	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow), GTK_POLICY_NEVER, GTK_POLICY_ALWAYS);
 	gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scrolledwindow), GTK_SHADOW_IN);
+#if HAVE_GTK3
+	gtk_widget_set_hexpand (scrolledwindow, TRUE);
+	gtk_widget_set_vexpand (scrolledwindow, TRUE);
+	gtk_box_pack_start (GTK_BOX (vbox), scrolledwindow, TRUE, TRUE, 0);
+#elif !HAVE_GTK3
 	gtk_container_add (GTK_CONTAINER (vbox), scrolledwindow);
+#endif
 
 	palette_get_xtext_colors (xtext_palette, XTEXT_COLS);
 	serv->gui->rawlog_textlist = gtk_xtext_new (xtext_palette, 0);
