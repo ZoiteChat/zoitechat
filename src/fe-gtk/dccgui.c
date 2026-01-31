@@ -116,6 +116,26 @@ static short view_mode;	/* 1=download 2=upload 3=both */
 #define VIEW_UPLOAD 2
 #define VIEW_BOTH 3
 
+#if HAVE_GTK3
+static GdkPixbuf *
+dcc_load_icon (const char *stock_name)
+{
+	GtkIconTheme *theme = gtk_icon_theme_get_default ();
+	const char *icon_name = gtkutil_icon_name_from_stock (stock_name);
+	int width = 16;
+	int height = 16;
+
+	if (g_strcmp0 (stock_name, "gtk-go-up") == 0)
+		icon_name = "go-up";
+	else if (g_strcmp0 (stock_name, "gtk-go-down") == 0)
+		icon_name = "go-down";
+
+	gtk_icon_size_lookup (GTK_ICON_SIZE_MENU, &width, &height);
+
+	return gtk_icon_theme_load_icon (theme, icon_name, width, 0, NULL);
+}
+#endif
+
 
 static void
 proper_unit (guint64 size, char *buf, size_t buf_len)
@@ -220,8 +240,12 @@ dcc_prepare_row_send (struct DCC *dcc, GtkListStore *store, GtkTreeIter *iter,
 	float per;
 
 	if (!pix_up)
+#if HAVE_GTK3
+		pix_up = dcc_load_icon ("gtk-go-up");
+#elif !HAVE_GTK3
 		pix_up = gtk_widget_render_icon (dccfwin.window, "gtk-go-up",
 													GTK_ICON_SIZE_MENU, NULL);
+#endif
 
 	/* percentage ack'ed */
 	per = (float) ((dcc->ack * 100.00) / dcc->size);
@@ -270,8 +294,12 @@ dcc_prepare_row_recv (struct DCC *dcc, GtkListStore *store, GtkTreeIter *iter,
 	int to_go;
 
 	if (!pix_dn)
+#if HAVE_GTK3
+		pix_dn = dcc_load_icon ("gtk-go-down");
+#elif !HAVE_GTK3
 		pix_dn = gtk_widget_render_icon (dccfwin.window, "gtk-go-down",
 													GTK_ICON_SIZE_MENU, NULL);
+#endif
 
 	proper_unit (dcc->size, size, sizeof (size));
 	if (dcc->dccstat == STAT_QUEUED)
