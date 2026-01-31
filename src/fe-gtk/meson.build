@@ -55,8 +55,16 @@ endif
 
 zoitechat_gtk_deps += gtk_dep
 
-if gtk_dep.get_pkgconfig_variable('target') == 'x11'
-  zoitechat_gtk_deps += dependency('x11')
+if get_option('gtk3') and host_machine.system() != 'windows'
+  gdk_x11_dep = dependency('gdk-x11-3.0', required: false)
+  if gdk_x11_dep.found()
+    zoitechat_gtk_deps += gdk_x11_dep
+  endif
+
+  x11_dep = dependency('x11', required: false)
+  if x11_dep.found()
+    zoitechat_gtk_deps += x11_dep
+  endif
 endif
 
 zoitechat_gtk_ldflags = []

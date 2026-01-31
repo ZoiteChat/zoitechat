@@ -1015,7 +1015,7 @@ gtk_xtext_realize (GtkWidget * widget)
 
 	gdk_window_set_user_data (window, widget);
 
-	xtext->depth = gdk_window_get_visual (window)->depth;
+	xtext->depth = gdk_visual_get_depth (gdk_window_get_visual (window));
 
 	/* for the separator bar (light) */
 	xtext->light_gc.red = 1.0;

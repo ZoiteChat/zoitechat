@@ -33,6 +33,9 @@
 
 #if HAVE_GTK3
 #include <gio/gio.h>
+#if defined(GTK_DISABLE_DEPRECATED)
+typedef struct _GtkStatusIcon GtkStatusIcon;
+#endif
 #if defined(HAVE_AYATANA_APPINDICATOR)
 #include <libayatana-appindicator/app-indicator.h>
 #else

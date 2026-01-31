@@ -116,7 +116,12 @@ static void sexy_spell_entry_editable_init (GtkEditableClass *iface);
 static void sexy_spell_entry_init(SexySpellEntry *entry);
 static void sexy_spell_entry_finalize(GObject *obj);
 static void sexy_spell_entry_destroy(GObject *obj);
+#if HAVE_GTK3
+static gboolean sexy_spell_entry_draw(GtkWidget *widget, cairo_t *cr);
+#endif
+#if !HAVE_GTK3
 static gint sexy_spell_entry_expose(GtkWidget *widget, GdkEventExpose *event);
+#endif
 static gint sexy_spell_entry_button_press(GtkWidget *widget, GdkEventButton *event);
 
 /* GtkEditable handlers */
@@ -260,7 +265,12 @@ sexy_spell_entry_class_init(SexySpellEntryClass *klass)
 
 	object_class->dispose = sexy_spell_entry_destroy;
 
+#if HAVE_GTK3
+	widget_class->draw = sexy_spell_entry_draw;
+#endif
+#if !HAVE_GTK3
 	widget_class->expose_event = sexy_spell_entry_expose;
+#endif
 	widget_class->button_press_event = sexy_spell_entry_button_press;
 
 	/**
@@ -316,15 +326,34 @@ gtk_entry_find_position (GtkEntry *entry, gint x)
 	gint pos;
 	gboolean trailing;
 
+#if HAVE_GTK3
+	{
+		gint layout_x;
+		gint layout_y;
+
+		gtk_entry_get_layout_offsets(entry, &layout_x, &layout_y);
+		x -= layout_x;
+	}
+#endif
+#if !HAVE_GTK3
 	x = x + entry->scroll_offset;
+#endif
 
 	layout = gtk_entry_get_layout(entry);
 	text = pango_layout_get_text(layout);
+#if HAVE_GTK3
+	cursor_index = g_utf8_offset_to_pointer(
+		text,
+		gtk_editable_get_position(GTK_EDITABLE(entry))) - text;
+#endif
+#if !HAVE_GTK3
 	cursor_index = g_utf8_offset_to_pointer(text, entry->current_pos) - text;
+#endif
 
 	line = pango_layout_get_lines(layout)->data;
 	pango_layout_line_x_to_index(line, x * PANGO_SCALE, &index, &trailing);
 
+#if !HAVE_GTK3
 	if (index >= cursor_index && entry->preedit_length) {
 		if (index >= cursor_index + entry->preedit_length) {
 			index -= entry->preedit_length;
@@ -333,6 +362,7 @@ gtk_entry_find_position (GtkEntry *entry, gint x)
 			trailing = FALSE;
 		}
 	}
+#endif
 
 	pos = g_utf8_pointer_to_offset (text, text + index);
 	pos += trailing;
@@ -1184,6 +1214,22 @@ sexy_spell_entry_recheck_all(SexySpellEntry *entry)
 	}
 }
 
+#if HAVE_GTK3
+static gboolean
+sexy_spell_entry_draw(GtkWidget *widget, cairo_t *cr)
+{
+	SexySpellEntry *entry = SEXY_SPELL_ENTRY(widget);
+	GtkEntry *gtk_entry = GTK_ENTRY(widget);
+	PangoLayout *layout;
+
+	layout = gtk_entry_get_layout(gtk_entry);
+	pango_layout_set_attributes(layout, entry->priv->attr_list);
+
+	return GTK_WIDGET_CLASS(parent_class)->draw (widget, cr);
+}
+#endif
+
+#if !HAVE_GTK3
 static gint
 sexy_spell_entry_expose(GtkWidget *widget, GdkEventExpose *event)
 {
@@ -1191,7 +1237,6 @@ sexy_spell_entry_expose(GtkWidget *widget, GdkEventExpose *event)
 	GtkEntry *gtk_entry = GTK_ENTRY(widget);
 	PangoLayout *layout;
 
-	
 	layout = gtk_entry_get_layout(gtk_entry);
 	if (gtk_entry->preedit_length == 0)
 	{
@@ -1204,6 +1249,7 @@ sexy_spell_entry_expose(GtkWidget *widget, GdkEventExpose *event)
 
 	return GTK_WIDGET_CLASS(parent_class)->expose_event (widget, event);
 }
+#endif
 
 static gint
 sexy_spell_entry_button_press(GtkWidget *widget, GdkEventButton *event)
