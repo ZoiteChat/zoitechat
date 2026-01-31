@@ -2144,7 +2144,10 @@ create_icon_menu (char *labeltext, void *stock_name, int is_stock)
 		gtk_box_pack_start (GTK_BOX (box), image, FALSE, FALSE, 0);
 	gtk_box_pack_start (GTK_BOX (box), label_widget, FALSE, FALSE, 0);
 	gtk_container_add (GTK_CONTAINER (item), box);
-	gtk_widget_show_all (item);
+	if (image)
+		gtk_widget_show (image);
+	gtk_widget_show (label_widget);
+	gtk_widget_show (box);
 #else
 	item = gtk_image_menu_item_new_with_mnemonic (labeltext);
 	gtk_image_menu_item_set_image ((GtkImageMenuItem *)item, img);
