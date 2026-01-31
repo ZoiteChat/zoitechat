@@ -273,9 +273,33 @@ static GtkWidget *
 make_sbutton (GtkArrowType type, void *click_cb, void *userdata)
 {
 	GtkWidget *button, *arrow;
+#if HAVE_GTK3
+	const char *icon_name = "pan-end-symbolic";
+#endif
 
 	button = gtk_button_new ();
+#if HAVE_GTK3
+	switch (type)
+	{
+	case GTK_ARROW_UP:
+		icon_name = "pan-up-symbolic";
+		break;
+	case GTK_ARROW_DOWN:
+		icon_name = "pan-down-symbolic";
+		break;
+	case GTK_ARROW_LEFT:
+		icon_name = "pan-start-symbolic";
+		break;
+	case GTK_ARROW_RIGHT:
+	default:
+		icon_name = "pan-end-symbolic";
+		break;
+	}
+
+	arrow = gtk_image_new_from_icon_name (icon_name, GTK_ICON_SIZE_BUTTON);
+#elif !HAVE_GTK3
 	arrow = gtk_arrow_new (type, GTK_SHADOW_NONE);
+#endif
 	gtk_container_add (GTK_CONTAINER (button), arrow);
 	gtk_button_set_relief (GTK_BUTTON (button), GTK_RELIEF_NONE);
 	g_signal_connect (G_OBJECT (button), "clicked",
