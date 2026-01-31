@@ -63,6 +63,7 @@ typedef enum
 } WinStatus;
 
 #if HAVE_GTK3
+/* GTK3: keep GtkStatusIcon and use tooltip/text properties for tray tooltips. */
 typedef const char *TrayIcon;
 typedef char *TrayCustomIcon;
 #define tray_icon_from_file(f) g_strdup(f)
@@ -192,7 +193,20 @@ static void
 tray_set_tooltip_text (GtkStatusIcon *icon, const char *text)
 {
 #if HAVE_GTK3
-	g_object_set (G_OBJECT (icon), "tooltip-text", text, NULL);
+	GObjectClass *klass;
+
+	if (!icon)
+		return;
+
+	klass = G_OBJECT_GET_CLASS (icon);
+	if (klass && g_object_class_find_property (klass, "tooltip-text"))
+	{
+		g_object_set (G_OBJECT (icon), "tooltip-text", text, NULL);
+	}
+	else if (klass && g_object_class_find_property (klass, "title"))
+	{
+		g_object_set (G_OBJECT (icon), "title", text, NULL);
+	}
 #endif
 #if !HAVE_GTK3
 	gtk_status_icon_set_tooltip_text (icon, text);
@@ -223,8 +237,14 @@ tray_is_embedded (GtkStatusIcon *icon)
 void
 fe_tray_set_tooltip (const char *text)
 {
-	if (sticon)
-		tray_set_tooltip_text (sticon, text);
+	if (!sticon)
+		return;
+#if HAVE_GTK3
+	tray_set_tooltip_text (sticon, text);
+#endif
+#if !HAVE_GTK3
+	tray_set_tooltip_text (sticon, text);
+#endif
 }
 
 static void
@@ -464,6 +484,16 @@ tray_menu_notify_cb (GObject *tray, GParamSpec *pspec, gpointer user_data)
 {
 	if (sticon)
 	{
+#if HAVE_GTK3
+		if (!tray_is_embedded (sticon))
+			tray_restore_timer = g_timeout_add(500, (GSourceFunc)tray_menu_try_restore, NULL);
+		else if (tray_restore_timer)
+		{
+			g_source_remove (tray_restore_timer);
+			tray_restore_timer = 0;
+		}
+#endif
+#if !HAVE_GTK3
 		if (!tray_is_embedded (sticon))
 		{
 			tray_restore_timer = g_timeout_add(500, (GSourceFunc)tray_menu_try_restore, NULL);
@@ -476,6 +506,7 @@ tray_menu_notify_cb (GObject *tray, GParamSpec *pspec, gpointer user_data)
 				tray_restore_timer = 0;
 			}
 		}
+#endif
 	}
 }
 
