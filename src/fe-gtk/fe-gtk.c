@@ -250,7 +250,6 @@ fe_args (int argc, char *argv[])
 	return -1;
 }
 
-#if !HAVE_GTK3
 const char cursor_color_rc[] =
 	"style \"xc-ib-st\""
 	"{"
@@ -273,7 +272,6 @@ static const char adwaita_workaround_rc[] =
 		"}"
 	"}"
 	"widget \"*.zoitechat-inputbox\" style \"zoitechat-input-workaround\"";
-#endif
 
 static gboolean
 fe_system_prefers_dark (void)
@@ -452,6 +450,9 @@ create_input_style (InputStyle *style)
 		GtkSettings *settings = gtk_settings_get_default ();
 		GdkScreen *screen = gdk_screen_get_default ();
 		char *theme_name;
+		char cursor_rc[sizeof (cursor_color_rc)];
+		char cursor_color[8];
+		const char *cursor_color_start = NULL;
 		guint16 fg_red;
 		guint16 fg_green;
 		guint16 fg_blue;
@@ -468,10 +469,26 @@ create_input_style (InputStyle *style)
 		palette_color_get_rgb16 (&colors[COL_BG], &bg_red, &bg_green, &bg_blue);
 		g_snprintf (buf, sizeof (buf), "#%02x%02x%02x",
 			(fg_red >> 8), (fg_green >> 8), (fg_blue >> 8));
+		g_snprintf (cursor_rc, sizeof (cursor_rc), cursor_color_rc,
+			(fg_red >> 8), (fg_green >> 8), (fg_blue >> 8));
+		cursor_color_start = g_strstr_len (cursor_rc, -1, "cursor-color=\"");
+		if (cursor_color_start)
+		{
+			cursor_color_start += strlen ("cursor-color=\"");
+			g_strlcpy (cursor_color, cursor_color_start, sizeof (cursor_color));
+			cursor_color[7] = '\0';
+		}
+		else
+		{
+			g_strlcpy (cursor_color, buf, sizeof (cursor_color));
+		}
 		{
 			GString *css = g_string_new ("#zoitechat-inputbox {");
 
-			if (g_str_has_prefix (theme_name, "Adwaita") || g_str_has_prefix (theme_name, "Yaru"))
+			/* GTK3 equivalents for adwaita_workaround_rc/cursor_color_rc. */
+			if (adwaita_workaround_rc[0] != '\0'
+				&& (g_str_has_prefix (theme_name, "Adwaita")
+					|| g_str_has_prefix (theme_name, "Yaru")))
 				g_string_append (css, "background-image: none;");
 
 			g_string_append_printf (
@@ -486,9 +503,9 @@ create_input_style (InputStyle *style)
 				"}",
 				(bg_red >> 8), (bg_green >> 8), (bg_blue >> 8),
 				(fg_red >> 8), (fg_green >> 8), (fg_blue >> 8),
-				buf,
+				cursor_color,
 				(fg_red >> 8), (fg_green >> 8), (fg_blue >> 8),
-				buf);
+				cursor_color);
 			gtk_css_provider_load_from_data (input_css_provider, css->str, -1, NULL);
 			g_string_free (css, TRUE);
 		}
