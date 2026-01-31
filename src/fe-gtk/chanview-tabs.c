@@ -526,7 +526,11 @@ tab_add_real (chanview *cv, GtkWidget *tab, chan *ch)
 #elif !HAVE_GTK3
 		box = gtk_vbox_new (FALSE, 0);
 #endif
+#if HAVE_GTK3
+		sep = gtk_separator_new (GTK_ORIENTATION_HORIZONTAL);
+#elif !HAVE_GTK3
 		sep = gtk_hseparator_new ();
+#endif
 	} else
 	{
 		/* horiz */

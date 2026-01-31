@@ -1996,7 +1996,11 @@ servlist_open_edit (GtkWidget *parent, ircnet *net)
 
 
 	/* Button Box */
+#if HAVE_GTK3
+	vbuttonbox1 = gtk_button_box_new (GTK_ORIENTATION_VERTICAL);
+#elif !HAVE_GTK3
 	vbuttonbox1 = gtk_vbutton_box_new ();
+#endif
 	gtk_box_set_spacing (GTK_BOX (vbuttonbox1), 3);
 	gtk_button_box_set_layout (GTK_BUTTON_BOX (vbuttonbox1), GTK_BUTTONBOX_START);
 	gtk_box_pack_start (GTK_BOX (hbox1), vbuttonbox1, FALSE, FALSE, 3);
@@ -2103,7 +2107,11 @@ servlist_open_edit (GtkWidget *parent, ircnet *net)
 
 
 	/* Rule and Close button */
+#if HAVE_GTK3
+	hseparator2 = gtk_separator_new (GTK_ORIENTATION_HORIZONTAL);
+#elif !HAVE_GTK3
 	hseparator2 = gtk_hseparator_new ();
+#endif
 	gtk_box_pack_start (GTK_BOX (vbox5), hseparator2, FALSE, FALSE, 8);
 
 #if HAVE_GTK3
@@ -2407,7 +2415,11 @@ servlist_open_networks (void)
 							G_CALLBACK (fav_servlist), 0);
 	gtk_widget_show (checkbutton_fav);
 
+#if HAVE_GTK3
+	vbuttonbox2 = gtk_button_box_new (GTK_ORIENTATION_VERTICAL);
+#elif !HAVE_GTK3
 	vbuttonbox2 = gtk_vbutton_box_new ();
+#endif
 	gtk_box_set_spacing (GTK_BOX (vbuttonbox2), 3);
 	gtk_button_box_set_layout (GTK_BUTTON_BOX (vbuttonbox2), GTK_BUTTONBOX_START);
 	gtk_widget_show (vbuttonbox2);
@@ -2464,7 +2476,11 @@ servlist_open_networks (void)
 	gtk_container_add (GTK_CONTAINER (vbuttonbox2), button_sort);
 	gtk_widget_set_can_default (button_sort, TRUE);
 
+#if HAVE_GTK3
+	hseparator1 = gtk_separator_new (GTK_ORIENTATION_HORIZONTAL);
+#elif !HAVE_GTK3
 	hseparator1 = gtk_hseparator_new ();
+#endif
 	gtk_widget_show (hseparator1);
 	gtk_box_pack_start (GTK_BOX (vbox1), hseparator1, FALSE, TRUE, 4);
 
