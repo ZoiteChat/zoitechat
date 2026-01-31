@@ -32,6 +32,7 @@
 #include "gtkutil.h"
 
 #if HAVE_GTK3
+#include <gio/gio.h>
 #if defined(HAVE_AYATANA_APPINDICATOR)
 #include <libayatana-appindicator/app-indicator.h>
 #else
@@ -69,15 +70,24 @@ typedef enum
 
 #if HAVE_GTK3
 /* GTK3: use AppIndicator/StatusNotifier item for tray integration. */
-typedef const char *TrayIcon;
-typedef char *TrayCustomIcon;
-#define tray_icon_from_file(f) g_strdup(f)
-#define tray_icon_free(i) g_free(i)
+typedef GIcon *TrayIcon;
+typedef GIcon *TrayCustomIcon;
+#define tray_icon_free(i) g_object_unref(i)
 
-#define ICON_NORMAL "net.zoite.Zoitechat"
-#define ICON_MSG "mail-unread"
-#define ICON_HILIGHT "dialog-warning"
-#define ICON_FILE "folder-download"
+#define ICON_NORMAL_NAME "net.zoite.Zoitechat"
+#define ICON_MSG_NAME "mail-unread"
+#define ICON_HILIGHT_NAME "dialog-warning"
+#define ICON_FILE_NAME "folder-download"
+
+static TrayIcon tray_icon_normal;
+static TrayIcon tray_icon_msg;
+static TrayIcon tray_icon_hilight;
+static TrayIcon tray_icon_file;
+
+#define ICON_NORMAL tray_icon_normal
+#define ICON_MSG tray_icon_msg
+#define ICON_HILIGHT tray_icon_hilight
+#define ICON_FILE tray_icon_file
 #endif
 
 #if !HAVE_GTK3
@@ -125,14 +135,92 @@ static GtkStatusIcon *tray_status_icon;
 static gboolean tray_backend_active = FALSE;
 
 #if HAVE_GTK3
+static TrayCustomIcon
+tray_icon_from_file (const char *filename)
+{
+	GFile *file;
+	TrayCustomIcon icon;
+
+	if (!filename)
+		return NULL;
+
+	file = g_file_new_for_path (filename);
+	icon = g_file_icon_new (file);
+	g_object_unref (file);
+
+	return icon;
+}
+
+static void
+tray_gtk3_icons_init (void)
+{
+	if (!tray_icon_normal)
+		tray_icon_normal = g_themed_icon_new (ICON_NORMAL_NAME);
+	if (!tray_icon_msg)
+		tray_icon_msg = g_themed_icon_new (ICON_MSG_NAME);
+	if (!tray_icon_hilight)
+		tray_icon_hilight = g_themed_icon_new (ICON_HILIGHT_NAME);
+	if (!tray_icon_file)
+		tray_icon_file = g_themed_icon_new (ICON_FILE_NAME);
+}
+
+static void
+tray_gtk3_icons_cleanup (void)
+{
+	g_clear_object (&tray_icon_normal);
+	g_clear_object (&tray_icon_msg);
+	g_clear_object (&tray_icon_hilight);
+	g_clear_object (&tray_icon_file);
+}
+
+static const char *
+tray_gtk3_icon_to_name (TrayIcon icon, char **allocated)
+{
+	const char * const *names;
+	GFile *file;
+
+	if (!icon)
+		return NULL;
+
+	if (G_IS_THEMED_ICON (icon))
+	{
+		names = g_themed_icon_get_names (G_THEMED_ICON (icon));
+		if (names && names[0])
+			return names[0];
+	}
+
+	if (G_IS_FILE_ICON (icon))
+	{
+		file = g_file_icon_get_file (G_FILE_ICON (icon));
+		if (file)
+		{
+			*allocated = g_file_get_path (file);
+			if (*allocated)
+				return *allocated;
+		}
+	}
+
+	*allocated = g_icon_to_string (icon);
+	return *allocated;
+}
+
 static void
 tray_app_indicator_set_icon (TrayIcon icon)
 {
+	char *icon_name_alloc = NULL;
+	const char *icon_name;
+
 	if (!tray_indicator)
 		return;
 
-	app_indicator_set_icon_full (tray_indicator, icon, _(DISPLAY_NAME));
+	icon_name = tray_gtk3_icon_to_name (icon, &icon_name_alloc);
+	if (!icon_name)
+		return;
+
+	app_indicator_set_icon_full (tray_indicator, icon_name, _(DISPLAY_NAME));
 	app_indicator_set_status (tray_indicator, APP_INDICATOR_STATUS_ACTIVE);
+
+	g_free (icon_name_alloc);
 }
 
 static void
@@ -183,7 +271,7 @@ tray_app_indicator_init (void)
 {
 	GObjectClass *klass;
 
-	tray_indicator = app_indicator_new ("zoitechat", ICON_NORMAL,
+	tray_indicator = app_indicator_new ("zoitechat", ICON_NORMAL_NAME,
 		APP_INDICATOR_CATEGORY_COMMUNICATIONS);
 	if (!tray_indicator)
 		return FALSE;
@@ -285,6 +373,9 @@ tray_backend_init (void)
 	if (!tray_backend_ops.init)
 		return FALSE;
 
+#if HAVE_GTK3
+	tray_gtk3_icons_init ();
+#endif
 	tray_backend_active = tray_backend_ops.init ();
 	return tray_backend_active;
 }
@@ -318,6 +409,9 @@ tray_backend_cleanup (void)
 	if (tray_backend_ops.cleanup)
 		tray_backend_ops.cleanup ();
 
+#if HAVE_GTK3
+	tray_gtk3_icons_cleanup ();
+#endif
 	tray_backend_active = FALSE;
 }
 static gint flash_tag;
