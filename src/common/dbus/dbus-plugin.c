@@ -40,12 +40,12 @@ static GList *contexts = NULL;
 static GHashTable *clients = NULL;
 static DBusGConnection *connection;
 
-typedef struct RemoteObject RemoteObject;
-typedef struct RemoteObjectClass RemoteObjectClass;
+typedef struct _RemoteObject RemoteObject;
+typedef struct _RemoteObjectClass RemoteObjectClass;
 
-GType Remote_object_get_type (void);
+GType remote_object_get_type (void);
 
-struct RemoteObject
+struct _RemoteObject
 {
 	GObject parent;
 
@@ -59,9 +59,9 @@ struct RemoteObject
 	void *handle;
 };
 
-struct RemoteObjectClass
+struct _RemoteObjectClass
 {
-	GObjectClass parent;
+	GObjectClass parent_class;
 };
 
 typedef struct 

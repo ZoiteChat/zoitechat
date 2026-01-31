@@ -72,8 +72,6 @@
 /* force scrolling off */
 #define dontscroll(buf) (buf)->last_pixel_pos = 0x7fffffff
 
-static GtkWidgetClass *parent_class = NULL;
-
 struct textentry
 {
 	struct textentry *next;
@@ -111,6 +109,8 @@ enum
 };
 
 static guint xtext_signals[LAST_SIGNAL];
+
+G_DEFINE_TYPE (GtkXText, gtk_xtext, GTK_TYPE_WIDGET)
 
 char *nocasestrstr (const char *text, const char *tofind);	/* util.c */
 int xtext_get_stamp_str (time_t, char **);
@@ -865,8 +865,8 @@ gtk_xtext_destroy (GtkObject * object)
 
 	gtk_xtext_cleanup (xtext);
 
-	if (GTK_OBJECT_CLASS (parent_class)->destroy)
-		(*GTK_OBJECT_CLASS (parent_class)->destroy) (object);
+	if (GTK_OBJECT_CLASS (gtk_xtext_parent_class)->destroy)
+		(*GTK_OBJECT_CLASS (gtk_xtext_parent_class)->destroy) (object);
 }
 #endif
 
@@ -878,15 +878,15 @@ gtk_xtext_dispose (GObject *object)
 
 	gtk_xtext_cleanup (xtext);
 
-	if (G_OBJECT_CLASS (parent_class)->dispose)
-		(*G_OBJECT_CLASS (parent_class)->dispose) (object);
+	if (G_OBJECT_CLASS (gtk_xtext_parent_class)->dispose)
+		(*G_OBJECT_CLASS (gtk_xtext_parent_class)->dispose) (object);
 }
 
 static void
 gtk_xtext_finalize (GObject *object)
 {
-	if (G_OBJECT_CLASS (parent_class)->finalize)
-		(*G_OBJECT_CLASS (parent_class)->finalize) (object);
+	if (G_OBJECT_CLASS (gtk_xtext_parent_class)->finalize)
+		(*G_OBJECT_CLASS (gtk_xtext_parent_class)->finalize) (object);
 }
 #endif
 
@@ -907,8 +907,8 @@ gtk_xtext_unrealize (GtkWidget * widget)
 	gdk_window_set_user_data (widget->window, NULL);
 #endif
 
-	if (parent_class->unrealize)
-		(* GTK_WIDGET_CLASS (parent_class)->unrealize) (widget);
+	if (GTK_WIDGET_CLASS (gtk_xtext_parent_class)->unrealize)
+		(*GTK_WIDGET_CLASS (gtk_xtext_parent_class)->unrealize) (widget);
 
 #if HAVE_GTK3
 	gtk_widget_set_window (widget, NULL);
@@ -2749,8 +2749,6 @@ gtk_xtext_class_init (GtkXTextClass * class)
 	widget_class = (GtkWidgetClass *) class;
 	xtext_class = (GtkXTextClass *) class;
 
-	parent_class = g_type_class_peek (gtk_widget_get_type ());
-
 	xtext_signals[WORD_CLICK] =
 		g_signal_new ("word_click",
 							G_TYPE_FROM_CLASS (object_class),
@@ -2793,33 +2791,6 @@ gtk_xtext_class_init (GtkXTextClass * class)
 
 	xtext_class->word_click = NULL;
 	xtext_class->set_scroll_adjustments = gtk_xtext_scroll_adjustments;
-}
-
-GType
-gtk_xtext_get_type (void)
-{
-	static GType xtext_type = 0;
-
-	if (!xtext_type)
-	{
-		static const GTypeInfo xtext_info =
-		{
-			sizeof (GtkXTextClass),
-			NULL,		/* base_init */
-			NULL,		/* base_finalize */
-			(GClassInitFunc) gtk_xtext_class_init,
-			NULL,		/* class_finalize */
-			NULL,		/* class_data */
-			sizeof (GtkXText),
-			0,		/* n_preallocs */
-			(GInstanceInitFunc) gtk_xtext_init,
-		};
-
-		xtext_type = g_type_register_static (GTK_TYPE_WIDGET, "GtkXText",
-														 &xtext_info, 0);
-	}
-
-	return xtext_type;
 }
 
 /* strip MIRC colors and other attribs. */

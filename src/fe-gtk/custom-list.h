@@ -22,6 +22,12 @@
 
 #include <gtk/gtk.h>
 
+#if HAVE_GTK3
+G_DECLARE_DERIVABLE_TYPE (CustomList, custom_list, CUSTOM, LIST, GObject)
+#else
+typedef struct _CustomList CustomList;
+typedef struct _CustomListClass CustomListClass;
+
 GType custom_list_get_type (void);
 
 /* Some boilerplate GObject defines. 'klass' is used
@@ -33,6 +39,7 @@ GType custom_list_get_type (void);
 #define CUSTOM_IS_LIST(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), CUSTOM_TYPE_LIST))
 #define CUSTOM_IS_LIST_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass),  CUSTOM_TYPE_LIST))
 #define CUSTOM_LIST_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj),  CUSTOM_TYPE_LIST, CustomListClass))
+#endif
 
 /* The data columns that we export via the tree model interface */
 
@@ -62,20 +69,19 @@ typedef struct
 }
 chanlistrow;
 
-typedef struct _CustomList CustomList;
-typedef struct _CustomListClass CustomListClass;
-
-
-
 /* CustomList: this structure contains everything we need for our
  *             model implementation. You can add extra fields to
  *             this structure, e.g. hashtables to quickly lookup
  *             rows or whatever else you might need, but it is
- *             crucial that 'parent' is the first member of the
+ *             crucial that 'parent_instance' is the first member of the
  *             structure.                                          */
 struct _CustomList
 {
+#if HAVE_GTK3
+	GObject parent_instance;
+#else
 	GObject parent;
+#endif
 
 	guint num_rows;     /* number of rows that we have used */
 	guint num_alloc;    /* number of rows allocated */
