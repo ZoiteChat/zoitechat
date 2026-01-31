@@ -52,6 +52,26 @@ static int tab_right_is_moving = 0;
  *
  */
 
+static inline gint
+cv_tabs_get_viewport_size (GdkWindow *parent_win, gboolean vertical)
+{
+	gint viewport_size = 0;
+
+#if HAVE_GTK3
+	if (vertical)
+		viewport_size = gdk_window_get_height (parent_win);
+	else
+		viewport_size = gdk_window_get_width (parent_win);
+#else
+	if (vertical)
+		gdk_window_get_geometry (parent_win, 0, 0, 0, &viewport_size, 0);
+	else
+		gdk_window_get_geometry (parent_win, 0, 0, &viewport_size, 0, 0);
+#endif
+
+	return viewport_size;
+}
+
 /*
  * GtkViewports request at least as much space as their children do.
  * If we don't intervene here, the GtkViewport will be granted its
@@ -80,12 +100,12 @@ cv_tabs_sizealloc (GtkWidget *widget, GtkAllocation *allocation, chanview *cv)
 	if (cv->vertical)
 	{
 		adj = gtk_viewport_get_vadjustment (GTK_VIEWPORT (gtk_widget_get_parent (inner)));
-		gdk_window_get_geometry (parent_win, 0, 0, 0, &viewport_size, 0);
 	} else
 	{
 		adj = gtk_viewport_get_hadjustment (GTK_VIEWPORT (gtk_widget_get_parent (inner)));
-		gdk_window_get_geometry (parent_win, 0, 0, &viewport_size, 0, 0);
 	}
+
+	viewport_size = cv_tabs_get_viewport_size (parent_win, cv->vertical);
 
 	if (gtk_adjustment_get_upper (adj) <= viewport_size)
 	{
@@ -157,12 +177,12 @@ tab_scroll_left_up_clicked (GtkWidget *widget, chanview *cv)
 	if (cv->vertical)
 	{
 		adj = gtk_viewport_get_vadjustment (GTK_VIEWPORT (gtk_widget_get_parent(inner)));
-		gdk_window_get_geometry (parent_win, 0, 0, 0, &viewport_size, 0);
 	} else
 	{
 		adj = gtk_viewport_get_hadjustment (GTK_VIEWPORT (gtk_widget_get_parent(inner)));
-		gdk_window_get_geometry (parent_win, 0, 0, &viewport_size, 0, 0);
 	}
+
+	viewport_size = cv_tabs_get_viewport_size (parent_win, cv->vertical);
 
 	new_value = tab_search_offset (inner, gtk_adjustment_get_value (adj), 0, cv->vertical);
 
@@ -206,12 +226,12 @@ tab_scroll_right_down_clicked (GtkWidget *widget, chanview *cv)
 	if (cv->vertical)
 	{
 		adj = gtk_viewport_get_vadjustment (GTK_VIEWPORT (gtk_widget_get_parent(inner)));
-		gdk_window_get_geometry (parent_win, 0, 0, 0, &viewport_size, 0);
 	} else
 	{
 		adj = gtk_viewport_get_hadjustment (GTK_VIEWPORT (gtk_widget_get_parent(inner)));
-		gdk_window_get_geometry (parent_win, 0, 0, &viewport_size, 0, 0);
 	}
+
+	viewport_size = cv_tabs_get_viewport_size (parent_win, cv->vertical);
 
 	new_value = tab_search_offset (inner, gtk_adjustment_get_value (adj), 1, cv->vertical);
 
