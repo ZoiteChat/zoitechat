@@ -27,9 +27,6 @@
 #include <cairo.h>
 #include "xtext-color.h"
 
-#if HAVE_GTK3
-G_DECLARE_DERIVABLE_TYPE (GtkXText, gtk_xtext, GTK, XTEXT, GtkWidget)
-#else
 typedef struct _GtkXText GtkXText;
 typedef struct _GtkXTextClass GtkXTextClass;
 
@@ -41,7 +38,6 @@ typedef struct _GtkXTextClass GtkXTextClass;
 #define GTK_XTEXT_GET_CLASS(obj)    (G_TYPE_INSTANCE_GET_CLASS ((obj), GTK_TYPE_XTEXT, GtkXTextClass))
 
 GType gtk_xtext_get_type (void);
-#endif
 
 #define ATTR_BOLD				'\002'
 #define ATTR_COLOR			'\003'

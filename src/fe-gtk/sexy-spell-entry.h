@@ -22,9 +22,6 @@
 
 G_BEGIN_DECLS
 
-#if HAVE_GTK3
-G_DECLARE_DERIVABLE_TYPE (SexySpellEntry, sexy_spell_entry, SEXY, SPELL_ENTRY, GtkEntry)
-#else
 typedef struct _SexySpellEntry      SexySpellEntry;
 typedef struct _SexySpellEntryClass SexySpellEntryClass;
 
@@ -36,7 +33,6 @@ GType      sexy_spell_entry_get_type(void);
 #define SEXY_IS_SPELL_ENTRY(obj)         (G_TYPE_CHECK_INSTANCE_TYPE((obj), SEXY_TYPE_SPELL_ENTRY))
 #define SEXY_IS_SPELL_ENTRY_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE((klass), SEXY_TYPE_SPELL_ENTRY))
 #define SEXY_SPELL_ENTRY_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS((obj), SEXY_TYPE_SPELL_ENTRY, SexySpellEntryClass))
-#endif
 
 typedef struct _SexySpellEntryPriv  SexySpellEntryPriv;
 
