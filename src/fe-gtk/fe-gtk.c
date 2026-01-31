@@ -404,6 +404,9 @@ create_input_style (InputStyle *style)
 {
 	char buf[256];
 	static int done_rc = FALSE;
+#if HAVE_GTK3
+	static GtkCssProvider *input_css_provider = NULL;
+#endif
 
 #if HAVE_GTK3
 	if (!style)
@@ -445,6 +448,58 @@ create_input_style (InputStyle *style)
 			sprintf (buf, cursor_color_rc, (red >> 8), (green >> 8), (blue >> 8));
 		}
 		gtk_rc_parse_string (buf);
+#else
+		GtkSettings *settings = gtk_settings_get_default ();
+		GdkScreen *screen = gdk_screen_get_default ();
+		char *theme_name;
+		guint16 fg_red;
+		guint16 fg_green;
+		guint16 fg_blue;
+		guint16 bg_red;
+		guint16 bg_green;
+		guint16 bg_blue;
+
+		g_object_get (settings, "gtk-theme-name", &theme_name, NULL);
+
+		if (!input_css_provider)
+			input_css_provider = gtk_css_provider_new ();
+
+		palette_color_get_rgb16 (&colors[COL_FG], &fg_red, &fg_green, &fg_blue);
+		palette_color_get_rgb16 (&colors[COL_BG], &bg_red, &bg_green, &bg_blue);
+		g_snprintf (buf, sizeof (buf), "#%02x%02x%02x",
+			(fg_red >> 8), (fg_green >> 8), (fg_blue >> 8));
+		{
+			GString *css = g_string_new ("#zoitechat-inputbox {");
+
+			if (g_str_has_prefix (theme_name, "Adwaita") || g_str_has_prefix (theme_name, "Yaru"))
+				g_string_append (css, "background-image: none;");
+
+			g_string_append_printf (
+				css,
+				"background-color: #%02x%02x%02x;"
+				"color: #%02x%02x%02x;"
+				"caret-color: %s;"
+				"}"
+				"#zoitechat-inputbox text {"
+				"color: #%02x%02x%02x;"
+				"caret-color: %s;"
+				"}",
+				(bg_red >> 8), (bg_green >> 8), (bg_blue >> 8),
+				(fg_red >> 8), (fg_green >> 8), (fg_blue >> 8),
+				buf,
+				(fg_red >> 8), (fg_green >> 8), (fg_blue >> 8),
+				buf);
+			gtk_css_provider_load_from_data (input_css_provider, css->str, -1, NULL);
+			g_string_free (css, TRUE);
+		}
+
+		if (screen)
+			gtk_style_context_add_provider_for_screen (
+				screen,
+				GTK_STYLE_PROVIDER (input_css_provider),
+				GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+
+		g_free (theme_name);
 #endif
 		done_rc = TRUE;
 	}
