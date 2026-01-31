@@ -1058,11 +1058,53 @@ gtk_xtext_realize (GtkWidget * widget)
 }
 
 static void
-gtk_xtext_size_request (GtkWidget * widget, GtkRequisition * requisition)
+gtk_xtext_size_request_internal (GtkWidget *widget, GtkRequisition *requisition)
 {
 	requisition->width = 200;
 	requisition->height = 90;
 }
+
+#if !HAVE_GTK3
+static void
+gtk_xtext_size_request (GtkWidget *widget, GtkRequisition *requisition)
+{
+	gtk_xtext_size_request_internal (widget, requisition);
+}
+#endif
+
+#if HAVE_GTK3
+static void
+gtk_xtext_get_preferred_width (GtkWidget *widget, gint *minimum, gint *natural)
+{
+	GtkRequisition requisition;
+
+	gtk_xtext_size_request_internal (widget, &requisition);
+	*minimum = requisition.width;
+	*natural = requisition.width;
+}
+
+static void
+gtk_xtext_get_preferred_height (GtkWidget *widget, gint *minimum, gint *natural)
+{
+	GtkRequisition requisition;
+
+	gtk_xtext_size_request_internal (widget, &requisition);
+	*minimum = requisition.height;
+	*natural = requisition.height;
+}
+
+static void
+gtk_xtext_get_preferred_height_for_width (GtkWidget *widget, gint width,
+														gint *minimum, gint *natural)
+{
+	GtkRequisition requisition;
+
+	(void)width;
+	gtk_xtext_size_request_internal (widget, &requisition);
+	*minimum = requisition.height;
+	*natural = requisition.height;
+}
+#endif
 
 static void
 gtk_xtext_size_allocate (GtkWidget * widget, GtkAllocation * allocation)
@@ -2816,7 +2858,9 @@ gtk_xtext_class_init (GtkXTextClass * class)
 
 	widget_class->realize = gtk_xtext_realize;
 	widget_class->unrealize = gtk_xtext_unrealize;
+#if !HAVE_GTK3
 	widget_class->size_request = gtk_xtext_size_request;
+#endif
 	widget_class->size_allocate = gtk_xtext_size_allocate;
 	widget_class->button_press_event = gtk_xtext_button_press;
 	widget_class->button_release_event = gtk_xtext_button_release;
@@ -2825,6 +2869,9 @@ gtk_xtext_class_init (GtkXTextClass * class)
 	widget_class->selection_get = gtk_xtext_selection_get;
 #if HAVE_GTK3
 	widget_class->draw = gtk_xtext_draw;
+	widget_class->get_preferred_width = gtk_xtext_get_preferred_width;
+	widget_class->get_preferred_height = gtk_xtext_get_preferred_height;
+	widget_class->get_preferred_height_for_width = gtk_xtext_get_preferred_height_for_width;
 #endif
 #if !HAVE_GTK3
 	widget_class->expose_event = gtk_xtext_expose;
