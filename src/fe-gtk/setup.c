@@ -1276,6 +1276,7 @@ setup_browsefile_cb (GtkWidget *button, GtkWidget *entry)
                                         entry, NULL, filter, filter_type|FRF_RECENTLYUSED|FRF_MODAL);
 }
 
+#if !HAVE_GTK3
 static void
 setup_fontsel_destroy (GtkWidget *button, GtkFontSelectionDialog *dialog)
 {
@@ -1304,6 +1305,7 @@ setup_fontsel_cancel (GtkWidget *button, GtkFontSelectionDialog *dialog)
         gtk_widget_destroy (GTK_WIDGET (dialog));
         font_dialog = NULL;
 }
+#endif
 
 #if HAVE_GTK3
 static void
