@@ -1930,7 +1930,11 @@ menu_about (GtkWidget *wid, gpointer sess)
 
 	gtk_about_dialog_set_program_name (dialog, _(DISPLAY_NAME));
 	gtk_about_dialog_set_version (dialog, PACKAGE_VERSION);
-	gtk_about_dialog_set_license (dialog, license); /* gtk3 can use GTK_LICENSE_GPL_2_0 */
+#if HAVE_GTK3
+	gtk_about_dialog_set_license_type (GTK_ABOUT_DIALOG (dialog), GTK_LICENSE_GPL_2_0);
+#else
+	gtk_about_dialog_set_license (dialog, license);
+#endif
 	gtk_about_dialog_set_website (dialog, "http://zoitechat.zoite.net");
 	gtk_about_dialog_set_website_label (dialog, "Website");
 	gtk_about_dialog_set_logo (dialog, pix_zoitechat);
