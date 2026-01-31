@@ -107,6 +107,7 @@ void tray_apply_setup (void);
 static gboolean tray_menu_try_restore (void);
 static void tray_cleanup (void);
 static void tray_init (void);
+static void tray_set_icon_state (TrayIcon icon, TrayIconState state);
 static void tray_menu_restore_cb (GtkWidget *item, gpointer userdata);
 static void tray_menu_notify_cb (GObject *tray, GParamSpec *pspec, gpointer user_data);
 #if HAVE_GTK3
@@ -133,6 +134,25 @@ static GtkWidget *tray_menu;
 static GtkStatusIcon *tray_status_icon;
 #endif
 static gboolean tray_backend_active = FALSE;
+
+static gint flash_tag;
+static TrayIconState tray_icon_state;
+static TrayIcon tray_flash_icon;
+static TrayIconState tray_flash_state;
+#if !HAVE_GTK3 && defined(WIN32)
+static guint tray_menu_timer;
+static gint64 tray_menu_inactivetime;
+#endif
+static zoitechat_plugin *ph;
+
+static TrayCustomIcon custom_icon1;
+static TrayCustomIcon custom_icon2;
+
+static int tray_priv_count = 0;
+static int tray_pub_count = 0;
+static int tray_hilight_count = 0;
+static int tray_file_count = 0;
+static int tray_restore_timer = 0;
 
 #if HAVE_GTK3
 static TrayCustomIcon
@@ -214,6 +234,52 @@ tray_gtk3_icons_cleanup (void)
 	g_clear_object (&tray_icon_msg);
 	g_clear_object (&tray_icon_hilight);
 	g_clear_object (&tray_icon_file);
+}
+
+static GtkIconTheme *tray_gtk3_icon_theme = NULL;
+static gulong tray_gtk3_icon_theme_changed_handler = 0;
+
+static void
+tray_gtk3_reapply_icon_state (void)
+{
+	switch (tray_icon_state)
+	{
+	case TRAY_ICON_NORMAL:
+		tray_set_icon_state (ICON_NORMAL, TRAY_ICON_NORMAL);
+		break;
+	case TRAY_ICON_MESSAGE:
+		tray_set_icon_state (ICON_MSG, TRAY_ICON_MESSAGE);
+		break;
+	case TRAY_ICON_HIGHLIGHT:
+		tray_set_icon_state (ICON_HILIGHT, TRAY_ICON_HIGHLIGHT);
+		break;
+	case TRAY_ICON_FILEOFFER:
+		tray_set_icon_state (ICON_FILE, TRAY_ICON_FILEOFFER);
+		break;
+	case TRAY_ICON_CUSTOM1:
+		tray_set_icon_state (custom_icon1, TRAY_ICON_CUSTOM1);
+		break;
+	case TRAY_ICON_CUSTOM2:
+		tray_set_icon_state (custom_icon2, TRAY_ICON_CUSTOM2);
+		break;
+	case TRAY_ICON_NONE:
+	default:
+		break;
+	}
+}
+
+static void
+tray_gtk3_theme_changed_cb (GtkIconTheme *theme, gpointer user_data)
+{
+	(void)theme;
+	(void)user_data;
+
+	if (!tray_backend_active)
+		return;
+
+	tray_gtk3_icons_cleanup ();
+	tray_gtk3_icons_init ();
+	tray_gtk3_reapply_icon_state ();
 }
 
 static const char *
@@ -427,6 +493,16 @@ tray_backend_init (void)
 
 #if HAVE_GTK3
 	tray_gtk3_icons_init ();
+	if (!tray_gtk3_icon_theme)
+		tray_gtk3_icon_theme = gtk_icon_theme_get_default ();
+	if (tray_gtk3_icon_theme && tray_gtk3_icon_theme_changed_handler == 0)
+	{
+		tray_gtk3_icon_theme_changed_handler = g_signal_connect (
+			tray_gtk3_icon_theme,
+			"changed",
+			G_CALLBACK (tray_gtk3_theme_changed_cb),
+			NULL);
+	}
 #endif
 	tray_backend_active = tray_backend_ops.init ();
 	return tray_backend_active;
@@ -462,28 +538,17 @@ tray_backend_cleanup (void)
 		tray_backend_ops.cleanup ();
 
 #if HAVE_GTK3
+	if (tray_gtk3_icon_theme && tray_gtk3_icon_theme_changed_handler)
+	{
+		g_signal_handler_disconnect (tray_gtk3_icon_theme,
+			tray_gtk3_icon_theme_changed_handler);
+		tray_gtk3_icon_theme_changed_handler = 0;
+	}
+	tray_gtk3_icon_theme = NULL;
 	tray_gtk3_icons_cleanup ();
 #endif
 	tray_backend_active = FALSE;
 }
-static gint flash_tag;
-static TrayIconState tray_icon_state;
-static TrayIcon tray_flash_icon;
-static TrayIconState tray_flash_state;
-#if !HAVE_GTK3 && defined(WIN32)
-static guint tray_menu_timer;
-static gint64 tray_menu_inactivetime;
-#endif
-static zoitechat_plugin *ph;
-
-static TrayCustomIcon custom_icon1;
-static TrayCustomIcon custom_icon2;
-
-static int tray_priv_count = 0;
-static int tray_pub_count = 0;
-static int tray_hilight_count = 0;
-static int tray_file_count = 0;
-static int tray_restore_timer = 0;
 
 static WinStatus
 tray_get_window_status (void)
