@@ -188,12 +188,36 @@ tray_set_custom_icon_state (TrayCustomIcon icon, TrayIconState state)
 	tray_icon_state = state;
 }
 
+#if HAVE_GTK3
+static void
+tray_set_tooltip_text (GtkStatusIcon *icon, const char *text)
+{
+	g_object_set (G_OBJECT (icon), "tooltip-text", text, NULL);
+}
+
+static gboolean
+tray_is_embedded (GtkStatusIcon *icon)
+{
+	GObjectClass *klass;
+	gboolean embedded = TRUE;
+
+	if (!icon)
+		return FALSE;
+
+	klass = G_OBJECT_GET_CLASS (icon);
+	if (klass && g_object_class_find_property (klass, "embedded"))
+		g_object_get (G_OBJECT (icon), "embedded", &embedded, NULL);
+
+	return embedded;
+}
+#endif
+
 void
 fe_tray_set_tooltip (const char *text)
 {
 	if (sticon)
 #if HAVE_GTK3
-		g_object_set (G_OBJECT (sticon), "tooltip-text", text, NULL);
+		tray_set_tooltip_text (sticon, text);
 #endif
 #if !HAVE_GTK3
 		gtk_status_icon_set_tooltip_text (sticon, text);
@@ -435,15 +459,10 @@ tray_menu_restore_cb (GtkWidget *item, gpointer userdata)
 static void
 tray_menu_notify_cb (GObject *tray, GParamSpec *pspec, gpointer user_data)
 {
-#if HAVE_GTK3
-	gboolean embedded = FALSE;
-#endif
-
 	if (sticon)
 	{
 #if HAVE_GTK3
-		g_object_get (G_OBJECT (sticon), "embedded", &embedded, NULL);
-		if (!embedded)
+		if (!tray_is_embedded (sticon))
 #endif
 #if !HAVE_GTK3
 		if (!gtk_status_icon_is_embedded (sticon))
