@@ -1006,11 +1006,11 @@ setup_apply_trans (int *tag)
 }
 
 static void
-setup_hscale_cb (GtkHScale *wid, const setting *set)
+setup_hscale_cb (GtkRange *wid, const setting *set)
 {
         static int tag = 0;
 
-        setup_set_int (&setup_prefs, set, (int) gtk_range_get_value (GTK_RANGE (wid)));
+        setup_set_int (&setup_prefs, set, (int) gtk_range_get_value (wid));
 
         if (tag == 0)
         {
@@ -1034,7 +1034,11 @@ setup_create_hscale (GtkWidget *table, int row, const setting *set)
                             SETUP_ALIGN_START, SETUP_ALIGN_CENTER,
                             LABEL_INDENT, 0);
 
+#if HAVE_GTK3
+        wid = gtk_scale_new_with_range (GTK_ORIENTATION_HORIZONTAL, 0., 255., 1.);
+#elif !HAVE_GTK3
         wid = gtk_hscale_new_with_range (0., 255., 1.);
+#endif
         gtk_scale_set_value_pos (GTK_SCALE (wid), GTK_POS_RIGHT);
         gtk_range_set_value (GTK_RANGE (wid), setup_get_int (&setup_prefs, set));
         g_signal_connect (G_OBJECT(wid), "value_changed",
