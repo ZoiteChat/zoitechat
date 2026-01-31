@@ -1301,6 +1301,27 @@ setup_fontsel_cancel (GtkWidget *button, GtkFontSelectionDialog *dialog)
         font_dialog = NULL;
 }
 
+#if HAVE_GTK3
+static void
+setup_fontchooser_response (GtkDialog *dialog, gint response, GtkWidget *entry)
+{
+        if (response == GTK_RESPONSE_OK)
+        {
+                char *font_name;
+
+                font_name = gtk_font_chooser_get_font (GTK_FONT_CHOOSER (dialog));
+                if (font_name)
+                {
+                        gtk_entry_set_text (GTK_ENTRY (entry), font_name);
+                        g_free (font_name);
+                }
+        }
+
+        gtk_widget_destroy (GTK_WIDGET (dialog));
+        font_dialog = NULL;
+}
+#endif
+
 static void
 setup_browsefolder_cb (GtkWidget *button, GtkEntry *entry)
 {
@@ -1310,6 +1331,24 @@ setup_browsefolder_cb (GtkWidget *button, GtkEntry *entry)
 static void
 setup_browsefont_cb (GtkWidget *button, GtkWidget *entry)
 {
+#if HAVE_GTK3
+        GtkWidget *dialog;
+        const char *font_name;
+
+        dialog = gtk_font_chooser_dialog_new (_("Select font"), GTK_WINDOW (setup_window));
+        font_dialog = dialog;      /* global var */
+
+        gtk_window_set_modal (GTK_WINDOW (dialog), TRUE);
+
+        font_name = gtk_entry_get_text (GTK_ENTRY (entry));
+        if (font_name[0])
+                gtk_font_chooser_set_font (GTK_FONT_CHOOSER (dialog), font_name);
+
+        g_signal_connect (G_OBJECT (dialog), "response",
+                                                        G_CALLBACK (setup_fontchooser_response), entry);
+
+        gtk_widget_show (dialog);
+#elif !HAVE_GTK3
         GtkFontSelection *sel;
         GtkFontSelectionDialog *dialog;
         GtkWidget *ok_button;
@@ -1336,6 +1375,7 @@ setup_browsefont_cb (GtkWidget *button, GtkWidget *entry)
                                                         G_CALLBACK (setup_fontsel_cancel), dialog);
 
         gtk_widget_show (GTK_WIDGET (dialog));
+#endif
 }
 
 static void
