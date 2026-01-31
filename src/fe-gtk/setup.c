@@ -1692,15 +1692,7 @@ setup_color_button_apply (GtkWidget *button, const PaletteColor *color)
 {
 	GtkWidget *target = g_object_get_data (G_OBJECT (button), "zoitechat-color-box");
 	GtkWidget *apply_widget = GTK_IS_WIDGET (target) ? target : button;
-#if HAVE_GTK3
-	GtkStateFlags states[] = {
-		GTK_STATE_FLAG_NORMAL,
-		GTK_STATE_FLAG_PRELIGHT,
-		GTK_STATE_FLAG_ACTIVE,
-		GTK_STATE_FLAG_SELECTED,
-		GTK_STATE_FLAG_INSENSITIVE
-	};
-#else
+#if !HAVE_GTK3
 	GtkStateType states[] = {
 		GTK_STATE_NORMAL,
 		GTK_STATE_PRELIGHT,
@@ -1711,18 +1703,18 @@ setup_color_button_apply (GtkWidget *button, const PaletteColor *color)
 #endif
 	guint i;
 
-	for (i = 0; i < G_N_ELEMENTS (states); i++)
 #if HAVE_GTK3
-		gtk_widget_override_background_color (apply_widget, states[i], color);
+	gtkutil_apply_palette (apply_widget, color, NULL, NULL);
 #else
+	for (i = 0; i < G_N_ELEMENTS (states); i++)
 		gtk_widget_modify_bg (apply_widget, states[i], color);
 #endif
 
 	if (apply_widget != button)
-		for (i = 0; i < G_N_ELEMENTS (states); i++)
 #if HAVE_GTK3
-			gtk_widget_override_background_color (button, states[i], color);
+		gtkutil_apply_palette (button, color, NULL, NULL);
 #else
+		for (i = 0; i < G_N_ELEMENTS (states); i++)
 			gtk_widget_modify_bg (button, states[i], color);
 #endif
 
@@ -2803,9 +2795,8 @@ static void
 setup_apply_entry_style (GtkWidget *entry)
 {
 #if HAVE_GTK3
-        gtk_widget_override_background_color (entry, GTK_STATE_FLAG_NORMAL, &colors[COL_BG]);
-        gtk_widget_override_color (entry, GTK_STATE_FLAG_NORMAL, &colors[COL_FG]);
-        gtk_widget_override_font (entry, input_style->font_desc);
+        gtkutil_apply_palette (entry, &colors[COL_BG], &colors[COL_FG],
+                               input_style->font_desc);
 #else
         gtk_widget_modify_base (entry, GTK_STATE_NORMAL, &colors[COL_BG]);
         gtk_widget_modify_text (entry, GTK_STATE_NORMAL, &colors[COL_FG]);
@@ -2819,29 +2810,26 @@ setup_apply_to_sess (session_gui *gui)
         mg_update_xtext (gui->xtext);
         chanview_apply_theme ((chanview *) gui->chanview);
 
-        if (prefs.hex_gui_ulist_style)
-        {
-#if HAVE_GTK3
-                gtk_widget_override_font (gui->user_tree, input_style->font_desc);
-#else
-                gtk_widget_modify_font (gui->user_tree, input_style->font_desc);
+#if !HAVE_GTK3
+	if (prefs.hex_gui_ulist_style)
+		gtk_widget_modify_font (gui->user_tree, input_style->font_desc);
 #endif
-        }
 
 #if HAVE_GTK3
-        if (prefs.hex_gui_ulist_style || fe_dark_mode_is_enabled ())
 	{
-		gtk_widget_override_background_color (gui->user_tree, GTK_STATE_FLAG_NORMAL, &colors[COL_BG]);
+		const PaletteColor *bg = NULL;
+		const PaletteColor *fg = NULL;
+		const PangoFontDescription *font = NULL;
+
+		if (prefs.hex_gui_ulist_style || fe_dark_mode_is_enabled ())
+			bg = &colors[COL_BG];
 		if (fe_dark_mode_is_enabled ())
-			gtk_widget_override_color (gui->user_tree, GTK_STATE_FLAG_NORMAL, &colors[COL_FG]);
-		else
-			gtk_widget_override_color (gui->user_tree, GTK_STATE_FLAG_NORMAL, NULL);
-        }
-        else
-        {
-                gtk_widget_override_background_color (gui->user_tree, GTK_STATE_FLAG_NORMAL, NULL);
-                gtk_widget_override_color (gui->user_tree, GTK_STATE_FLAG_NORMAL, NULL);
-        }
+			fg = &colors[COL_FG];
+		if (prefs.hex_gui_ulist_style)
+			font = input_style->font_desc;
+
+		gtkutil_apply_palette (gui->user_tree, bg, fg, font);
+	}
 #else
         if (prefs.hex_gui_ulist_style || fe_dark_mode_is_enabled ())
 	{

@@ -117,6 +117,44 @@ mg_color_component_to_pango (double value)
 	return (guint16)(value * 65535.0 + 0.5);
 }
 
+#if HAVE_GTK3
+static void
+mg_apply_font_css (GtkWidget *widget, const PangoFontDescription *desc,
+				   const char *class_name, const char *provider_key)
+{
+	GtkStyleContext *context;
+	GtkCssProvider *provider;
+	char *font_str;
+	GString *css;
+
+	if (!widget || !desc)
+		return;
+
+	context = gtk_widget_get_style_context (widget);
+	if (!context)
+		return;
+
+	provider = g_object_get_data (G_OBJECT (widget), provider_key);
+	if (!provider)
+	{
+		provider = gtk_css_provider_new ();
+		g_object_set_data_full (G_OBJECT (widget), provider_key, provider, g_object_unref);
+	}
+
+	font_str = pango_font_description_to_string (desc);
+	css = g_string_new (".");
+	g_string_append (css, class_name);
+	g_string_append_printf (css, " { font: %s; }", font_str);
+	gtk_css_provider_load_from_data (provider, css->str, -1, NULL);
+	g_string_free (css, TRUE);
+	g_free (font_str);
+
+	gtk_style_context_add_class (context, class_name);
+	gtk_style_context_add_provider (context, GTK_STYLE_PROVIDER (provider),
+	                                GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+}
+#endif
+
 static void
 mg_set_label_alignment_start (GtkWidget *widget)
 {
@@ -3243,7 +3281,8 @@ mg_apply_emoji_fallback_widget (GtkWidget *widget)
                 return;
 
 #if HAVE_GTK3
-        gtk_widget_override_font (widget, desc);
+		mg_apply_font_css (widget, desc, "zoitechat-emoji-font",
+		                   "zoitechat-emoji-font-provider");
 #else
         gtk_widget_modify_font (widget, desc);
 #endif
@@ -3285,7 +3324,8 @@ mg_apply_emoji_primary_widget (GtkWidget *widget)
                 return;
 
 #if HAVE_GTK3
-        gtk_widget_override_font (widget, desc);
+		mg_apply_font_css (widget, desc, "zoitechat-emoji-font",
+		                   "zoitechat-emoji-font-provider");
 #else
         gtk_widget_modify_font (widget, desc);
 #endif
