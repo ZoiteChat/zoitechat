@@ -1157,7 +1157,11 @@ chanlist_opengui (server *serv, int do_refresh)
 
 	/* ============================================================= */
 
+#if HAVE_GTK3
+	wid = gtk_separator_new (GTK_ORIENTATION_VERTICAL);
+#else
 	wid = gtk_vseparator_new ();
+#endif
 #if HAVE_GTK3
 	chanlist_grid_attach (table, wid, 2, 0, 1, 5, FALSE, FALSE,
 						  GTK_ALIGN_FILL, GTK_ALIGN_FILL);
