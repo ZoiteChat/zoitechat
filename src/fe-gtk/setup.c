@@ -2814,7 +2814,13 @@ setup_apply_to_sess (session_gui *gui)
         chanview_apply_theme ((chanview *) gui->chanview);
 
         if (prefs.hex_gui_ulist_style)
+        {
+#if HAVE_GTK3
+                gtk_widget_override_font (gui->user_tree, input_style->font_desc);
+#else
                 gtk_widget_modify_font (gui->user_tree, input_style->font_desc);
+#endif
+        }
 
 #if GTK_CHECK_VERSION(3,0,0)
         if (prefs.hex_gui_ulist_style || fe_dark_mode_is_enabled ())

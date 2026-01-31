@@ -3178,42 +3178,84 @@ mg_fontdesc_with_fallback (const PangoFontDescription *base_desc, gboolean emoji
 static void
 mg_apply_emoji_fallback_widget (GtkWidget *widget)
 {
-        GtkStyle *style;
         PangoFontDescription *desc;
+#if HAVE_GTK3
+        GtkStyleContext *context;
+        const PangoFontDescription *base_desc;
+#else
+        GtkStyle *style;
+#endif
 
         if (!widget)
                 return;
 
+#if HAVE_GTK3
+        context = gtk_widget_get_style_context (widget);
+        if (!context)
+                return;
+
+        base_desc = gtk_style_context_get_font (context, GTK_STATE_FLAG_NORMAL);
+        if (!base_desc)
+                return;
+
+        desc = mg_fontdesc_with_fallback (base_desc, FALSE);
+#else
         style = gtk_widget_get_style (widget);
         if (!style || !style->font_desc)
                 return;
 
         desc = mg_fontdesc_with_fallback (style->font_desc, FALSE);
+#endif
         if (!desc)
                 return;
 
+#if HAVE_GTK3
+        gtk_widget_override_font (widget, desc);
+#else
         gtk_widget_modify_font (widget, desc);
+#endif
         pango_font_description_free (desc);
 }
 
 static void
 mg_apply_emoji_primary_widget (GtkWidget *widget)
 {
-        GtkStyle *style;
         PangoFontDescription *desc;
+#if HAVE_GTK3
+        GtkStyleContext *context;
+        const PangoFontDescription *base_desc;
+#else
+        GtkStyle *style;
+#endif
 
         if (!widget)
                 return;
 
+#if HAVE_GTK3
+        context = gtk_widget_get_style_context (widget);
+        if (!context)
+                return;
+
+        base_desc = gtk_style_context_get_font (context, GTK_STATE_FLAG_NORMAL);
+        if (!base_desc)
+                return;
+
+        desc = mg_fontdesc_with_fallback (base_desc, TRUE);
+#else
         style = gtk_widget_get_style (widget);
         if (!style || !style->font_desc)
                 return;
 
         desc = mg_fontdesc_with_fallback (style->font_desc, TRUE);
+#endif
         if (!desc)
                 return;
 
+#if HAVE_GTK3
+        gtk_widget_override_font (widget, desc);
+#else
         gtk_widget_modify_font (widget, desc);
+#endif
         pango_font_description_free (desc);
 }
 
