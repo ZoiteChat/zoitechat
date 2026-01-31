@@ -749,13 +749,21 @@ mg_progressbar_update (GtkWidget *bar)
                 if (type == 0)
                 {
                         type = 1;
+#if HAVE_GTK3
+                        gtk_progress_bar_set_inverted (GTK_PROGRESS_BAR (bar), TRUE);
+#else
                         gtk_progress_bar_set_orientation ((GtkProgressBar *) bar,
                                                                                                                  GTK_PROGRESS_RIGHT_TO_LEFT);
+#endif
                 } else
                 {
                         type = 0;
+#if HAVE_GTK3
+                        gtk_progress_bar_set_inverted (GTK_PROGRESS_BAR (bar), FALSE);
+#else
                         gtk_progress_bar_set_orientation ((GtkProgressBar *) bar,
                                                                                                                  GTK_PROGRESS_LEFT_TO_RIGHT);
+#endif
                 }
                 pos = 0.05;
         }
