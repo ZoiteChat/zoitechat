@@ -250,6 +250,7 @@ fe_args (int argc, char *argv[])
 	return -1;
 }
 
+#if !HAVE_GTK3
 const char cursor_color_rc[] =
 	"style \"xc-ib-st\""
 	"{"
@@ -272,6 +273,7 @@ static const char adwaita_workaround_rc[] =
 		"}"
 	"}"
 	"widget \"*.zoitechat-inputbox\" style \"zoitechat-input-workaround\"";
+#endif
 
 static gboolean
 fe_system_prefers_dark (void)
@@ -397,13 +399,19 @@ fe_dark_mode_is_enabled (void)
 	return fe_dark_mode_is_enabled_for (prefs.hex_gui_dark_mode);
 }
 
-GtkStyle *
-create_input_style (GtkStyle *style)
+InputStyle *
+create_input_style (InputStyle *style)
 {
 	char buf[256];
 	static int done_rc = FALSE;
 
-	pango_font_description_free (style->font_desc);
+#if HAVE_GTK3
+	if (!style)
+		style = g_new0 (InputStyle, 1);
+#endif
+
+	if (style->font_desc)
+		pango_font_description_free (style->font_desc);
 	style->font_desc = pango_font_description_from_string (prefs.hex_text_font);
 
 	/* fall back */
@@ -417,6 +425,7 @@ create_input_style (GtkStyle *style)
 
 	if (prefs.hex_gui_input_style && !done_rc)
 	{
+#if !HAVE_GTK3
 		GtkSettings *settings = gtk_settings_get_default ();
 		char *theme_name;
 
@@ -427,7 +436,6 @@ create_input_style (GtkStyle *style)
 			gtk_rc_parse_string (adwaita_workaround_rc);
 		g_free (theme_name);
 
-		done_rc = TRUE;
 		{
 			guint16 red;
 			guint16 green;
@@ -437,11 +445,15 @@ create_input_style (GtkStyle *style)
 			sprintf (buf, cursor_color_rc, (red >> 8), (green >> 8), (blue >> 8));
 		}
 		gtk_rc_parse_string (buf);
+#endif
+		done_rc = TRUE;
 	}
 
+#if !HAVE_GTK3
 	style->bg[GTK_STATE_NORMAL] = colors[COL_FG];
 	style->base[GTK_STATE_NORMAL] = colors[COL_BG];
 	style->text[GTK_STATE_NORMAL] = colors[COL_FG];
+#endif
 
 	return style;
 }
@@ -460,7 +472,11 @@ fe_init (void)
 	gtkosx_application_set_dock_icon_pixbuf (osx_app, pix_zoitechat);
 #endif
 	channelwin_pix = pixmap_load_from_file (prefs.hex_text_background);
+#if HAVE_GTK3
+	input_style = create_input_style (input_style);
+#else
 	input_style = create_input_style (gtk_style_new ());
+#endif
 
 	settings = gtk_settings_get_default ();
 	if (settings)

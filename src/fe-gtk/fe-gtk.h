@@ -48,6 +48,15 @@
 #define flag_b flag_wid[7]
 #define NUM_FLAG_WIDS 8
 
+#if HAVE_GTK3
+typedef struct _input_style
+{
+	PangoFontDescription *font_desc;
+} InputStyle;
+#else
+typedef GtkStyle InputStyle;
+#endif
+
 #ifdef HAVE_GTK_MAC
 extern GtkosxApplication *osx_app;
 #endif

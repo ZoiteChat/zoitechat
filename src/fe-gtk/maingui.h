@@ -20,7 +20,7 @@
 #ifndef ZOITECHAT_MAINGUI_H
 #define ZOITECHAT_MAINGUI_H
 
-extern GtkStyle *input_style;
+extern InputStyle *input_style;
 extern GtkWidget *parent_window;
 
 void mg_changui_new (session *sess, restore_gui *res, int tab, int focus);

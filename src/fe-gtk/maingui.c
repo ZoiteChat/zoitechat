@@ -272,7 +272,7 @@ static const char chan_flags[] = { 'c', 'n', 't', 'i', 'm', 'l', 'k' };
 static chan *active_tab = NULL; /* active tab */
 GtkWidget *parent_window = NULL;                        /* the master window */
 
-GtkStyle *input_style;
+InputStyle *input_style;
 
 static PangoAttrList *away_list;
 static PangoAttrList *newdata_list;

@@ -48,7 +48,7 @@
 #endif
 #include "sexy-spell-entry.h"
 
-GtkStyle *create_input_style (GtkStyle *);
+InputStyle *create_input_style (InputStyle *);
 
 #define LABEL_INDENT 12
 
@@ -2860,7 +2860,7 @@ setup_apply_to_sess (session_gui *gui)
 
         if (prefs.hex_gui_input_style)
         {
-#if GTK_CHECK_VERSION(3,0,0)
+#if HAVE_GTK3
                 char buf[128];
                 GtkCssProvider *provider = gtk_css_provider_new ();
                 GtkStyleContext *context;

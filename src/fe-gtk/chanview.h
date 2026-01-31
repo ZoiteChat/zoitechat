@@ -20,10 +20,12 @@
 #ifndef ZOITECHAT_CHANVIEW_H
 #define ZOITECHAT_CHANVIEW_H
 
+#include "fe-gtk.h"
+
 typedef struct _chanview chanview;
 typedef struct _chan chan;
 
-chanview *chanview_new (int type, int trunc_len, gboolean sort, gboolean use_icons, GtkStyle *style);
+chanview *chanview_new (int type, int trunc_len, gboolean sort, gboolean use_icons, InputStyle *style);
 void chanview_set_callbacks (chanview *cv,
 	void (*cb_focus) (chanview *, chan *, int tag, void *userdata),
 	void (*cb_xbutton) (chanview *, chan *, int tag, void *userdata),
