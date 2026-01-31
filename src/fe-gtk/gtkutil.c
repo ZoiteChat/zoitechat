@@ -762,7 +762,12 @@ gtkutil_button (GtkWidget *box, char *stock, char *tip, void *callback,
 			img = gtk_image_new_from_stock (stock, GTK_ICON_SIZE_BUTTON);
 #endif
 		if (img)
+		{
 			gtk_button_set_image (GTK_BUTTON (wid), img);
+#if HAVE_GTK3
+			gtk_button_set_always_show_image (GTK_BUTTON (wid), TRUE);
+#endif
+		}
 		gtk_button_set_use_underline (GTK_BUTTON (wid), TRUE);
 		if (box)
 			gtk_container_add (GTK_CONTAINER (box), wid);
@@ -790,6 +795,9 @@ gtkutil_button (GtkWidget *box, char *stock, char *tip, void *callback,
 		{
 			gtk_container_add (GTK_CONTAINER (bbox), img);
 			gtk_widget_show (img);
+#if HAVE_GTK3
+			gtk_button_set_always_show_image (GTK_BUTTON (wid), TRUE);
+#endif
 		}
 		gtk_box_pack_start (GTK_BOX (box), wid, 0, 0, 0);
 	}
