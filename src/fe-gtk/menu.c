@@ -2202,7 +2202,27 @@ menu_find_item (GtkWidget *menu, char *name)
 		{
 			labeltext = g_object_get_data (G_OBJECT (item), "name");
 			if (!labeltext)
-				labeltext = gtk_label_get_text (GTK_LABEL (child));
+			{
+				if (GTK_IS_LABEL (child))
+					labeltext = gtk_label_get_text (GTK_LABEL (child));
+#ifdef HAVE_GTK3
+				else if (GTK_IS_CONTAINER (child))
+				{
+					GList *kids, *l;
+					kids = gtk_container_get_children (GTK_CONTAINER (child));
+					for (l = kids; l; l = l->next)
+					{
+						if (GTK_IS_LABEL (l->data))
+						{
+							labeltext = gtk_label_get_text (GTK_LABEL (l->data));
+							break;
+						}
+					}
+					g_list_free (kids);
+				}
+#endif
+			}
+
 			if (!menu_streq (labeltext, name, 1))
 			{
 				found = item;

@@ -2499,7 +2499,7 @@ mg_create_topicbar (session *sess, GtkWidget *box)
         gui->topic_entry = topic = sexy_spell_entry_new ();
         gtk_widget_set_name (topic, "zoitechat-inputbox");
         sexy_spell_entry_set_checked (SEXY_SPELL_ENTRY (topic), FALSE);
-        gtk_container_add (GTK_CONTAINER (hbox), topic);
+        gtk_box_pack_start (GTK_BOX (hbox), topic, TRUE, TRUE, 0);
         mg_apply_emoji_fallback_widget (topic);
         g_signal_connect (G_OBJECT (topic), "activate",
                                                         G_CALLBACK (mg_topic_cb), 0);
@@ -2661,13 +2661,13 @@ mg_create_textarea (session *sess, GtkWidget *box)
         };
 
         vbox = mg_box_new (GTK_ORIENTATION_VERTICAL, FALSE, 0);
-        gtk_container_add (GTK_CONTAINER (box), vbox);
+        gtk_box_pack_start (GTK_BOX (box), vbox, TRUE, TRUE, 0);
         inbox = mg_box_new (GTK_ORIENTATION_HORIZONTAL, FALSE, 2);
-        gtk_container_add (GTK_CONTAINER (vbox), inbox);
+        gtk_box_pack_start (GTK_BOX (vbox), inbox, TRUE, TRUE, 0);
 
         frame = gtk_frame_new (NULL);
         gtk_frame_set_shadow_type (GTK_FRAME (frame), GTK_SHADOW_IN);
-        gtk_container_add (GTK_CONTAINER (inbox), frame);
+        gtk_box_pack_start (GTK_BOX (inbox), frame, TRUE, TRUE, 0);
 
         palette_get_xtext_colors (xtext_palette, XTEXT_COLS);
         gui->xtext = gtk_xtext_new (xtext_palette, TRUE);
@@ -2715,13 +2715,13 @@ mg_create_infoframe (GtkWidget *box)
 
         frame = gtk_frame_new (0);
         gtk_frame_set_shadow_type ((GtkFrame*)frame, GTK_SHADOW_OUT);
-        gtk_container_add (GTK_CONTAINER (box), frame);
+        gtk_box_pack_start (GTK_BOX (box), frame, FALSE, TRUE, 0);
 
         hbox = mg_box_new (GTK_ORIENTATION_HORIZONTAL, FALSE, 0);
         gtk_container_add (GTK_CONTAINER (frame), hbox);
 
         label = gtk_label_new (NULL);
-        gtk_container_add (GTK_CONTAINER (hbox), label);
+        gtk_box_pack_start (GTK_BOX (hbox), label, TRUE, TRUE, 0);
 
         return label;
 }
@@ -2798,7 +2798,7 @@ mg_create_userlist (session_gui *gui, GtkWidget *box)
         GtkWidget *frame, *ulist, *vbox;
 
         vbox = mg_box_new (GTK_ORIENTATION_VERTICAL, FALSE, 1);
-        gtk_container_add (GTK_CONTAINER (box), vbox);
+        gtk_box_pack_start (GTK_BOX (box), vbox, TRUE, TRUE, 0);
 
         frame = gtk_frame_new (NULL);
         if (prefs.hex_gui_ulist_count)
@@ -2913,7 +2913,7 @@ mg_create_center (session *sess, session_gui *gui, GtkWidget *box)
         }
         gtk_paned_pack2 (GTK_PANED (gui->hpane_right), gui->vpane_right, FALSE, TRUE);
 
-        gtk_container_add (GTK_CONTAINER (box), gui->hpane_left);
+        gtk_box_pack_start (GTK_BOX (box), gui->hpane_left, TRUE, TRUE, 0);
 
         gui->note_book = book = gtk_notebook_new ();
         gtk_notebook_set_show_tabs (GTK_NOTEBOOK (book), FALSE);

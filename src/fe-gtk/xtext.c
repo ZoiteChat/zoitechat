@@ -108,6 +108,52 @@ enum
 	TARGET_COMPOUND_TEXT
 };
 
+
+/* Selection targets for PRIMARY selection / copy-paste.
+ *
+ * On Wayland, GtkWidget has no GdkWindow until it is realized. Registering
+ * selection targets during instance init is too early and can crash under the
+ * Wayland backend (window/display is NULL).
+ */
+static const GtkTargetEntry gtk_xtext_selection_targets[] = {
+	{ "UTF8_STRING", 0, TARGET_UTF8_STRING },
+	{ "STRING", 0, TARGET_STRING },
+	{ "TEXT",   0, TARGET_TEXT },
+	{ "COMPOUND_TEXT", 0, TARGET_COMPOUND_TEXT }
+};
+
+static void
+gtk_xtext_install_selection_targets_on_realize (GtkWidget *widget, gpointer user_data)
+{
+	(void)user_data;
+
+	if (gtk_widget_get_window (widget) == NULL)
+		return;
+
+	gtk_selection_add_targets (widget,
+	                          GDK_SELECTION_PRIMARY,
+	                          (GtkTargetEntry *)gtk_xtext_selection_targets,
+	                          (gint)G_N_ELEMENTS (gtk_xtext_selection_targets));
+}
+
+static void
+gtk_xtext_install_selection_targets (GtkWidget *widget)
+{
+	if (gtk_widget_get_realized (widget) && gtk_widget_get_window (widget) != NULL)
+	{
+		gtk_selection_add_targets (widget,
+		                          GDK_SELECTION_PRIMARY,
+		                          (GtkTargetEntry *)gtk_xtext_selection_targets,
+		                          (gint)G_N_ELEMENTS (gtk_xtext_selection_targets));
+		return;
+	}
+
+	g_signal_connect (widget,
+	                  "realize",
+	                  G_CALLBACK (gtk_xtext_install_selection_targets_on_realize),
+	                  NULL);
+}
+
 static guint xtext_signals[LAST_SIGNAL];
 
 G_DEFINE_TYPE (GtkXText, gtk_xtext, GTK_TYPE_WIDGET)
@@ -669,18 +715,7 @@ gtk_xtext_init (GtkXText * xtext)
 	xtext->dont_render2 = FALSE;
 	gtk_xtext_scroll_adjustments (xtext, NULL, NULL);
 
-	{
-		static const GtkTargetEntry targets[] = {
-			{ "UTF8_STRING", 0, TARGET_UTF8_STRING },
-			{ "STRING", 0, TARGET_STRING },
-			{ "TEXT",   0, TARGET_TEXT }, 
-			{ "COMPOUND_TEXT", 0, TARGET_COMPOUND_TEXT }
-		};
-		static const gint n_targets = sizeof (targets) / sizeof (targets[0]);
-
-		gtk_selection_add_targets (GTK_WIDGET (xtext), GDK_SELECTION_PRIMARY,
-											targets, n_targets);
-	}
+	gtk_xtext_install_selection_targets (GTK_WIDGET (xtext));
 }
 
 static void
@@ -1527,7 +1562,22 @@ done:
 static void
 gtk_xtext_paint (GtkWidget *widget, GdkRectangle *area)
 {
+	/*
+	 * On GTK3/Wayland, drawing directly to the window (via a NULL cairo_t here)
+	 * can be buffered without ever being presented. Queue a redraw instead and
+	 * let the widget's ::draw handler do the actual painting.
+	 */
+#if HAVE_GTK3
+	if (G_LIKELY (gtk_widget_get_realized (widget)))
+	{
+		if (area)
+			gtk_widget_queue_draw_area (widget, area->x, area->y, area->width, area->height);
+		else
+			gtk_widget_queue_draw (widget);
+	}
+#else
 	gtk_xtext_render (widget, area, NULL);
+#endif
 }
 
 #if HAVE_GTK3
@@ -4371,6 +4421,24 @@ gtk_xtext_render_ents (GtkXText * xtext, textentry * enta, textentry * entb)
 static void
 gtk_xtext_render_page (GtkXText * xtext)
 {
+	/*
+	 * GTK3/Wayland is frame-driven. Drawing directly to a GdkWindow outside the
+	 * widget's ::draw handler can result in the compositor never presenting the
+	 * new buffer. Symptom: chat only updates after you move/resize the window.
+	 *
+	 * If we're not currently inside ::draw, xtext->draw_cr is NULL. In that case
+	 * just request a redraw and let the normal GTK paint cycle do the work.
+	 */
+#ifdef HAVE_GTK3
+	if (xtext->draw_cr == NULL)
+	{
+		GtkWidget *w = GTK_WIDGET (xtext);
+		if (gtk_widget_get_realized (w))
+			gtk_widget_queue_draw (w);
+		return;
+	}
+#endif
+
 	textentry *ent;
 	int line;
 	int lines_max;
