@@ -99,10 +99,20 @@ jobs:
             export GIO_EXTRA_MODULES="$APPDIR/usr/lib/gio/modules${GIO_EXTRA_MODULES:+:$GIO_EXTRA_MODULES}"
           fi
 
-          # OpenSSL trust store override (fixes “unable to get local issuer certificate (20)”)
+          # OpenSSL trust store override
           export SSL_CERT_FILE="${SSL_CERT_FILE:-$APPDIR/etc/ssl/certs/ca-certificates.crt}"
           export SSL_CERT_DIR="${SSL_CERT_DIR:-$APPDIR/etc/ssl/certs}"
           export CURL_CA_BUNDLE="${CURL_CA_BUNDLE:-$SSL_CERT_FILE}"
+
+          # Prefer Wayland if the session provides it, but keep X11 fallback.
+          # Don't override if the user already set GDK_BACKEND explicitly.
+          if [ -z "${GDK_BACKEND:-}" ]; then
+            if [ -n "${WAYLAND_DISPLAY:-}" ] || [ "${XDG_SESSION_TYPE:-}" = "wayland" ]; then
+              export GDK_BACKEND="wayland,x11"
+            else
+              export GDK_BACKEND="x11"
+            fi
+          fi
 
           exec "$APPDIR/usr/bin/zoitechat" "$@"
           EOF
