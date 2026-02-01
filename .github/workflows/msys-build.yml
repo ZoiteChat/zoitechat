@@ -45,6 +45,7 @@ jobs:
           rm -rf build
           meson setup build \
             -Dtext-frontend=true \
+            -Dgtk3=true \
             -Ddbus=disabled \
             -Dwith-upd=false \
             -Dwith-perl=false
