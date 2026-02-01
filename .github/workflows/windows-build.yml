@@ -34,50 +34,23 @@ jobs:
 
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.14.2'
+          python-version: "3.14.2"
           architecture: ${{ matrix.arch }}
 
-      - name: Install Dependencies
+      - name: Install Dependencies (GTK3 toolchain + packagers)
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           New-Item -Name "deps" -ItemType "Directory" -Force | Out-Null
 
+          # Inno Setup + IDP (kept as-is)
           Invoke-WebRequest http://files.jrsoftware.org/is/5/innosetup-5.5.9-unicode.exe -OutFile deps\innosetup-unicode.exe
           & deps\innosetup-unicode.exe /VERYSILENT | Out-Null
 
           Invoke-WebRequest https://github.com/zoitechat/gvsbuild/releases/download/zoitechat-2.17.0/idpsetup-1.5.1.exe -OutFile deps\idpsetup.exe
           & deps\idpsetup.exe /VERYSILENT
 
-          # ----- GTK3 toolchain (gvsbuild) -----
-          # We install GTK3 into C:\gtk-build\gtk so existing .vcxproj include/lib paths keep working.
-          # (Yes, this is what Windows dev feels like: duct tape and hope.)
-
-          # Ensure base dirs exist
-          New-Item -Path "C:\gtk-build" -ItemType Directory -Force | Out-Null
-          New-Item -Path "C:\gtk-build\gtk" -ItemType Directory -Force | Out-Null
-
-          python -m pip install --upgrade pip
-          python -m pip install cffi
-
-          # gvsbuild uses VS toolchain; pin a known-good gvsbuild
-          python -m pip install "gvsbuild==2024.5.0"
-
-          # Build/install GTK3 stack. Target dir is architecture-specific.
-          # Layout matches: C:\gtk-build\gtk\{x64|x86}
-          $gtkArch = if ("${{ matrix.platform }}" -eq "x64") { "x64" } else { "x86" }
-
-          # Clean any prior install (CI sometimes reuses workspace paths)
-          if (Test-Path "C:\gtk-build\gtk\$gtkArch") { Remove-Item "C:\gtk-build\gtk\$gtkArch" -Recurse -Force }
-
-          # Run gvsbuild. These packages cover typical HexChat/ZoiteChat deps.
-          # Add/remove libs here as your solution requires.
-          python -m gvsbuild build `
-            --vsver 16 `
-            --arch $gtkArch `
-            --configuration release `
-            --out-dir "C:\gtk-build\gtk" `
-            gtk3 glib gobject-introspection pango atk cairo gdk-pixbuf libsoup libepoxy librsvg libxml2 gettext openssl
-
-          # ----- Other bundled deps you already used -----
+          # WinSparkle / gendef / perl (kept as-is)
           Invoke-WebRequest https://github.com/zoitechat/gvsbuild/releases/download/zoitechat-2.17.0/gendef-20111031.7z -OutFile deps\gendef.7z
           & 7z.exe x deps\gendef.7z -oC:\gtk-build
 
@@ -86,6 +59,85 @@ jobs:
 
           Invoke-WebRequest https://github.com/zoitechat/gvsbuild/releases/download/zoitechat-2.17.0/perl-5.20.0-${{ matrix.arch }}.7z -OutFile deps\perl-${{ matrix.arch }}.7z
           & 7z.exe x deps\perl-${{ matrix.arch }}.7z -oC:\gtk-build\perl-5.20\${{ matrix.platform }}
+
+          # -----------------------------
+          # GTK3 stack (MSVC) from wingtk/gvsbuild (latest release, auto-detected)
+          # -----------------------------
+          $headers = @{
+            "User-Agent" = "zoitechat-ci"
+            "Authorization" = "Bearer $env:GITHUB_TOKEN"
+            "X-GitHub-Api-Version" = "2022-11-28"
+          }
+
+          $release = Invoke-RestMethod -Headers $headers -Uri "https://api.github.com/repos/wingtk/gvsbuild/releases/latest"
+
+          $wantArch = if ("${{ matrix.platform }}" -eq "x64") { "x64" } else { "x86" }
+
+          # Heuristic match: must include gtk3 and the requested arch; prefer release bundles.
+          $asset = $release.assets |
+            Where-Object {
+              $_.name -match 'gtk3' -and
+              $_.name -match $wantArch -and
+              $_.name -match 'release|rel'
+            } |
+            Select-Object -First 1
+
+          if (-not $asset) {
+            Write-Host "Available assets:"
+            $release.assets | ForEach-Object { Write-Host " - $($_.name)" }
+            throw "Could not find a GTK3 $wantArch release asset in wingtk/gvsbuild latest release."
+          }
+
+          $bundlePath = "deps\gtk3-$wantArch-bundle" + [IO.Path]::GetExtension($asset.name)
+          Invoke-WebRequest $asset.browser_download_url -OutFile $bundlePath
+
+          # Extract so we end up with C:\gtk\...
+          if (Test-Path C:\gtk) { Remove-Item C:\gtk -Recurse -Force }
+          if ($bundlePath.EndsWith(".zip")) {
+            Expand-Archive -Force $bundlePath -DestinationPath C:\
+          } else {
+            & 7z.exe x $bundlePath -oC:\ | Out-Null
+          }
+
+          if (-not (Test-Path C:\gtk)) {
+            # Some bundles extract to a top-level folder; find it and normalize.
+            $top = Get-ChildItem C:\ -Directory | Where-Object { $_.Name -match '^gtk' } | Select-Object -First 1
+            if ($top) { Rename-Item $top.FullName C:\gtk }
+          }
+
+          if (-not (Test-Path C:\gtk)) { throw "GTK3 bundle extraction failed: C:\gtk not found." }
+
+          # Keep existing expected path: C:\gtk-build\gtk\...
+          New-Item -Path C:\gtk-build -ItemType Directory -Force | Out-Null
+          if (Test-Path C:\gtk-build\gtk) { Remove-Item C:\gtk-build\gtk -Recurse -Force }
+          New-Item -Path C:\gtk-build -Name "gtk" -ItemType Junction -Value C:\gtk | Out-Null
+
+          # -----------------------------
+          # Fix: projects calling python on glib-genmarshal PATH without .exe
+          # If glib-genmarshal.exe exists, create a python wrapper at glib-genmarshal (no extension).
+          # -----------------------------
+          $gtkBin = Join-Path "C:\gtk-build\gtk\${{ matrix.platform }}\release\bin" ""
+          $genExe = Join-Path $gtkBin "glib-genmarshal.exe"
+          $genPy  = Join-Path $gtkBin "glib-genmarshal"
+
+          if ((Test-Path $genExe) -and (-not (Test-Path $genPy))) {
+            @'
+import os, subprocess, sys
+exe = os.path.join(os.path.dirname(__file__), "glib-genmarshal.exe")
+sys.exit(subprocess.call([exe] + sys.argv[1:]))
+'@ | Set-Content -Path $genPy -Encoding ASCII
+          }
+
+          # -----------------------------
+          # Fix: if some project still looks for gtk-win32-2.0.lib, provide a compatibility alias.
+          # This is a bridge while you finish flipping all vcxproj link libs to GTK3.
+          # -----------------------------
+          $gtkLib = Join-Path "C:\gtk-build\gtk\${{ matrix.platform }}\release\lib" ""
+          $gtk2lib = Join-Path $gtkLib "gtk-win32-2.0.lib"
+          $gtk3lib = Join-Path $gtkLib "gtk-3.0.lib"
+          if ((-not (Test-Path $gtk2lib)) -and (Test-Path $gtk3lib)) {
+            Copy-Item $gtk3lib $gtk2lib -Force
+          }
 
           # Resolve python root from setup-python
           $pyRoot = $env:pythonLocation
@@ -98,7 +150,9 @@ jobs:
             if (Test-Path $target) { Remove-Item $target -Recurse -Force }
             New-Item -Path $pyDir -Name "${{ matrix.platform }}" -ItemType Junction -Value $pyRoot | Out-Null
           }
-        shell: powershell
+
+          python -m pip install --upgrade pip
+          python -m pip install cffi
 
       - name: Build
         run: |
@@ -114,12 +168,10 @@ jobs:
           set "LIB=%PYTHON_DIR%\libs;%LIB%"
           set "INCLUDE=%PYTHON_DIR%\include;%INCLUDE%"
 
-          rem Make sure GTK3 runtime bin is on PATH for any post-build steps/tests.
-          if "${{ matrix.platform }}"=="x64" (
-            set "PATH=C:\gtk-build\gtk\x64\release\bin;%PATH%"
-          ) else (
-            set "PATH=C:\gtk-build\gtk\x86\release\bin;%PATH%"
-          )
+          rem Prefer LuaJIT headers/libs if present (fixes lua.h missing when moving toolchains)
+          set "GTKROOT=C:\gtk-build\gtk\${{ matrix.platform }}\release"
+          if exist "%GTKROOT%\include\luajit-2.1\lua.h" set "INCLUDE=%GTKROOT%\include\luajit-2.1;%INCLUDE%"
+          if exist "%GTKROOT%\lib" set "LIB=%GTKROOT%\lib;%LIB%"
 
           msbuild win32\zoitechat.sln /m /verbosity:minimal /p:Configuration=Release /p:Platform=${{ matrix.platform }}
         shell: cmd

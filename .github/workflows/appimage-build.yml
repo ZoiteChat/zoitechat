@@ -33,9 +33,7 @@ jobs:
             libgtk-3-bin libglib2.0-bin shared-mime-info gsettings-desktop-schemas \
             libluajit-5.1-dev libpci-dev libperl-dev libssl-dev \
             python3-dev python3-cffi mono-devel desktop-file-utils \
-            patchelf file curl \
-            libwayland-client0 libwayland-cursor0 libwayland-egl1 \
-            libxkbcommon0
+            patchelf file curl
 
       - name: Configure
         run: |
@@ -76,11 +74,9 @@ jobs:
           chmod +x linuxdeploy-plugin-gtk
           export PATH="${PWD}:${PATH}"
 
-          # Bundle CA certificates into the AppDir
           install -Dm644 /etc/ssl/certs/ca-certificates.crt \
             AppDir/etc/ssl/certs/ca-certificates.crt
 
-          # Custom AppRun: preserve typical AppDir runtime paths AND force CA bundle
           cat > AppRun <<'EOF'
           #!/bin/sh
           set -eu
@@ -101,7 +97,6 @@ jobs:
             export GIO_EXTRA_MODULES="$APPDIR/usr/lib/gio/modules${GIO_EXTRA_MODULES:+:$GIO_EXTRA_MODULES}"
           fi
 
-          # OpenSSL trust store override (fixes “unable to get local issuer certificate (20)”)
           export SSL_CERT_FILE="${SSL_CERT_FILE:-$APPDIR/etc/ssl/certs/ca-certificates.crt}"
           export SSL_CERT_DIR="${SSL_CERT_DIR:-$APPDIR/etc/ssl/certs}"
           export CURL_CA_BUNDLE="${CURL_CA_BUNDLE:-$SSL_CERT_FILE}"
