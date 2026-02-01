@@ -31,7 +31,7 @@ jobs:
             libcanberra-dev libdbus-glib-1-dev libglib2.0-dev \
             libgtk-3-dev \
             libgtk-3-bin libglib2.0-bin shared-mime-info gsettings-desktop-schemas \
-            libluajit-5.1-dev libpci-dev libperl-dev libssl-dev \
+            libluajit-5.1-dev libpci-dev libperl-dev libssl-dev libayatana-appindicator3-dev \
             python3-dev python3-cffi mono-devel desktop-file-utils \
             patchelf file curl
 
@@ -41,6 +41,7 @@ jobs:
           rm -rf build
           meson setup build \
             --prefix=/usr \
+            -Dgtk3=true \
             -Dtext-frontend=true \
             -Dwith-perl=perl \
             -Dwith-python=python3 \
