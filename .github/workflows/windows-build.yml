@@ -122,10 +122,10 @@ jobs:
 
           if ((Test-Path $genExe) -and (-not (Test-Path $genPy))) {
             @'
-import os, subprocess, sys
-exe = os.path.join(os.path.dirname(__file__), "glib-genmarshal.exe")
-sys.exit(subprocess.call([exe] + sys.argv[1:]))
-'@ | Set-Content -Path $genPy -Encoding ASCII
+          import os, subprocess, sys
+          exe = os.path.join(os.path.dirname(__file__), "glib-genmarshal.exe")
+          sys.exit(subprocess.call([exe] + sys.argv[1:]))
+          '@ | Set-Content -Path $genPy -Encoding ASCII
           }
 
           # -----------------------------
