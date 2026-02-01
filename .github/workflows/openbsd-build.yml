@@ -45,6 +45,7 @@ jobs:
             meson setup build \
               --prefix=/usr/local \
               -Dtext-frontend=true \
+              -Dgtk3=true \
               -Dplugin=false \
               -Dauto_features=enabled
 
