@@ -30,4 +30,10 @@ char *sysinfo_backend_get_sound(void);
 char *sysinfo_backend_get_uptime(void);
 char *sysinfo_backend_get_network(void);
 
+/*
+ * Short description of the UI/toolkit + display backend.
+ * Examples: "GTK3 / Wayland", "GTK2 / X11", "Windows / GTK3".
+ */
+char *sysinfo_backend_get_ui(void);
+
 #endif

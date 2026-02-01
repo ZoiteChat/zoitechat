@@ -39,7 +39,7 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          New-Item -Name "deps" -ItemType "Directory"
+          New-Item -Name "deps" -ItemType "Directory" -Force | Out-Null
 
           Invoke-WebRequest http://files.jrsoftware.org/is/5/innosetup-5.5.9-unicode.exe -OutFile deps\innosetup-unicode.exe
           & deps\innosetup-unicode.exe /VERYSILENT | Out-Null
@@ -47,9 +47,37 @@ jobs:
           Invoke-WebRequest https://github.com/zoitechat/gvsbuild/releases/download/zoitechat-2.17.0/idpsetup-1.5.1.exe -OutFile deps\idpsetup.exe
           & deps\idpsetup.exe /VERYSILENT
 
-          Invoke-WebRequest https://github.com/zoitechat/gvsbuild/releases/download/zoitechat-2.17.0/gtk-${{ matrix.platform }}-2018-08-29-openssl1.1.7z -OutFile deps\gtk-${{ matrix.arch }}.7z
-          & 7z.exe x deps\gtk-${{ matrix.arch }}.7z -oC:\gtk-build\gtk
+          # ----- GTK3 toolchain (gvsbuild) -----
+          # We install GTK3 into C:\gtk-build\gtk so existing .vcxproj include/lib paths keep working.
+          # (Yes, this is what Windows dev feels like: duct tape and hope.)
 
+          # Ensure base dirs exist
+          New-Item -Path "C:\gtk-build" -ItemType Directory -Force | Out-Null
+          New-Item -Path "C:\gtk-build\gtk" -ItemType Directory -Force | Out-Null
+
+          python -m pip install --upgrade pip
+          python -m pip install cffi
+
+          # gvsbuild uses VS toolchain; pin a known-good gvsbuild
+          python -m pip install "gvsbuild==2024.5.0"
+
+          # Build/install GTK3 stack. Target dir is architecture-specific.
+          # Layout matches: C:\gtk-build\gtk\{x64|x86}
+          $gtkArch = if ("${{ matrix.platform }}" -eq "x64") { "x64" } else { "x86" }
+
+          # Clean any prior install (CI sometimes reuses workspace paths)
+          if (Test-Path "C:\gtk-build\gtk\$gtkArch") { Remove-Item "C:\gtk-build\gtk\$gtkArch" -Recurse -Force }
+
+          # Run gvsbuild. These packages cover typical HexChat/ZoiteChat deps.
+          # Add/remove libs here as your solution requires.
+          python -m gvsbuild build `
+            --vsver 16 `
+            --arch $gtkArch `
+            --configuration release `
+            --out-dir "C:\gtk-build\gtk" `
+            gtk3 glib gobject-introspection pango atk cairo gdk-pixbuf libsoup libepoxy librsvg libxml2 gettext openssl
+
+          # ----- Other bundled deps you already used -----
           Invoke-WebRequest https://github.com/zoitechat/gvsbuild/releases/download/zoitechat-2.17.0/gendef-20111031.7z -OutFile deps\gendef.7z
           & 7z.exe x deps\gendef.7z -oC:\gtk-build
 
@@ -70,9 +98,7 @@ jobs:
             if (Test-Path $target) { Remove-Item $target -Recurse -Force }
             New-Item -Path $pyDir -Name "${{ matrix.platform }}" -ItemType Junction -Value $pyRoot | Out-Null
           }
-
-          python -m pip install --upgrade pip
-          python -m pip install cffi
+        shell: powershell
 
       - name: Build
         run: |
@@ -87,6 +113,13 @@ jobs:
 
           set "LIB=%PYTHON_DIR%\libs;%LIB%"
           set "INCLUDE=%PYTHON_DIR%\include;%INCLUDE%"
+
+          rem Make sure GTK3 runtime bin is on PATH for any post-build steps/tests.
+          if "${{ matrix.platform }}"=="x64" (
+            set "PATH=C:\gtk-build\gtk\x64\release\bin;%PATH%"
+          ) else (
+            set "PATH=C:\gtk-build\gtk\x86\release\bin;%PATH%"
+          )
 
           msbuild win32\zoitechat.sln /m /verbosity:minimal /p:Configuration=Release /p:Platform=${{ matrix.platform }}
         shell: cmd
