@@ -32,6 +32,7 @@
     "shared-modules/dbus-glib/dbus-glib.json",
     "shared-modules/lua5.3/lua-5.3.5.json",
     "shared-modules/libcanberra/libcanberra.json",
+    "shared-modules/libayatana-appindicator/libayatana-appindicator-gtk3.json",
     "python3-cffi.json",
     {
       "name": "lgi",
