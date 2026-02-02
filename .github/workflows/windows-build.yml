@@ -203,6 +203,31 @@ jobs:
               if ($gdk3 -and (-not (Test-Path (Join-Path $gtkLib "gdk-win32-2.0.lib")))) {
                 Copy-Item $gdk3.FullName (Join-Path $gtkLib "gdk-win32-2.0.lib") -Force
               }
+
+              # -----------------------------
+              # libxml2 compatibility alias (fixes LNK1181: libxml2.lib not found)
+              # Some bundles name it libxml2-2.0.lib or xml2.lib.
+              # -----------------------------
+              $xmlWant = Join-Path $gtkLib "libxml2.lib"
+              if (-not (Test-Path $xmlWant)) {
+                $xmlAlt = @(
+                  (Join-Path $gtkLib "libxml2-2.0.lib"),
+                  (Join-Path $gtkLib "libxml2-2.lib"),
+                  (Join-Path $gtkLib "xml2.lib")
+                ) | Where-Object { Test-Path $_ } | Select-Object -First 1
+
+                if ($xmlAlt) {
+                  Copy-Item $xmlAlt $xmlWant -Force
+                } else {
+                  # Last resort: search within inferred release dir
+                  $found = Get-ChildItem -Path (Split-Path $gtkLib -Parent) -Recurse -Filter "*.lib" -ErrorAction SilentlyContinue |
+                    Where-Object { $_.Name -match '(?i)^libxml2(-2(\.0)?)?\.lib$|^xml2\.lib$' } |
+                    Select-Object -First 1
+                  if ($found) {
+                    Copy-Item $found.FullName $xmlWant -Force
+                  }
+                }
+              }
             }
           }
 
@@ -248,7 +273,15 @@ jobs:
 
           set "PATH=%GTKROOT%\bin;%PATH%"
           set "INCLUDE=%GTKROOT%\include;%INCLUDE%"
+          if exist "%GTKROOT%\include\libxml2" set "INCLUDE=%GTKROOT%\include\libxml2;%INCLUDE%"
           set "LIB=%GTKROOT%\lib;%LIB%"
+
+          rem (extra safety) ensure libxml2.lib exists even if bundle naming differs
+          if not exist "%GTKROOT%\lib\libxml2.lib" (
+            if exist "%GTKROOT%\lib\libxml2-2.0.lib" copy /y "%GTKROOT%\lib\libxml2-2.0.lib" "%GTKROOT%\lib\libxml2.lib"
+            if exist "%GTKROOT%\lib\libxml2-2.lib" copy /y "%GTKROOT%\lib\libxml2-2.lib" "%GTKROOT%\lib\libxml2.lib"
+            if exist "%GTKROOT%\lib\xml2.lib" copy /y "%GTKROOT%\lib\xml2.lib" "%GTKROOT%\lib\libxml2.lib"
+          )
 
           rem Build LuaJIT (MSVC) if lua.h isn't present in the GTK bundle.
           if not exist "%GTKROOT%\include\luajit-2.1\lua.h" (
