@@ -53,7 +53,7 @@
         "-Dgtk3=true",
         "-Ddbus-service-use-appid=true",
         "-Dwith-perl=false",
-        "-Dwith-python=true",
+        "-Dwith-python=python",
         "-Dwith-lua=lua"
       ],
       "build-options": {
