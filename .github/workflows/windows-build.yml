@@ -167,23 +167,79 @@ jobs:
             $wrapper | Set-Content -Path $wrapperPath -Encoding ASCII
           }
 
-          function Ensure-LuaHeaders([string]$gtkInc) {
-            # Provide <lua.h> et al for the lua plugin build.
+          function Ensure-LuaJit([string]$gtkInc, [string]$gtkLib, [string]$gtkBin, [string]$platform) {
+            # Provide <lua.h> et al + lua51.lib/dll for the lua plugin build.
+            $needHeaders = -not (Test-Path (Join-Path $gtkInc "lua.h"))
+            $needLib     = -not (Test-Path (Join-Path $gtkLib "lua51.lib"))
+
+            if (-not $needHeaders -and -not $needLib) {
+              return
+            }
+
             $zip = "deps\luajit-v2.1.zip"
             $dst = "deps\luajit-src"
-            if (-not (Test-Path $dst)) { New-Item -Path $dst -ItemType Directory -Force | Out-Null }
+            if (Test-Path $dst) { Remove-Item $dst -Recurse -Force }
+            New-Item -Path $dst -ItemType Directory -Force | Out-Null
 
             Invoke-WebRequest https://github.com/LuaJIT/LuaJIT/archive/refs/heads/v2.1.zip -OutFile $zip
             Expand-Archive -Force $zip -DestinationPath $dst
 
-            $srcDir = Get-ChildItem -Path $dst -Directory | Select-Object -First 1
-            if (-not $srcDir) { throw "LuaJIT source zip extracted, but no top directory found." }
+            $topDir = Get-ChildItem -Path $dst -Directory | Select-Object -First 1
+            if (-not $topDir) { throw "LuaJIT source zip extracted, but no top directory found." }
 
-            $hdrRoot = Join-Path $srcDir.FullName "src"
+            $srcDir = Join-Path $topDir.FullName "src"
             foreach ($h in @("lua.h", "lualib.h", "lauxlib.h", "luaconf.h")) {
-              $p = Join-Path $hdrRoot $h
+              $p = Join-Path $srcDir $h
               if (-not (Test-Path $p)) { throw "LuaJIT header missing: $p" }
-              Copy-Item $p (Join-Path $gtkInc $h) -Force
+            }
+
+            # Copy headers into the common include layouts used by various projects.
+            $incTargets = @(
+              $gtkInc,
+              (Join-Path $gtkInc "luajit-2.1"),
+              (Join-Path $gtkInc "lua5.1"),
+              (Join-Path $gtkInc "lua")
+            )
+
+            foreach ($t in $incTargets) {
+              if (-not (Test-Path $t)) { New-Item -Path $t -ItemType Directory -Force | Out-Null }
+              foreach ($h in @("lua.h", "lualib.h", "lauxlib.h", "luaconf.h")) {
+                Copy-Item (Join-Path $srcDir $h) (Join-Path $t $h) -Force
+              }
+            }
+
+            # Build lua51.lib/dll with MSVC if not present.
+            if (-not (Test-Path (Join-Path $gtkLib "lua51.lib"))) {
+              $vsDevCmd = "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\VsDevCmd.bat"
+              if (-not (Test-Path $vsDevCmd)) { throw "VsDevCmd.bat not found at $vsDevCmd" }
+
+              $arch = if ($platform -eq "x64") { "amd64" } else { "x86" }
+
+              $cmd = @(
+                """$vsDevCmd"" -no_logo -arch=$arch -host_arch=$arch",
+                "cd /d ""$srcDir""",
+                "call msvcbuild.bat"
+              ) -join " && "
+
+              cmd /c $cmd | Out-Host
+
+              $dll = Join-Path $srcDir "lua51.dll"
+              $lib = Join-Path $srcDir "lua51.lib"
+              if (-not (Test-Path $dll) -or -not (Test-Path $lib)) {
+                throw "LuaJIT build finished, but lua51.dll/lib not found under $srcDir"
+              }
+
+              Copy-Item $dll (Join-Path $gtkBin "lua51.dll") -Force
+              Copy-Item $lib (Join-Path $gtkLib "lua51.lib") -Force
+            }
+
+            # Provide common import-lib aliases some projects expect.
+            Copy-AliasLib $gtkLib "lua.lib"   @('^lua51\.lib$')
+            Copy-AliasLib $gtkLib "luajit.lib" @('^lua51\.lib$')
+
+            # Sanity check: ensure a bare <lua.h> include will work somewhere.
+            if (-not (Test-Path (Join-Path $gtkInc "lua.h"))) {
+              throw "lua.h still missing under $gtkInc after installation"
             }
           }
 
@@ -275,8 +331,8 @@ jobs:
           # Ensure we always have a python wrapper named glib-genmarshal in GTK\bin.
           Ensure-GlibGenmarshalWrapper $gtkBin
 
-          # Provide Lua headers for the lua plugin (lua.c includes <lua.h>).
-          Ensure-LuaHeaders $gtkInc
+          # Provide LuaJIT headers + import lib for the lua plugin.
+          Ensure-LuaJit $gtkInc $gtkLib $gtkBin $wantPlat
 
           # Compatibility aliases for differing .lib names across bundles.
           Copy-AliasLib $gtkLib "gtk-3.0.lib" @(
@@ -291,6 +347,21 @@ jobs:
             '^gtk-3-0\.lib$',
             '^gtk-3\.lib$',
             '^gtk-3.*\.lib$'
+          )
+
+          # gdk: project expects gdk-3.0.lib but bundles often ship gdk-3.lib / gdk-3-0.lib
+          Copy-AliasLib $gtkLib "gdk-3.0.lib" @(
+            '^gdk-3-0\.lib$',
+            '^gdk-3\.lib$',
+            '^gdk-3.*\.lib$',
+            '^gdk-win32-2\.0\.lib$'
+          )
+
+          Copy-AliasLib $gtkLib "gdk-win32-2.0.lib" @(
+            '^gdk-3\.0\.lib$',
+            '^gdk-3-0\.lib$',
+            '^gdk-3\.lib$',
+            '^gdk-3.*\.lib$'
           )
 
           # OpenSSL legacy names (keep older projects happy if they still reference these)
