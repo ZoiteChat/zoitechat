@@ -143,56 +143,11 @@ jobs:
             if (Test-Path $link) { Remove-Item $link -Recurse -Force -ErrorAction SilentlyContinue }
             New-Item -Path $platDir -Name "release" -ItemType Junction -Value $releaseDir | Out-Null
 
-            # Find any glib-genmarshal in the bundle (exe or script)
-            $genAny = Get-ChildItem -Path $extractRoot -Recurse -ErrorAction SilentlyContinue |
-              Where-Object { $_.Name -match '(?i)^glib-genmarshal(\.exe|\.py)?$' } |
-              Select-Object -First 1
-
-            $genTarget = Join-Path $gtkBin "glib-genmarshal"  # what your vcxproj calls via python.exe
-
-            if ($genAny) {
-              $genPath = $genAny.FullName.Replace('\','\\')
-              $pyWrapper = @(
-                'import os, subprocess, sys',
-                "tool = r`"$genPath`"",
-                'if tool.lower().endswith(".py"):',
-                '    sys.exit(subprocess.call([sys.executable, tool] + sys.argv[1:]))',
-                'else:',
-                '    sys.exit(subprocess.call([tool] + sys.argv[1:]))'
-              ) -join "`r`n"
-              Set-Content -Path $genTarget -Value $pyWrapper -Encoding ASCII
-            } else {
-              # Fallback: install MSYS2 glib2 tools and run their glib-genmarshal with PATH set.
-              Write-Host "glib-genmarshal not found in GTK3 bundle. Installing MSYS2 glib2 tools as a fallback."
-
-              choco install msys2 -y --no-progress
-
-              $msysBash = "C:\msys64\usr\bin\bash.exe"
-              if (-not (Test-Path $msysBash)) { throw "MSYS2 install failed: bash.exe not found." }
-
-              $mingw = if ("${{ matrix.platform }}" -eq "x64") { "mingw64" } else { "mingw32" }
-              $pkg   = if ("${{ matrix.platform }}" -eq "x64") { "mingw-w64-x86_64-glib2" } else { "mingw-w64-i686-glib2" }
-
-              & $msysBash -lc "pacman -Sy --noconfirm --needed $pkg"
-
-              $msysGen = "C:\msys64\$mingw\bin\glib-genmarshal.exe"
-              if (-not (Test-Path $msysGen)) { throw "MSYS2 glib-genmarshal.exe not found at expected path: $msysGen" }
-
-              $msysBin = (Split-Path $msysGen -Parent).Replace('\','\\')
-              $msysGenEsc = $msysGen.Replace('\','\\')
-
-              $pyWrapper = @(
-                'import os, subprocess, sys',
-                "exe = r`"$msysGenEsc`"",
-                'env = os.environ.copy()',
-                "env[`"PATH`"] = r`"$msysBin`" + `";`" + env.get(`"PATH`",`"`")",
-                'sys.exit(subprocess.call([exe] + sys.argv[1:], env=env))'
-              ) -join "`r`n"
-              Set-Content -Path $genTarget -Value $pyWrapper -Encoding ASCII
-            }
-
-            # Compatibility aliases while vcxproj still names GTK2 libs.
             $gtkLib = Join-Path "C:\gtk-build\gtk\${{ matrix.platform }}\release\lib" ""
+
+            # -----------------------------
+            # Compatibility aliases while vcxproj still names GTK2/OpenSSL libs.
+            # -----------------------------
             if (Test-Path $gtkLib) {
               $gtk3 = Get-ChildItem -Path $gtkLib -Filter "gtk-3*.lib" -ErrorAction SilentlyContinue | Select-Object -First 1
               if ($gtk3 -and (-not (Test-Path (Join-Path $gtkLib "gtk-win32-2.0.lib")))) {
@@ -204,10 +159,7 @@ jobs:
                 Copy-Item $gdk3.FullName (Join-Path $gtkLib "gdk-win32-2.0.lib") -Force
               }
 
-              # -----------------------------
-              # libxml2 compatibility alias (fixes LNK1181: libxml2.lib not found)
-              # Some bundles name it libxml2-2.0.lib or xml2.lib.
-              # -----------------------------
+              # libxml2 alias: libxml2.lib <- libxml2-2.0.lib / xml2.lib
               $xmlWant = Join-Path $gtkLib "libxml2.lib"
               if (-not (Test-Path $xmlWant)) {
                 $xmlAlt = @(
@@ -215,20 +167,75 @@ jobs:
                   (Join-Path $gtkLib "libxml2-2.lib"),
                   (Join-Path $gtkLib "xml2.lib")
                 ) | Where-Object { Test-Path $_ } | Select-Object -First 1
+                if ($xmlAlt) { Copy-Item $xmlAlt $xmlWant -Force }
+              }
 
-                if ($xmlAlt) {
-                  Copy-Item $xmlAlt $xmlWant -Force
-                } else {
-                  # Last resort: search within inferred release dir
-                  $found = Get-ChildItem -Path (Split-Path $gtkLib -Parent) -Recurse -Filter "*.lib" -ErrorAction SilentlyContinue |
-                    Where-Object { $_.Name -match '(?i)^libxml2(-2(\.0)?)?\.lib$|^xml2\.lib$' } |
-                    Select-Object -First 1
-                  if ($found) {
-                    Copy-Item $found.FullName $xmlWant -Force
-                  }
-                }
+              # OpenSSL legacy aliases: ssleay32/libeay32 for older vcxproj link lines
+              $sslWant    = Join-Path $gtkLib "ssleay32.lib"
+              $cryptoWant = Join-Path $gtkLib "libeay32.lib"
+
+              if (-not (Test-Path $sslWant)) {
+                $sslAlt = @(
+                  (Join-Path $gtkLib "libssl.lib"),
+                  (Join-Path $gtkLib "libssl-3.lib"),
+                  (Join-Path $gtkLib "ssl.lib")
+                ) | Where-Object { Test-Path $_ } | Select-Object -First 1
+                if ($sslAlt) { Copy-Item $sslAlt $sslWant -Force }
+              }
+
+              if (-not (Test-Path $cryptoWant)) {
+                $cryptoAlt = @(
+                  (Join-Path $gtkLib "libcrypto.lib"),
+                  (Join-Path $gtkLib "libcrypto-3.lib"),
+                  (Join-Path $gtkLib "crypto.lib")
+                ) | Where-Object { Test-Path $_ } | Select-Object -First 1
+                if ($cryptoAlt) { Copy-Item $cryptoAlt $cryptoWant -Force }
               }
             }
+
+            # -----------------------------
+            # glib-genmarshal wrapper (python-called) that ALWAYS runs a real .exe
+            # Prefer bundle glib-genmarshal.exe; else install MSYS2 glib2 and use that.
+            # -----------------------------
+            $bundleGenExe = Join-Path $gtkBin "glib-genmarshal.exe"
+            $msysGenExe = $null
+            $msysBinDir = $null
+
+            if (-not (Test-Path $bundleGenExe)) {
+              Write-Host "glib-genmarshal.exe not present in GTK3 bin/. Installing MSYS2 glib2 tools as a fallback."
+
+              choco install msys2 -y --no-progress
+
+              $msysBash = "C:\msys64\usr\bin\bash.exe"
+              if (-not (Test-Path $msysBash)) { throw "MSYS2 install failed: bash.exe not found." }
+
+              $mingw = if ("${{ matrix.platform }}" -eq "x64") { "mingw64" } else { "mingw32" }
+              $pkg   = if ("${{ matrix.platform }}" -eq "x64") { "mingw-w64-x86_64-glib2" } else { "mingw-w64-i686-glib2" }
+
+              & $msysBash -lc "pacman -Sy --noconfirm --needed $pkg"
+
+              $msysGenExe = "C:\msys64\$mingw\bin\glib-genmarshal.exe"
+              if (-not (Test-Path $msysGenExe)) { throw "MSYS2 glib-genmarshal.exe not found at expected path: $msysGenExe" }
+              $msysBinDir = Split-Path $msysGenExe -Parent
+            }
+
+            $genTarget = Join-Path $gtkBin "glib-genmarshal"  # called via python.exe <thisfile> ...
+
+            $exeToRun = if (Test-Path $bundleGenExe) { $bundleGenExe } else { $msysGenExe }
+            $exeDir   = if (Test-Path $bundleGenExe) { (Split-Path $bundleGenExe -Parent) } else { $msysBinDir }
+
+            $exeToRunEsc = $exeToRun.Replace('\','\\')
+            $exeDirEsc   = $exeDir.Replace('\','\\')
+
+            $pyWrapper = @(
+              'import os, subprocess, sys',
+              "exe = r`"$exeToRunEsc`"",
+              'env = os.environ.copy()',
+              "env[`"PATH`"] = r`"$exeDirEsc`" + `";`" + env.get(`"PATH`",`"`")",
+              'sys.exit(subprocess.call([exe] + sys.argv[1:], env=env))'
+            ) -join "`r`n"
+
+            Set-Content -Path $genTarget -Value $pyWrapper -Encoding ASCII
           }
 
           # Resolve python root from setup-python
@@ -276,11 +283,16 @@ jobs:
           if exist "%GTKROOT%\include\libxml2" set "INCLUDE=%GTKROOT%\include\libxml2;%INCLUDE%"
           set "LIB=%GTKROOT%\lib;%LIB%"
 
-          rem (extra safety) ensure libxml2.lib exists even if bundle naming differs
-          if not exist "%GTKROOT%\lib\libxml2.lib" (
-            if exist "%GTKROOT%\lib\libxml2-2.0.lib" copy /y "%GTKROOT%\lib\libxml2-2.0.lib" "%GTKROOT%\lib\libxml2.lib"
-            if exist "%GTKROOT%\lib\libxml2-2.lib" copy /y "%GTKROOT%\lib\libxml2-2.lib" "%GTKROOT%\lib\libxml2.lib"
-            if exist "%GTKROOT%\lib\xml2.lib" copy /y "%GTKROOT%\lib\xml2.lib" "%GTKROOT%\lib\libxml2.lib"
+          rem Ensure OpenSSL legacy libs exist if vcxproj still references them
+          if not exist "%GTKROOT%\lib\ssleay32.lib" (
+            if exist "%GTKROOT%\lib\libssl.lib" copy /y "%GTKROOT%\lib\libssl.lib" "%GTKROOT%\lib\ssleay32.lib"
+            if exist "%GTKROOT%\lib\libssl-3.lib" copy /y "%GTKROOT%\lib\libssl-3.lib" "%GTKROOT%\lib\ssleay32.lib"
+            if exist "%GTKROOT%\lib\ssl.lib" copy /y "%GTKROOT%\lib\ssl.lib" "%GTKROOT%\lib\ssleay32.lib"
+          )
+          if not exist "%GTKROOT%\lib\libeay32.lib" (
+            if exist "%GTKROOT%\lib\libcrypto.lib" copy /y "%GTKROOT%\lib\libcrypto.lib" "%GTKROOT%\lib\libeay32.lib"
+            if exist "%GTKROOT%\lib\libcrypto-3.lib" copy /y "%GTKROOT%\lib\libcrypto-3.lib" "%GTKROOT%\lib\libeay32.lib"
+            if exist "%GTKROOT%\lib\crypto.lib" copy /y "%GTKROOT%\lib\crypto.lib" "%GTKROOT%\lib\libeay32.lib"
           )
 
           rem Build LuaJIT (MSVC) if lua.h isn't present in the GTK bundle.
@@ -303,7 +315,15 @@ jobs:
               copy /y C:\gtk-build\luajit-src\src\lua51.lib "%LUABASE%\lib\"
             )
 
-            set "INCLUDE=%LUABASE%\include;%INCLUDE%"
+            rem Make vcxproj happy no matter how its include dirs are configured:
+            rem also place headers under GTK-style include\luajit-2.1
+            mkdir "%GTKROOT%\include\luajit-2.1" 2>nul
+            copy /y "%LUABASE%\include\lua.h" "%GTKROOT%\include\luajit-2.1\"
+            copy /y "%LUABASE%\include\lauxlib.h" "%GTKROOT%\include\luajit-2.1\"
+            copy /y "%LUABASE%\include\luaconf.h" "%GTKROOT%\include\luajit-2.1\"
+            if exist "%LUABASE%\include\luajit.h" copy /y "%LUABASE%\include\luajit.h" "%GTKROOT%\include\luajit-2.1\"
+
+            set "INCLUDE=%GTKROOT%\include\luajit-2.1;%LUABASE%\include;%INCLUDE%"
             set "LIB=%LUABASE%\lib;%LIB%"
           ) else (
             set "INCLUDE=%GTKROOT%\include\luajit-2.1;%INCLUDE%"
