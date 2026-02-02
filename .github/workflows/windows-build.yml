@@ -1,13 +1,12 @@
 name: Windows Build
 
 on:
-  # If you want to prove GitHub is seeing this workflow, don't restrict branches here.
-  push: {}
+  push:
+    branches:
+      - master
   pull_request:
     branches:
       - master
-      - main
-  workflow_dispatch: {}
 
 jobs:
   windows_build:
@@ -37,7 +36,7 @@ jobs:
       - name: Setup MSYS2 (for GTK build fallback)
         uses: msys2/setup-msys2@v2
         with:
-          msys2-location: "C:\\tools\\msys64"
+          msys2-location: C:\tools\msys64
           update: true
           install: >-
             base-devel
@@ -111,24 +110,6 @@ jobs:
               Write-Host "Alias: $targetName <= $($src.Name)"
             } else {
               Write-Host "Alias not created: $targetName (no match in $libDir)"
-            }
-          }
-
-          function Copy-AliasDll([string]$binDir, [string]$targetName, [string[]]$sourcePatterns) {
-            $target = Join-Path $binDir $targetName
-            if (Test-Path $target) { return }
-
-            $src = $null
-            foreach ($pat in $sourcePatterns) {
-              $src = Get-ChildItem -Path $binDir -File -Filter "*.dll" | Where-Object { $_.Name -match $pat } | Select-Object -First 1
-              if ($src) { break }
-            }
-
-            if ($src) {
-              Copy-Item $src.FullName $target -Force
-              Write-Host "DLL Alias: $targetName <= $($src.Name)"
-            } else {
-              Write-Host "DLL alias not created: $targetName (no match in $binDir)"
             }
           }
 
@@ -469,71 +450,6 @@ jobs:
             Write-Host "Generated libjpeg.lib from $($dll.Name) => $want"
           }
 
-          function Ensure-Enchant2([string]$gtkPrefix, [string]$wantArch) {
-            $inc = Join-Path $gtkPrefix "include"
-            $bin = Join-Path $gtkPrefix "bin"
-            $lib = Join-Path $gtkPrefix "lib"
-
-            $hasHeader = (Test-Path (Join-Path $inc "enchant-2\enchant-provider.h")) -or (Test-Path (Join-Path $inc "enchant-provider.h"))
-            $hasDll = (Get-ChildItem -Path $bin -File -Filter "libenchant*.dll" -ErrorAction SilentlyContinue | Select-Object -First 1) -ne $null
-            $hasLib = (Get-ChildItem -Path $lib -File -Filter "libenchant*.lib" -ErrorAction SilentlyContinue | Select-Object -First 1) -ne $null
-
-            if ($hasHeader -and $hasDll -and $hasLib) { return }
-
-            Write-Host "Enchant2 not fully present in GTK prefix; attempting to build via gvsbuild and merge..."
-
-            $gvsDir = "C:\gtk-build\github\gvsbuild"
-            if (-not (Test-Path $gvsDir)) {
-              New-Item -Path "C:\gtk-build\github" -ItemType Directory -Force | Out-Null
-              git clone --depth 1 https://github.com/wingtk/gvsbuild.git $gvsDir
-            }
-
-            Push-Location $gvsDir
-            python -m pip install --upgrade pip
-            python -m pip install -r requirements.txt
-
-            $built = $false
-            foreach ($mod in @("enchant", "enchant2")) {
-              try {
-                Write-Host "Trying gvsbuild module: $mod"
-                python .\build.py build -p=$wantArch --vs-ver=16 --msys-dir=C:\tools\msys64 -c=release $mod
-                $built = $true
-                break
-              } catch {
-                Write-Host "Module $mod failed: $($_.Exception.Message)"
-              }
-            }
-            Pop-Location
-
-            if (-not $built) {
-              throw "Could not build Enchant via gvsbuild (tried: enchant, enchant2)."
-            }
-
-            $srcPrefix = "C:\gtk-build\gtk\$wantArch\release"
-            if (-not (Test-Path $srcPrefix)) { throw "Expected gvsbuild prefix not found: $srcPrefix" }
-
-            # Merge headers
-            if (Test-Path (Join-Path $srcPrefix "include\enchant-2")) {
-              New-Item -Path (Join-Path $inc "enchant-2") -ItemType Directory -Force | Out-Null
-              Copy-Item (Join-Path $srcPrefix "include\enchant-2\*") (Join-Path $inc "enchant-2") -Recurse -Force
-            }
-
-            # Merge libs/dlls
-            Copy-Item (Join-Path $srcPrefix "bin\libenchant*.dll") $bin -Force -ErrorAction SilentlyContinue
-            Copy-Item (Join-Path $srcPrefix "lib\libenchant*.lib") $lib -Force -ErrorAction SilentlyContinue
-
-            # Re-evaluate
-            $hasHeader = (Test-Path (Join-Path $inc "enchant-2\enchant-provider.h")) -or (Test-Path (Join-Path $inc "enchant-provider.h"))
-            $hasDll = (Get-ChildItem -Path $bin -File -Filter "libenchant*.dll" -ErrorAction SilentlyContinue | Select-Object -First 1) -ne $null
-            $hasLib = (Get-ChildItem -Path $lib -File -Filter "libenchant*.lib" -ErrorAction SilentlyContinue | Select-Object -First 1) -ne $null
-
-            if (-not ($hasHeader -and $hasDll -and $hasLib)) {
-              throw "Enchant2 still missing after gvsbuild merge. Header/DLL/LIB present? $hasHeader / $hasDll / $hasLib"
-            }
-
-            Write-Host "Enchant2 merged into GTK prefix."
-          }
-
           # ------------------------------------------
           # GTK: Prefer prebuilt wingtk/gvsbuild GTK3 bundles.
           # If missing for x86 (win32), build GTK3 via gvsbuild from source.
@@ -622,6 +538,10 @@ jobs:
           # Ensure we always have a python wrapper named glib-genmarshal in GTK\bin.
           Ensure-GlibGenmarshalWrapper $gtkBin
 
+          # HarfBuzz headers: some builds expect flat hb.h (Pango includes it that way).
+          Ensure-HeaderAlias $gtkInc "hb.h" @("harfbuzz\hb.h")
+          Ensure-HeaderAlias $gtkInc "hb-ot.h" @("harfbuzz\hb-ot.h")
+
           # Provide LuaJIT headers + import lib for the lua plugin.
           Ensure-LuaJit $gtkInc $gtkLib $gtkBin $wantPlat
 
@@ -633,24 +553,6 @@ jobs:
 
           # Ensure libjpeg.lib exists (some bundles ship jpeg.lib / libjpeg-8.lib or only DLL).
           Ensure-LibJpeg $gtkLib $gtkBin $wantPlat
-
-          # Ensure Enchant2 (needed by libenchant_win8 project + packaging expectations).
-          Ensure-Enchant2 $normRel $wantArch
-
-          # Header aliases for projects that include flat names (quotes) instead of subdir includes.
-          Ensure-HeaderAlias $gtkInc "enchant-provider.h" @("enchant-2\enchant-provider.h", "enchant\enchant-provider.h")
-          Ensure-HeaderAlias $gtkInc "hb.h" @("harfbuzz\hb.h")
-          Ensure-HeaderAlias $gtkInc "hb-ot.h" @("harfbuzz\hb-ot.h")
-
-          # DLL aliases to satisfy win32\copy\copy.vcxproj (it expects older names).
-          Copy-AliasDll $gtkBin "freetype.dll" @('^freetype\.dll$', '^libfreetype-6\.dll$', '^libfreetype.*\.dll$')
-          Copy-AliasDll $gtkBin "fontconfig.dll" @('^fontconfig\.dll$', '^libfontconfig-1\.dll$', '^libfontconfig.*\.dll$')
-          Copy-AliasDll $gtkBin "gdk-win32-2.0.dll" @('^gdk-3-0\.dll$', '^libgdk-3-0\.dll$', '^gdk-3.*\.dll$')
-          Copy-AliasDll $gtkBin "gtk-win32-2.0.dll" @('^gtk-3-0\.dll$', '^libgtk-3-0\.dll$', '^gtk-3.*\.dll$')
-          Copy-AliasDll $gtkBin "libenchant.dll" @('^libenchant-2\.dll$', '^libenchant-2-2\.dll$', '^libenchant.*\.dll$')
-          Copy-AliasDll $gtkBin "ffi-7.dll" @('^ffi-7\.dll$', '^libffi-7\.dll$', '^libffi-8\.dll$', '^ffi-8\.dll$', '^libffi-.*\.dll$')
-          Copy-AliasDll $gtkBin "libxml2.dll" @('^libxml2\.dll$', '^libxml2-2\.dll$', '^libxml2-2-2\.dll$', '^xml2\.dll$', '^libxml2.*\.dll$')
-          Copy-AliasDll $gtkBin "cairo.dll" @('^cairo\.dll$', '^libcairo-2\.dll$', '^libcairo.*\.dll$')
 
           # Compatibility aliases for differing .lib names across bundles.
           Copy-AliasLib $gtkLib "gtk-3.0.lib" @(
@@ -736,50 +638,8 @@ jobs:
             exit /b 1
           )
 
-          rem Make MSVC find hb.h and enchant-provider.h (they live in subdirs under include\)
-          set "INCLUDE=%GTKROOT%\include\harfbuzz;%GTKROOT%\include\enchant-2;%GTKROOT%\include\freetype2;%INCLUDE%"
-
-          rem Sanity: these are expected by win32\copy\copy.vcxproj
-          if not exist "%GTKROOT%\bin\freetype.dll" (
-            echo Missing freetype.dll under %GTKROOT%\bin
-            dir "%GTKROOT%\bin"
-            exit /b 1
-          )
-          if not exist "%GTKROOT%\bin\fontconfig.dll" (
-            echo Missing fontconfig.dll under %GTKROOT%\bin
-            dir "%GTKROOT%\bin"
-            exit /b 1
-          )
-          if not exist "%GTKROOT%\bin\gdk-win32-2.0.dll" (
-            echo Missing gdk-win32-2.0.dll under %GTKROOT%\bin
-            dir "%GTKROOT%\bin"
-            exit /b 1
-          )
-          if not exist "%GTKROOT%\bin\gtk-win32-2.0.dll" (
-            echo Missing gtk-win32-2.0.dll under %GTKROOT%\bin
-            dir "%GTKROOT%\bin"
-            exit /b 1
-          )
-          if not exist "%GTKROOT%\bin\libenchant.dll" (
-            echo Missing libenchant.dll under %GTKROOT%\bin
-            dir "%GTKROOT%\bin"
-            exit /b 1
-          )
-          if not exist "%GTKROOT%\bin\ffi-7.dll" (
-            echo Missing ffi-7.dll under %GTKROOT%\bin
-            dir "%GTKROOT%\bin"
-            exit /b 1
-          )
-          if not exist "%GTKROOT%\bin\libxml2.dll" (
-            echo Missing libxml2.dll under %GTKROOT%\bin
-            dir "%GTKROOT%\bin"
-            exit /b 1
-          )
-          if not exist "%GTKROOT%\bin\cairo.dll" (
-            echo Missing cairo.dll under %GTKROOT%\bin
-            dir "%GTKROOT%\bin"
-            exit /b 1
-          )
+          rem Pango may include hb.h as a flat header; HarfBuzz ships it under include\harfbuzz\
+          set "INCLUDE=%GTKROOT%\include\harfbuzz;%INCLUDE%"
 
           set "PATH=%PERL_BIN%;%GTKROOT%\bin;%PATH%"
           set "LIB=%GTKROOT%\lib;%LIB%"
