@@ -66,8 +66,6 @@ jobs:
           # ------------------------------------------
           # GTK: download wingtk/gvsbuild GTK3 bundle and normalize into:
           #   C:\gtk-build\gtk\<platform>\release\{bin,include,lib}
-          #
-          # IMPORTANT: do NOT assume layout inside the zip. Detect prefix by locating gtk-3*.lib.
           # ------------------------------------------
           $wantArch = if ("${{ matrix.platform }}" -eq "x64") { "x64" } else { "x86" }
           $wantPlat = "${{ matrix.platform }}"
@@ -77,18 +75,17 @@ jobs:
           New-Item -Path $extractRoot -ItemType Directory -Force | Out-Null
 
           function Get-PEMachine([string]$path) {
-            # Returns 0x8664 (x64), 0x014c (x86), or $null if not PE.
             try {
               $fs = [System.IO.File]::Open($path, 'Open', 'Read', 'ReadWrite')
               try {
                 $br = New-Object System.IO.BinaryReader($fs)
                 $mz = $br.ReadUInt16()
-                if ($mz -ne 0x5A4D) { return $null } # "MZ"
+                if ($mz -ne 0x5A4D) { return $null } # MZ
                 $fs.Seek(0x3C, [System.IO.SeekOrigin]::Begin) | Out-Null
                 $peOff = $br.ReadUInt32()
                 $fs.Seek($peOff, [System.IO.SeekOrigin]::Begin) | Out-Null
                 $peSig = $br.ReadUInt32()
-                if ($peSig -ne 0x00004550) { return $null } # "PE\0\0"
+                if ($peSig -ne 0x00004550) { return $null } # PE\0\0
                 $machine = $br.ReadUInt16()
                 return $machine
               } finally {
@@ -99,40 +96,20 @@ jobs:
             }
           }
 
-          function Pick-GtkPrefix([string]$root, [string]$arch) {
-            # Find a plausible GTK3 MSVC import lib anywhere in extracted tree.
-            $libs = Get-ChildItem -Path $root -Recurse -File -Filter "*.lib" -ErrorAction SilentlyContinue
-
-            # Prefer exact well-known names first.
-            $preferred = @(
-              '^gtk-3\.0\.lib$',
-              '^gtk-3-0\.lib$',
-              '^gtk-3\.lib$'
-            )
-
-            foreach ($rx in $preferred) {
-              $cand = $libs | Where-Object { $_.Name -match $rx } |
-                Sort-Object -Property FullName |
-                Select-Object -First 1
-              if ($cand) {
-                # prefix is parent of the lib directory
-                return (Split-Path -Parent $cand.Directory.FullName)
-              }
-            }
-
-            # Fallback: any gtk-3*.lib
-            $cand2 = $libs | Where-Object { $_.Name -match '^gtk-3.*\.lib$' } |
-              Sort-Object -Property FullName |
-              Select-Object -First 1
-            if ($cand2) {
-              return (Split-Path -Parent $cand2.Directory.FullName)
-            }
-
-            return $null
-          }
-
           function Ensure-Dir([string]$p) {
             if (-not (Test-Path $p)) { New-Item -Path $p -ItemType Directory -Force | Out-Null }
+          }
+
+          function Pick-GtkPrefix([string]$root) {
+            $libs = Get-ChildItem -Path $root -Recurse -File -Filter "*.lib" -ErrorAction SilentlyContinue
+            $preferred = @('^gtk-3\.0\.lib$', '^gtk-3-0\.lib$', '^gtk-3\.lib$')
+            foreach ($rx in $preferred) {
+              $cand = $libs | Where-Object { $_.Name -match $rx } | Select-Object -First 1
+              if ($cand) { return (Split-Path -Parent $cand.Directory.FullName) }
+            }
+            $cand2 = $libs | Where-Object { $_.Name -match '^gtk-3.*\.lib$' } | Select-Object -First 1
+            if ($cand2) { return (Split-Path -Parent $cand2.Directory.FullName) }
+            return $null
           }
 
           function Copy-AliasLib([string]$gtkLibDir, [string]$targetName, [string[]]$sourceNameRegexes) {
@@ -154,55 +131,90 @@ jobs:
             }
           }
 
-          function Ensure-GenmarshalWrapper([string]$gtkBinDir, [string]$gtkPrefix, [string]$wantPlat) {
+          function Ensure-GenmarshalReady([string]$gtkBinDir, [string]$gtkPrefix, [string]$wantPlat) {
             Ensure-Dir $gtkBinDir
-
-            # Search *anywhere* under prefix for glib-genmarshal*.exe (layout varies by bundle)
-            $cands = Get-ChildItem -Path $gtkPrefix -Recurse -File -Filter "glib-genmarshal*.exe" -ErrorAction SilentlyContinue
-
-            if (-not $cands -or $cands.Count -eq 0) {
-              # Also try without extension, just in case the bundle ships a script
-              $cands2 = Get-ChildItem -Path $gtkPrefix -Recurse -File -Filter "glib-genmarshal*" -ErrorAction SilentlyContinue |
-                Where-Object { $_.Extension -ne ".pdb" -and $_.Extension -ne ".txt" }
-              if ($cands2 -and $cands2.Count -gt 0) {
-                Write-Host "Found non-.exe glib-genmarshal candidates:"
-                $cands2 | Select-Object -First 20 | ForEach-Object { Write-Host " - $($_.FullName)" }
-              }
-              throw "GTK3 bundle extracted, but no glib-genmarshal*.exe found anywhere under detected GTK prefix: $gtkPrefix"
-            }
 
             $wantMachine = if ($wantPlat -eq "x64") { 0x8664 } else { 0x014c }
 
-            # Prefer machine-matching candidates.
-            $picked = $null
-            foreach ($c in $cands) {
-              $m = Get-PEMachine $c.FullName
-              if ($m -eq $wantMachine) { $picked = $c; break }
-            }
-            if (-not $picked) {
-              # Last resort: just take the first one and hope it's not the wrong arch.
-              $picked = $cands | Select-Object -First 1
-              Write-Host "Warning: could not confirm glib-genmarshal arch; using: $($picked.FullName)"
-            } else {
-              Write-Host "glib-genmarshal selected: $($picked.FullName)"
+            $binScript = Join-Path $gtkBinDir "glib-genmarshal"
+            $binExe    = Join-Path $gtkBinDir "glib-genmarshal.exe"
+
+            # 1) If we already have glib-genmarshal (no extension) in bin, prefer it.
+            if (Test-Path $binScript) {
+              $m = Get-PEMachine $binScript
+              if ($m) {
+                # It's a PE binary without .exe. Make an .exe copy for subprocess callers, and keep python wrapper.
+                if ($m -ne $wantMachine) {
+                  throw "glib-genmarshal in bin is PE but wrong arch (machine=0x{0:X})." -f $m
+                }
+                Copy-Item $binScript $binExe -Force
+                $wrapperLines = @(
+                  "import os, subprocess, sys",
+                  "tool = os.path.join(os.path.dirname(__file__), 'glib-genmarshal.exe')",
+                  "sys.exit(subprocess.call([tool] + sys.argv[1:]))"
+                )
+                $wrapperLines | Set-Content -Path $binScript -Encoding ASCII
+                return
+              }
+
+              # Not PE: likely a script. If it's python-ish, we're done because vcxproj calls python.exe <script>.
+              $head = Get-Content -Path $binScript -TotalCount 5 -ErrorAction SilentlyContinue
+              $headText = ($head -join "`n")
+              $looksPython =
+                ($headText -match 'python') -or
+                ($headText -match '^\s*#!') -or
+                ($headText -match '^\s*import\s+') -or
+                ($headText -match '^\s*from\s+\w+\s+import\s+')
+
+              if ($looksPython) {
+                Write-Host "glib-genmarshal in bin looks like a script; using it as-is."
+                return
+              }
+
+              throw "Found glib-genmarshal in bin, but it does not look like a PE or a Python script. Cannot run it via python.exe."
             }
 
-            # The vcxproj calls:
-            #   python.exe "...\bin\glib-genmarshal" ...
-            # So create a python script *without extension* at that exact path.
-            $genTarget = Join-Path $gtkBinDir "glib-genmarshal"
-            $wrapperLines = @(
-              "import os, subprocess, sys",
-              "tool = os.path.join(os.path.dirname(__file__), r'$($picked.Name)')",
-              "sys.exit(subprocess.call([tool] + sys.argv[1:]))"
-            )
-            $wrapperLines | Set-Content -Path $genTarget -Encoding ASCII
+            # 2) Otherwise, search under prefix for .exe OR script and copy into bin.
+            $exeCands = Get-ChildItem -Path $gtkPrefix -Recurse -File -Filter "glib-genmarshal*.exe" -ErrorAction SilentlyContinue
+            if ($exeCands -and $exeCands.Count -gt 0) {
+              $picked = $null
+              foreach ($c in $exeCands) {
+                $m = Get-PEMachine $c.FullName
+                if ($m -eq $wantMachine) { $picked = $c; break }
+              }
+              if (-not $picked) { $picked = $exeCands | Select-Object -First 1 }
+              Copy-Item $picked.FullName $binExe -Force
 
-            # Also ensure the actual exe is reachable from bin (copy if it lives elsewhere)
-            $exeInBin = Join-Path $gtkBinDir $picked.Name
-            if (-not (Test-Path $exeInBin)) {
-              Copy-Item $picked.FullName $exeInBin -Force
+              $wrapperLines = @(
+                "import os, subprocess, sys",
+                "tool = os.path.join(os.path.dirname(__file__), 'glib-genmarshal.exe')",
+                "sys.exit(subprocess.call([tool] + sys.argv[1:]))"
+              )
+              $wrapperLines | Set-Content -Path $binScript -Encoding ASCII
+              return
             }
+
+            $scriptCands = Get-ChildItem -Path $gtkPrefix -Recurse -File -Filter "glib-genmarshal" -ErrorAction SilentlyContinue |
+              Where-Object { $_.FullName -notmatch '\\\.git\\' } |
+              Select-Object -First 1
+
+            if ($scriptCands) {
+              Copy-Item $scriptCands.FullName $binScript -Force
+              Write-Host "Copied glib-genmarshal script to bin: $($scriptCands.FullName)"
+              return
+            }
+
+            # If we got here, nothing usable exists.
+            $nonExe = Get-ChildItem -Path $gtkPrefix -Recurse -File -Filter "glib-genmarshal*" -ErrorAction SilentlyContinue |
+              Where-Object { $_.Extension -notin @(".exe",".pdb",".txt") } |
+              Select-Object -First 20
+
+            if ($nonExe) {
+              Write-Host "Found non-.exe glib-genmarshal candidates:"
+              $nonExe | ForEach-Object { Write-Host " - $($_.FullName)" }
+            }
+
+            throw "GTK3 bundle extracted, but no usable glib-genmarshal was found under detected GTK prefix: $gtkPrefix"
           }
 
           $gtkPrefix = $null
@@ -215,9 +227,6 @@ jobs:
           try {
             $release = Invoke-RestMethod -Headers $headers -Uri "https://api.github.com/repos/wingtk/gvsbuild/releases/latest"
 
-            # Your logs show assets like:
-            #   GTK3_Gvsbuild_2026.1.0_x64.zip
-            #   GTK3_Gvsbuild_2026.1.0_x64.zip (etc)
             $asset = $release.assets |
               Where-Object { $_.name -imatch '^GTK3_Gvsbuild_.*_(x64|x86)\.zip$' -and $_.name -imatch "_$wantArch\.zip$" } |
               Select-Object -First 1
@@ -225,9 +234,6 @@ jobs:
             if (-not $asset) {
               Write-Host "Available assets:"
               $release.assets | ForEach-Object { Write-Host " - $($_.name)" }
-              if ($wantArch -eq "x86") {
-                Write-Host "No GTK3 x86 asset found in wingtk/gvsbuild latest release; win32 build cannot use wingtk bundle."
-              }
               throw "Could not find a GTK3 $wantArch zip in wingtk/gvsbuild latest release."
             }
 
@@ -235,18 +241,15 @@ jobs:
             Invoke-WebRequest $asset.browser_download_url -OutFile $bundlePath
             Expand-Archive -Force $bundlePath -DestinationPath $extractRoot
 
-            $gtkPrefix = Pick-GtkPrefix -root $extractRoot -arch $wantArch
+            $gtkPrefix = Pick-GtkPrefix -root $extractRoot
             if (-not $gtkPrefix) {
-              Write-Host "Dumping a few .lib filenames found (for debugging):"
-              Get-ChildItem -Path $extractRoot -Recurse -File -Filter "*.lib" -ErrorAction SilentlyContinue |
-                Select-Object -First 50 | ForEach-Object { Write-Host " - $($_.FullName)" }
               throw "GTK3 bundle extracted, but could not locate any gtk-3*.lib to determine prefix."
             }
 
             Write-Host "Detected GTK prefix: $gtkPrefix"
           } catch {
             if ($wantArch -eq "x86") {
-              Write-Host "Wingtk GTK3 discovery failed for win32 (x86). Falling back to legacy GTK bundle (may not be GTK3)."
+              Write-Host "Wingtk GTK3 discovery failed for win32 (x86). Falling back to legacy GTK bundle."
               $gtkPrefix = $null
             } else {
               throw
@@ -254,35 +257,26 @@ jobs:
           }
 
           if (-not $gtkPrefix) {
-            # Legacy bundle path (your original) as last resort for win32 to keep workflow moving.
             Invoke-WebRequest https://github.com/zoitechat/gvsbuild/releases/download/zoitechat-2.17.0/gtk-${{ matrix.platform }}-2018-08-29-openssl1.1.7z -OutFile deps\gtk-${{ matrix.platform }}.7z
             Ensure-Dir "C:\gtk-build\gtk"
             & 7z.exe x deps\gtk-${{ matrix.platform }}.7z -oC:\gtk-build\gtk | Out-Null
           } else {
-            # Normalize GTK location to the path your solution already expects:
-            #   C:\gtk-build\gtk\<platform>\release\...
             $normBase = "C:\gtk-build\gtk\$wantPlat"
             Ensure-Dir $normBase
 
             $normRel = Join-Path $normBase "release"
-            if (Test-Path $normRel) {
-              cmd /c rmdir /s /q "$normRel" | Out-Null
-            }
-
+            if (Test-Path $normRel) { cmd /c rmdir /s /q "$normRel" | Out-Null }
             New-Item -Path $normRel -ItemType Junction -Value $gtkPrefix | Out-Null
 
             $gtkBin = Join-Path $normRel "bin"
             $gtkLib = Join-Path $normRel "lib"
             $gtkInc = Join-Path $normRel "include"
-
             Ensure-Dir $gtkBin
             Ensure-Dir $gtkLib
             Ensure-Dir $gtkInc
 
-            # Provide python wrapper "glib-genmarshal" at the exact location vcxproj calls.
-            Ensure-GenmarshalWrapper -gtkBinDir $gtkBin -gtkPrefix $gtkPrefix -wantPlat $wantPlat
+            Ensure-GenmarshalReady -gtkBinDir $gtkBin -gtkPrefix $gtkPrefix -wantPlat $wantPlat
 
-            # Compatibility aliases (older vcxproj names)
             Copy-AliasLib $gtkLib "gtk-win32-2.0.lib" @(
               '^gtk-3\.0\.lib$',
               '^gtk-3-0\.lib$',
@@ -290,32 +284,15 @@ jobs:
               '^gtk-3.*\.lib$'
             )
 
-            # OpenSSL legacy names (some projects still look for ssleay32/libeay32)
             Copy-AliasLib $gtkLib "ssleay32.lib" @('^libssl\.lib$', '^ssl\.lib$')
             Copy-AliasLib $gtkLib "libeay32.lib" @('^libcrypto\.lib$', '^crypto\.lib$')
-
-            # libxml2 name used by older link lines
             Copy-AliasLib $gtkLib "libxml2.lib" @('^libxml2\.lib$', '^libxml2-2\.0\.lib$', '^libxml2.*\.lib$')
-
-            # If the GTK bundle included LuaJIT headers somewhere, try to mirror them into include\
-            $luajitDirs = Get-ChildItem -Path $gtkPrefix -Recurse -Directory -ErrorAction SilentlyContinue |
-              Where-Object { $_.Name -match '^luajit-2\.1$' -or $_.Name -match '^luajit$' } |
-              Select-Object -First 1
-            if ($luajitDirs) {
-              foreach ($h in @("lua.h","lualib.h","lauxlib.h","luaconf.h")) {
-                $src = Join-Path $luajitDirs.FullName $h
-                if (Test-Path $src) {
-                  Copy-Item $src (Join-Path $gtkInc $h) -Force
-                }
-              }
-            }
           }
 
           # Resolve python root from setup-python
           $pyRoot = $env:pythonLocation
           if (-not $pyRoot) { $pyRoot = & python -c "import sys; print(sys.prefix)" }
 
-          # Create BOTH paths because the .vcxproj hard-codes python-3.14\...
           foreach ($pyDir in @("C:\gtk-build\python-3.14.2", "C:\gtk-build\python-3.14")) {
             New-Item -Path $pyDir -ItemType Directory -Force | Out-Null
             $target = Join-Path $pyDir "${{ matrix.platform }}"
@@ -340,7 +317,6 @@ jobs:
             exit /b 1
           )
 
-          rem Make sure MSVC finds GTK headers/libs via environment too
           if exist "%GTKROOT%\include" set "INCLUDE=%GTKROOT%\include;%INCLUDE%"
           if exist "%GTKROOT%\lib" set "LIB=%GTKROOT%\lib;%LIB%"
 
