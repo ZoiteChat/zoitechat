@@ -154,14 +154,14 @@ jobs:
               # Create wrapper that runs either the .exe or .py we found.
               $genPath = $genAny.FullName.Replace('\','\\')
               @"
-import os, subprocess, sys
-tool = r"$genPath"
-if tool.lower().endswith(".py"):
-    sys.exit(subprocess.call([sys.executable, tool] + sys.argv[1:]))
-else:
-    sys.exit(subprocess.call([tool] + sys.argv[1:]))
-"@ | Set-Content -Path $genTarget -Encoding ASCII
-            } else {
+            import os, subprocess, sys
+            tool = r"$genPath"
+            if tool.lower().endswith(".py"):
+                sys.exit(subprocess.call([sys.executable, tool] + sys.argv[1:]))
+            else:
+                sys.exit(subprocess.call([tool] + sys.argv[1:]))
+            "@ | Set-Content -Path $genTarget -Encoding ASCII
+                        } else {
               # Fallback: install MSYS2 glib2 tools and run their glib-genmarshal with PATH set.
               Write-Host "glib-genmarshal not found in GTK3 bundle. Installing MSYS2 glib2 tools as a fallback."
 
@@ -183,12 +183,12 @@ else:
               $msysBinEsc = $msysBin.Replace('\','\\')
 
               @"
-import os, subprocess, sys
-exe = r"$msysGenEsc"
-env = os.environ.copy()
-env["PATH"] = r"$msysBinEsc" + ";" + env.get("PATH","")
-sys.exit(subprocess.call([exe] + sys.argv[1:], env=env))
-"@ | Set-Content -Path $genTarget -Encoding ASCII
+            import os, subprocess, sys
+            exe = r"$msysGenEsc"
+            env = os.environ.copy()
+            env["PATH"] = r"$msysBinEsc" + ";" + env.get("PATH","")
+            sys.exit(subprocess.call([exe] + sys.argv[1:], env=env))
+            "@ | Set-Content -Path $genTarget -Encoding ASCII
             }
 
             # Compatibility aliases while vcxproj still names GTK2 libs.
