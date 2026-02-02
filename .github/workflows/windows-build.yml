@@ -243,6 +243,74 @@ jobs:
             }
           }
 
+          function Ensure-Zlib([string]$gtkInc, [string]$gtkLib, [string]$platform) {
+            # Projects explicitly link "zlib.lib". Provide it.
+            $want = Join-Path $gtkLib "zlib.lib"
+            if (Test-Path $want) { return }
+
+            # Try common alternative names first (bundles vary).
+            Copy-AliasLib $gtkLib "zlib.lib" @(
+              '^zlib1\.lib$',
+              '^zdll\.lib$',
+              '^zlibstatic\.lib$',
+              '^zlibwapi\.lib$',
+              '^zlib.*\.lib$'
+            )
+            if (Test-Path $want) { return }
+
+            # If still missing, build zlib with MSVC (fast) and drop zlib.lib into GTK lib.
+            $zip = "deps\zlib-1.3.1.zip"
+            $dst = "deps\zlib-src"
+            if (Test-Path $dst) { Remove-Item $dst -Recurse -Force }
+            New-Item -Path $dst -ItemType Directory -Force | Out-Null
+
+            Invoke-WebRequest https://github.com/madler/zlib/archive/refs/tags/v1.3.1.zip -OutFile $zip
+            Expand-Archive -Force $zip -DestinationPath $dst
+
+            $topDir = Get-ChildItem -Path $dst -Directory | Select-Object -First 1
+            if (-not $topDir) { throw "zlib source zip extracted, but no top directory found." }
+
+            $srcDir = $topDir.FullName
+
+            $vsDevCmd = "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\VsDevCmd.bat"
+            if (-not (Test-Path $vsDevCmd)) { throw "VsDevCmd.bat not found at $vsDevCmd" }
+
+            $arch = if ($platform -eq "x64") { "amd64" } else { "x86" }
+
+            $cmd = @(
+              """$vsDevCmd"" -no_logo -arch=$arch -host_arch=$arch",
+              "cd /d ""$srcDir""",
+              "nmake -f win32\\Makefile.msc clean",
+              "nmake -f win32\\Makefile.msc"
+            ) -join " && "
+
+            cmd /c $cmd | Out-Host
+
+            $builtLib = Join-Path $srcDir "zlib.lib"
+            if (-not (Test-Path $builtLib)) {
+              # Some environments produce import lib name; try to alias those too.
+              Copy-AliasLib (Join-Path $srcDir ".") "zlib.lib" @('^zdll\.lib$','^zlib.*\.lib$')
+              if (-not (Test-Path $builtLib)) {
+                throw "zlib build finished, but zlib.lib was not produced under $srcDir"
+              }
+            }
+
+            Copy-Item $builtLib $want -Force
+            Write-Host "Installed zlib.lib => $want"
+
+            # Ensure headers exist where the solution expects them (usually already in GTK).
+            foreach ($h in @("zlib.h", "zconf.h")) {
+              $dstH = Join-Path $gtkInc $h
+              if (-not (Test-Path $dstH)) {
+                $srcH = Join-Path $srcDir $h
+                if (Test-Path $srcH) {
+                  Copy-Item $srcH $dstH -Force
+                  Write-Host "Installed header $h => $dstH"
+                }
+              }
+            }
+          }
+
           # ------------------------------------------
           # GTK: Prefer prebuilt wingtk/gvsbuild GTK3 bundles.
           # If missing for x86 (win32), build GTK3 via gvsbuild from source.
@@ -334,6 +402,9 @@ jobs:
           # Provide LuaJIT headers + import lib for the lua plugin.
           Ensure-LuaJit $gtkInc $gtkLib $gtkBin $wantPlat
 
+          # Ensure zlib.lib exists (some bundles name it differently or omit it).
+          Ensure-Zlib $gtkInc $gtkLib $wantPlat
+
           # Compatibility aliases for differing .lib names across bundles.
           Copy-AliasLib $gtkLib "gtk-3.0.lib" @(
             '^gtk-3-0\.lib$',
@@ -398,6 +469,12 @@ jobs:
           if not exist "%GTKROOT%\include\gtk-3.0\gtk\gtk.h" (
             echo Missing GTK headers under %GTKROOT%
             dir "%GTKROOT%\include\gtk-3.0\gtk"
+            exit /b 1
+          )
+
+          if not exist "%GTKROOT%\lib\zlib.lib" (
+            echo Missing zlib.lib under %GTKROOT%\lib
+            dir "%GTKROOT%\lib"
             exit /b 1
           )
 
