@@ -32,7 +32,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup MSYS2 (for GTK build fallback)
+      - name: Setup MSYS2 (only used if we must build GTK via gvsbuild)
         uses: msys2/setup-msys2@v2
         with:
           msys2-location: C:\tools\msys64
@@ -161,37 +161,34 @@ jobs:
           }
 
           function Ensure-LuaHeaders([string]$gtkInc) {
-            # Put headers in BOTH include\ and include\lua\ to satisfy either include style.
+            # Headers only here. We build lua51.lib later under a VS environment.
             $luaDir = Join-Path $gtkInc "lua"
             New-Item -Path $luaDir -ItemType Directory -Force | Out-Null
 
-            $zip = "deps\luajit-v2.1.zip"
-            $dst = "deps\luajit-src"
+            $zip = "deps\lua-5.1.5.tar.gz"
+            $dst = "deps\lua-5.1.5-src"
             if (Test-Path $dst) { Remove-Item $dst -Recurse -Force }
             New-Item -Path $dst -ItemType Directory -Force | Out-Null
 
-            Invoke-WebRequest https://github.com/LuaJIT/LuaJIT/archive/refs/heads/v2.1.zip -OutFile $zip
-            Expand-Archive -Force $zip -DestinationPath $dst
+            Invoke-WebRequest https://www.lua.org/ftp/lua-5.1.5.tar.gz -OutFile $zip
+            & 7z.exe x $zip -o$dst | Out-Null
+            & 7z.exe x (Join-Path $dst "lua-5.1.5.tar") -o$dst | Out-Null
 
-            $srcDir = Get-ChildItem -Path $dst -Directory | Select-Object -First 1
-            if (-not $srcDir) { throw "LuaJIT source zip extracted, but no top directory found." }
+            $src = Join-Path $dst "lua-5.1.5\src"
+            if (-not (Test-Path $src)) { throw "Lua 5.1.5 source layout unexpected (missing $src)" }
 
-            $hdrRoot = Join-Path $srcDir.FullName "src"
             foreach ($h in @("lua.h", "lualib.h", "lauxlib.h", "luaconf.h")) {
-              $p = Join-Path $hdrRoot $h
-              if (-not (Test-Path $p)) { throw "LuaJIT header missing: $p" }
+              $p = Join-Path $src $h
+              if (-not (Test-Path $p)) { throw "Lua header missing: $p" }
 
               Copy-Item $p (Join-Path $gtkInc $h) -Force
               Copy-Item $p (Join-Path $luaDir $h) -Force
             }
-
-            if (-not (Test-Path (Join-Path $gtkInc "lua.h"))) { throw "lua.h was not installed into $gtkInc" }
-            if (-not (Test-Path (Join-Path $luaDir "lua.h"))) { throw "lua.h was not installed into $luaDir" }
           }
 
           # ------------------------------------------
           # GTK: Prefer prebuilt wingtk/gvsbuild GTK3 bundles.
-          # If missing for x86 (win32), build GTK3 via gvsbuild from source.
+          # If missing for x86 (win32), build GTK3 via gvsbuild.
           # ------------------------------------------
           $wantArch = if ("${{ matrix.platform }}" -eq "x64") { "x64" } else { "x86" }
           $wantPlat = "${{ matrix.platform }}"
@@ -201,7 +198,6 @@ jobs:
           New-Item -Path $extractRoot -ItemType Directory -Force | Out-Null
 
           $gtkPrefix = $null
-
           $headers = @{
             "User-Agent" = "zoitechat-ci"
             "Authorization" = "Bearer $env:GITHUB_TOKEN"
@@ -224,7 +220,6 @@ jobs:
 
               $gtkPrefix = Find-GtkPrefix $extractRoot
               if (-not $gtkPrefix) { throw "GTK3 bundle extracted, but gtk.h not found. Layout unexpected." }
-
               Write-Host "Detected GTK prefix: $gtkPrefix"
             } else {
               Write-Host "No prebuilt GTK3 bundle found for $wantArch. Will build GTK3 from source via gvsbuild."
@@ -271,27 +266,13 @@ jobs:
           Ensure-GlibGenmarshalWrapper $gtkBin
           Ensure-LuaHeaders $gtkInc
 
-          # Expected import libs (some projects hardcode these exact names)
+          # Import-lib name normalization (only helps if the lib exists under a different name)
           Copy-AliasLib $gtkLib "gtk-3.0.lib" @('^gtk-3-0\.lib$', '^gtk-3\.lib$', '^gtk-3.*\.lib$', '^gtk-win32-2\.0\.lib$')
           Copy-AliasLib $gtkLib "gdk-3.0.lib" @('^gdk-3-0\.lib$', '^gdk-3\.lib$', '^gdk-3.*\.lib$')
           Copy-AliasLib $gtkLib "gdk-win32-3.0.lib" @('^gdk-win32-3-0\.lib$', '^gdk-win32-3\.lib$', '^gdk-win32-3.*\.lib$')
 
-          # GTK2 name expected by older vcxproj (keep it)
-          Copy-AliasLib $gtkLib "gtk-win32-2.0.lib" @('^gtk-3\.0\.lib$', '^gtk-3-0\.lib$', '^gtk-3\.lib$', '^gtk-3.*\.lib$')
-
-          # OpenSSL legacy names (keep older projects happy if referenced)
-          Copy-AliasLib $gtkLib "ssleay32.lib" @('^libssl\.lib$', '^ssl\.lib$')
-          Copy-AliasLib $gtkLib "libeay32.lib" @('^libcrypto\.lib$', '^crypto\.lib$')
-
-          # libxml2 legacy name
-          Copy-AliasLib $gtkLib "libxml2.lib" @('^libxml2.*\.lib$')
-
-          # zlib legacy name expected by older vcxproj
-          Copy-AliasLib $gtkLib "zlib.lib" @(
-            '^zlib1\.lib$',
-            '^zlibstatic\.lib$',
-            '^zlib.*\.lib$'
-          )
+          # zlib legacy name (alias if a zlib lib exists)
+          Copy-AliasLib $gtkLib "zlib.lib" @('^zlib1\.lib$', '^zlibstatic\.lib$', '^zlib.*\.lib$')
 
           # Persist GTK root for later steps.
           "GTK_ROOT=$normRel" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
@@ -323,10 +304,80 @@ jobs:
             exit /b 1
           )
 
+          rem ------------------------------------------------------------
+          rem Ensure lua51.lib (build Lua 5.1.5 static library with MSVC)
+          rem ------------------------------------------------------------
+          if not exist "%GTKROOT%\lib\lua51.lib" (
+            echo Building lua51.lib (Lua 5.1.5)...
+            if not exist "deps" mkdir deps
+
+            powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+              "$ErrorActionPreference='Stop';" ^
+              "if (-not (Test-Path 'deps\lua-5.1.5.tar.gz')) { Invoke-WebRequest https://www.lua.org/ftp/lua-5.1.5.tar.gz -OutFile 'deps\lua-5.1.5.tar.gz' }"
+
+            if exist "deps\lua-5.1.5-src" rmdir /s /q "deps\lua-5.1.5-src"
+            mkdir "deps\lua-5.1.5-src"
+
+            7z.exe x "deps\lua-5.1.5.tar.gz" -o"deps\lua-5.1.5-src" >NUL
+            7z.exe x "deps\lua-5.1.5-src\lua-5.1.5.tar" -o"deps\lua-5.1.5-src" >NUL
+
+            pushd "deps\lua-5.1.5-src\lua-5.1.5\src"
+            del /q *.obj >NUL 2>&1
+
+            for %%f in (*.c) do (
+              if /I not "%%f"=="lua.c" if /I not "%%f"=="luac.c" (
+                cl /nologo /O2 /MD /c %%f
+                if errorlevel 1 exit /b 1
+              )
+            )
+
+            lib /nologo /out:"%GTKROOT%\lib\lua51.lib" *.obj
+            if errorlevel 1 exit /b 1
+            popd
+          )
+
+          rem ------------------------------------------------------------
+          rem Ensure libxml2.lib (vcpkg, MSVC-compatible)
+          rem ------------------------------------------------------------
+          if not exist "%GTKROOT%\lib\libxml2.lib" (
+            echo Installing libxml2 via vcpkg...
+            if exist "C:\vcpkg\vcpkg.exe" (
+              set "VCPKG_ROOT=C:\vcpkg"
+            ) else (
+              if exist "C:\vcpkg" rmdir /s /q "C:\vcpkg"
+              git clone --depth 1 https://github.com/microsoft/vcpkg.git C:\vcpkg
+              call C:\vcpkg\bootstrap-vcpkg.bat
+              set "VCPKG_ROOT=C:\vcpkg"
+            )
+
+            if "${{ matrix.platform }}"=="x64" (
+              set "VCPKG_TRIPLET=x64-windows"
+            ) else (
+              set "VCPKG_TRIPLET=x86-windows"
+            )
+
+            "%VCPKG_ROOT%\vcpkg.exe" install libxml2:%VCPKG_TRIPLET% zlib:%VCPKG_TRIPLET%
+            if errorlevel 1 exit /b 1
+
+            rem Copy MSVC import libs where your vcxproj expects them (GTKROOT\lib)
+            if exist "%VCPKG_ROOT%\installed\%VCPKG_TRIPLET%\lib\libxml2.lib" (
+              copy /Y "%VCPKG_ROOT%\installed\%VCPKG_TRIPLET%\lib\libxml2.lib" "%GTKROOT%\lib\libxml2.lib" >NUL
+            )
+            if exist "%VCPKG_ROOT%\installed\%VCPKG_TRIPLET%\lib\zlib.lib" (
+              copy /Y "%VCPKG_ROOT%\installed\%VCPKG_TRIPLET%\lib\zlib.lib" "%GTKROOT%\lib\zlib.lib" >NUL
+            )
+
+            rem Copy required DLLs into GTKROOT\bin so packaging has them available later
+            if exist "%VCPKG_ROOT%\installed\%VCPKG_TRIPLET%\bin" (
+              copy /Y "%VCPKG_ROOT%\installed\%VCPKG_TRIPLET%\bin\*.dll" "%GTKROOT%\bin\" >NUL
+            )
+          )
+
+          rem Make sure the linker can see GTK + Lua + libxml2
           set "PATH=%PERL_BIN%;%GTKROOT%\bin;%PATH%"
           set "LIB=%GTKROOT%\lib;%LIB%"
-          set "INCLUDE=%GTKROOT%\include\lua;%GTKROOT%\include;%INCLUDE%"
-          set "CL=/I""%GTKROOT%\include"" /I""%GTKROOT%\include\lua"" %CL%"
+          set "INCLUDE=%GTKROOT%\include\lua;%GTKROOT%\include;%GTKROOT%\include\libxml2;%INCLUDE%"
+          set "CL=/I""%GTKROOT%\include"" /I""%GTKROOT%\include\lua"" /I""%GTKROOT%\include\libxml2"" %CL%"
 
           set "PYTHON_DIR=C:\gtk-build\python-3.14.2\${{ matrix.platform }}"
           if not exist "%PYTHON_DIR%\libs\python314.lib" (
