@@ -276,7 +276,7 @@ jobs:
           Copy-AliasLib $gtkLib "gdk-3.0.lib" @('^gdk-3-0\.lib$', '^gdk-3\.lib$', '^gdk-3.*\.lib$')
           Copy-AliasLib $gtkLib "gdk-win32-3.0.lib" @('^gdk-win32-3-0\.lib$', '^gdk-win32-3\.lib$', '^gdk-win32-3.*\.lib$')
 
-          # Legacy GTK2 name expected by older vcxproj (keep it)
+          # GTK2 name expected by older vcxproj (keep it)
           Copy-AliasLib $gtkLib "gtk-win32-2.0.lib" @('^gtk-3\.0\.lib$', '^gtk-3-0\.lib$', '^gtk-3\.lib$', '^gtk-3.*\.lib$')
 
           # OpenSSL legacy names (keep older projects happy if referenced)
@@ -285,6 +285,13 @@ jobs:
 
           # libxml2 legacy name
           Copy-AliasLib $gtkLib "libxml2.lib" @('^libxml2.*\.lib$')
+
+          # zlib legacy name expected by older vcxproj
+          Copy-AliasLib $gtkLib "zlib.lib" @(
+            '^zlib1\.lib$',
+            '^zlibstatic\.lib$',
+            '^zlib.*\.lib$'
+          )
 
           # Persist GTK root for later steps.
           "GTK_ROOT=$normRel" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
@@ -314,15 +321,6 @@ jobs:
             echo Missing GTK headers under %GTKROOT%
             dir "%GTKROOT%\include\gtk-3.0\gtk"
             exit /b 1
-          )
-
-          if not exist "%GTKROOT%\include\lua.h" (
-            echo Missing lua.h under %GTKROOT%\include
-            dir "%GTKROOT%\include"
-          )
-          if not exist "%GTKROOT%\include\lua\lua.h" (
-            echo Missing lua\lua.h under %GTKROOT%\include\lua
-            dir "%GTKROOT%\include\lua"
           )
 
           set "PATH=%PERL_BIN%;%GTKROOT%\bin;%PATH%"
