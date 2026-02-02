@@ -32,32 +32,262 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Setup MSYS2 (for GTK build fallback)
+        uses: msys2/setup-msys2@v2
+        with:
+          msys2-location: C:\tools\msys64
+          update: true
+          install: >-
+            base-devel
+            git
+            unzip
+            p7zip
+
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.14.2'
+          python-version: "3.14.2"
           architecture: ${{ matrix.arch }}
 
-      - name: Install Dependencies
+      - name: Install Dependencies (GTK3 toolchain + packagers)
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        shell: pwsh
         run: |
-          New-Item -Name "deps" -ItemType "Directory"
+          $ErrorActionPreference = "Stop"
 
+          New-Item -Name "deps" -ItemType "Directory" -Force | Out-Null
+
+          # Inno Setup + IDP (kept as-is)
           Invoke-WebRequest http://files.jrsoftware.org/is/5/innosetup-5.5.9-unicode.exe -OutFile deps\innosetup-unicode.exe
           & deps\innosetup-unicode.exe /VERYSILENT | Out-Null
 
           Invoke-WebRequest https://github.com/zoitechat/gvsbuild/releases/download/zoitechat-2.17.0/idpsetup-1.5.1.exe -OutFile deps\idpsetup.exe
           & deps\idpsetup.exe /VERYSILENT
 
-          Invoke-WebRequest https://github.com/zoitechat/gvsbuild/releases/download/zoitechat-2.17.0/gtk-${{ matrix.platform }}-2018-08-29-openssl1.1.7z -OutFile deps\gtk-${{ matrix.arch }}.7z
-          & 7z.exe x deps\gtk-${{ matrix.arch }}.7z -oC:\gtk-build\gtk
-
+          # WinSparkle / gendef / perl (kept as-is)
           Invoke-WebRequest https://github.com/zoitechat/gvsbuild/releases/download/zoitechat-2.17.0/gendef-20111031.7z -OutFile deps\gendef.7z
-          & 7z.exe x deps\gendef.7z -oC:\gtk-build
+          & 7z.exe x deps\gendef.7z -oC:\gtk-build | Out-Null
 
           Invoke-WebRequest https://github.com/zoitechat/gvsbuild/releases/download/zoitechat-2.17.0/WinSparkle-20151011.7z -OutFile deps\WinSparkle.7z
-          & 7z.exe x deps\WinSparkle.7z -oC:\gtk-build\WinSparkle
+          & 7z.exe x deps\WinSparkle.7z -oC:\gtk-build\WinSparkle | Out-Null
 
           Invoke-WebRequest https://github.com/zoitechat/gvsbuild/releases/download/zoitechat-2.17.0/perl-5.20.0-${{ matrix.arch }}.7z -OutFile deps\perl-${{ matrix.arch }}.7z
-          & 7z.exe x deps\perl-${{ matrix.arch }}.7z -oC:\gtk-build\perl-5.20\${{ matrix.platform }}
+          & 7z.exe x deps\perl-${{ matrix.arch }}.7z -oC:\gtk-build\perl-5.20\${{ matrix.platform }} | Out-Null
+
+          # Discover perl.exe and persist its bin dir.
+          $perlExe = Get-ChildItem -Path "C:\gtk-build\perl-5.20\${{ matrix.platform }}" -Recurse -File -Filter "perl.exe" | Select-Object -First 1
+          if (-not $perlExe) { throw "perl.exe not found under C:\gtk-build\perl-5.20\${{ matrix.platform }}" }
+          "PERL_BIN=$($perlExe.Directory.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+          function Find-GtkPrefix([string]$root) {
+            $gtkH = Get-ChildItem -Path $root -Recurse -File -Filter "gtk.h" |
+              Where-Object { $_.FullName -match '\\include\\gtk-3\.0\\gtk\\gtk\.h$' } |
+              Select-Object -First 1
+            if (-not $gtkH) { return $null }
+            return $gtkH.Directory.Parent.Parent.Parent.FullName
+          }
+
+          function Ensure-Junction([string]$linkPath, [string]$targetPath) {
+            if (Test-Path $linkPath) {
+              cmd /c rmdir /s /q "$linkPath" | Out-Null
+            }
+            New-Item -Path $linkPath -ItemType Junction -Value $targetPath | Out-Null
+          }
+
+          function Copy-AliasLib([string]$libDir, [string]$targetName, [string[]]$sourcePatterns) {
+            $target = Join-Path $libDir $targetName
+            if (Test-Path $target) { return }
+
+            $src = $null
+            foreach ($pat in $sourcePatterns) {
+              $src = Get-ChildItem -Path $libDir -File -Filter "*.lib" | Where-Object { $_.Name -match $pat } | Select-Object -First 1
+              if ($src) { break }
+            }
+
+            if ($src) {
+              Copy-Item $src.FullName $target -Force
+              Write-Host "Alias: $targetName <= $($src.Name)"
+            } else {
+              Write-Host "Alias not created: $targetName (no match in $libDir)"
+            }
+          }
+
+          function Ensure-GlibGenmarshalWrapper([string]$gtkBin) {
+            $wrapperPath = Join-Path $gtkBin "glib-genmarshal"
+            $exePath     = Join-Path $gtkBin "glib-genmarshal.exe"
+
+            $realPath = Join-Path $gtkBin "glib-genmarshal.real"
+            if (Test-Path $realPath) { Remove-Item $realPath -Force }
+
+            if (Test-Path $wrapperPath) {
+              $first = (Get-Content -Path $wrapperPath -TotalCount 1 -ErrorAction SilentlyContinue)
+              if ($first -notmatch 'import os') {
+                Move-Item $wrapperPath $realPath -Force
+              }
+            }
+
+            if (-not (Test-Path $exePath) -and -not (Test-Path $realPath)) {
+              $cand = Get-ChildItem -Path $gtkBin -File -Filter "glib-genmarshal*" | Select-Object -First 1
+              if ($cand) {
+                Move-Item $cand.FullName $realPath -Force
+              }
+            }
+
+            if (-not (Test-Path $exePath) -and -not (Test-Path $realPath)) {
+              throw "GTK3 prefix present, but no glib-genmarshal tool found under $gtkBin"
+            }
+
+            $wrapper = @(
+              "import os, subprocess, sys",
+              "base = os.path.dirname(__file__)",
+              "exe  = os.path.join(base, 'glib-genmarshal.exe')",
+              "real = os.path.join(base, 'glib-genmarshal.real')",
+              "tool = exe if os.path.exists(exe) else real",
+              "if not os.path.exists(tool):",
+              "    sys.stderr.write('glib-genmarshal tool not found\\n')",
+              "    sys.exit(1)",
+              "if tool.lower().endswith('.exe'):",
+              "    sys.exit(subprocess.call([tool] + sys.argv[1:]))",
+              "first = b''",
+              "try:",
+              "    with open(tool, 'rb') as f: first = f.readline().lower()",
+              "except Exception:",
+              "    pass",
+              "if b'perl' in first:",
+              "    sys.exit(subprocess.call(['perl', tool] + sys.argv[1:]))",
+              "sys.exit(subprocess.call([sys.executable, tool] + sys.argv[1:]))"
+            )
+            $wrapper | Set-Content -Path $wrapperPath -Encoding ASCII
+          }
+
+          function Ensure-LuaHeaders([string]$gtkInc) {
+            # Put headers in BOTH include\ and include\lua\ to satisfy either include style.
+            $luaDir = Join-Path $gtkInc "lua"
+            New-Item -Path $luaDir -ItemType Directory -Force | Out-Null
+
+            $zip = "deps\luajit-v2.1.zip"
+            $dst = "deps\luajit-src"
+            if (Test-Path $dst) { Remove-Item $dst -Recurse -Force }
+            New-Item -Path $dst -ItemType Directory -Force | Out-Null
+
+            Invoke-WebRequest https://github.com/LuaJIT/LuaJIT/archive/refs/heads/v2.1.zip -OutFile $zip
+            Expand-Archive -Force $zip -DestinationPath $dst
+
+            $srcDir = Get-ChildItem -Path $dst -Directory | Select-Object -First 1
+            if (-not $srcDir) { throw "LuaJIT source zip extracted, but no top directory found." }
+
+            $hdrRoot = Join-Path $srcDir.FullName "src"
+            foreach ($h in @("lua.h", "lualib.h", "lauxlib.h", "luaconf.h")) {
+              $p = Join-Path $hdrRoot $h
+              if (-not (Test-Path $p)) { throw "LuaJIT header missing: $p" }
+
+              Copy-Item $p (Join-Path $gtkInc $h) -Force
+              Copy-Item $p (Join-Path $luaDir $h) -Force
+            }
+
+            if (-not (Test-Path (Join-Path $gtkInc "lua.h"))) { throw "lua.h was not installed into $gtkInc" }
+            if (-not (Test-Path (Join-Path $luaDir "lua.h"))) { throw "lua.h was not installed into $luaDir" }
+          }
+
+          # ------------------------------------------
+          # GTK: Prefer prebuilt wingtk/gvsbuild GTK3 bundles.
+          # If missing for x86 (win32), build GTK3 via gvsbuild from source.
+          # ------------------------------------------
+          $wantArch = if ("${{ matrix.platform }}" -eq "x64") { "x64" } else { "x86" }
+          $wantPlat = "${{ matrix.platform }}"
+
+          $extractRoot = "C:\_gtk_extract"
+          if (Test-Path $extractRoot) { Remove-Item $extractRoot -Recurse -Force }
+          New-Item -Path $extractRoot -ItemType Directory -Force | Out-Null
+
+          $gtkPrefix = $null
+
+          $headers = @{
+            "User-Agent" = "zoitechat-ci"
+            "Authorization" = "Bearer $env:GITHUB_TOKEN"
+            "X-GitHub-Api-Version" = "2022-11-28"
+          }
+
+          try {
+            $release = Invoke-RestMethod -Headers $headers -Uri "https://api.github.com/repos/wingtk/gvsbuild/releases/latest"
+            $asset = $release.assets |
+              Where-Object {
+                ($_.name -match '^GTK3_Gvsbuild_.*_(x64|x86)\.zip$' -or $_.name -match '(?i)gtk3.*(x64|x86)\.zip$') -and
+                $_.name -match "_$wantArch\.zip$"
+              } |
+              Select-Object -First 1
+
+            if ($asset) {
+              $bundlePath = "deps\gtk3-$wantArch-bundle.zip"
+              Invoke-WebRequest $asset.browser_download_url -OutFile $bundlePath
+              Expand-Archive -Force $bundlePath -DestinationPath $extractRoot
+
+              $gtkPrefix = Find-GtkPrefix $extractRoot
+              if (-not $gtkPrefix) { throw "GTK3 bundle extracted, but gtk.h not found. Layout unexpected." }
+
+              Write-Host "Detected GTK prefix: $gtkPrefix"
+            } else {
+              Write-Host "No prebuilt GTK3 bundle found for $wantArch. Will build GTK3 from source via gvsbuild."
+            }
+          } catch {
+            Write-Host "Prebuilt GTK3 discovery failed: $($_.Exception.Message)"
+            Write-Host "Will build GTK3 from source via gvsbuild."
+          }
+
+          if (-not $gtkPrefix) {
+            $gvsDir = "C:\gtk-build\github\gvsbuild"
+            if (-not (Test-Path $gvsDir)) {
+              New-Item -Path "C:\gtk-build\github" -ItemType Directory -Force | Out-Null
+              git clone --depth 1 https://github.com/wingtk/gvsbuild.git $gvsDir
+            }
+
+            Push-Location $gvsDir
+            python -m pip install --upgrade pip
+            python -m pip install -r requirements.txt
+
+            python .\build.py build -p=$wantArch --vs-ver=16 --msys-dir=C:\tools\msys64 --gtk3-ver=3.24 -c=release gtk3
+            Pop-Location
+
+            $gtkPrefix = "C:\gtk-build\gtk\$wantArch\release"
+            if (-not (Test-Path (Join-Path $gtkPrefix "include\gtk-3.0\gtk\gtk.h"))) {
+              throw "gvsbuild finished, but expected GTK headers were not found under $gtkPrefix"
+            }
+          }
+
+          # Normalize GTK location to the path your solution expects:
+          $normBase = "C:\gtk-build\gtk\$wantPlat"
+          New-Item -Path $normBase -ItemType Directory -Force | Out-Null
+          $normRel = Join-Path $normBase "release"
+          Ensure-Junction $normRel $gtkPrefix
+
+          $gtkBin = Join-Path $normRel "bin"
+          $gtkLib = Join-Path $normRel "lib"
+          $gtkInc = Join-Path $normRel "include"
+
+          if (-not (Test-Path $gtkBin)) { throw "GTK bin dir missing at $gtkBin" }
+          if (-not (Test-Path $gtkLib)) { throw "GTK lib dir missing at $gtkLib" }
+          if (-not (Test-Path $gtkInc)) { throw "GTK include dir missing at $gtkInc" }
+
+          Ensure-GlibGenmarshalWrapper $gtkBin
+          Ensure-LuaHeaders $gtkInc
+
+          # Expected import libs (some projects hardcode these exact names)
+          Copy-AliasLib $gtkLib "gtk-3.0.lib" @('^gtk-3-0\.lib$', '^gtk-3\.lib$', '^gtk-3.*\.lib$', '^gtk-win32-2\.0\.lib$')
+          Copy-AliasLib $gtkLib "gdk-3.0.lib" @('^gdk-3-0\.lib$', '^gdk-3\.lib$', '^gdk-3.*\.lib$')
+          Copy-AliasLib $gtkLib "gdk-win32-3.0.lib" @('^gdk-win32-3-0\.lib$', '^gdk-win32-3\.lib$', '^gdk-win32-3.*\.lib$')
+
+          # Legacy GTK2 name expected by older vcxproj (keep it)
+          Copy-AliasLib $gtkLib "gtk-win32-2.0.lib" @('^gtk-3\.0\.lib$', '^gtk-3-0\.lib$', '^gtk-3\.lib$', '^gtk-3.*\.lib$')
+
+          # OpenSSL legacy names (keep older projects happy if referenced)
+          Copy-AliasLib $gtkLib "ssleay32.lib" @('^libssl\.lib$', '^ssl\.lib$')
+          Copy-AliasLib $gtkLib "libeay32.lib" @('^libcrypto\.lib$', '^crypto\.lib$')
+
+          # libxml2 legacy name
+          Copy-AliasLib $gtkLib "libxml2.lib" @('^libxml2.*\.lib$')
+
+          # Persist GTK root for later steps.
+          "GTK_ROOT=$normRel" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
           # Resolve python root from setup-python
           $pyRoot = $env:pythonLocation
@@ -75,8 +305,30 @@ jobs:
           python -m pip install cffi
 
       - name: Build
+        shell: cmd
         run: |
           call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\VsDevCmd.bat"
+
+          set "GTKROOT=%GTK_ROOT%"
+          if not exist "%GTKROOT%\include\gtk-3.0\gtk\gtk.h" (
+            echo Missing GTK headers under %GTKROOT%
+            dir "%GTKROOT%\include\gtk-3.0\gtk"
+            exit /b 1
+          )
+
+          if not exist "%GTKROOT%\include\lua.h" (
+            echo Missing lua.h under %GTKROOT%\include
+            dir "%GTKROOT%\include"
+          )
+          if not exist "%GTKROOT%\include\lua\lua.h" (
+            echo Missing lua\lua.h under %GTKROOT%\include\lua
+            dir "%GTKROOT%\include\lua"
+          )
+
+          set "PATH=%PERL_BIN%;%GTKROOT%\bin;%PATH%"
+          set "LIB=%GTKROOT%\lib;%LIB%"
+          set "INCLUDE=%GTKROOT%\include\lua;%GTKROOT%\include;%INCLUDE%"
+          set "CL=/I""%GTKROOT%\include"" /I""%GTKROOT%\include\lua"" %CL%"
 
           set "PYTHON_DIR=C:\gtk-build\python-3.14.2\${{ matrix.platform }}"
           if not exist "%PYTHON_DIR%\libs\python314.lib" (
@@ -89,13 +341,12 @@ jobs:
           set "INCLUDE=%PYTHON_DIR%\include;%INCLUDE%"
 
           msbuild win32\zoitechat.sln /m /verbosity:minimal /p:Configuration=Release /p:Platform=${{ matrix.platform }}
-        shell: cmd
 
       - name: Preparing Artifacts
+        shell: cmd
         run: |
           move ..\zoitechat-build\${{ matrix.platform }}\ZoiteChat*.exe .\
           move ..\zoitechat-build .\
-        shell: cmd
 
       - name: Upload Installer
         id: upload_installer
