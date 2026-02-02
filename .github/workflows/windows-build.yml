@@ -52,91 +52,112 @@ jobs:
 
           # WinSparkle / gendef / perl (kept as-is)
           Invoke-WebRequest https://github.com/zoitechat/gvsbuild/releases/download/zoitechat-2.17.0/gendef-20111031.7z -OutFile deps\gendef.7z
-          & 7z.exe x deps\gendef.7z -oC:\gtk-build
+          & 7z.exe x deps\gendef.7z -oC:\gtk-build | Out-Null
 
           Invoke-WebRequest https://github.com/zoitechat/gvsbuild/releases/download/zoitechat-2.17.0/WinSparkle-20151011.7z -OutFile deps\WinSparkle.7z
-          & 7z.exe x deps\WinSparkle.7z -oC:\gtk-build\WinSparkle
+          & 7z.exe x deps\WinSparkle.7z -oC:\gtk-build\WinSparkle | Out-Null
 
           Invoke-WebRequest https://github.com/zoitechat/gvsbuild/releases/download/zoitechat-2.17.0/perl-5.20.0-${{ matrix.arch }}.7z -OutFile deps\perl-${{ matrix.arch }}.7z
-          & 7z.exe x deps\perl-${{ matrix.arch }}.7z -oC:\gtk-build\perl-5.20\${{ matrix.platform }}
+          & 7z.exe x deps\perl-${{ matrix.arch }}.7z -oC:\gtk-build\perl-5.20\${{ matrix.platform }} | Out-Null
 
           # -----------------------------
-          # GTK3 stack (MSVC) from wingtk/gvsbuild (latest release, auto-detected)
+          # GTK3 stack (MSVC) from wingtk/gvsbuild
+          # Fixes:
+          #  - asset name changed (GTK3_Gvsbuild_*.zip) so don't require "release|rel"
+          #  - x86 may be missing in latest, so scan recent releases for first matching arch
+          #  - normalize to C:\gtk-build\gtk\<platform>\release\...
           # -----------------------------
+          $wantArch = if ("${{ matrix.platform }}" -eq "x64") { "x64" } else { "x86" }
+
           $headers = @{
             "User-Agent" = "zoitechat-ci"
             "Authorization" = "Bearer $env:GITHUB_TOKEN"
             "X-GitHub-Api-Version" = "2022-11-28"
           }
 
-          $release = Invoke-RestMethod -Headers $headers -Uri "https://api.github.com/repos/wingtk/gvsbuild/releases/latest"
+          $releases = Invoke-RestMethod -Headers $headers -Uri "https://api.github.com/repos/wingtk/gvsbuild/releases?per_page=20"
 
-          $wantArch = if ("${{ matrix.platform }}" -eq "x64") { "x64" } else { "x86" }
+          $asset = $null
+          foreach ($rel in $releases) {
+            $asset = $rel.assets |
+              Where-Object {
+                $_.name -match "(?i)^GTK3_.*_${wantArch}\.zip$" -or
+                ($_.name -match "(?i)gtk3" -and $_.name -match "(?i)\b${wantArch}\b" -and $_.name -match "(?i)\.zip$")
+              } |
+              Select-Object -First 1
+            if ($asset) { break }
+          }
 
-          # Heuristic match: must include gtk3 and the requested arch; prefer release bundles.
-          $asset = $release.assets |
-            Where-Object {
-              $_.name -match 'gtk3' -and
-              $_.name -match $wantArch -and
-              $_.name -match 'release|rel'
-            } |
-            Select-Object -First 1
+          $usingLegacyGtk2 = $false
 
           if (-not $asset) {
-            Write-Host "Available assets:"
-            $release.assets | ForEach-Object { Write-Host " - $($_.name)" }
-            throw "Could not find a GTK3 $wantArch release asset in wingtk/gvsbuild latest release."
+            if ($wantArch -eq "x86") {
+              # Fallback: keep 32-bit build working even if GTK3 x86 isn't published.
+              $usingLegacyGtk2 = $true
+              Write-Host "No GTK3 x86 bundle found in recent wingtk/gvsbuild releases. Falling back to legacy GTK2 bundle for win32 to keep builds working."
+              Invoke-WebRequest https://github.com/zoitechat/gvsbuild/releases/download/zoitechat-2.17.0/gtk-${{ matrix.platform }}-2018-08-29-openssl1.1.7z -OutFile deps\gtk-legacy-${{ matrix.platform }}.7z
+              if (Test-Path C:\gtk-build\gtk) { Remove-Item C:\gtk-build\gtk -Recurse -Force }
+              & 7z.exe x deps\gtk-legacy-${{ matrix.platform }}.7z -oC:\gtk-build\gtk | Out-Null
+            } else {
+              Write-Host "Available assets in recent releases:"
+              foreach ($rel in $releases) {
+                Write-Host ("Release: " + $rel.tag_name)
+                $rel.assets | ForEach-Object { Write-Host (" - " + $_.name) }
+              }
+              throw "Could not find a GTK3 $wantArch bundle in wingtk/gvsbuild recent releases."
+            }
           }
 
-          $bundlePath = "deps\gtk3-$wantArch-bundle" + [IO.Path]::GetExtension($asset.name)
-          Invoke-WebRequest $asset.browser_download_url -OutFile $bundlePath
+          if (-not $usingLegacyGtk2) {
+            $bundlePath = "deps\GTK3_Gvsbuild_${wantArch}.zip"
+            Invoke-WebRequest $asset.browser_download_url -OutFile $bundlePath
 
-          # Extract so we end up with C:\gtk\...
-          if (Test-Path C:\gtk) { Remove-Item C:\gtk -Recurse -Force }
-          if ($bundlePath.EndsWith(".zip")) {
-            Expand-Archive -Force $bundlePath -DestinationPath C:\
-          } else {
-            & 7z.exe x $bundlePath -oC:\ | Out-Null
-          }
+            $extractRoot = "C:\gtk3-bundle"
+            if (Test-Path $extractRoot) { Remove-Item $extractRoot -Recurse -Force }
+            New-Item -Path $extractRoot -ItemType Directory -Force | Out-Null
+            Expand-Archive -Force $bundlePath -DestinationPath $extractRoot
 
-          if (-not (Test-Path C:\gtk)) {
-            # Some bundles extract to a top-level folder; find it and normalize.
-            $top = Get-ChildItem C:\ -Directory | Where-Object { $_.Name -match '^gtk' } | Select-Object -First 1
-            if ($top) { Rename-Item $top.FullName C:\gtk }
-          }
+            # Locate glib-genmarshal.exe to infer the real <arch>\release\bin layout (regardless of top folder name).
+            $gen = Get-ChildItem -Path $extractRoot -Recurse -Filter "glib-genmarshal.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+            if (-not $gen) { throw "GTK3 bundle extracted, but glib-genmarshal.exe was not found. Layout unexpected." }
 
-          if (-not (Test-Path C:\gtk)) { throw "GTK3 bundle extraction failed: C:\gtk not found." }
+            $gtkBin     = Split-Path $gen.FullName -Parent               # ...\bin
+            $releaseDir = Split-Path $gtkBin -Parent                     # ...\release
 
-          # Keep existing expected path: C:\gtk-build\gtk\...
-          New-Item -Path C:\gtk-build -ItemType Directory -Force | Out-Null
-          if (Test-Path C:\gtk-build\gtk) { Remove-Item C:\gtk-build\gtk -Recurse -Force }
-          New-Item -Path C:\gtk-build -Name "gtk" -ItemType Junction -Value C:\gtk | Out-Null
+            # Normalize expected path:
+            # C:\gtk-build\gtk\<platform>\release -> <releaseDir>
+            $platDir = "C:\gtk-build\gtk\${{ matrix.platform }}"
+            New-Item -Path $platDir -ItemType Directory -Force | Out-Null
 
-          # -----------------------------
-          # Fix: projects calling python on glib-genmarshal PATH without .exe
-          # If glib-genmarshal.exe exists, create a python wrapper at glib-genmarshal (no extension).
-          # -----------------------------
-          $gtkBin = Join-Path "C:\gtk-build\gtk\${{ matrix.platform }}\release\bin" ""
-          $genExe = Join-Path $gtkBin "glib-genmarshal.exe"
-          $genPy  = Join-Path $gtkBin "glib-genmarshal"
+            $link = Join-Path $platDir "release"
+            if (Test-Path $link) { Remove-Item $link -Recurse -Force -ErrorAction SilentlyContinue }
 
-          if ((Test-Path $genExe) -and (-not (Test-Path $genPy))) {
-            @'
+            New-Item -Path $platDir -Name "release" -ItemType Junction -Value $releaseDir | Out-Null
+
+            # Wrapper: vcxproj calls python.exe "<...>\glib-genmarshal" (no .exe).
+            $genExe = Join-Path $gtkBin "glib-genmarshal.exe"
+            $genPy  = Join-Path $gtkBin "glib-genmarshal"
+            if ((Test-Path $genExe) -and (-not (Test-Path $genPy))) {
+              @'
           import os, subprocess, sys
           exe = os.path.join(os.path.dirname(__file__), "glib-genmarshal.exe")
           sys.exit(subprocess.call([exe] + sys.argv[1:]))
           '@ | Set-Content -Path $genPy -Encoding ASCII
-          }
+            }
 
-          # -----------------------------
-          # Fix: if some project still looks for gtk-win32-2.0.lib, provide a compatibility alias.
-          # This is a bridge while you finish flipping all vcxproj link libs to GTK3.
-          # -----------------------------
-          $gtkLib = Join-Path "C:\gtk-build\gtk\${{ matrix.platform }}\release\lib" ""
-          $gtk2lib = Join-Path $gtkLib "gtk-win32-2.0.lib"
-          $gtk3lib = Join-Path $gtkLib "gtk-3.0.lib"
-          if ((-not (Test-Path $gtk2lib)) -and (Test-Path $gtk3lib)) {
-            Copy-Item $gtk3lib $gtk2lib -Force
+            # Compatibility aliases while vcxproj still names GTK2 libs.
+            $gtkLib = Join-Path "C:\gtk-build\gtk\${{ matrix.platform }}\release\lib" ""
+            if (Test-Path $gtkLib) {
+              $gtk3 = Get-ChildItem -Path $gtkLib -Filter "gtk-3*.lib" -ErrorAction SilentlyContinue | Select-Object -First 1
+              if ($gtk3 -and (-not (Test-Path (Join-Path $gtkLib "gtk-win32-2.0.lib")))) {
+                Copy-Item $gtk3.FullName (Join-Path $gtkLib "gtk-win32-2.0.lib") -Force
+              }
+
+              $gdk3 = Get-ChildItem -Path $gtkLib -Filter "gdk-3*.lib" -ErrorAction SilentlyContinue | Select-Object -First 1
+              if ($gdk3 -and (-not (Test-Path (Join-Path $gtkLib "gdk-win32-2.0.lib")))) {
+                Copy-Item $gdk3.FullName (Join-Path $gtkLib "gdk-win32-2.0.lib") -Force
+              }
+            }
           }
 
           # Resolve python root from setup-python
@@ -156,7 +177,11 @@ jobs:
 
       - name: Build
         run: |
-          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\VsDevCmd.bat"
+          if "${{ matrix.platform }}"=="x64" (
+            call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\VsDevCmd.bat" -host_arch=amd64 -arch=amd64
+          ) else (
+            call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\VsDevCmd.bat" -host_arch=amd64 -arch=x86
+          )
 
           set "PYTHON_DIR=C:\gtk-build\python-3.14.2\${{ matrix.platform }}"
           if not exist "%PYTHON_DIR%\libs\python314.lib" (
@@ -168,10 +193,42 @@ jobs:
           set "LIB=%PYTHON_DIR%\libs;%LIB%"
           set "INCLUDE=%PYTHON_DIR%\include;%INCLUDE%"
 
-          rem Prefer LuaJIT headers/libs if present (fixes lua.h missing when moving toolchains)
           set "GTKROOT=C:\gtk-build\gtk\${{ matrix.platform }}\release"
-          if exist "%GTKROOT%\include\luajit-2.1\lua.h" set "INCLUDE=%GTKROOT%\include\luajit-2.1;%INCLUDE%"
-          if exist "%GTKROOT%\lib" set "LIB=%GTKROOT%\lib;%LIB%"
+          if not exist "%GTKROOT%\bin" (
+            echo GTKROOT bin not found at %GTKROOT%\bin
+            dir "C:\gtk-build\gtk\${{ matrix.platform }}"
+            exit /b 1
+          )
+
+          set "PATH=%GTKROOT%\bin;%PATH%"
+          set "INCLUDE=%GTKROOT%\include;%INCLUDE%"
+          set "LIB=%GTKROOT%\lib;%LIB%"
+
+          rem Build LuaJIT (MSVC) if lua.h isn't present in the GTK bundle.
+          if not exist "%GTKROOT%\include\luajit-2.1\lua.h" (
+            set "LUABASE=C:\gtk-build\luajit\${{ matrix.platform }}"
+            if not exist "%LUABASE%\include\lua.h" (
+              rmdir /s /q C:\gtk-build\luajit-src 2>nul
+              git clone --depth 1 --branch v2.1 https://github.com/LuaJIT/LuaJIT.git C:\gtk-build\luajit-src
+              pushd C:\gtk-build\luajit-src\src
+              call msvcbuild.bat
+              popd
+
+              mkdir "%LUABASE%\include" 2>nul
+              copy /y C:\gtk-build\luajit-src\src\lua.h "%LUABASE%\include\"
+              copy /y C:\gtk-build\luajit-src\src\lauxlib.h "%LUABASE%\include\"
+              copy /y C:\gtk-build\luajit-src\src\luaconf.h "%LUABASE%\include\"
+              copy /y C:\gtk-build\luajit-src\src\luajit.h "%LUABASE%\include\" 2>nul
+
+              mkdir "%LUABASE%\lib" 2>nul
+              copy /y C:\gtk-build\luajit-src\src\lua51.lib "%LUABASE%\lib\"
+            )
+
+            set "INCLUDE=%LUABASE%\include;%INCLUDE%"
+            set "LIB=%LUABASE%\lib;%LIB%"
+          ) else (
+            set "INCLUDE=%GTKROOT%\include\luajit-2.1;%INCLUDE%"
+          )
 
           msbuild win32\zoitechat.sln /m /verbosity:minimal /p:Configuration=Release /p:Platform=${{ matrix.platform }}
         shell: cmd
