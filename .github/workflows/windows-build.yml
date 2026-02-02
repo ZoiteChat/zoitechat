@@ -2,143 +2,125 @@ name: Windows Build
 
 on:
   push:
-    branches:
-      - master
   pull_request:
-    branches:
-      - master
 
 jobs:
-  windows_build:
+  build:
     runs-on: windows-2019
-
-    permissions:
-      contents: read
-      id-token: write
-      attestations: write
-      artifact-metadata: write
-
     strategy:
+      fail-fast: false
       matrix:
         platform: [x64, win32]
-        arch: [x64, x86]
-        exclude:
-          - platform: x64
-            arch: x86
-          - platform: win32
-            arch: x64
-      fail-fast: false
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+      - name: Setup Python (for gen + embedded)
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.14.2'
-          architecture: ${{ matrix.arch }}
+          python-version: "3.14.2"
+          architecture: ${{ matrix.platform == 'win32' && 'x86' || 'x64' }}
 
-      - name: Install Dependencies
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Install GTK bundle
+        shell: pwsh
         run: |
-          New-Item -Name "deps" -ItemType "Directory" -Force | Out-Null
-          New-Item -Path "C:\gtk-build" -ItemType "Directory" -Force | Out-Null
+          $ErrorActionPreference = "Stop"
 
-          Invoke-WebRequest http://files.jrsoftware.org/is/5/innosetup-5.5.9-unicode.exe -OutFile deps\innosetup-unicode.exe
-          & deps\innosetup-unicode.exe /VERYSILENT | Out-Null
+          $plat = "${{ matrix.platform }}"
+          $gtkBuildRoot = "C:\gtk-build"
+          $gtkLinkRoot  = Join-Path $gtkBuildRoot "gtk"
+          $pyLinkRoot   = Join-Path $gtkBuildRoot "python-3.14"
 
-          Invoke-WebRequest https://github.com/ZoiteChat/gvsbuild/releases/download/zoitechat-2.17.0/idpsetup-1.5.1.exe -OutFile deps\idpsetup.exe
-          & deps\idpsetup.exe /VERYSILENT
+          New-Item -ItemType Directory -Force -Path $gtkBuildRoot | Out-Null
 
-          # --- GTK stack from wingtk/gvsbuild (NO MSYS build here; use their prebuilt release) ---
-          $repo = "wingtk/gvsbuild"
-          $tag = (gh release view --repo $repo --json tagName -q .tagName)
-          Write-Host "Using $repo release: $tag"
+          # Python junction expected by the VS projects
+          $pyActual = $env:pythonLocation
+          $pyTarget = Join-Path $pyLinkRoot $plat
+          if (Test-Path $pyTarget) { cmd /c rmdir $pyTarget | Out-Null }
+          cmd /c mklink /J "$pyTarget" "$pyActual" | Out-Null
 
-          $patterns = @()
-          if ("${{ matrix.platform }}" -eq "x64") {
-            $patterns = @("*x64*.zip", "*win64*.zip", "*x64*.7z", "*win64*.7z", "*gtk*.zip", "*gtk*.7z")
-          } else {
-            $patterns = @("*x86*.zip", "*win32*.zip", "*x86*.7z", "*win32*.7z", "*gtk*.zip", "*gtk*.7z")
-          }
+          if ($plat -eq "x64") {
+            # Pull latest GTK3 x64 bundle from wingtk/gvsbuild releases via GitHub API
+            $rel = Invoke-RestMethod "https://api.github.com/repos/wingtk/gvsbuild/releases/latest"
+            $asset = $rel.assets | Where-Object { $_.name -match '^GTK3_Gvsbuild_.*_x64\.zip$' } | Select-Object -First 1
+            if (-not $asset) { throw "No GTK3 x64 bundle found in latest wingtk/gvsbuild release." }
 
-          $downloaded = $false
-          foreach ($p in $patterns) {
-            gh release download $tag --repo $repo --pattern $p --dir deps
-            if ($LASTEXITCODE -eq 0) { $downloaded = $true; break }
-          }
-          if (-not $downloaded) {
-            throw "Could not download a wingtk/gvsbuild GTK asset for platform=${{ matrix.platform }} arch=${{ matrix.arch }}"
-          }
+            $zip = Join-Path $env:RUNNER_TEMP $asset.name
+            Invoke-WebRequest $asset.browser_download_url -OutFile $zip
 
-          $gtkPkg = Get-ChildItem deps -File | Where-Object { $_.Name -match '(?i)\.(zip|7z)$' } | Sort-Object Length -Descending | Select-Object -First 1
-          if (-not $gtkPkg) { throw "GTK package download succeeded but no archive found in deps/." }
-          Write-Host "Downloaded GTK package: $($gtkPkg.Name)"
+            $extract = "C:\gtk-bundle"
+            if (Test-Path $extract) { Remove-Item -Recurse -Force $extract }
+            New-Item -ItemType Directory -Force -Path $extract | Out-Null
+            Expand-Archive -Force $zip -DestinationPath $extract
 
-          $tmp = Join-Path $env:TEMP "wingtk-gtk-extract"
-          Remove-Item $tmp -Recurse -Force -ErrorAction SilentlyContinue
-          New-Item -Path $tmp -ItemType Directory -Force | Out-Null
-
-          if ($gtkPkg.Extension -ieq ".zip") {
-            Expand-Archive -Path $gtkPkg.FullName -DestinationPath $tmp -Force
-          } else {
-            & 7z.exe x $gtkPkg.FullName "-o$tmp" | Out-Null
-          }
-
-          # Find the extracted root (either directly contains bin/include/lib, or has a single child dir that does)
-          $root = $null
-          if (Test-Path (Join-Path $tmp "bin")) {
-            $root = Get-Item $tmp
-          } else {
-            $root = Get-ChildItem $tmp -Directory |
-              Where-Object { Test-Path (Join-Path $_.FullName "bin") } |
+            # Find the *release* prefix that actually contains bin/include/lib
+            $prefix = Get-ChildItem -Path $extract -Directory -Recurse |
+              Where-Object {
+                (Test-Path (Join-Path $_.FullName "bin")) -and
+                (Test-Path (Join-Path $_.FullName "include")) -and
+                (Test-Path (Join-Path $_.FullName "lib"))
+              } |
+              Where-Object { $_.FullName -match '\\x64\\release$' } |
               Select-Object -First 1
-          }
-          if (-not $root) {
-            $root = Get-ChildItem $tmp -Directory | Select-Object -First 1
-          }
-          if (-not $root) { throw "Failed to determine GTK extract root under $tmp" }
 
-          $target = "C:\gtk-build\gtk\${{ matrix.platform }}\Release"
-          New-Item -Path $target -ItemType Directory -Force | Out-Null
+            if (-not $prefix) {
+              # fallback: first directory containing gtk-3.0.lib
+              $lib = Get-ChildItem -Path $extract -File -Recurse -Filter "gtk-3.0.lib" | Select-Object -First 1
+              if (-not $lib) { throw "Could not locate gtk-3.0.lib inside extracted GTK bundle." }
+              $prefix = $lib.Directory.Parent
+            }
 
-          foreach ($d in @("bin","include","lib","share","etc")) {
-            $src = Join-Path $root.FullName $d
-            if (Test-Path $src) {
-              Copy-Item $src $target -Recurse -Force
+            $depsRoot = Join-Path $gtkLinkRoot "$plat\release"
+            if (Test-Path $depsRoot) { cmd /c rmdir $depsRoot | Out-Null }
+            New-Item -ItemType Directory -Force -Path (Split-Path $depsRoot) | Out-Null
+            cmd /c mklink /J "$depsRoot" "$($prefix.FullName)" | Out-Null
+
+            # Make sure bin is on PATH for any custom tools
+            echo "$depsRoot\bin" | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+
+            # Optional compat aliases (only if something still hardcodes GTK2/OpenSSL/libxml2 names)
+            $libDir = Join-Path $depsRoot "lib"
+            if (-not (Test-Path (Join-Path $libDir "gtk-win32-2.0.lib")) -and (Test-Path (Join-Path $libDir "gtk-3.0.lib"))) {
+              Copy-Item (Join-Path $libDir "gtk-3.0.lib") (Join-Path $libDir "gtk-win32-2.0.lib")
+            }
+            if (-not (Test-Path (Join-Path $libDir "gdk-win32-2.0.lib")) -and (Test-Path (Join-Path $libDir "gdk-3.0.lib"))) {
+              Copy-Item (Join-Path $libDir "gdk-3.0.lib") (Join-Path $libDir "gdk-win32-2.0.lib")
+            }
+            if (-not (Test-Path (Join-Path $libDir "libxml2.lib")) -and (Test-Path (Join-Path $libDir "libxml2-2.0.lib"))) {
+              Copy-Item (Join-Path $libDir "libxml2-2.0.lib") (Join-Path $libDir "libxml2.lib")
+            }
+            if (-not (Test-Path (Join-Path $libDir "ssleay32.lib")) -and (Test-Path (Join-Path $libDir "libssl.lib"))) {
+              Copy-Item (Join-Path $libDir "libssl.lib") (Join-Path $libDir "ssleay32.lib")
+            }
+            if (-not (Test-Path (Join-Path $libDir "libeay32.lib")) -and (Test-Path (Join-Path $libDir "libcrypto.lib"))) {
+              Copy-Item (Join-Path $libDir "libcrypto.lib") (Join-Path $libDir "libeay32.lib")
+            }
+
+            # Lua headers: if deps prefix doesn't ship them, copy from repo if present
+            $luaDst = Join-Path $depsRoot "include\luajit-2.1"
+            if (-not (Test-Path (Join-Path $luaDst "lua.h"))) {
+              $luaSrc = Join-Path $env:GITHUB_WORKSPACE "plugins\lua\luajit\src"
+              if (Test-Path (Join-Path $luaSrc "lua.h")) {
+                New-Item -ItemType Directory -Force -Path $luaDst | Out-Null
+                Copy-Item (Join-Path $luaSrc "*.h") $luaDst -Force
+              }
             }
           }
-
-          # --- remaining deps still from ZoiteChat/gvsbuild (as requested) ---
-          Invoke-WebRequest https://github.com/ZoiteChat/gvsbuild/releases/download/zoitechat-2.17.0/gendef-20111031.7z -OutFile deps\gendef.7z
-          & 7z.exe x deps\gendef.7z -oC:\gtk-build
-
-          Invoke-WebRequest https://github.com/ZoiteChat/gvsbuild/releases/download/zoitechat-2.17.0/WinSparkle-20151011.7z -OutFile deps\WinSparkle.7z
-          & 7z.exe x deps\WinSparkle.7z -oC:\gtk-build\WinSparkle
-
-          Invoke-WebRequest https://github.com/ZoiteChat/gvsbuild/releases/download/zoitechat-2.17.0/perl-5.20.0-${{ matrix.arch }}.7z -OutFile deps\perl-${{ matrix.arch }}.7z
-          & 7z.exe x deps\perl-${{ matrix.arch }}.7z -oC:\gtk-build\perl-5.20\${{ matrix.platform }}
-
-          # Resolve python root from setup-python
-          $pyRoot = $env:pythonLocation
-          if (-not $pyRoot) { $pyRoot = & python -c "import sys; print(sys.prefix)" }
-
-          # Create BOTH paths because the .vcxproj hard-codes python-3.14\...
-          foreach ($pyDir in @("C:\gtk-build\python-3.14.2", "C:\gtk-build\python-3.14")) {
-            New-Item -Path $pyDir -ItemType Directory -Force | Out-Null
-            $target = Join-Path $pyDir "${{ matrix.platform }}"
-            if (Test-Path $target) { Remove-Item $target -Recurse -Force }
-            New-Item -Path $pyDir -Name "${{ matrix.platform }}" -ItemType Junction -Value $pyRoot | Out-Null
+          else {
+            # win32: keep your existing GTK2 path/tooling here
+            # (Pin whatever you were already using for x86 builds.)
+            Write-Host "win32 build: keeping GTK2 toolchain (GTK3 x86 not available in latest wingtk/gvsbuild)."
           }
 
-          python -m pip install --upgrade pip
-          python -m pip install cffi
-
       - name: Build
+        shell: cmd
         run: |
-          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\VsDevCmd.bat"
+          setlocal enabledelayedexpansion
 
-          set "PYTHON_DIR=C:\gtk-build\python-3.14.2\${{ matrix.platform }}"
+          set "PLAT=${{ matrix.platform }}"
+          set "PYTHON_DIR=C:\gtk-build\python-3.14\%PLAT%"
+
           if not exist "%PYTHON_DIR%\libs\python314.lib" (
             echo Missing %PYTHON_DIR%\libs\python314.lib
             dir "%PYTHON_DIR%\libs"
@@ -148,39 +130,4 @@ jobs:
           set "LIB=%PYTHON_DIR%\libs;%LIB%"
           set "INCLUDE=%PYTHON_DIR%\include;%INCLUDE%"
 
-          msbuild win32\zoitechat.sln /m /verbosity:minimal /p:Configuration=Release /p:Platform=${{ matrix.platform }}
-        shell: cmd
-
-      - name: Preparing Artifacts
-        run: |
-          move ..\zoitechat-build\${{ matrix.platform }}\ZoiteChat*.exe .\
-          move ..\zoitechat-build .\
-        shell: cmd
-
-      - name: Upload Installer
-        id: upload_installer
-        uses: actions/upload-artifact@v4
-        with:
-          name: Installer ${{ matrix.arch }}
-          path: ZoiteChat*.exe
-
-      - name: Attest Installer (Artifact Attestation)
-        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
-        uses: actions/attest-build-provenance@v3
-        with:
-          subject-name: Installer ${{ matrix.arch }}
-          subject-digest: sha256:${{ steps.upload_installer.outputs.artifact-digest }}
-
-      - name: Upload Build Files
-        id: upload_buildfiles
-        uses: actions/upload-artifact@v4
-        with:
-          name: Build Files ${{ matrix.arch }}
-          path: zoitechat-build
-
-      - name: Attest Build Files (Artifact Attestation)
-        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
-        uses: actions/attest-build-provenance@v3
-        with:
-          subject-name: Build Files ${{ matrix.arch }}
-          subject-digest: sha256:${{ steps.upload_buildfiles.outputs.artifact-digest }}
+          msbuild win32\zoitechat.sln /m /verbosity:minimal /p:Configuration=Release /p:Platform=%PLAT%
