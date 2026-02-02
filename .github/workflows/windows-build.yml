@@ -61,11 +61,7 @@ jobs:
           & 7z.exe x deps\perl-${{ matrix.arch }}.7z -oC:\gtk-build\perl-5.20\${{ matrix.platform }} | Out-Null
 
           # -----------------------------
-          # GTK3 stack (MSVC) from wingtk/gvsbuild
-          # Fixes:
-          #  - asset name changed (GTK3_Gvsbuild_*.zip) so don't require "release|rel"
-          #  - x86 may be missing in latest, so scan recent releases for first matching arch
-          #  - normalize to C:\gtk-build\gtk\<platform>\release\...
+          # GTK3 stack (MSVC) from wingtk/gvsbuild (robust layout detection)
           # -----------------------------
           $wantArch = if ("${{ matrix.platform }}" -eq "x64") { "x64" } else { "x86" }
 
@@ -92,7 +88,7 @@ jobs:
 
           if (-not $asset) {
             if ($wantArch -eq "x86") {
-              # Fallback: keep 32-bit build working even if GTK3 x86 isn't published.
+              # Fallback: keep 32-bit build working if GTK3 x86 isn't published.
               $usingLegacyGtk2 = $true
               Write-Host "No GTK3 x86 bundle found in recent wingtk/gvsbuild releases. Falling back to legacy GTK2 bundle for win32 to keep builds working."
               Invoke-WebRequest https://github.com/zoitechat/gvsbuild/releases/download/zoitechat-2.17.0/gtk-${{ matrix.platform }}-2018-08-29-openssl1.1.7z -OutFile deps\gtk-legacy-${{ matrix.platform }}.7z
@@ -117,32 +113,82 @@ jobs:
             New-Item -Path $extractRoot -ItemType Directory -Force | Out-Null
             Expand-Archive -Force $bundlePath -DestinationPath $extractRoot
 
-            # Locate glib-genmarshal.exe to infer the real <arch>\release\bin layout (regardless of top folder name).
-            $gen = Get-ChildItem -Path $extractRoot -Recurse -Filter "glib-genmarshal.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
-            if (-not $gen) { throw "GTK3 bundle extracted, but glib-genmarshal.exe was not found. Layout unexpected." }
+            # Infer the "release" root from a guaranteed artifact: gtk-3.0.lib or libgtk-3-0.dll
+            $gtk3lib = Get-ChildItem -Path $extractRoot -Recurse -Filter "gtk-3.0.lib" -ErrorAction SilentlyContinue | Select-Object -First 1
+            $gtk3dll = $null
+            if (-not $gtk3lib) {
+              $gtk3dll = Get-ChildItem -Path $extractRoot -Recurse -Include "libgtk-3-0.dll","gtk-3*.dll" -ErrorAction SilentlyContinue | Select-Object -First 1
+            }
 
-            $gtkBin     = Split-Path $gen.FullName -Parent               # ...\bin
-            $releaseDir = Split-Path $gtkBin -Parent                     # ...\release
+            if ($gtk3lib) {
+              $gtkLibDir  = Split-Path $gtk3lib.FullName -Parent
+              $releaseDir = Split-Path $gtkLibDir -Parent
+            } elseif ($gtk3dll) {
+              $gtkBinDir  = Split-Path $gtk3dll.FullName -Parent
+              $releaseDir = Split-Path $gtkBinDir -Parent
+            } else {
+              throw "GTK3 bundle extracted, but neither gtk-3.0.lib nor libgtk-3-0.dll was found. Layout unexpected."
+            }
+
+            $gtkBin = Join-Path $releaseDir "bin"
+            if (-not (Test-Path $gtkBin)) {
+              throw "GTK3 release root inferred, but bin/ was not found at: $gtkBin"
+            }
 
             # Normalize expected path:
             # C:\gtk-build\gtk\<platform>\release -> <releaseDir>
             $platDir = "C:\gtk-build\gtk\${{ matrix.platform }}"
             New-Item -Path $platDir -ItemType Directory -Force | Out-Null
-
             $link = Join-Path $platDir "release"
             if (Test-Path $link) { Remove-Item $link -Recurse -Force -ErrorAction SilentlyContinue }
-
             New-Item -Path $platDir -Name "release" -ItemType Junction -Value $releaseDir | Out-Null
 
-            # Wrapper: vcxproj calls python.exe "<...>\glib-genmarshal" (no .exe).
-            $genExe = Join-Path $gtkBin "glib-genmarshal.exe"
-            $genPy  = Join-Path $gtkBin "glib-genmarshal"
-            if ((Test-Path $genExe) -and (-not (Test-Path $genPy))) {
-              @'
-          import os, subprocess, sys
-          exe = os.path.join(os.path.dirname(__file__), "glib-genmarshal.exe")
-          sys.exit(subprocess.call([exe] + sys.argv[1:]))
-          '@ | Set-Content -Path $genPy -Encoding ASCII
+            # Find any glib-genmarshal in the bundle (exe or script)
+            $genAny = Get-ChildItem -Path $extractRoot -Recurse -ErrorAction SilentlyContinue |
+              Where-Object { $_.Name -match '(?i)^glib-genmarshal(\.exe|\.py)?$' } |
+              Select-Object -First 1
+
+            $genTarget = Join-Path $gtkBin "glib-genmarshal"  # what your vcxproj calls via python.exe
+
+            if ($genAny) {
+              # Create wrapper that runs either the .exe or .py we found.
+              $genPath = $genAny.FullName.Replace('\','\\')
+              @"
+import os, subprocess, sys
+tool = r"$genPath"
+if tool.lower().endswith(".py"):
+    sys.exit(subprocess.call([sys.executable, tool] + sys.argv[1:]))
+else:
+    sys.exit(subprocess.call([tool] + sys.argv[1:]))
+"@ | Set-Content -Path $genTarget -Encoding ASCII
+            } else {
+              # Fallback: install MSYS2 glib2 tools and run their glib-genmarshal with PATH set.
+              Write-Host "glib-genmarshal not found in GTK3 bundle. Installing MSYS2 glib2 tools as a fallback."
+
+              choco install msys2 -y --no-progress
+
+              $msysBash = "C:\msys64\usr\bin\bash.exe"
+              if (-not (Test-Path $msysBash)) { throw "MSYS2 install failed: bash.exe not found." }
+
+              $mingw = if ("${{ matrix.platform }}" -eq "x64") { "mingw64" } else { "mingw32" }
+              $pkg   = if ("${{ matrix.platform }}" -eq "x64") { "mingw-w64-x86_64-glib2" } else { "mingw-w64-i686-glib2" }
+
+              & $msysBash -lc "pacman -Sy --noconfirm --needed $pkg"
+
+              $msysGen = "C:\msys64\$mingw\bin\glib-genmarshal.exe"
+              if (-not (Test-Path $msysGen)) { throw "MSYS2 glib-genmarshal.exe not found at expected path: $msysGen" }
+
+              $msysBin = Split-Path $msysGen -Parent
+              $msysGenEsc = $msysGen.Replace('\','\\')
+              $msysBinEsc = $msysBin.Replace('\','\\')
+
+              @"
+import os, subprocess, sys
+exe = r"$msysGenEsc"
+env = os.environ.copy()
+env["PATH"] = r"$msysBinEsc" + ";" + env.get("PATH","")
+sys.exit(subprocess.call([exe] + sys.argv[1:], env=env))
+"@ | Set-Content -Path $genTarget -Encoding ASCII
             }
 
             # Compatibility aliases while vcxproj still names GTK2 libs.
