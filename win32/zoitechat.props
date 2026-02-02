@@ -24,12 +24,30 @@
 		<Python3Path>$(YourPython3Path)\$(PlatformName)</Python3Path>
 		<Python3Lib>python314</Python3Lib>
 		<Python3Output>hcpython3</Python3Output>
-		<LuaInclude>$(DepsRoot)\include\luajit-2.1</LuaInclude>
+		<LuaInclude>$(DepsRoot)\include\luajit-2.1;$(SolutionDir)..\plugins\lua\luajit\src;$(SolutionDir)..\plugins\lua\luajit\src\jit</LuaInclude>
 		<LuaOutput>hclua</LuaOutput>
 		<LuaLib>lua51</LuaLib>
 		<Glib>$(DepsRoot)\include\glib-2.0;$(DepsRoot)\lib\glib-2.0\include;$(DepsRoot)\include\libxml2</Glib>
-		<Gtk>$(DepsRoot)\include\gtk-2.0;$(DepsRoot)\lib\gtk-2.0\include;$(DepsRoot)\include\atk-1.0;$(DepsRoot)\include\cairo;$(DepsRoot)\include\pango-1.0;$(DepsRoot)\include\gdk-pixbuf-2.0</Gtk>
-		<DepLibs>gtk-win32-2.0.lib;gdk-win32-2.0.lib;atk-1.0.lib;gio-2.0.lib;gdk_pixbuf-2.0.lib;pangowin32-1.0.lib;pangocairo-1.0.lib;pango-1.0.lib;cairo.lib;gobject-2.0.lib;gmodule-2.0.lib;glib-2.0.lib;intl.lib;libxml2.lib;libcrypto.lib;libssl.lib;ssleay32.lib;wininet.lib;winmm.lib;ws2_32.lib</DepLibs>
+        <UsingGtk3 Condition="Exists('$(DepsRoot)\\include\\gtk-3.0\\gtk\\gtk.h')">true</UsingGtk3>
+        <Gtk2>$(DepsRoot)\include\gtk-2.0;$(DepsRoot)\lib\gtk-2.0\include</Gtk2>
+        <Gtk3>$(DepsRoot)\include\gtk-3.0;$(DepsRoot)\lib\gtk-3.0\include</Gtk3>
+        <GtkCommon>$(DepsRoot)\include\atk-1.0;$(DepsRoot)\include\cairo;$(DepsRoot)\include\pango-1.0;$(DepsRoot)\include\gdk-pixbuf-2.0</GtkCommon>
+        <Gtk Condition="'$(UsingGtk3)'=='true'">$(Gtk3);$(GtkCommon)</Gtk>
+        <Gtk Condition="'$(UsingGtk3)'!='true'">$(Gtk2);$(GtkCommon)</Gtk>
+        <XmlLib Condition="Exists('$(DepsRoot)\\lib\\libxml2-2.0.lib')">libxml2-2.0.lib</XmlLib>
+        <XmlLib Condition="'$(XmlLib)'==''">libxml2.lib</XmlLib>
+        <SslLib Condition="Exists('$(DepsRoot)\\lib\\libssl.lib')">libssl.lib</SslLib>
+        <SslLib Condition="'$(SslLib)'=='' and Exists('$(DepsRoot)\\lib\\ssl.lib')">ssl.lib</SslLib>
+        <CryptoLib Condition="Exists('$(DepsRoot)\\lib\\libcrypto.lib')">libcrypto.lib</CryptoLib>
+        <CryptoLib Condition="'$(CryptoLib)'=='' and Exists('$(DepsRoot)\\lib\\crypto.lib')">crypto.lib</CryptoLib>
+        <SslLegacyLib Condition="Exists('$(DepsRoot)\\lib\\ssleay32.lib')">ssleay32.lib</SslLegacyLib>
+        <CryptoLegacyLib Condition="Exists('$(DepsRoot)\\lib\\libeay32.lib')">libeay32.lib</CryptoLegacyLib>
+
+        <Gtk2Libs>gtk-win32-2.0.lib;gdk-win32-2.0.lib;atk-1.0.lib;gio-2.0.lib;gdk_pixbuf-2.0.lib;pangowin32-1.0.lib;pangocairo-1.0.lib;pango-1.0.lib;cairo.lib;gobject-2.0.lib;gmodule-2.0.lib;glib-2.0.lib;intl.lib;iconv.lib;zlib.lib;$(XmlLib);libjpeg.lib;libpng16.lib;$(CryptoLib);$(SslLib);$(CryptoLegacyLib);$(SslLegacyLib)</Gtk2Libs>
+        <Gtk3Libs>gtk-3.0.lib;gdk-3.0.lib;atk-1.0.lib;gio-2.0.lib;gdk_pixbuf-2.0.lib;pangowin32-1.0.lib;pangocairo-1.0.lib;pango-1.0.lib;cairo.lib;gobject-2.0.lib;gmodule-2.0.lib;glib-2.0.lib;intl.lib;iconv.lib;zlib.lib;$(XmlLib);libjpeg.lib;libpng16.lib;$(CryptoLib);$(SslLib)</Gtk3Libs>
+
+        <DepLibs Condition="'$(UsingGtk3)'=='true'">$(Gtk3Libs);wininet.lib;winmm.lib;ws2_32.lib</DepLibs>
+        <DepLibs Condition="'$(UsingGtk3)'!='true'">$(Gtk2Libs);wininet.lib;winmm.lib;ws2_32.lib</DepLibs>
 		<DataDir>$(SolutionDir)..\data\\</DataDir>
 		<ZoiteChatBuild>$(SolutionDir)..\..\zoitechat-build</ZoiteChatBuild>
 		<ZoiteChatBin>$(ZoiteChatBuild)\$(PlatformName)\bin\</ZoiteChatBin>
