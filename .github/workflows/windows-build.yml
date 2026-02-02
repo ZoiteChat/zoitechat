@@ -151,17 +151,17 @@ jobs:
             $genTarget = Join-Path $gtkBin "glib-genmarshal"  # what your vcxproj calls via python.exe
 
             if ($genAny) {
-              # Create wrapper that runs either the .exe or .py we found.
               $genPath = $genAny.FullName.Replace('\','\\')
-              @"
-            import os, subprocess, sys
-            tool = r"$genPath"
-            if tool.lower().endswith(".py"):
-                sys.exit(subprocess.call([sys.executable, tool] + sys.argv[1:]))
-            else:
-                sys.exit(subprocess.call([tool] + sys.argv[1:]))
-            "@ | Set-Content -Path $genTarget -Encoding ASCII
-                        } else {
+              $pyWrapper = @(
+                'import os, subprocess, sys',
+                "tool = r`"$genPath`"",
+                'if tool.lower().endswith(".py"):',
+                '    sys.exit(subprocess.call([sys.executable, tool] + sys.argv[1:]))',
+                'else:',
+                '    sys.exit(subprocess.call([tool] + sys.argv[1:]))'
+              ) -join "`r`n"
+              Set-Content -Path $genTarget -Value $pyWrapper -Encoding ASCII
+            } else {
               # Fallback: install MSYS2 glib2 tools and run their glib-genmarshal with PATH set.
               Write-Host "glib-genmarshal not found in GTK3 bundle. Installing MSYS2 glib2 tools as a fallback."
 
@@ -178,17 +178,17 @@ jobs:
               $msysGen = "C:\msys64\$mingw\bin\glib-genmarshal.exe"
               if (-not (Test-Path $msysGen)) { throw "MSYS2 glib-genmarshal.exe not found at expected path: $msysGen" }
 
-              $msysBin = Split-Path $msysGen -Parent
+              $msysBin = (Split-Path $msysGen -Parent).Replace('\','\\')
               $msysGenEsc = $msysGen.Replace('\','\\')
-              $msysBinEsc = $msysBin.Replace('\','\\')
 
-              @"
-            import os, subprocess, sys
-            exe = r"$msysGenEsc"
-            env = os.environ.copy()
-            env["PATH"] = r"$msysBinEsc" + ";" + env.get("PATH","")
-            sys.exit(subprocess.call([exe] + sys.argv[1:], env=env))
-            "@ | Set-Content -Path $genTarget -Encoding ASCII
+              $pyWrapper = @(
+                'import os, subprocess, sys',
+                "exe = r`"$msysGenEsc`"",
+                'env = os.environ.copy()',
+                "env[`"PATH`"] = r`"$msysBin`" + `";`" + env.get(`"PATH`",`"`")",
+                'sys.exit(subprocess.call([exe] + sys.argv[1:], env=env))'
+              ) -join "`r`n"
+              Set-Content -Path $genTarget -Value $pyWrapper -Encoding ASCII
             }
 
             # Compatibility aliases while vcxproj still names GTK2 libs.
