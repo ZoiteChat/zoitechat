@@ -32,7 +32,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # MSYS2 is required for the gvsbuild-from-source fallback path.
       - name: Setup MSYS2 (for GTK build fallback)
         uses: msys2/setup-msys2@v2
         with:
@@ -85,7 +84,7 @@ jobs:
               Where-Object { $_.FullName -match '\\include\\gtk-3\.0\\gtk\\gtk\.h$' } |
               Select-Object -First 1
             if (-not $gtkH) { return $null }
-            return $gtkH.Directory.Parent.Parent.Parent.FullName  # ...\include\gtk-3.0\gtk\gtk.h -> prefix
+            return $gtkH.Directory.Parent.Parent.Parent.FullName
           }
 
           function Ensure-Junction([string]$linkPath, [string]$targetPath) {
@@ -117,19 +116,16 @@ jobs:
             $wrapperPath = Join-Path $gtkBin "glib-genmarshal"
             $exePath     = Join-Path $gtkBin "glib-genmarshal.exe"
 
-            # If a non-exe tool exists, move it aside so our wrapper name is stable.
             $realPath = Join-Path $gtkBin "glib-genmarshal.real"
             if (Test-Path $realPath) { Remove-Item $realPath -Force }
 
             if (Test-Path $wrapperPath) {
-              # If it's already our wrapper, keep it. Otherwise move to .real.
               $first = (Get-Content -Path $wrapperPath -TotalCount 1 -ErrorAction SilentlyContinue)
               if ($first -notmatch 'import os') {
                 Move-Item $wrapperPath $realPath -Force
               }
             }
 
-            # If no exe and no real tool, search for any glib-genmarshal* in bin and use that.
             if (-not (Test-Path $exePath) -and -not (Test-Path $realPath)) {
               $cand = Get-ChildItem -Path $gtkBin -File -Filter "glib-genmarshal*" | Select-Object -First 1
               if ($cand) {
@@ -141,9 +137,6 @@ jobs:
               throw "GTK3 prefix present, but no glib-genmarshal tool found under $gtkBin"
             }
 
-            # Write a python wrapper that dispatches to:
-            # - glib-genmarshal.exe if present
-            # - otherwise glib-genmarshal.real (perl or python script)
             $wrapper = @(
               "import os, subprocess, sys",
               "base = os.path.dirname(__file__)",
@@ -168,10 +161,14 @@ jobs:
           }
 
           function Ensure-LuaHeaders([string]$gtkInc) {
-            # Provide <lua.h> et al for the lua plugin build.
+            # Put headers in BOTH include\ and include\lua\ to satisfy either include style.
+            $luaDir = Join-Path $gtkInc "lua"
+            New-Item -Path $luaDir -ItemType Directory -Force | Out-Null
+
             $zip = "deps\luajit-v2.1.zip"
             $dst = "deps\luajit-src"
-            if (-not (Test-Path $dst)) { New-Item -Path $dst -ItemType Directory -Force | Out-Null }
+            if (Test-Path $dst) { Remove-Item $dst -Recurse -Force }
+            New-Item -Path $dst -ItemType Directory -Force | Out-Null
 
             Invoke-WebRequest https://github.com/LuaJIT/LuaJIT/archive/refs/heads/v2.1.zip -OutFile $zip
             Expand-Archive -Force $zip -DestinationPath $dst
@@ -183,16 +180,21 @@ jobs:
             foreach ($h in @("lua.h", "lualib.h", "lauxlib.h", "luaconf.h")) {
               $p = Join-Path $hdrRoot $h
               if (-not (Test-Path $p)) { throw "LuaJIT header missing: $p" }
+
               Copy-Item $p (Join-Path $gtkInc $h) -Force
+              Copy-Item $p (Join-Path $luaDir $h) -Force
             }
+
+            if (-not (Test-Path (Join-Path $gtkInc "lua.h"))) { throw "lua.h was not installed into $gtkInc" }
+            if (-not (Test-Path (Join-Path $luaDir "lua.h"))) { throw "lua.h was not installed into $luaDir" }
           }
 
           # ------------------------------------------
           # GTK: Prefer prebuilt wingtk/gvsbuild GTK3 bundles.
           # If missing for x86 (win32), build GTK3 via gvsbuild from source.
           # ------------------------------------------
-          $wantArch = if ("${{ matrix.platform }}" -eq "x64") { "x64" } else { "x86" }   # gvsbuild uses x64/x86
-          $wantPlat = "${{ matrix.platform }}"                                           # solution uses x64/win32
+          $wantArch = if ("${{ matrix.platform }}" -eq "x64") { "x64" } else { "x86" }
+          $wantPlat = "${{ matrix.platform }}"
 
           $extractRoot = "C:\_gtk_extract"
           if (Test-Path $extractRoot) { Remove-Item $extractRoot -Recurse -Force }
@@ -208,8 +210,6 @@ jobs:
 
           try {
             $release = Invoke-RestMethod -Headers $headers -Uri "https://api.github.com/repos/wingtk/gvsbuild/releases/latest"
-
-            # Try a couple of patterns in case naming shifts slightly.
             $asset = $release.assets |
               Where-Object {
                 ($_.name -match '^GTK3_Gvsbuild_.*_(x64|x86)\.zip$' -or $_.name -match '(?i)gtk3.*(x64|x86)\.zip$') -and
@@ -235,7 +235,6 @@ jobs:
           }
 
           if (-not $gtkPrefix) {
-            # Build GTK3 via gvsbuild (VS2019) as a fallback.
             $gvsDir = "C:\gtk-build\github\gvsbuild"
             if (-not (Test-Path $gvsDir)) {
               New-Item -Path "C:\gtk-build\github" -ItemType Directory -Force | Out-Null
@@ -246,7 +245,6 @@ jobs:
             python -m pip install --upgrade pip
             python -m pip install -r requirements.txt
 
-            # Build GTK3 (3.24) for VS2019 (16), using MSYS2.
             python .\build.py build -p=$wantArch --vs-ver=16 --msys-dir=C:\tools\msys64 --gtk3-ver=3.24 -c=release gtk3
             Pop-Location
 
@@ -257,7 +255,6 @@ jobs:
           }
 
           # Normalize GTK location to the path your solution expects:
-          # C:\gtk-build\gtk\<platform>\release\...
           $normBase = "C:\gtk-build\gtk\$wantPlat"
           New-Item -Path $normBase -ItemType Directory -Force | Out-Null
           $normRel = Join-Path $normBase "release"
@@ -271,29 +268,18 @@ jobs:
           if (-not (Test-Path $gtkLib)) { throw "GTK lib dir missing at $gtkLib" }
           if (-not (Test-Path $gtkInc)) { throw "GTK include dir missing at $gtkInc" }
 
-          # glib-genmarshal: vcxproj calls python.exe <path>\glib-genmarshal (no extension).
-          # Ensure we always have a python wrapper named glib-genmarshal in GTK\bin.
           Ensure-GlibGenmarshalWrapper $gtkBin
-
-          # Provide Lua headers for the lua plugin (lua.c includes <lua.h>).
           Ensure-LuaHeaders $gtkInc
 
-          # Compatibility aliases for differing .lib names across bundles.
-          Copy-AliasLib $gtkLib "gtk-3.0.lib" @(
-            '^gtk-3-0\.lib$',
-            '^gtk-3\.lib$',
-            '^gtk-3.*\.lib$',
-            '^gtk-win32-2\.0\.lib$'
-          )
+          # Expected import libs (some projects hardcode these exact names)
+          Copy-AliasLib $gtkLib "gtk-3.0.lib" @('^gtk-3-0\.lib$', '^gtk-3\.lib$', '^gtk-3.*\.lib$', '^gtk-win32-2\.0\.lib$')
+          Copy-AliasLib $gtkLib "gdk-3.0.lib" @('^gdk-3-0\.lib$', '^gdk-3\.lib$', '^gdk-3.*\.lib$')
+          Copy-AliasLib $gtkLib "gdk-win32-3.0.lib" @('^gdk-win32-3-0\.lib$', '^gdk-win32-3\.lib$', '^gdk-win32-3.*\.lib$')
 
-          Copy-AliasLib $gtkLib "gtk-win32-2.0.lib" @(
-            '^gtk-3\.0\.lib$',
-            '^gtk-3-0\.lib$',
-            '^gtk-3\.lib$',
-            '^gtk-3.*\.lib$'
-          )
+          # Legacy GTK2 name expected by older vcxproj (keep it)
+          Copy-AliasLib $gtkLib "gtk-win32-2.0.lib" @('^gtk-3\.0\.lib$', '^gtk-3-0\.lib$', '^gtk-3\.lib$', '^gtk-3.*\.lib$')
 
-          # OpenSSL legacy names (keep older projects happy if they still reference these)
+          # OpenSSL legacy names (keep older projects happy if referenced)
           Copy-AliasLib $gtkLib "ssleay32.lib" @('^libssl\.lib$', '^ssl\.lib$')
           Copy-AliasLib $gtkLib "libeay32.lib" @('^libcrypto\.lib$', '^crypto\.lib$')
 
@@ -330,9 +316,19 @@ jobs:
             exit /b 1
           )
 
+          if not exist "%GTKROOT%\include\lua.h" (
+            echo Missing lua.h under %GTKROOT%\include
+            dir "%GTKROOT%\include"
+          )
+          if not exist "%GTKROOT%\include\lua\lua.h" (
+            echo Missing lua\lua.h under %GTKROOT%\include\lua
+            dir "%GTKROOT%\include\lua"
+          )
+
           set "PATH=%PERL_BIN%;%GTKROOT%\bin;%PATH%"
           set "LIB=%GTKROOT%\lib;%LIB%"
-          set "INCLUDE=%GTKROOT%\include;%INCLUDE%"
+          set "INCLUDE=%GTKROOT%\include\lua;%GTKROOT%\include;%INCLUDE%"
+          set "CL=/I""%GTKROOT%\include"" /I""%GTKROOT%\include\lua"" %CL%"
 
           set "PYTHON_DIR=C:\gtk-build\python-3.14.2\${{ matrix.platform }}"
           if not exist "%PYTHON_DIR%\libs\python314.lib" (
