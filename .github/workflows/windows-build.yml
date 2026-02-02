@@ -311,6 +311,62 @@ jobs:
             }
           }
 
+          function Ensure-LibXml2([string]$gtkLib, [string]$gtkBin, [string]$platform) {
+            # Projects explicitly link "libxml2.lib". Provide it.
+            $want = Join-Path $gtkLib "libxml2.lib"
+            if (Test-Path $want) { return }
+
+            # First: alias from common names shipped by different bundles.
+            Copy-AliasLib $gtkLib "libxml2.lib" @(
+              '^libxml2-2\.0\.lib$',
+              '^libxml2-2\.lib$',
+              '^libxml2_a\.lib$',
+              '^libxml2-static\.lib$',
+              '^xml2\.lib$',
+              '^libxml2.*\.lib$'
+            )
+            if (Test-Path $want) { return }
+
+            # Second: if only a DLL exists, generate an import library from it (gendef + lib.exe).
+            $dll = Get-ChildItem -Path $gtkBin -File -Filter "libxml2*.dll" | Sort-Object -Property Name | Select-Object -First 1
+            if (-not $dll) {
+              $dll = Get-ChildItem -Path $gtkBin -File -Filter "xml2*.dll" | Sort-Object -Property Name | Select-Object -First 1
+            }
+            if (-not $dll) {
+              throw "libxml2.lib missing and no libxml2 DLL found under $gtkBin"
+            }
+
+            $gendefExe = Get-ChildItem -Path "C:\gtk-build" -Recurse -File -Filter "gendef.exe" | Select-Object -First 1
+            if (-not $gendefExe) {
+              throw "gendef.exe not found under C:\gtk-build (gendef extraction failed?)"
+            }
+
+            $defPath = Join-Path $env:TEMP "libxml2.def"
+            $tmpLib  = Join-Path $env:TEMP "libxml2.lib"
+
+            & $gendefExe.FullName $dll.FullName | Out-File -FilePath $defPath -Encoding ascii
+
+            $vsDevCmd = "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\VsDevCmd.bat"
+            if (-not (Test-Path $vsDevCmd)) { throw "VsDevCmd.bat not found at $vsDevCmd" }
+
+            $vcArch     = if ($platform -eq "x64") { "amd64" } else { "x86" }
+            $machineOpt = if ($platform -eq "x64") { "X64" } else { "X86" }
+
+            $cmd = @(
+              """$vsDevCmd"" -no_logo -arch=$vcArch -host_arch=$vcArch",
+              "lib /nologo /def:""$defPath"" /machine:$machineOpt /out:""$tmpLib"""
+            ) -join " && "
+
+            cmd /c $cmd | Out-Host
+
+            if (-not (Test-Path $tmpLib)) {
+              throw "Failed to generate libxml2.lib from $($dll.Name)"
+            }
+
+            Copy-Item $tmpLib $want -Force
+            Write-Host "Generated libxml2.lib from $($dll.Name) => $want"
+          }
+
           # ------------------------------------------
           # GTK: Prefer prebuilt wingtk/gvsbuild GTK3 bundles.
           # If missing for x86 (win32), build GTK3 via gvsbuild from source.
@@ -405,6 +461,9 @@ jobs:
           # Ensure zlib.lib exists (some bundles name it differently or omit it).
           Ensure-Zlib $gtkInc $gtkLib $wantPlat
 
+          # Ensure libxml2.lib exists (some bundles ship only DLL or different .lib name).
+          Ensure-LibXml2 $gtkLib $gtkBin $wantPlat
+
           # Compatibility aliases for differing .lib names across bundles.
           Copy-AliasLib $gtkLib "gtk-3.0.lib" @(
             '^gtk-3-0\.lib$',
@@ -439,9 +498,6 @@ jobs:
           Copy-AliasLib $gtkLib "ssleay32.lib" @('^libssl\.lib$', '^ssl\.lib$')
           Copy-AliasLib $gtkLib "libeay32.lib" @('^libcrypto\.lib$', '^crypto\.lib$')
 
-          # libxml2 legacy name
-          Copy-AliasLib $gtkLib "libxml2.lib" @('^libxml2.*\.lib$')
-
           # Persist GTK root for later steps.
           "GTK_ROOT=$normRel" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
@@ -475,6 +531,13 @@ jobs:
           if not exist "%GTKROOT%\lib\zlib.lib" (
             echo Missing zlib.lib under %GTKROOT%\lib
             dir "%GTKROOT%\lib"
+            exit /b 1
+          )
+
+          if not exist "%GTKROOT%\lib\libxml2.lib" (
+            echo Missing libxml2.lib under %GTKROOT%\lib
+            dir "%GTKROOT%\lib"
+            dir "%GTKROOT%\bin"
             exit /b 1
           )
 
