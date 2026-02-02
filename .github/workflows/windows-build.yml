@@ -346,6 +346,10 @@ jobs:
 
             & $gendefExe.FullName $dll.FullName | Out-File -FilePath $defPath -Encoding ascii
 
+            if (-not (Test-Path $defPath) -or (Get-Item $defPath).Length -lt 64) {
+              throw "gendef produced an invalid/empty DEF for $($dll.Name)"
+            }
+
             $vsDevCmd = "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\VsDevCmd.bat"
             if (-not (Test-Path $vsDevCmd)) { throw "VsDevCmd.bat not found at $vsDevCmd" }
 
@@ -365,6 +369,69 @@ jobs:
 
             Copy-Item $tmpLib $want -Force
             Write-Host "Generated libxml2.lib from $($dll.Name) => $want"
+          }
+
+          function Ensure-LibJpeg([string]$gtkLib, [string]$gtkBin, [string]$platform) {
+            # Projects explicitly link "libjpeg.lib". Provide it.
+            $want = Join-Path $gtkLib "libjpeg.lib"
+            if (Test-Path $want) { return }
+
+            # First: alias from common names shipped by different bundles.
+            # Prefer the libjpeg ABI libs; avoid turbojpeg.lib unless you really mean that API.
+            Copy-AliasLib $gtkLib "libjpeg.lib" @(
+              '^jpeg\.lib$',
+              '^libjpeg-8\.lib$',
+              '^libjpeg-9\.lib$',
+              '^libjpeg-7\.lib$',
+              '^libjpeg-6\.lib$',
+              '^libjpeg_a\.lib$',
+              '^libjpeg-static\.lib$',
+              '^libjpeg.*\.lib$'
+            )
+            if (Test-Path $want) { return }
+
+            # Second: if only a DLL exists, generate an import library from it (gendef + lib.exe).
+            $dll = Get-ChildItem -Path $gtkBin -File -Filter "libjpeg*.dll" | Sort-Object -Property Name | Select-Object -First 1
+            if (-not $dll) {
+              $dll = Get-ChildItem -Path $gtkBin -File -Filter "jpeg*.dll" | Sort-Object -Property Name | Select-Object -First 1
+            }
+            if (-not $dll) {
+              throw "libjpeg.lib missing and no JPEG DLL found under $gtkBin"
+            }
+
+            $gendefExe = Get-ChildItem -Path "C:\gtk-build" -Recurse -File -Filter "gendef.exe" | Select-Object -First 1
+            if (-not $gendefExe) {
+              throw "gendef.exe not found under C:\gtk-build (gendef extraction failed?)"
+            }
+
+            $defPath = Join-Path $env:TEMP "libjpeg.def"
+            $tmpLib  = Join-Path $env:TEMP "libjpeg.lib"
+
+            & $gendefExe.FullName $dll.FullName | Out-File -FilePath $defPath -Encoding ascii
+
+            if (-not (Test-Path $defPath) -or (Get-Item $defPath).Length -lt 64) {
+              throw "gendef produced an invalid/empty DEF for $($dll.Name)"
+            }
+
+            $vsDevCmd = "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\VsDevCmd.bat"
+            if (-not (Test-Path $vsDevCmd)) { throw "VsDevCmd.bat not found at $vsDevCmd" }
+
+            $vcArch     = if ($platform -eq "x64") { "amd64" } else { "x86" }
+            $machineOpt = if ($platform -eq "x64") { "X64" } else { "X86" }
+
+            $cmd = @(
+              """$vsDevCmd"" -no_logo -arch=$vcArch -host_arch=$vcArch",
+              "lib /nologo /def:""$defPath"" /machine:$machineOpt /out:""$tmpLib"""
+            ) -join " && "
+
+            cmd /c $cmd | Out-Host
+
+            if (-not (Test-Path $tmpLib)) {
+              throw "Failed to generate libjpeg.lib from $($dll.Name)"
+            }
+
+            Copy-Item $tmpLib $want -Force
+            Write-Host "Generated libjpeg.lib from $($dll.Name) => $want"
           }
 
           # ------------------------------------------
@@ -464,6 +531,9 @@ jobs:
           # Ensure libxml2.lib exists (some bundles ship only DLL or different .lib name).
           Ensure-LibXml2 $gtkLib $gtkBin $wantPlat
 
+          # Ensure libjpeg.lib exists (some bundles ship jpeg.lib / libjpeg-8.lib or only DLL).
+          Ensure-LibJpeg $gtkLib $gtkBin $wantPlat
+
           # Compatibility aliases for differing .lib names across bundles.
           Copy-AliasLib $gtkLib "gtk-3.0.lib" @(
             '^gtk-3-0\.lib$',
@@ -536,6 +606,13 @@ jobs:
 
           if not exist "%GTKROOT%\lib\libxml2.lib" (
             echo Missing libxml2.lib under %GTKROOT%\lib
+            dir "%GTKROOT%\lib"
+            dir "%GTKROOT%\bin"
+            exit /b 1
+          )
+
+          if not exist "%GTKROOT%\lib\libjpeg.lib" (
+            echo Missing libjpeg.lib under %GTKROOT%\lib
             dir "%GTKROOT%\lib"
             dir "%GTKROOT%\bin"
             exit /b 1
