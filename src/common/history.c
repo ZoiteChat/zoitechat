@@ -16,6 +16,7 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
  */
 
+#include <glib.h>
 #include <string.h>
 #include <stdlib.h>
 #include "history.h"
@@ -24,7 +25,7 @@ void
 history_add (struct history *his, char *text)
 {
 	free (his->lines[his->realpos]);
-	his->lines[his->realpos] = strdup (text);
+	his->lines[his->realpos] = g_strdup(text);
 	his->realpos++;
 	if (his->realpos == HISTORY_SIZE)
 		his->realpos = 0;
