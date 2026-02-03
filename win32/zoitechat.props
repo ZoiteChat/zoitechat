@@ -16,7 +16,9 @@
 		<!-- must be buildable with GSEAL_ENABLE in the future, xtext, setup, and chanview-tabs stand in the way -->
 		<OwnFlags>GTK_DISABLE_DEPRECATED;GDK_PIXBUF_DISABLE_DEPRECATED;G_DISABLE_SINGLE_INCLUDES;GDK_PIXBUF_DISABLE_SINGLE_INCLUDES;GTK_DISABLE_SINGLE_INCLUDES;HAVE_X509_GET_SIGNATURE_NID;HAVE_SSL_CTX_GET_SSL_METHOD;DEFAULT_CERT_FILE="cert.pem";HAVE_STRTOULL;strtoull=_strtoui64;strcasecmp=stricmp;strncasecmp=strnicmp;__inline__=__inline</OwnFlags>
 		<!-- FIXME: Add ability to use debug builds -->
-		<DepsRoot>$(YourDepsPath)\$(PlatformName)\release</DepsRoot>
+		<GtkPlatform Condition="'$(PlatformName)'=='Win32'">x86</GtkPlatform>
+		<GtkPlatform Condition="'$(GtkPlatform)'==''">$(PlatformName)</GtkPlatform>
+		<DepsRoot>$(YourDepsPath)\$(GtkPlatform)\release</DepsRoot>
 		<GendefPath>$(YourGendefPath)</GendefPath>
 		<WinSparklePath>$(YourWinSparklePath)\$(PlatformName)</WinSparklePath>
 		<PerlPath>$(YourPerlPath)\$(PlatformName)</PerlPath>
@@ -24,9 +26,12 @@
 		<Python3Path>$(YourPython3Path)\$(PlatformName)</Python3Path>
 		<Python3Lib>python314</Python3Lib>
 		<Python3Output>hcpython3</Python3Output>
-		<LuaInclude>$(DepsRoot)\include\luajit-2.1;$(SolutionDir)..\plugins\lua\luajit\src;$(SolutionDir)..\plugins\lua\luajit\src\jit</LuaInclude>
+		<LuaInclude>$(DepsRoot)\include\luajit-2.1;$(DepsRoot)\include\lua;$(DepsRoot)\include\lua5.1;$(SolutionDir)..\plugins\lua\luajit\src;$(SolutionDir)..\plugins\lua\luajit\src\jit</LuaInclude>
 		<LuaOutput>hclua</LuaOutput>
-		<LuaLib>lua51</LuaLib>
+		<LuaLib Condition="Exists('$(DepsRoot)\\lib\\lua51.lib')">lua51</LuaLib>
+		<LuaLib Condition="'$(LuaLib)'=='' and Exists('$(DepsRoot)\\lib\\lua5.1.lib')">lua5.1</LuaLib>
+		<LuaLib Condition="'$(LuaLib)'=='' and Exists('$(DepsRoot)\\lib\\lua.lib')">lua</LuaLib>
+		<LuaLib Condition="'$(LuaLib)'==''">lua51</LuaLib>
 		<Glib>$(DepsRoot)\include\glib-2.0;$(DepsRoot)\lib\glib-2.0\include;$(DepsRoot)\include\libxml2</Glib>
         <UsingGtk3 Condition="Exists('$(DepsRoot)\\include\\gtk-3.0\\gtk\\gtk.h')">true</UsingGtk3>
         <Gtk2>$(DepsRoot)\include\gtk-2.0;$(DepsRoot)\lib\gtk-2.0\include</Gtk2>
@@ -44,7 +49,13 @@
         <CryptoLegacyLib Condition="Exists('$(DepsRoot)\\lib\\libeay32.lib')">libeay32.lib</CryptoLegacyLib>
 
         <Gtk2Libs>gtk-win32-2.0.lib;gdk-win32-2.0.lib;atk-1.0.lib;gio-2.0.lib;gdk_pixbuf-2.0.lib;pangowin32-1.0.lib;pangocairo-1.0.lib;pango-1.0.lib;cairo.lib;gobject-2.0.lib;gmodule-2.0.lib;glib-2.0.lib;intl.lib;iconv.lib;zlib.lib;$(XmlLib);libjpeg.lib;libpng16.lib;$(CryptoLib);$(SslLib);$(CryptoLegacyLib);$(SslLegacyLib)</Gtk2Libs>
-        <Gtk3Libs>gtk-3.0.lib;gdk-3.0.lib;atk-1.0.lib;gio-2.0.lib;gdk_pixbuf-2.0.lib;pangowin32-1.0.lib;pangocairo-1.0.lib;pango-1.0.lib;cairo.lib;gobject-2.0.lib;gmodule-2.0.lib;glib-2.0.lib;intl.lib;iconv.lib;zlib.lib;$(XmlLib);libjpeg.lib;libpng16.lib;$(CryptoLib);$(SslLib)</Gtk3Libs>
+        <Gtk3Lib Condition="Exists('$(DepsRoot)\\lib\\gtk-3.0.lib')">gtk-3.0.lib</Gtk3Lib>
+        <Gtk3Lib Condition="'$(Gtk3Lib)'=='' and Exists('$(DepsRoot)\\lib\\gtk-3.lib')">gtk-3.lib</Gtk3Lib>
+        <Gtk3Lib Condition="'$(Gtk3Lib)'=='' and Exists('$(DepsRoot)\\lib\\gtk-3-0.lib')">gtk-3-0.lib</Gtk3Lib>
+        <Gdk3Lib Condition="Exists('$(DepsRoot)\\lib\\gdk-3.0.lib')">gdk-3.0.lib</Gdk3Lib>
+        <Gdk3Lib Condition="'$(Gdk3Lib)'=='' and Exists('$(DepsRoot)\\lib\\gdk-3.lib')">gdk-3.lib</Gdk3Lib>
+        <Gdk3Lib Condition="'$(Gdk3Lib)'=='' and Exists('$(DepsRoot)\\lib\\gdk-3-0.lib')">gdk-3-0.lib</Gdk3Lib>
+        <Gtk3Libs>$(Gtk3Lib);$(Gdk3Lib);atk-1.0.lib;gio-2.0.lib;gdk_pixbuf-2.0.lib;pangowin32-1.0.lib;pangocairo-1.0.lib;pango-1.0.lib;cairo.lib;gobject-2.0.lib;gmodule-2.0.lib;glib-2.0.lib;intl.lib;iconv.lib;zlib.lib;$(XmlLib);libjpeg.lib;libpng16.lib;$(CryptoLib);$(SslLib)</Gtk3Libs>
 
         <DepLibs Condition="'$(UsingGtk3)'=='true'">$(Gtk3Libs);wininet.lib;winmm.lib;ws2_32.lib</DepLibs>
         <DepLibs Condition="'$(UsingGtk3)'!='true'">$(Gtk2Libs);wininet.lib;winmm.lib;ws2_32.lib</DepLibs>
