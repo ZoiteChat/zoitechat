@@ -26,7 +26,7 @@
 		<Python3Path>$(YourPython3Path)\$(PlatformName)</Python3Path>
 		<Python3Lib>python314</Python3Lib>
 		<Python3Output>hcpython3</Python3Output>
-		<LuaInclude>$(DepsRoot)\include\luajit-2.1;$(DepsRoot)\include\lua;$(DepsRoot)\include\lua5.1;$(DepsRoot)\include\lua54;$(DepsRoot)\include\lua5.4;$(DepsRoot)\include\lua-5.4;$(DepsRoot)\include\lua-5.4.2;$(DepsRoot)\include\lua-5.4.3;$(DepsRoot)\include\lua-5.4.4;$(DepsRoot)\include\lua-5.4.5;$(DepsRoot)\include\lua-5.4.6;$(DepsRoot)\include\lua-5.4.7;$(SolutionDir)..\plugins\lua\luajit\src;$(SolutionDir)..\plugins\lua\luajit\src\jit</LuaInclude>
+		<LuaInclude>$(DepsRoot)\include\luajit-2.1;$(DepsRoot)\include\lua;$(DepsRoot)\include\lua5.1;$(DepsRoot)\include\lua54;$(DepsRoot)\include\lua5.4;$(DepsRoot)\include\lua-5.4;$(SolutionDir)..\plugins\lua\luajit\src;$(SolutionDir)..\plugins\lua\luajit\src\jit</LuaInclude>
 		<LuaOutput>hclua</LuaOutput>
 		<LuaLib Condition="Exists('$(DepsRoot)\\lib\\lua51.lib')">lua51</LuaLib>
 		<LuaLib Condition="'$(LuaLib)'=='' and Exists('$(DepsRoot)\\lib\\lua5.1.lib')">lua5.1</LuaLib>
@@ -43,7 +43,6 @@
         <Gtk Condition="'$(UsingGtk3)'=='true'">$(Gtk3);$(GtkCommon)</Gtk>
         <Gtk Condition="'$(UsingGtk3)'!='true'">$(Gtk2);$(GtkCommon)</Gtk>
         <XmlLib Condition="Exists('$(DepsRoot)\\lib\\libxml2-2.0.lib')">libxml2-2.0.lib</XmlLib>
-        <XmlLib Condition="'$(XmlLib)'=='' and Exists('$(DepsRoot)\\lib\\libxml2-2.lib')">libxml2-2.lib</XmlLib>
         <XmlLib Condition="'$(XmlLib)'==''">libxml2.lib</XmlLib>
         <SslLib Condition="Exists('$(DepsRoot)\\lib\\libssl.lib')">libssl.lib</SslLib>
         <SslLib Condition="'$(SslLib)'=='' and Exists('$(DepsRoot)\\lib\\libssl-3-x64.lib')">libssl-3-x64.lib</SslLib>
@@ -58,11 +57,8 @@
         <SslLegacyLib Condition="Exists('$(DepsRoot)\\lib\\ssleay32.lib')">ssleay32.lib</SslLegacyLib>
         <CryptoLegacyLib Condition="Exists('$(DepsRoot)\\lib\\libeay32.lib')">libeay32.lib</CryptoLegacyLib>
         <OpenSslInclude Condition="Exists('$(DepsRoot)\\include\\openssl\\ssl.h')">$(DepsRoot)\include</OpenSslInclude>
-        <OpenSslInclude Condition="'$(OpenSslInclude)'=='' and Exists('$(DepsRoot)\\include\\openssl3\\include\\openssl\\ssl.h')">$(DepsRoot)\include\openssl3\include</OpenSslInclude>
         <OpenSslInclude Condition="'$(OpenSslInclude)'=='' and Exists('$(DepsRoot)\\include\\openssl3\\openssl\\ssl.h')">$(DepsRoot)\include\openssl3</OpenSslInclude>
-        <OpenSslInclude Condition="'$(OpenSslInclude)'=='' and Exists('$(DepsRoot)\\include\\openssl-3\\include\\openssl\\ssl.h')">$(DepsRoot)\include\openssl-3\include</OpenSslInclude>
         <OpenSslInclude Condition="'$(OpenSslInclude)'=='' and Exists('$(DepsRoot)\\include\\openssl-3\\openssl\\ssl.h')">$(DepsRoot)\include\openssl-3</OpenSslInclude>
-        <OpenSslInclude Condition="'$(OpenSslInclude)'=='' and Exists('$(DepsRoot)\\include\\openssl-3.0\\include\\openssl\\ssl.h')">$(DepsRoot)\include\openssl-3.0\include</OpenSslInclude>
         <ZlibLib Condition="Exists('$(DepsRoot)\\lib\\zlib.lib')">zlib.lib</ZlibLib>
         <ZlibLib Condition="'$(ZlibLib)'=='' and Exists('$(DepsRoot)\\lib\\zlib1.lib')">zlib1.lib</ZlibLib>
         <ZlibLib Condition="'$(ZlibLib)'=='' and Exists('$(DepsRoot)\\lib\\zlibstatic.lib')">zlibstatic.lib</ZlibLib>
