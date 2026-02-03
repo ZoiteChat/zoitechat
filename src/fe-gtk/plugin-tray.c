@@ -36,15 +36,17 @@
 #if defined(GTK_DISABLE_DEPRECATED)
 typedef struct _GtkStatusIcon GtkStatusIcon;
 #endif
+#ifndef WIN32
 #if defined(HAVE_AYATANA_APPINDICATOR)
 #include <libayatana-appindicator/app-indicator.h>
 #else
 #include <libappindicator/app-indicator.h>
 #endif
+#endif
 #define ICON_TRAY_PREFERENCES "preferences-system"
 #define ICON_TRAY_QUIT "application-exit"
 #endif
-#if !HAVE_GTK3
+#if !HAVE_GTK3 || defined(WIN32)
 #define ICON_TRAY_PREFERENCES GTK_STOCK_PREFERENCES
 #define ICON_TRAY_QUIT GTK_STOCK_QUIT
 #endif
@@ -71,7 +73,7 @@ typedef enum
 	WS_HIDDEN
 } WinStatus;
 
-#if HAVE_GTK3
+#if HAVE_GTK3 && !defined(WIN32)
 /* GTK3: use AppIndicator/StatusNotifier item for tray integration. */
 typedef GIcon *TrayIcon;
 typedef GIcon *TrayCustomIcon;
@@ -93,7 +95,7 @@ static TrayIcon tray_icon_file;
 #define ICON_FILE tray_icon_file
 #endif
 
-#if !HAVE_GTK3
+#if !HAVE_GTK3 || defined(WIN32)
 typedef GdkPixbuf* TrayIcon;
 typedef GdkPixbuf* TrayCustomIcon;
 #define tray_icon_from_file(f) gdk_pixbuf_new_from_file(f,NULL)
@@ -113,10 +115,10 @@ static void tray_init (void);
 static void tray_set_icon_state (TrayIcon icon, TrayIconState state);
 static void tray_menu_restore_cb (GtkWidget *item, gpointer userdata);
 static void tray_menu_notify_cb (GObject *tray, GParamSpec *pspec, gpointer user_data);
-#if HAVE_GTK3
+#if HAVE_GTK3 && !defined(WIN32)
 static void tray_menu_show_cb (GtkWidget *menu, gpointer userdata);
 #endif
-#if !HAVE_GTK3
+#if !HAVE_GTK3 || defined(WIN32)
 static void tray_menu_cb (GtkWidget *widget, guint button, guint time, gpointer userdata);
 #endif
 
@@ -129,11 +131,11 @@ typedef struct
 	void (*cleanup)(void);
 } TrayBackendOps;
 
-#if HAVE_GTK3
+#if HAVE_GTK3 && !defined(WIN32)
 static AppIndicator *tray_indicator;
 static GtkWidget *tray_menu;
 #endif
-#if !HAVE_GTK3
+#if !HAVE_GTK3 || defined(WIN32)
 static GtkStatusIcon *tray_status_icon;
 #endif
 static gboolean tray_backend_active = FALSE;
@@ -142,7 +144,7 @@ static gint flash_tag;
 static TrayIconState tray_icon_state;
 static TrayIcon tray_flash_icon;
 static TrayIconState tray_flash_state;
-#if !HAVE_GTK3 && defined(WIN32)
+#if defined(WIN32)
 static guint tray_menu_timer;
 static gint64 tray_menu_inactivetime;
 #endif
@@ -157,7 +159,7 @@ static int tray_hilight_count = 0;
 static int tray_file_count = 0;
 static int tray_restore_timer = 0;
 
-#if HAVE_GTK3
+#if HAVE_GTK3 && !defined(WIN32)
 static TrayCustomIcon
 tray_icon_from_file (const char *filename)
 {
@@ -422,7 +424,7 @@ static const TrayBackendOps tray_backend_ops = {
 };
 #endif
 
-#if !HAVE_GTK3
+#if !HAVE_GTK3 || defined(WIN32)
 static void
 tray_status_icon_set_icon (TrayIcon icon)
 {
@@ -494,7 +496,7 @@ tray_backend_init (void)
 	if (!tray_backend_ops.init)
 		return FALSE;
 
-#if HAVE_GTK3
+#if HAVE_GTK3 && !defined(WIN32)
 	tray_gtk3_icons_init ();
 	if (!tray_gtk3_icon_theme)
 		tray_gtk3_icon_theme = gtk_icon_theme_get_default ();
@@ -540,7 +542,7 @@ tray_backend_cleanup (void)
 	if (tray_backend_ops.cleanup)
 		tray_backend_ops.cleanup ();
 
-#if HAVE_GTK3
+#if HAVE_GTK3 && !defined(WIN32)
 	if (tray_gtk3_icon_theme && tray_gtk3_icon_theme_changed_handler)
 	{
 		g_signal_handler_disconnect (tray_gtk3_icon_theme,
@@ -976,7 +978,7 @@ blink_item (unsigned int *setting, GtkWidget *menu, char *label)
 }
 #endif
 
-#if !HAVE_GTK3
+#if !HAVE_GTK3 || defined(WIN32)
 static void
 tray_menu_destroy (GtkWidget *menu, gpointer userdata)
 {
@@ -1076,7 +1078,7 @@ tray_menu_populate (GtkWidget *menu)
 	mg_create_icon_item (_("_Quit"), ICON_TRAY_QUIT, menu, tray_menu_quit_cb, NULL);
 }
 
-#if HAVE_GTK3
+#if HAVE_GTK3 && !defined(WIN32)
 static void
 tray_menu_clear (GtkWidget *menu)
 {
@@ -1099,7 +1101,7 @@ tray_menu_show_cb (GtkWidget *menu, gpointer userdata)
 }
 #endif
 
-#if !HAVE_GTK3
+#if !HAVE_GTK3 || defined(WIN32)
 static void
 tray_menu_cb (GtkWidget *widget, guint button, guint time, gpointer userdata)
 {
