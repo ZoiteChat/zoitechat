@@ -45,8 +45,7 @@ typedef struct _GtkStatusIcon GtkStatusIcon;
 #endif
 #define ICON_TRAY_PREFERENCES "preferences-system"
 #define ICON_TRAY_QUIT "application-exit"
-#endif
-#if !HAVE_GTK3 || defined(WIN32)
+#else
 #define ICON_TRAY_PREFERENCES GTK_STOCK_PREFERENCES
 #define ICON_TRAY_QUIT GTK_STOCK_QUIT
 #endif
@@ -105,6 +104,12 @@ typedef GdkPixbuf* TrayCustomIcon;
 #define ICON_MSG pix_tray_message
 #define ICON_HILIGHT pix_tray_highlight
 #define ICON_FILE pix_tray_fileoffer
+#endif
+#if HAVE_GTK3 && defined(WIN32) && defined(GTK_DISABLE_DEPRECATED)
+GtkStatusIcon *gtk_status_icon_new_from_pixbuf (GdkPixbuf *pixbuf);
+void gtk_status_icon_set_from_pixbuf (GtkStatusIcon *status_icon, GdkPixbuf *pixbuf);
+void gtk_status_icon_set_tooltip_text (GtkStatusIcon *status_icon, const gchar *text);
+gboolean gtk_status_icon_is_embedded (GtkStatusIcon *status_icon);
 #endif
 #define TIMEOUT 500
 
