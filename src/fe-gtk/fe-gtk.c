@@ -566,8 +566,19 @@ create_input_style (InputStyle *style)
 #if HAVE_GTK3
 	else
 	{
+		GdkScreen *screen = gdk_screen_get_default ();
+
+		if (input_css_provider && screen)
+		{
+			gtk_style_context_remove_provider_for_screen (
+				screen,
+				GTK_STYLE_PROVIDER (input_css_provider));
+		}
+		g_clear_object (&input_css_provider);
+		g_clear_pointer (&last_theme_name, g_free);
 		done_rc = FALSE;
 		last_input_style = FALSE;
+		last_colors_set = FALSE;
 	}
 #endif
 
