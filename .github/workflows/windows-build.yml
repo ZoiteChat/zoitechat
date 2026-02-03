@@ -40,15 +40,13 @@ jobs:
       - name: Install Dependencies
         run: |
           New-Item -Name "deps" -ItemType "Directory"
+          New-Item -Path "C:\gtk-build" -ItemType "Directory" -Force | Out-Null
 
           Invoke-WebRequest http://files.jrsoftware.org/is/5/innosetup-5.5.9-unicode.exe -OutFile deps\innosetup-unicode.exe
           & deps\innosetup-unicode.exe /VERYSILENT | Out-Null
 
           Invoke-WebRequest https://github.com/zoitechat/gvsbuild/releases/download/zoitechat-2.17.0/idpsetup-1.5.1.exe -OutFile deps\idpsetup.exe
           & deps\idpsetup.exe /VERYSILENT
-
-          Invoke-WebRequest https://github.com/zoitechat/gvsbuild/releases/download/zoitechat-2.17.0/gtk-${{ matrix.platform }}-2018-08-29-openssl1.1.7z -OutFile deps\gtk-${{ matrix.arch }}.7z
-          & 7z.exe x deps\gtk-${{ matrix.arch }}.7z -oC:\gtk-build\gtk
 
           Invoke-WebRequest https://github.com/zoitechat/gvsbuild/releases/download/zoitechat-2.17.0/gendef-20111031.7z -OutFile deps\gendef.7z
           & 7z.exe x deps\gendef.7z -oC:\gtk-build
@@ -73,6 +71,22 @@ jobs:
 
           python -m pip install --upgrade pip
           python -m pip install cffi
+
+          git clone --depth 1 https://github.com/ZoiteChat/gvsbuild.git C:\gtk-build\github\gvsbuild
+          python -m pip install C:\gtk-build\github\gvsbuild
+
+          $gvsPlatform = if ("${{ matrix.platform }}" -eq "win32") { "x86" } else { "x64" }
+          gvsbuild build --vs-ver 16 --configuration release --platform $gvsPlatform gtk3
+
+          if ($gvsPlatform -eq "x86") {
+            $gtkRoot = "C:\gtk-build\gtk"
+            foreach ($alias in @("Win32", "win32")) {
+              $aliasPath = Join-Path $gtkRoot $alias
+              if (-not (Test-Path $aliasPath)) {
+                New-Item -Path $aliasPath -ItemType Junction -Value (Join-Path $gtkRoot "x86") | Out-Null
+              }
+            }
+          }
 
       - name: Build
         run: |
