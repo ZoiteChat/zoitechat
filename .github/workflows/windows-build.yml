@@ -88,6 +88,29 @@ jobs:
             }
           }
 
+          $luaVersion = "5.4.6"
+          $luaArchive = "lua-$luaVersion.tar.gz"
+          $luaUrl = "https://www.lua.org/ftp/$luaArchive"
+          $luaDir = "lua-$luaVersion"
+          $luaExtractRoot = Join-Path $env:RUNNER_TEMP $luaDir
+          Invoke-WebRequest $luaUrl -OutFile (Join-Path $env:RUNNER_TEMP $luaArchive)
+          & 7z.exe x (Join-Path $env:RUNNER_TEMP $luaArchive) -o$env:RUNNER_TEMP | Out-Null
+          & 7z.exe x (Join-Path $env:RUNNER_TEMP "lua-$luaVersion.tar") -o$env:RUNNER_TEMP | Out-Null
+
+          $luaBuildArch = if ($gvsPlatform -eq "x86") { "x86" } else { "amd64" }
+          cmd /c "call `"C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\VsDevCmd.bat`" -arch=$luaBuildArch && cd /d `"$luaExtractRoot\src`" && nmake -f Makefile.msc"
+
+          $luaDepsRoot = "C:\gtk-build\gtk\$gvsPlatform\release"
+          $luaIncludeDir = Join-Path $luaDepsRoot "include\lua54"
+          $luaLibDir = Join-Path $luaDepsRoot "lib"
+          $luaBinDir = Join-Path $luaDepsRoot "bin"
+          New-Item -Path $luaIncludeDir -ItemType Directory -Force | Out-Null
+          New-Item -Path $luaLibDir -ItemType Directory -Force | Out-Null
+          New-Item -Path $luaBinDir -ItemType Directory -Force | Out-Null
+          Copy-Item "$luaExtractRoot\src\*.h" $luaIncludeDir -Force
+          Copy-Item "$luaExtractRoot\src\lua54.lib" $luaLibDir -Force
+          Copy-Item "$luaExtractRoot\src\lua54.dll" $luaBinDir -Force
+
       - name: Build
         run: |
           call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\VsDevCmd.bat"
