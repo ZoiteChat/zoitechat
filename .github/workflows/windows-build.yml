@@ -76,7 +76,7 @@ jobs:
           python -m pip install C:\gtk-build\github\gvsbuild
 
           $gvsPlatform = if ("${{ matrix.platform }}" -eq "win32") { "x86" } else { "x64" }
-          gvsbuild build --vs-ver vs2019 --configuration release --platform $gvsPlatform gtk3 openssl
+          gvsbuild build --vs-ver vs2019 --configuration release --platform $gvsPlatform gtk3 openssl lgi
 
           if ($gvsPlatform -eq "x86") {
             $gtkRoot = "C:\gtk-build\gtk"
@@ -87,41 +87,6 @@ jobs:
               }
             }
           }
-
-          $luaVersion = "5.4.6"
-          $luaArchive = "lua-$luaVersion.tar.gz"
-          $luaUrl = "https://www.lua.org/ftp/$luaArchive"
-          $luaDir = "lua-$luaVersion"
-          $runnerTemp = $env:RUNNER_TEMP
-          if (-not $runnerTemp) { $runnerTemp = $env:TEMP }
-          if (-not $runnerTemp) { throw "RUNNER_TEMP/TEMP is not set." }
-          New-Item -Path $runnerTemp -ItemType Directory -Force | Out-Null
-          $luaExtractRoot = Join-Path $runnerTemp $luaDir
-          $luaArchivePath = Join-Path $runnerTemp $luaArchive
-          Invoke-WebRequest $luaUrl -OutFile $luaArchivePath
-          tar -xzf $luaArchivePath -C $runnerTemp
-          if (-not (Test-Path $luaExtractRoot)) {
-            throw "Lua extraction failed; missing $luaExtractRoot."
-          }
-
-          $luaMakefile = Get-ChildItem -Path $luaExtractRoot -Filter "Makefile.msc" -Recurse -File | Select-Object -First 1
-          if (-not $luaMakefile) {
-            throw "Lua Makefile.msc not found under $luaExtractRoot."
-          }
-          $luaBuildRoot = $luaMakefile.Directory.FullName
-          $luaBuildArch = if ($gvsPlatform -eq "x86") { "x86" } else { "amd64" }
-          cmd /c "call `"C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\VsDevCmd.bat`" -arch=$luaBuildArch && pushd `"$luaBuildRoot`" && nmake -f Makefile.msc && popd"
-
-          $luaDepsRoot = "C:\gtk-build\gtk\$gvsPlatform\release"
-          $luaIncludeDir = Join-Path $luaDepsRoot "include\lua54"
-          $luaLibDir = Join-Path $luaDepsRoot "lib"
-          $luaBinDir = Join-Path $luaDepsRoot "bin"
-          New-Item -Path $luaIncludeDir -ItemType Directory -Force | Out-Null
-          New-Item -Path $luaLibDir -ItemType Directory -Force | Out-Null
-          New-Item -Path $luaBinDir -ItemType Directory -Force | Out-Null
-          Copy-Item "$luaBuildRoot\*.h" $luaIncludeDir -Force
-          Copy-Item "$luaBuildRoot\lua54.lib" $luaLibDir -Force
-          Copy-Item "$luaBuildRoot\lua54.dll" $luaBinDir -Force
 
       - name: Build
         run: |
