@@ -607,14 +607,15 @@ sts_handle_capability (struct server *serv, const char *value)
 		time_t now = time (NULL);
 		time_t expires_at = now + (time_t) duration;
 		guint16 effective_port = 0;
+		sts_profile *existing_profile;
 		sts_profile *profile;
 
-		if (serv->port <= 0)
+		existing_profile = sts_profile_lookup (hostname, now);
+		if (existing_profile)
 		{
-			return FALSE;
+			effective_port = existing_profile->port;
 		}
 
-		effective_port = (guint16) serv->port;
 		profile = sts_profile_new (hostname, effective_port, expires_at, duration,
 								   has_preload ? preload : FALSE);
 		sts_profile_store (profile);
