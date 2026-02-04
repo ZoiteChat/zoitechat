@@ -32,6 +32,14 @@
 #include <gtk/gtk.h>
 #include <cairo.h>
 
+#ifndef HAVE_GTK3
+#if GTK_MAJOR_VERSION >= 3
+#define HAVE_GTK3 1
+#else
+#define HAVE_GTK3 0
+#endif
+#endif
+
 #ifdef HAVE_GTK_MAC
 #include <gtkosxapplication.h>
 #endif
