@@ -39,7 +39,7 @@
         <UsingGtk3 Condition="Exists('$(DepsRoot)\\include\\gtk-3.0\\gtk\\gtk.h')">true</UsingGtk3>
         <Gtk2>$(DepsRoot)\include\gtk-2.0;$(DepsRoot)\lib\gtk-2.0\include</Gtk2>
         <Gtk3>$(DepsRoot)\include\gtk-3.0;$(DepsRoot)\lib\gtk-3.0\include</Gtk3>
-        <GtkCommon>$(DepsRoot)\include\atk-1.0;$(DepsRoot)\include\cairo;$(DepsRoot)\include\pango-1.0;$(DepsRoot)\include\gdk-pixbuf-2.0</GtkCommon>
+        <GtkCommon>$(DepsRoot)\include\atk-1.0;$(DepsRoot)\include\cairo;$(DepsRoot)\include\pango-1.0;$(DepsRoot)\include\gdk-pixbuf-2.0;$(DepsRoot)\include\harfbuzz</GtkCommon>
         <Gtk Condition="'$(UsingGtk3)'=='true'">$(Gtk3);$(GtkCommon)</Gtk>
         <Gtk Condition="'$(UsingGtk3)'!='true'">$(Gtk2);$(GtkCommon)</Gtk>
         <XmlLib Condition="Exists('$(DepsRoot)\\lib\\libxml2-2.0.lib')">libxml2-2.0.lib</XmlLib>
@@ -128,6 +128,7 @@
 
 	<ItemGroup />
 </Project>
+
 
 
 
