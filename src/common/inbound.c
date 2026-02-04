@@ -1900,6 +1900,11 @@ inbound_cap_ls (server *serv, char *nick, char *extensions_str,
 			{
 				sts_upgrade_triggered |= sts_handle_capability (serv, value);
 			}
+			else
+			{
+				PrintTextf (serv->server_session,
+							_("Invalid STS capability token without value"));
+			}
 			continue;
 		}
 
