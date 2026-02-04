@@ -5,7 +5,6 @@
 [![Flatpak Build](https://github.com/ZoiteChat/zoitechat/actions/workflows/flatpak-build.yml/badge.svg)](https://github.com/ZoiteChat/zoitechat/actions/workflows/flatpak-build.yml)
 [![AppImage Build](https://github.com/ZoiteChat/zoitechat/actions/workflows/appimage-build.yml/badge.svg)](https://github.com/ZoiteChat/zoitechat/actions/workflows/appimage-build.yml)
 [![Windows Build](https://github.com/ZoiteChat/zoitechat/actions/workflows/windows-build.yml/badge.svg)](https://github.com/ZoiteChat/zoitechat/actions/workflows/windows-build.yml)
-[![MSYS2 Build](https://github.com/ZoiteChat/zoitechat/actions/workflows/msys-build.yml/badge.svg)](https://github.com/ZoiteChat/zoitechat/actions/workflows/msys-build.yml)
 [![OpenBSD Build](https://github.com/ZoiteChat/zoitechat/actions/workflows/openbsd-build.yml/badge.svg)](https://github.com/ZoiteChat/zoitechat/actions/workflows/openbsd-build.yml)
 
 [![Version][github-version-img]][github-version-uri] [![Downloads][github-downloads-img]][github-downloads-uri] [![Size][github-size-img]][github-size-img] [![Last Commit][github-commit-img]][github-commit-img] [![Contributors][contribs-all-img]](#contributors-)
