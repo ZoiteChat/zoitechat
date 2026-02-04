@@ -553,15 +553,7 @@ sts_handle_capability (struct server *serv, const char *value)
 	{
 		if (!has_port)
 		{
-			if (serv->port > 0)
-			{
-				port = (guint16) serv->port;
-				has_port = TRUE;
-			}
-			else
-			{
-				return FALSE;
-			}
+			return FALSE;
 		}
 #ifdef USE_OPENSSL
 		if (serv->sts_upgrade_in_progress)
