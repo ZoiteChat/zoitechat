@@ -104,8 +104,13 @@ jobs:
             throw "Lua extraction failed; missing $luaExtractRoot."
           }
 
+          $luaMakefile = Get-ChildItem -Path $luaExtractRoot -Filter "Makefile.msc" -Recurse -File | Select-Object -First 1
+          if (-not $luaMakefile) {
+            throw "Lua Makefile.msc not found under $luaExtractRoot."
+          }
+          $luaBuildRoot = $luaMakefile.Directory.FullName
           $luaBuildArch = if ($gvsPlatform -eq "x86") { "x86" } else { "amd64" }
-          cmd /c "call `"C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\VsDevCmd.bat`" -arch=$luaBuildArch && cd /d `"$luaExtractRoot\src`" && nmake -f Makefile.msc"
+          cmd /c "call `"C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\VsDevCmd.bat`" -arch=$luaBuildArch && pushd `"$luaBuildRoot`" && nmake -f Makefile.msc && popd"
 
           $luaDepsRoot = "C:\gtk-build\gtk\$gvsPlatform\release"
           $luaIncludeDir = Join-Path $luaDepsRoot "include\lua54"
@@ -114,9 +119,9 @@ jobs:
           New-Item -Path $luaIncludeDir -ItemType Directory -Force | Out-Null
           New-Item -Path $luaLibDir -ItemType Directory -Force | Out-Null
           New-Item -Path $luaBinDir -ItemType Directory -Force | Out-Null
-          Copy-Item "$luaExtractRoot\src\*.h" $luaIncludeDir -Force
-          Copy-Item "$luaExtractRoot\src\lua54.lib" $luaLibDir -Force
-          Copy-Item "$luaExtractRoot\src\lua54.dll" $luaBinDir -Force
+          Copy-Item "$luaBuildRoot\*.h" $luaIncludeDir -Force
+          Copy-Item "$luaBuildRoot\lua54.lib" $luaLibDir -Force
+          Copy-Item "$luaBuildRoot\lua54.dll" $luaBinDir -Force
 
       - name: Build
         run: |
