@@ -66,14 +66,14 @@
         <ZlibLib Condition="'$(ZlibLib)'=='' and Exists('$(DepsRoot)\\lib\\zlibstatic.lib')">zlibstatic.lib</ZlibLib>
         <ZlibLib Condition="'$(ZlibLib)'==''">zlib.lib</ZlibLib>
 
-        <Gtk2Libs>gtk-win32-2.0.lib;gdk-win32-2.0.lib;atk-1.0.lib;gio-2.0.lib;gdk_pixbuf-2.0.lib;pangowin32-1.0.lib;pangocairo-1.0.lib;pango-1.0.lib;cairo.lib;gobject-2.0.lib;gmodule-2.0.lib;glib-2.0.lib;intl.lib;iconv.lib;$(ZlibLib);$(XmlLib);libjpeg.lib;libpng16.lib;$(CryptoLib);$(SslLib);$(CryptoLegacyLib);$(SslLegacyLib)</Gtk2Libs>
+        <Gtk2Libs>gtk-win32-2.0.lib;gdk-win32-2.0.lib;atk-1.0.lib;gio-2.0.lib;gdk_pixbuf-2.0.lib;pangowin32-1.0.lib;pangocairo-1.0.lib;pango-1.0.lib;cairo.lib;gobject-2.0.lib;gmodule-2.0.lib;glib-2.0.lib;intl.lib;iconv.lib;$(ZlibLib);$(XmlLib);jpeg.lib;libpng16.lib;$(CryptoLib);$(SslLib);$(CryptoLegacyLib);$(SslLegacyLib)</Gtk2Libs>
         <Gtk3Lib Condition="Exists('$(DepsRoot)\\lib\\gtk-3.0.lib')">gtk-3.0.lib</Gtk3Lib>
         <Gtk3Lib Condition="'$(Gtk3Lib)'=='' and Exists('$(DepsRoot)\\lib\\gtk-3.lib')">gtk-3.lib</Gtk3Lib>
         <Gtk3Lib Condition="'$(Gtk3Lib)'=='' and Exists('$(DepsRoot)\\lib\\gtk-3-0.lib')">gtk-3-0.lib</Gtk3Lib>
         <Gdk3Lib Condition="Exists('$(DepsRoot)\\lib\\gdk-3.0.lib')">gdk-3.0.lib</Gdk3Lib>
         <Gdk3Lib Condition="'$(Gdk3Lib)'=='' and Exists('$(DepsRoot)\\lib\\gdk-3.lib')">gdk-3.lib</Gdk3Lib>
         <Gdk3Lib Condition="'$(Gdk3Lib)'=='' and Exists('$(DepsRoot)\\lib\\gdk-3-0.lib')">gdk-3-0.lib</Gdk3Lib>
-        <Gtk3Libs>$(Gtk3Lib);$(Gdk3Lib);atk-1.0.lib;gio-2.0.lib;gdk_pixbuf-2.0.lib;pangowin32-1.0.lib;pangocairo-1.0.lib;pango-1.0.lib;cairo.lib;gobject-2.0.lib;gmodule-2.0.lib;glib-2.0.lib;intl.lib;iconv.lib;$(ZlibLib);$(XmlLib);libjpeg.lib;libpng16.lib;$(CryptoLib);$(SslLib)</Gtk3Libs>
+        <Gtk3Libs>$(Gtk3Lib);$(Gdk3Lib);atk-1.0.lib;gio-2.0.lib;gdk_pixbuf-2.0.lib;pangowin32-1.0.lib;pangocairo-1.0.lib;pango-1.0.lib;cairo.lib;gobject-2.0.lib;gmodule-2.0.lib;glib-2.0.lib;intl.lib;iconv.lib;$(ZlibLib);$(XmlLib);jpeg.lib;libpng16.lib;$(CryptoLib);$(SslLib)</Gtk3Libs>
 
         <DepLibs Condition="'$(UsingGtk3)'=='true'">$(Gtk3Libs);wininet.lib;winmm.lib;ws2_32.lib</DepLibs>
         <DepLibs Condition="'$(UsingGtk3)'!='true'">$(Gtk2Libs);wininet.lib;winmm.lib;ws2_32.lib</DepLibs>
@@ -128,5 +128,6 @@
 
 	<ItemGroup />
 </Project>
+
 
 
