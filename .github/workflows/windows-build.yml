@@ -76,7 +76,7 @@ jobs:
           python -m pip install C:\gtk-build\github\gvsbuild
 
           $gvsPlatform = if ("${{ matrix.platform }}" -eq "win32") { "x86" } else { "x64" }
-          gvsbuild build --vs-ver vs2019 --configuration release --platform $gvsPlatform gtk3 openssl lgi
+          gvsbuild build --vs-ver vs2019 --configuration release --platform $gvsPlatform gtk3 openssl lgi libxml2
 
           if ($gvsPlatform -eq "x86") {
             $gtkRoot = "C:\gtk-build\gtk"
