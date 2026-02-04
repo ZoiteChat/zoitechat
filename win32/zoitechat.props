@@ -44,6 +44,7 @@
         <Gtk Condition="'$(UsingGtk3)'!='true'">$(Gtk2);$(GtkCommon)</Gtk>
         <XmlLib Condition="Exists('$(DepsRoot)\\lib\\libxml2-2.0.lib')">libxml2-2.0.lib</XmlLib>
         <XmlLib Condition="'$(XmlLib)'=='' and Exists('$(DepsRoot)\\lib\\libxml2-2.lib')">libxml2-2.lib</XmlLib>
+        <XmlLib Condition="'$(XmlLib)'=='' and Exists('$(DepsRoot)\\lib\\xml2.lib')">xml2.lib</XmlLib>
         <XmlLib Condition="'$(XmlLib)'==''">libxml2.lib</XmlLib>
         <SslLib Condition="Exists('$(DepsRoot)\\lib\\libssl.lib')">libssl.lib</SslLib>
         <SslLib Condition="'$(SslLib)'=='' and Exists('$(DepsRoot)\\lib\\libssl-3-x64.lib')">libssl-3-x64.lib</SslLib>
@@ -127,4 +128,5 @@
 
 	<ItemGroup />
 </Project>
+
 
