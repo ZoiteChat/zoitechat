@@ -593,14 +593,15 @@ sts_handle_capability (struct server *serv, const char *value)
 	{
 		time_t now = time (NULL);
 		time_t expires_at = now + (time_t) duration;
-		guint16 effective_port = serv->port > 0 ? (guint16) serv->port : port;
+		guint16 effective_port = 0;
 		sts_profile *profile;
 
-		if (effective_port == 0)
+		if (serv->port <= 0)
 		{
 			return FALSE;
 		}
 
+		effective_port = (guint16) serv->port;
 		profile = sts_profile_new (hostname, effective_port, expires_at, duration,
 								   has_preload ? preload : FALSE);
 		sts_profile_store (profile);
