@@ -588,12 +588,13 @@ sts_handle_capability (struct server *serv, const char *value)
 			serv->disconnect (serv->server_session, FALSE, -1);
 			serv->connect (serv, host_copy, (int) port, serv->no_login);
 		}
+		return TRUE;
 #else
 		PrintTextf (serv->server_session,
 					_("STS upgrade requested for %s, but TLS is not available.\n"),
 					hostname);
+		return FALSE;
 #endif
-		return TRUE;
 	}
 
 	if (!has_duration)
