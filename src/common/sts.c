@@ -338,7 +338,13 @@ sts_parse_value (const char *value, guint16 *port, guint64 *duration, gboolean *
 		{
 			gint64 port_value;
 
-			if (*has_port || !val)
+			if (*has_port)
+			{
+				g_strfreev (tokens);
+				return FALSE;
+			}
+
+			if (!val)
 			{
 				continue;
 			}
@@ -354,7 +360,13 @@ sts_parse_value (const char *value, guint16 *port, guint64 *duration, gboolean *
 		{
 			guint64 duration_value;
 
-			if (*has_duration || !val)
+			if (*has_duration)
+			{
+				g_strfreev (tokens);
+				return FALSE;
+			}
+
+			if (!val)
 			{
 				continue;
 			}
@@ -367,7 +379,8 @@ sts_parse_value (const char *value, guint16 *port, guint64 *duration, gboolean *
 		{
 			if (*has_preload)
 			{
-				continue;
+				g_strfreev (tokens);
+				return FALSE;
 			}
 			*preload = TRUE;
 			*has_preload = TRUE;
