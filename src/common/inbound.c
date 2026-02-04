@@ -1903,7 +1903,11 @@ inbound_cap_ls (server *serv, char *nick, char *extensions_str,
 			else
 			{
 				PrintTextf (serv->server_session,
+<<<<<<< ours
 							_("Invalid STS capability token without value"));
+=======
+							_("Invalid STS capability token without a value; ignoring."));
+>>>>>>> theirs
 			}
 			continue;
 		}
