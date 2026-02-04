@@ -377,7 +377,12 @@ sts_parse_value (const char *value, guint16 *port, guint64 *duration, gboolean *
 		}
 		else if (!g_ascii_strcasecmp (key, "preload"))
 		{
-			if (*has_preload || val)
+			if (val)
+			{
+				continue;
+			}
+
+			if (*has_preload)
 			{
 				g_strfreev (tokens);
 				return FALSE;
