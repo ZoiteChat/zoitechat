@@ -97,9 +97,12 @@ jobs:
           if (-not $runnerTemp) { throw "RUNNER_TEMP/TEMP is not set." }
           New-Item -Path $runnerTemp -ItemType Directory -Force | Out-Null
           $luaExtractRoot = Join-Path $runnerTemp $luaDir
-          Invoke-WebRequest $luaUrl -OutFile (Join-Path $runnerTemp $luaArchive)
-          & 7z.exe x (Join-Path $runnerTemp $luaArchive) -o$runnerTemp | Out-Null
-          & 7z.exe x (Join-Path $runnerTemp "lua-$luaVersion.tar") -o$runnerTemp | Out-Null
+          $luaArchivePath = Join-Path $runnerTemp $luaArchive
+          Invoke-WebRequest $luaUrl -OutFile $luaArchivePath
+          tar -xzf $luaArchivePath -C $runnerTemp
+          if (-not (Test-Path $luaExtractRoot)) {
+            throw "Lua extraction failed; missing $luaExtractRoot."
+          }
 
           $luaBuildArch = if ($gvsPlatform -eq "x86") { "x86" } else { "amd64" }
           cmd /c "call `"C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\VsDevCmd.bat`" -arch=$luaBuildArch && cd /d `"$luaExtractRoot\src`" && nmake -f Makefile.msc"
