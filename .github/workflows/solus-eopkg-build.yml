@@ -41,6 +41,7 @@ jobs:
           docker run --rm \
             -v "$PWD":/workspace \
             -w /workspace \
+            -e PACKAGE_YML="$PACKAGE_YML" \
             "$SOLUS_IMAGE" \
             sh -lc '
               set -euo pipefail
