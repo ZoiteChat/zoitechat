@@ -338,7 +338,13 @@ sts_parse_value (const char *value, guint16 *port, guint64 *duration, gboolean *
 		{
 			gint64 port_value;
 
-			if (*has_port || !val)
+			if (*has_port)
+			{
+				g_strfreev (tokens);
+				return FALSE;
+			}
+
+			if (!val)
 			{
 				continue;
 			}
@@ -354,7 +360,13 @@ sts_parse_value (const char *value, guint16 *port, guint64 *duration, gboolean *
 		{
 			guint64 duration_value;
 
-			if (*has_duration || !val)
+			if (*has_duration)
+			{
+				g_strfreev (tokens);
+				return FALSE;
+			}
+
+			if (!val)
 			{
 				continue;
 			}
@@ -365,9 +377,15 @@ sts_parse_value (const char *value, guint16 *port, guint64 *duration, gboolean *
 		}
 		else if (!g_ascii_strcasecmp (key, "preload"))
 		{
-			if (*has_preload)
+			if (val)
 			{
 				continue;
+			}
+
+			if (*has_preload)
+			{
+				g_strfreev (tokens);
+				return FALSE;
 			}
 			*preload = TRUE;
 			*has_preload = TRUE;
@@ -553,15 +571,7 @@ sts_handle_capability (struct server *serv, const char *value)
 	{
 		if (!has_port)
 		{
-			if (serv->port > 0)
-			{
-				port = (guint16) serv->port;
-				has_port = TRUE;
-			}
-			else
-			{
-				return FALSE;
-			}
+			return FALSE;
 		}
 #ifdef USE_OPENSSL
 		if (serv->sts_upgrade_in_progress)
@@ -578,12 +588,13 @@ sts_handle_capability (struct server *serv, const char *value)
 			serv->disconnect (serv->server_session, FALSE, -1);
 			serv->connect (serv, host_copy, (int) port, serv->no_login);
 		}
+		return TRUE;
 #else
 		PrintTextf (serv->server_session,
 					_("STS upgrade requested for %s, but TLS is not available.\n"),
 					hostname);
+		return FALSE;
 #endif
-		return TRUE;
 	}
 
 	if (!has_duration)
@@ -601,12 +612,14 @@ sts_handle_capability (struct server *serv, const char *value)
 	{
 		time_t now = time (NULL);
 		time_t expires_at = now + (time_t) duration;
-		guint16 effective_port = serv->port > 0 ? (guint16) serv->port : port;
+		guint16 effective_port = 0;
+		sts_profile *existing_profile;
 		sts_profile *profile;
 
-		if (effective_port == 0)
+		existing_profile = sts_profile_lookup (hostname, now);
+		if (existing_profile)
 		{
-			return FALSE;
+			effective_port = existing_profile->port;
 		}
 
 		profile = sts_profile_new (hostname, effective_port, expires_at, duration,

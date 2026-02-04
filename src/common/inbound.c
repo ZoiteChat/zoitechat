@@ -1713,6 +1713,26 @@ void
 inbound_cap_ack (server *serv, char *nick, char *extensions,
 					  const message_tags_data *tags_data)
 {
+	if (extensions)
+	{
+		char **tokens = g_strsplit (extensions, " ", 0);
+		int i;
+
+		for (i = 0; tokens[i]; i++)
+		{
+			char **parts = g_strsplit (tokens[i], "=", 2);
+
+			if (!g_strcmp0 (parts[0], "sts") && parts[1] && parts[1][0])
+			{
+				sts_handle_capability (serv, parts[1]);
+			}
+
+			g_strfreev (parts);
+		}
+
+		g_strfreev (tokens);
+	}
+
 	EMIT_SIGNAL_TIMESTAMP (XP_TE_CAPACK, serv->server_session, nick, extensions,
 								  NULL, NULL, 0, tags_data->timestamp);
 
@@ -1879,6 +1899,11 @@ inbound_cap_ls (server *serv, char *nick, char *extensions_str,
 			if (value)
 			{
 				sts_upgrade_triggered |= sts_handle_capability (serv, value);
+			}
+			else
+			{
+				PrintTextf (serv->server_session,
+							_("Invalid STS capability token without a value; ignoring."));
 			}
 			continue;
 		}
