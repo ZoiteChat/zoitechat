@@ -989,7 +989,6 @@ blink_item (unsigned int *setting, GtkWidget *menu, char *label)
 }
 #endif
 
-#if !HAVE_GTK3 || defined(WIN32)
 static void
 tray_menu_destroy (GtkWidget *menu, gpointer userdata)
 {
@@ -1032,7 +1031,6 @@ tray_check_hide (GtkWidget *menu)
 
 	return G_SOURCE_CONTINUE;
 }
-#endif
 #endif
 
 static void
