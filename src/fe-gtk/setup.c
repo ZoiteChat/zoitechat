@@ -941,7 +941,10 @@ setup_spin_cb (GtkSpinButton *spin, const setting *set)
 static GtkWidget *
 setup_create_spin (GtkWidget *table, int row, const setting *set)
 {
-        GtkWidget *label, *wid, *rbox, *align;
+        GtkWidget *label, *wid, *rbox;
+#if !HAVE_GTK3
+        GtkWidget *align;
+#endif
         char *text;
 
         label = gtk_label_new (_(set->label));
@@ -1700,8 +1703,8 @@ setup_color_button_apply (GtkWidget *button, const PaletteColor *color)
 		GTK_STATE_SELECTED,
 		GTK_STATE_INSENSITIVE
 	};
-#endif
 	guint i;
+#endif
 
 #if HAVE_GTK3
 	gtkutil_apply_palette (apply_widget, color, NULL, NULL);
