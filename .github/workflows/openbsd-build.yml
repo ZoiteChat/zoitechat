@@ -32,7 +32,7 @@ jobs:
               git \
               meson ninja pkgconf gmake \
               gettext-tools \
-              glib2 gtk+2 dbus-glib libcanberra \
+              glib2 gtk+3 dbus-glib libcanberra \
               luajit mono libgdiplus openssl
 
             work="$(mktemp -d /tmp/zoitechat.XXXXXX)"
