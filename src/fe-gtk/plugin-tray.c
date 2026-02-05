@@ -1112,7 +1112,7 @@ tray_menu_show_cb (GtkWidget *menu, gpointer userdata)
 }
 #endif
 
-#if !HAVE_GTK3 || defined(WIN32)
+#if !HAVE_APPINDICATOR_BACKEND
 static void
 tray_menu_cb (GtkWidget *widget, guint button, guint time, gpointer userdata)
 {
