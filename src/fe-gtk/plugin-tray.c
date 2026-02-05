@@ -111,7 +111,7 @@ typedef GdkPixbuf* TrayCustomIcon;
 #define ICON_HILIGHT pix_tray_highlight
 #define ICON_FILE pix_tray_fileoffer
 #endif
-#if HAVE_GTK3 && defined(WIN32) && defined(GTK_DISABLE_DEPRECATED)
+#if HAVE_GTK3 && defined(WIN32) && defined(GTK_DISABLE_DEPRECATED) && !HAVE_APPINDICATOR_BACKEND
 GtkStatusIcon *gtk_status_icon_new_from_pixbuf (GdkPixbuf *pixbuf);
 void gtk_status_icon_set_from_pixbuf (GtkStatusIcon *status_icon, GdkPixbuf *pixbuf);
 void gtk_status_icon_set_tooltip_text (GtkStatusIcon *status_icon, const gchar *text);
