@@ -123,6 +123,7 @@ fe_args (int argc, char *argv[])
 	GError *error = NULL;
 	GOptionContext *context;
 	char *buffer;
+	const char *desktop_id = "net.zoite.Zoitechat";
 
 #ifdef ENABLE_NLS
 	bindtextdomain (GETTEXT_PACKAGE, LOCALEDIR);
@@ -241,6 +242,10 @@ fe_args (int argc, char *argv[])
 	}
 #endif
 
+	g_set_prgname (desktop_id);
+#ifndef WIN32
+	gdk_set_program_class (desktop_id);
+#endif
 	gtk_init (&argc, &argv);
 
 #ifdef HAVE_GTK_MAC
