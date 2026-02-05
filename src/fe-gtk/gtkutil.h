@@ -26,6 +26,14 @@
 
 typedef void (*filereqcallback) (void *, char *file);
 
+#ifndef HAVE_GTK3
+#if GTK_MAJOR_VERSION >= 3
+#define HAVE_GTK3 1
+#else
+#define HAVE_GTK3 0
+#endif
+#endif
+
 #if HAVE_GTK3
 typedef enum
 {
