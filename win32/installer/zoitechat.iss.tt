@@ -135,13 +135,8 @@ Source: "gspawn-win32-helper-console.exe"; DestDir: "{app}"; Flags: ignoreversio
 Source: "gthread-2.0-0.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 Source: "gtk-3-*.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 Source: "iconv.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
-#if APPARCH == "x64"
-Source: "libcrypto-1_1-x64.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
-Source: "libssl-1_1-x64.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
-#else
-Source: "libcrypto-1_1.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
-Source: "libssl-1_1.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
-#endif
+Source: "libcrypto-*.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
+Source: "libssl-*.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 Source: "libenchant.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 Source: "ffi-*.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 Source: "intl.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
