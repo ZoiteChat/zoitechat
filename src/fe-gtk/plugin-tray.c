@@ -39,7 +39,7 @@ typedef struct _GtkStatusIcon GtkStatusIcon;
 #ifndef WIN32
 #if defined(HAVE_AYATANA_APPINDICATOR)
 #include <libayatana-appindicator/app-indicator.h>
-#else
+#elif defined(HAVE_APPINDICATOR)
 #include <libappindicator/app-indicator.h>
 #endif
 #endif
@@ -72,7 +72,13 @@ typedef enum
 	WS_HIDDEN
 } WinStatus;
 
-#if HAVE_GTK3 && !defined(WIN32)
+#if HAVE_GTK3 && !defined(WIN32) && (defined(HAVE_AYATANA_APPINDICATOR) || defined(HAVE_APPINDICATOR))
+#define HAVE_APPINDICATOR_BACKEND 1
+#else
+#define HAVE_APPINDICATOR_BACKEND 0
+#endif
+
+#if HAVE_APPINDICATOR_BACKEND
 /* GTK3: use AppIndicator/StatusNotifier item for tray integration. */
 typedef GIcon *TrayIcon;
 typedef GIcon *TrayCustomIcon;
@@ -94,7 +100,7 @@ static TrayIcon tray_icon_file;
 #define ICON_FILE tray_icon_file
 #endif
 
-#if !HAVE_GTK3 || defined(WIN32)
+#if !HAVE_APPINDICATOR_BACKEND
 typedef GdkPixbuf* TrayIcon;
 typedef GdkPixbuf* TrayCustomIcon;
 #define tray_icon_from_file(f) gdk_pixbuf_new_from_file(f,NULL)
@@ -120,10 +126,10 @@ static void tray_init (void);
 static void tray_set_icon_state (TrayIcon icon, TrayIconState state);
 static void tray_menu_restore_cb (GtkWidget *item, gpointer userdata);
 static void tray_menu_notify_cb (GObject *tray, GParamSpec *pspec, gpointer user_data);
-#if HAVE_GTK3 && !defined(WIN32)
+#if HAVE_APPINDICATOR_BACKEND
 static void tray_menu_show_cb (GtkWidget *menu, gpointer userdata);
 #endif
-#if !HAVE_GTK3 || defined(WIN32)
+#if !HAVE_APPINDICATOR_BACKEND
 static void tray_menu_cb (GtkWidget *widget, guint button, guint time, gpointer userdata);
 #endif
 
@@ -136,11 +142,11 @@ typedef struct
 	void (*cleanup)(void);
 } TrayBackendOps;
 
-#if HAVE_GTK3 && !defined(WIN32)
+#if HAVE_APPINDICATOR_BACKEND
 static AppIndicator *tray_indicator;
 static GtkWidget *tray_menu;
 #endif
-#if !HAVE_GTK3 || defined(WIN32)
+#if !HAVE_APPINDICATOR_BACKEND
 static GtkStatusIcon *tray_status_icon;
 #endif
 static gboolean tray_backend_active = FALSE;
@@ -164,7 +170,7 @@ static int tray_hilight_count = 0;
 static int tray_file_count = 0;
 static int tray_restore_timer = 0;
 
-#if HAVE_GTK3 && !defined(WIN32)
+#if HAVE_APPINDICATOR_BACKEND
 static TrayCustomIcon
 tray_icon_from_file (const char *filename)
 {
@@ -429,7 +435,7 @@ static const TrayBackendOps tray_backend_ops = {
 };
 #endif
 
-#if !HAVE_GTK3 || defined(WIN32)
+#if !HAVE_APPINDICATOR_BACKEND
 static void
 tray_status_icon_set_icon (TrayIcon icon)
 {
@@ -501,7 +507,7 @@ tray_backend_init (void)
 	if (!tray_backend_ops.init)
 		return FALSE;
 
-#if HAVE_GTK3 && !defined(WIN32)
+#if HAVE_APPINDICATOR_BACKEND
 	tray_gtk3_icons_init ();
 	if (!tray_gtk3_icon_theme)
 		tray_gtk3_icon_theme = gtk_icon_theme_get_default ();
@@ -547,7 +553,7 @@ tray_backend_cleanup (void)
 	if (tray_backend_ops.cleanup)
 		tray_backend_ops.cleanup ();
 
-#if HAVE_GTK3 && !defined(WIN32)
+#if HAVE_APPINDICATOR_BACKEND
 	if (tray_gtk3_icon_theme && tray_gtk3_icon_theme_changed_handler)
 	{
 		g_signal_handler_disconnect (tray_gtk3_icon_theme,
