@@ -45,9 +45,11 @@ if get_option('gtk3')
       zoitechat_gtk_deps += appindicator_dep
       zoitechat_gtk_cflags += '-DHAVE_AYATANA_APPINDICATOR'
     else
-      appindicator_dep = dependency('appindicator3-0.1', required: true)
-      zoitechat_gtk_deps += appindicator_dep
-      zoitechat_gtk_cflags += '-DHAVE_APPINDICATOR'
+      appindicator_dep = dependency('appindicator3-0.1', required: false)
+      if appindicator_dep.found()
+        zoitechat_gtk_deps += appindicator_dep
+        zoitechat_gtk_cflags += '-DHAVE_APPINDICATOR'
+      endif
     endif
   endif
 else
