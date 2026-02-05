@@ -28,7 +28,7 @@ DefaultGroupName=ZoiteChat
 AllowNoIcons=yes
 SolidCompression=yes
 Compression=lzma2/ultra64
-SourceDir=..\release
+SourceDir=..\rel
 OutputDir=..
 #if APPARCH == "x64"
 OutputBaseFilename={#APPNAM}-{#APPVER}_x64
