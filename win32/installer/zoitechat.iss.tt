@@ -120,7 +120,7 @@ Source: "freetype.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 Source: "fribidi-0.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 Source: "fontconfig.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 Source: "gdk_pixbuf-2.0-0.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
-Source: "gdk-win32-2.0.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
+Source: "gdk-3-0.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 Source: "gio-2.0-0.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 Source: "glib-2.0-0.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 Source: "gmodule-2.0-0.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
@@ -133,7 +133,7 @@ Source: "gspawn-win32-helper.exe"; DestDir: "{app}"; Flags: ignoreversion; Compo
 Source: "gspawn-win32-helper-console.exe"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 #endif
 Source: "gthread-2.0-0.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
-Source: "gtk-win32-2.0.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
+Source: "gtk-3-0.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 Source: "iconv.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 #if APPARCH == "x64"
 Source: "libcrypto-1_1-x64.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
@@ -157,7 +157,8 @@ Source: "plugins\hcnotifications-winrt.dll"; DestDir: "{app}\plugins"; Flags: ig
 
 Source: "lib\enchant\*"; DestDir: "{app}\lib\enchant"; Flags: ignoreversion; Components: libs
 
-Source: "lib\gtk-2.0\i686-pc-vs14\engines\*"; DestDir: "{app}\lib\gtk-2.0\i686-pc-vs14\engines"; Flags: ignoreversion; Components: libs
+Source: "lib\gtk-3.0\3.0.0\immodules\*"; DestDir: "{app}\lib\gtk-3.0\3.0.0\immodules"; Flags: ignoreversion createallsubdirs recursesubdirs; Components: libs
+Source: "lib\gtk-3.0\3.0.0\printbackends\*"; DestDir: "{app}\lib\gtk-3.0\3.0.0\printbackends"; Flags: ignoreversion createallsubdirs recursesubdirs; Components: libs
 
 Source: "girepository-1.0-1.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: langs\lua
 Source: "lua51.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: langs\lua
