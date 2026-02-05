@@ -141,7 +141,8 @@ Source: "libenchant.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: li
 Source: "ffi-*.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 Source: "intl.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 Source: "libpng16.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
-Source: "libxml2-*.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
+Source: "libxml2-*.dll"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist; Components: libs
+Source: "xml2-*.dll"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist; Components: libs
 Source: "pango-1.0-0.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 Source: "pangocairo-1.0-0.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 Source: "pangoft2-1.0-0.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
