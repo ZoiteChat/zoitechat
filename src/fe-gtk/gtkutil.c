@@ -1123,8 +1123,8 @@ gtkutil_tray_icon_supported (GtkWindow *window)
 #ifdef GDK_WINDOWING_X11
 	GdkScreen *screen = gtk_window_get_screen (window);
 	GdkDisplay *display = gdk_screen_get_display (screen);
-#ifdef HAVE_GTK3
- 	if (!GDK_IS_X11_DISPLAY (display))
+#if HAVE_GTK3
+	if (!GDK_IS_X11_DISPLAY (display))
 		return FALSE;
 #endif
 	int screen_number = gdk_screen_get_number (screen);
