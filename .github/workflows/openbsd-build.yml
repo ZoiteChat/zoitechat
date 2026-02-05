@@ -33,7 +33,7 @@ jobs:
               meson ninja pkgconf gmake \
               gettext-tools \
               glib2 gtk+3 dbus-glib libcanberra \
-              luajit mono libgdiplus openssl
+              luajit mono libgdiplus openssl libappindicator
 
             work="$(mktemp -d /tmp/zoitechat.XXXXXX)"
             trap 'rm -rf "$work"' EXIT
