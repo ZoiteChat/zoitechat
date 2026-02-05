@@ -1390,16 +1390,15 @@ void
 mg_open_quit_dialog (gboolean minimize_button)
 {
         static GtkWidget *dialog = NULL;
-        GtkWidget *dialog_vbox1;
-        GtkWidget *table1;
-        GtkWidget *image;
-        GtkWidget *checkbutton1;
-        GtkWidget *label;
-        GtkWidget *dialog_action_area1;
-        GtkWidget *button;
-        char *text, *connecttext;
-        int cons;
-        int dccs;
+	GtkWidget *dialog_vbox1;
+	GtkWidget *table1;
+	GtkWidget *image;
+	GtkWidget *checkbutton1;
+	GtkWidget *label;
+	GtkWidget *button;
+	char *text, *connecttext;
+	int cons;
+	int dccs;
 
         if (dialog)
         {
@@ -1499,15 +1498,21 @@ mg_open_quit_dialog (gboolean minimize_button)
 #endif
         gtk_label_set_use_markup (GTK_LABEL (label), TRUE);
 
-        dialog_action_area1 = gtk_dialog_get_action_area (GTK_DIALOG (dialog));
-        gtk_widget_show (dialog_action_area1);
-        gtk_button_box_set_layout (GTK_BUTTON_BOX (dialog_action_area1),
-                                                                                GTK_BUTTONBOX_END);
+#if !HAVE_GTK3
+	{
+		GtkWidget *dialog_action_area1;
 
-        if (minimize_button && gtkutil_tray_icon_supported (GTK_WINDOW(dialog)))
-        {
-                button = gtk_button_new_with_mnemonic (_("_Minimize to Tray"));
-                gtk_widget_show (button);
+		dialog_action_area1 = gtk_dialog_get_action_area (GTK_DIALOG (dialog));
+		gtk_widget_show (dialog_action_area1);
+		gtk_button_box_set_layout (GTK_BUTTON_BOX (dialog_action_area1),
+									GTK_BUTTONBOX_END);
+	}
+#endif
+
+	if (minimize_button && gtkutil_tray_icon_supported (GTK_WINDOW(dialog)))
+	{
+		button = gtk_button_new_with_mnemonic (_("_Minimize to Tray"));
+		gtk_widget_show (button);
                 gtk_dialog_add_action_widget (GTK_DIALOG (dialog), button, 1);
         }
 

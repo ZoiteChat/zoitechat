@@ -132,7 +132,6 @@ joind_show_dialog (server *serv)
 	GtkWidget *hbox2;
 	GtkWidget *entry1;
 	GtkWidget *checkbutton1;
-	GtkWidget *dialog_action_area1;
 	GtkWidget *okbutton1;
 	char buf[256];
 	char buf2[256];
@@ -281,13 +280,20 @@ joind_show_dialog (server *serv)
 	gtk_widget_show (checkbutton1);
 	gtk_box_pack_start (GTK_BOX (vbox1), checkbutton1, FALSE, FALSE, 0);
 
-	dialog_action_area1 = gtk_dialog_get_action_area (GTK_DIALOG (dialog1));
-	gtk_widget_show (dialog_action_area1);
-	gtk_button_box_set_layout (GTK_BUTTON_BOX (dialog_action_area1), GTK_BUTTONBOX_END);
-
 	okbutton1 = gtkutil_button_new_from_stock ("gtk-ok", _("_OK"));
 	gtk_widget_show (okbutton1);
-	gtk_box_pack_end (GTK_BOX (gtk_dialog_get_action_area (GTK_DIALOG (dialog1))), okbutton1, FALSE, TRUE, 0);
+#if HAVE_GTK3
+	gtk_dialog_add_action_widget (GTK_DIALOG (dialog1), okbutton1, GTK_RESPONSE_OK);
+#elif !HAVE_GTK3
+	{
+		GtkWidget *dialog_action_area1;
+
+		dialog_action_area1 = gtk_dialog_get_action_area (GTK_DIALOG (dialog1));
+		gtk_widget_show (dialog_action_area1);
+		gtk_button_box_set_layout (GTK_BUTTON_BOX (dialog_action_area1), GTK_BUTTONBOX_END);
+		gtk_box_pack_end (GTK_BOX (dialog_action_area1), okbutton1, FALSE, TRUE, 0);
+	}
+#endif
 	gtk_widget_set_can_default (okbutton1, TRUE);
 
 	g_signal_connect (G_OBJECT (dialog1), "destroy",
