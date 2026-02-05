@@ -115,12 +115,12 @@ Source: "share\locale\*"; DestDir: "{app}\share\locale"; Flags: ignoreversion cr
 Source: "etc\fonts\*"; DestDir: "{app}\etc\fonts"; Flags: ignoreversion createallsubdirs recursesubdirs; Components: libs
 
 Source: "atk-1.0-0.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
-Source: "cairo.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
-Source: "freetype.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
+Source: "cairo*.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
+Source: "freetype-*.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 Source: "fribidi-0.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
-Source: "fontconfig.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
+Source: "fontconfig-*.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 Source: "gdk_pixbuf-2.0-0.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
-Source: "gdk-3-0.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
+Source: "gdk-3-*.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 Source: "gio-2.0-0.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 Source: "glib-2.0-0.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 Source: "gmodule-2.0-0.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
@@ -133,7 +133,7 @@ Source: "gspawn-win32-helper.exe"; DestDir: "{app}"; Flags: ignoreversion; Compo
 Source: "gspawn-win32-helper-console.exe"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 #endif
 Source: "gthread-2.0-0.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
-Source: "gtk-3-0.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
+Source: "gtk-3-*.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 Source: "iconv.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 #if APPARCH == "x64"
 Source: "libcrypto-1_1-x64.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
@@ -143,10 +143,10 @@ Source: "libcrypto-1_1.dll"; DestDir: "{app}"; Flags: ignoreversion; Components:
 Source: "libssl-1_1.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 #endif
 Source: "libenchant.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
-Source: "ffi-7.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
+Source: "ffi-*.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 Source: "intl.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 Source: "libpng16.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
-Source: "libxml2.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
+Source: "libxml2-*.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 Source: "pango-1.0-0.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 Source: "pangocairo-1.0-0.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 Source: "pangoft2-1.0-0.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
