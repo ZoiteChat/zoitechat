@@ -26,6 +26,20 @@
 
 typedef void (*filereqcallback) (void *, char *file);
 
+#if HAVE_GTK3
+typedef enum
+{
+	GTKUTIL_ATTACH_EXPAND = 1 << 0,
+	GTKUTIL_ATTACH_SHRINK = 1 << 1,
+	GTKUTIL_ATTACH_FILL = 1 << 2
+} GtkutilAttachOptions;
+#else
+typedef GtkAttachOptions GtkutilAttachOptions;
+#define GTKUTIL_ATTACH_EXPAND GTK_EXPAND
+#define GTKUTIL_ATTACH_SHRINK GTK_SHRINK
+#define GTKUTIL_ATTACH_FILL GTK_FILL
+#endif
+
 void gtkutil_file_req (GtkWindow *parent, const char *title, void *callback, void *userdata, char *filter, char *extensions, int flags);
 void gtkutil_destroy (GtkWidget * igad, GtkWidget * dgad);
 void gtkutil_destroy_on_esc (GtkWidget *win);
@@ -50,6 +64,16 @@ gboolean gtkutil_treemodel_string_to_iter (GtkTreeModel *model, gchar *pathstr, 
 gboolean gtkutil_treeview_get_selected_iter (GtkTreeView *view, GtkTreeIter *iter_ret);
 gboolean gtkutil_treeview_get_selected (GtkTreeView *view, GtkTreeIter *iter_ret, ...);
 gboolean gtkutil_tray_icon_supported (GtkWindow *window);
+GtkWidget *gtkutil_box_new (GtkOrientation orientation, gboolean homogeneous, gint spacing);
+GtkWidget *gtkutil_grid_new (guint rows, guint columns, gboolean homogeneous);
+void gtkutil_grid_attach (GtkWidget *table, GtkWidget *child,
+				  guint left_attach, guint right_attach,
+				  guint top_attach, guint bottom_attach,
+				  GtkutilAttachOptions xoptions, GtkutilAttachOptions yoptions,
+				  guint xpad, guint ypad);
+void gtkutil_grid_attach_defaults (GtkWidget *table, GtkWidget *child,
+					   guint left_attach, guint right_attach,
+					   guint top_attach, guint bottom_attach);
 #if HAVE_GTK3
 void gtkutil_apply_palette (GtkWidget *widget, const GdkRGBA *bg, const GdkRGBA *fg,
                             const PangoFontDescription *font_desc);

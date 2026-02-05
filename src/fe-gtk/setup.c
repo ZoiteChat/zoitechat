@@ -959,7 +959,7 @@ setup_create_spin (GtkWidget *table, int row, const setting *set)
                             LABEL_INDENT, 0);
 
 #if HAVE_GTK3
-        rbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
+        rbox = gtkutil_box_new (GTK_ORIENTATION_HORIZONTAL, FALSE, 0);
         gtk_widget_set_halign (rbox, GTK_ALIGN_START);
         gtk_widget_set_valign (rbox, GTK_ALIGN_CENTER);
         setup_table_attach (table, rbox, 3, 4, row, row + 1, TRUE, FALSE,
@@ -969,7 +969,7 @@ setup_create_spin (GtkWidget *table, int row, const setting *set)
         setup_table_attach (table, align, 3, 4, row, row + 1, TRUE, FALSE,
                             SETUP_ALIGN_FILL, SETUP_ALIGN_FILL, 0, 0);
 
-        rbox = gtk_hbox_new (0, 0);
+        rbox = gtkutil_box_new (GTK_ORIENTATION_HORIZONTAL, FALSE, 0);
         gtk_container_add (GTK_CONTAINER (align), rbox);
 #endif
 
@@ -1107,9 +1107,9 @@ setup_create_radio (GtkWidget *table, int row, const setting *set)
                             LABEL_INDENT, 0);
 
 #if HAVE_GTK3
-        hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
+        hbox = gtkutil_box_new (GTK_ORIENTATION_HORIZONTAL, FALSE, 0);
 #elif !HAVE_GTK3
-        hbox = gtk_hbox_new (0, 0);
+        hbox = gtkutil_box_new (GTK_ORIENTATION_HORIZONTAL, FALSE, 0);
 #endif
         setup_table_attach (table, hbox, 3, 4, row, row + 1, FALSE, FALSE,
                             SETUP_ALIGN_FILL, SETUP_ALIGN_FILL, 0, 0);
@@ -1242,9 +1242,9 @@ setup_create_menu (GtkWidget *table, int row, const setting *set)
                                                         G_CALLBACK (setup_menu_cb), (gpointer)set);
 
 #if HAVE_GTK3
-        box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
+        box = gtkutil_box_new (GTK_ORIENTATION_HORIZONTAL, FALSE, 0);
 #elif !HAVE_GTK3
-        box = gtk_hbox_new (0, 0);
+        box = gtkutil_box_new (GTK_ORIENTATION_HORIZONTAL, FALSE, 0);
 #endif
         gtk_box_pack_start (GTK_BOX (box), cbox, 0, 0, 0);
         setup_table_attach (table, box, 3, 4, row, row + 1, TRUE, FALSE,
@@ -1527,14 +1527,12 @@ setup_create_frame (void)
 {
         GtkWidget *tab;
 
-#if HAVE_GTK3
-        tab = gtk_grid_new ();
+        tab = gtkutil_grid_new (3, 2, FALSE);
         gtk_container_set_border_width (GTK_CONTAINER (tab), 6);
+#if HAVE_GTK3
         gtk_grid_set_row_spacing (GTK_GRID (tab), 2);
         gtk_grid_set_column_spacing (GTK_GRID (tab), 3);
 #else
-        tab = gtk_table_new (3, 2, FALSE);
-        gtk_container_set_border_width (GTK_CONTAINER (tab), 6);
         gtk_table_set_row_spacings (GTK_TABLE (tab), 2);
         gtk_table_set_col_spacings (GTK_TABLE (tab), 3);
 #endif
@@ -1679,9 +1677,9 @@ setup_create_dark_mode_menu (GtkWidget *table, int row, const setting *set)
 					  G_CALLBACK (setup_dark_mode_menu_cb), (gpointer)set);
 
 #if HAVE_GTK3
-	box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
+	box = gtkutil_box_new (GTK_ORIENTATION_HORIZONTAL, FALSE, 0);
 #elif !HAVE_GTK3
-	box = gtk_hbox_new (0, 0);
+	box = gtkutil_box_new (GTK_ORIENTATION_HORIZONTAL, FALSE, 0);
 #endif
 	gtk_box_pack_start (GTK_BOX (box), cbox, 0, 0, 0);
 	setup_table_attach (table, box, 3, 4, row, row + 1, TRUE, FALSE,
@@ -1953,26 +1951,19 @@ setup_create_color_page (void)
 	GtkWidget *tab, *box, *label;
 	int i;
 
-#if HAVE_GTK3
-        box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
-#elif !HAVE_GTK3
-        box = gtk_vbox_new (FALSE, 0);
-#endif
+        box = gtkutil_box_new (GTK_ORIENTATION_VERTICAL, FALSE, 0);
         gtk_container_set_border_width (GTK_CONTAINER (box), 6);
 
-#if HAVE_GTK3
-        tab = gtk_grid_new ();
+        tab = gtkutil_grid_new (9, 2, FALSE);
         gtk_container_set_border_width (GTK_CONTAINER (tab), 6);
+#if HAVE_GTK3
         gtk_grid_set_row_spacing (GTK_GRID (tab), 2);
         gtk_grid_set_column_spacing (GTK_GRID (tab), 3);
-        gtk_container_add (GTK_CONTAINER (box), tab);
 #else
-        tab = gtk_table_new (9, 2, FALSE);
-        gtk_container_set_border_width (GTK_CONTAINER (tab), 6);
         gtk_table_set_row_spacings (GTK_TABLE (tab), 2);
         gtk_table_set_col_spacings (GTK_TABLE (tab), 3);
-        gtk_container_add (GTK_CONTAINER (box), tab);
 #endif
+        gtk_container_add (GTK_CONTAINER (box), tab);
 
         setup_create_header (tab, 0, N_("Text Colors"));
 
@@ -2234,9 +2225,9 @@ setup_create_theme_page (void)
         ui = g_new0 (setup_theme_ui, 1);
 
 #if HAVE_GTK3
-        box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 6);
+        box = gtkutil_box_new (GTK_ORIENTATION_VERTICAL, FALSE, 6);
 #elif !HAVE_GTK3
-        box = gtk_vbox_new (FALSE, 6);
+        box = gtkutil_box_new (GTK_ORIENTATION_VERTICAL, FALSE, 6);
 #endif
         gtk_container_set_border_width (GTK_CONTAINER (box), 6);
 
@@ -2256,9 +2247,9 @@ setup_create_theme_page (void)
         g_free (themes_dir);
 
 #if HAVE_GTK3
-        hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 6);
+        hbox = gtkutil_box_new (GTK_ORIENTATION_HORIZONTAL, FALSE, 6);
 #elif !HAVE_GTK3
-        hbox = gtk_hbox_new (FALSE, 6);
+        hbox = gtkutil_box_new (GTK_ORIENTATION_HORIZONTAL, FALSE, 6);
 #endif
         gtk_box_pack_start (GTK_BOX (box), hbox, FALSE, FALSE, 0);
 
@@ -2268,9 +2259,9 @@ setup_create_theme_page (void)
                                                         G_CALLBACK (setup_theme_selection_changed), ui);
 
 #if HAVE_GTK3
-        button_box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 6);
+        button_box = gtkutil_box_new (GTK_ORIENTATION_HORIZONTAL, FALSE, 6);
 #elif !HAVE_GTK3
-        button_box = gtk_hbox_new (FALSE, 6);
+        button_box = gtkutil_box_new (GTK_ORIENTATION_HORIZONTAL, FALSE, 6);
 #endif
         gtk_box_pack_start (GTK_BOX (hbox), button_box, FALSE, FALSE, 0);
 
@@ -2489,17 +2480,17 @@ setup_create_sound_page (void)
         GtkTreeSelection *sel;
 
 #if HAVE_GTK3
-        vbox1 = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
+        vbox1 = gtkutil_box_new (GTK_ORIENTATION_VERTICAL, FALSE, 0);
 #elif !HAVE_GTK3
-        vbox1 = gtk_vbox_new (FALSE, 0);
+        vbox1 = gtkutil_box_new (GTK_ORIENTATION_VERTICAL, FALSE, 0);
 #endif
         gtk_container_set_border_width (GTK_CONTAINER (vbox1), 6);
         gtk_widget_show (vbox1);
 
 #if HAVE_GTK3
-        vbox2 = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
+        vbox2 = gtkutil_box_new (GTK_ORIENTATION_VERTICAL, FALSE, 0);
 #elif !HAVE_GTK3
-        vbox2 = gtk_vbox_new (FALSE, 0);
+        vbox2 = gtkutil_box_new (GTK_ORIENTATION_VERTICAL, FALSE, 0);
 #endif
         gtk_widget_show (vbox2);
         gtk_container_add (GTK_CONTAINER (vbox1), vbox2);
@@ -2523,16 +2514,13 @@ setup_create_sound_page (void)
         gtk_container_add (GTK_CONTAINER (scrolledwindow1), sound_tree);
         gtk_tree_view_set_rules_hint (GTK_TREE_VIEW (sound_tree), TRUE);
 
-#if HAVE_GTK3
-        table1 = gtk_grid_new ();
+        table1 = gtkutil_grid_new (2, 3, FALSE);
         gtk_widget_show (table1);
         gtk_box_pack_start (GTK_BOX (vbox2), table1, FALSE, TRUE, 8);
+#if HAVE_GTK3
         gtk_grid_set_row_spacing (GTK_GRID (table1), 2);
         gtk_grid_set_column_spacing (GTK_GRID (table1), 4);
 #else
-        table1 = gtk_table_new (2, 3, FALSE);
-        gtk_widget_show (table1);
-        gtk_box_pack_start (GTK_BOX (vbox2), table1, FALSE, TRUE, 8);
         gtk_table_set_row_spacings (GTK_TABLE (table1), 2);
         gtk_table_set_col_spacings (GTK_TABLE (table1), 4);
 #endif
@@ -2576,9 +2564,9 @@ setup_add_page (const char *title, GtkWidget *book, GtkWidget *tab)
         char buf[128];
 
 #if HAVE_GTK3
-        vvbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
+        vvbox = gtkutil_box_new (GTK_ORIENTATION_VERTICAL, FALSE, 0);
 #elif !HAVE_GTK3
-        vvbox = gtk_vbox_new (FALSE, 0);
+        vvbox = gtkutil_box_new (GTK_ORIENTATION_VERTICAL, FALSE, 0);
 #endif
 
         /* label */
@@ -3140,17 +3128,17 @@ setup_window_open (void)
         win = gtkutil_window_new (buf, "prefs", 0, 600, 2);
 
 #if HAVE_GTK3
-        vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 5);
+        vbox = gtkutil_box_new (GTK_ORIENTATION_VERTICAL, FALSE, 5);
 #elif !HAVE_GTK3
-        vbox = gtk_vbox_new (FALSE, 5);
+        vbox = gtkutil_box_new (GTK_ORIENTATION_VERTICAL, FALSE, 5);
 #endif
         gtk_container_set_border_width (GTK_CONTAINER (vbox), 6);
         gtk_container_add (GTK_CONTAINER (win), vbox);
 
 #if HAVE_GTK3
-        hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 4);
+        hbox = gtkutil_box_new (GTK_ORIENTATION_HORIZONTAL, FALSE, 4);
 #elif !HAVE_GTK3
-        hbox = gtk_hbox_new (FALSE, 4);
+        hbox = gtkutil_box_new (GTK_ORIENTATION_HORIZONTAL, FALSE, 4);
 #endif
         gtk_container_add (GTK_CONTAINER (vbox), hbox);
 

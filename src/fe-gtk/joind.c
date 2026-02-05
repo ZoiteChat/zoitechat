@@ -148,19 +148,11 @@ joind_show_dialog (server *serv)
 	dialog_vbox1 = gtk_dialog_get_content_area (GTK_DIALOG (dialog1));
 	gtk_widget_show (dialog_vbox1);
 
-#if HAVE_GTK3
-	vbox1 = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
-#elif !HAVE_GTK3
-	vbox1 = gtk_vbox_new (FALSE, 0);
-#endif
+	vbox1 = gtkutil_box_new (GTK_ORIENTATION_VERTICAL, FALSE, 0);
 	gtk_widget_show (vbox1);
 	gtk_box_pack_start (GTK_BOX (dialog_vbox1), vbox1, TRUE, TRUE, 0);
 
-#if HAVE_GTK3
-	hbox1 = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
-#elif !HAVE_GTK3
-	hbox1 = gtk_hbox_new (FALSE, 0);
-#endif
+	hbox1 = gtkutil_box_new (GTK_ORIENTATION_HORIZONTAL, FALSE, 0);
 	gtk_widget_show (hbox1);
 	gtk_box_pack_start (GTK_BOX (vbox1), hbox1, TRUE, TRUE, 0);
 
@@ -175,11 +167,7 @@ joind_show_dialog (server *serv)
 	gtk_misc_set_alignment (GTK_MISC (image1), 0.5f, 0.06f);
 #endif
 
-#if HAVE_GTK3
-	vbox2 = gtk_box_new (GTK_ORIENTATION_VERTICAL, 10);
-#elif !HAVE_GTK3
-	vbox2 = gtk_vbox_new (FALSE, 10);
-#endif
+	vbox2 = gtkutil_box_new (GTK_ORIENTATION_VERTICAL, FALSE, 10);
 	gtk_container_set_border_width (GTK_CONTAINER (vbox2), 6);
 	gtk_widget_show (vbox2);
 	gtk_box_pack_start (GTK_BOX (hbox1), vbox2, TRUE, TRUE, 0);
@@ -224,11 +212,7 @@ joind_show_dialog (server *serv)
 	gtk_box_pack_start (GTK_BOX (vbox2), radiobutton1, FALSE, FALSE, 0);
 	radiobutton1_group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (radiobutton1));
 
-#if HAVE_GTK3
-	hbox2 = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
-#elif !HAVE_GTK3
-	hbox2 = gtk_hbox_new (FALSE, 0);
-#endif
+	hbox2 = gtkutil_box_new (GTK_ORIENTATION_HORIZONTAL, FALSE, 0);
 	gtk_widget_show (hbox2);
 	gtk_box_pack_start (GTK_BOX (vbox2), hbox2, FALSE, FALSE, 0);
 

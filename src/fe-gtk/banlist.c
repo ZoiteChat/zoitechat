@@ -786,17 +786,14 @@ banlist_closegui (GtkWidget *wid, banlist_info *banl)
 static GtkWidget *
 banlist_table_new (void)
 {
+	GtkWidget *table = gtkutil_grid_new (1, MODE_CT, FALSE);
+
 #if HAVE_GTK3
-	GtkWidget *table = gtk_grid_new ();
-
 	gtk_grid_set_column_spacing (GTK_GRID (table), 16);
-	return table;
 #else
-	GtkWidget *table = gtk_table_new (1, MODE_CT, FALSE);
-
 	gtk_table_set_col_spacings (GTK_TABLE (table), 16);
-	return table;
 #endif
+	return table;
 }
 
 void
@@ -856,15 +853,8 @@ banlist_opengui (struct session *sess)
 		gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (banl->checkboxes[i]), (banl->checked & 1<<i? TRUE: FALSE));
 		g_signal_connect (G_OBJECT (banl->checkboxes[i]), "toggled",
 								G_CALLBACK (banlist_toggle), banl);
-#if HAVE_GTK3
-		gtk_widget_set_hexpand (banl->checkboxes[i], FALSE);
-		gtk_widget_set_vexpand (banl->checkboxes[i], FALSE);
-		gtk_widget_set_halign (banl->checkboxes[i], GTK_ALIGN_START);
-		gtk_widget_set_valign (banl->checkboxes[i], GTK_ALIGN_CENTER);
-		gtk_grid_attach (GTK_GRID (table), banl->checkboxes[i], i + 1, 0, 1, 1);
-#else
-		gtk_table_attach (GTK_TABLE (table), banl->checkboxes[i], i+1, i+2, 0, 1, GTK_FILL, GTK_FILL, 0, 0);
-#endif
+		gtkutil_grid_attach (table, banl->checkboxes[i], i + 1, i + 2, 0, 1,
+				     GTKUTIL_ATTACH_FILL, GTKUTIL_ATTACH_FILL, 0, 0);
 	}
 
 #if HAVE_GTK3

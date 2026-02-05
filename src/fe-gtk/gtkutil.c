@@ -683,12 +683,7 @@ fe_get_str (char *msg, char *def, void *callback, void *userdata)
 		gtk_window_set_position (GTK_WINDOW (dialog), GTK_WIN_POS_MOUSE);
 	}
 
-#if HAVE_GTK3
-	hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
-	gtk_box_set_homogeneous (GTK_BOX (hbox), TRUE);
-#elif !HAVE_GTK3
-	hbox = gtk_hbox_new (TRUE, 0);
-#endif
+	hbox = gtkutil_box_new (GTK_ORIENTATION_HORIZONTAL, TRUE, 0);
 
 	g_object_set_data (G_OBJECT (dialog), "cb", callback);
 	g_object_set_data (G_OBJECT (dialog), "ud", userdata);
@@ -781,12 +776,7 @@ fe_get_int (char *msg, int def, void *callback, void *userdata)
 	gtk_window_set_position (GTK_WINDOW (dialog), GTK_WIN_POS_MOUSE);
 	gtk_window_set_transient_for (GTK_WINDOW (dialog), GTK_WINDOW (parent_window));
 
-#if HAVE_GTK3
-	hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
-	gtk_box_set_homogeneous (GTK_BOX (hbox), TRUE);
-#elif !HAVE_GTK3
-	hbox = gtk_hbox_new (TRUE, 0);
-#endif
+	hbox = gtkutil_box_new (GTK_ORIENTATION_HORIZONTAL, TRUE, 0);
 
 	g_object_set_data (G_OBJECT (dialog), "cb", callback);
 	g_object_set_data (G_OBJECT (dialog), "ud", userdata);
@@ -880,11 +870,7 @@ gtkutil_button (GtkWidget *box, char *stock, char *tip, void *callback,
 	}
 	else
 	{
-#if HAVE_GTK3
-		bbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
-#elif !HAVE_GTK3
-		bbox = gtk_hbox_new (0, 0);
-#endif
+		bbox = gtkutil_box_new (GTK_ORIENTATION_HORIZONTAL, FALSE, 0);
 		gtk_container_add (GTK_CONTAINER (wid), bbox);
 		gtk_widget_show (bbox);
 
@@ -1177,3 +1163,95 @@ gtkutil_find_font (const char *fontname)
 	return FALSE;
 }
 #endif
+
+GtkWidget *
+gtkutil_box_new (GtkOrientation orientation, gboolean homogeneous, gint spacing)
+{
+#if HAVE_GTK3
+	GtkWidget *box = gtk_box_new (orientation, spacing);
+
+	gtk_box_set_homogeneous (GTK_BOX (box), homogeneous);
+	return box;
+#elif !HAVE_GTK3
+	if (orientation == GTK_ORIENTATION_HORIZONTAL)
+		return gtk_hbox_new (homogeneous, spacing);
+
+	return gtk_vbox_new (homogeneous, spacing);
+#endif
+}
+
+GtkWidget *
+gtkutil_grid_new (guint rows, guint columns, gboolean homogeneous)
+{
+#if HAVE_GTK3
+	GtkWidget *grid = gtk_grid_new ();
+
+	gtk_grid_set_row_homogeneous (GTK_GRID (grid), homogeneous);
+	gtk_grid_set_column_homogeneous (GTK_GRID (grid), homogeneous);
+	return grid;
+#elif !HAVE_GTK3
+	return gtk_table_new (rows, columns, homogeneous);
+#endif
+}
+
+#if HAVE_GTK3
+static GtkAlign
+gtkutil_align_from_options (GtkutilAttachOptions options, GtkAlign default_align)
+{
+	if (options & GTKUTIL_ATTACH_FILL)
+		return GTK_ALIGN_FILL;
+
+	return default_align;
+}
+#endif
+
+static gboolean
+gtkutil_expansion_from_options (GtkutilAttachOptions options, gboolean default_expand)
+{
+	if (options & GTKUTIL_ATTACH_EXPAND)
+		return TRUE;
+
+	return default_expand;
+}
+
+void
+gtkutil_grid_attach (GtkWidget *table, GtkWidget *child,
+		     guint left_attach, guint right_attach,
+		     guint top_attach, guint bottom_attach,
+		     GtkutilAttachOptions xoptions, GtkutilAttachOptions yoptions,
+		     guint xpad, guint ypad)
+{
+#if HAVE_GTK3
+	gtk_widget_set_hexpand (child, gtkutil_expansion_from_options (xoptions, FALSE));
+	gtk_widget_set_vexpand (child, gtkutil_expansion_from_options (yoptions, FALSE));
+	gtk_widget_set_halign (child, gtkutil_align_from_options (xoptions, GTK_ALIGN_CENTER));
+	gtk_widget_set_valign (child, gtkutil_align_from_options (yoptions, GTK_ALIGN_CENTER));
+	gtk_widget_set_margin_start (child, xpad);
+	gtk_widget_set_margin_end (child, xpad);
+	gtk_widget_set_margin_top (child, ypad);
+	gtk_widget_set_margin_bottom (child, ypad);
+	gtk_grid_attach (GTK_GRID (table), child, left_attach, top_attach,
+			 right_attach - left_attach, bottom_attach - top_attach);
+#elif !HAVE_GTK3
+	gtk_table_attach (GTK_TABLE (table), child, left_attach, right_attach,
+			  top_attach, bottom_attach, xoptions, yoptions, xpad, ypad);
+#endif
+}
+
+void
+gtkutil_grid_attach_defaults (GtkWidget *table, GtkWidget *child,
+			      guint left_attach, guint right_attach,
+			      guint top_attach, guint bottom_attach)
+{
+#if HAVE_GTK3
+	gtk_widget_set_hexpand (child, TRUE);
+	gtk_widget_set_vexpand (child, TRUE);
+	gtk_widget_set_halign (child, GTK_ALIGN_FILL);
+	gtk_widget_set_valign (child, GTK_ALIGN_FILL);
+	gtk_grid_attach (GTK_GRID (table), child, left_attach, top_attach,
+			 right_attach - left_attach, bottom_attach - top_attach);
+#elif !HAVE_GTK3
+	gtk_table_attach_defaults (GTK_TABLE (table), child, left_attach, right_attach,
+				   top_attach, bottom_attach);
+#endif
+}
