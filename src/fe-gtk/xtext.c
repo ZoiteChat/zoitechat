@@ -4429,7 +4429,7 @@ gtk_xtext_render_page (GtkXText * xtext)
 	 * If we're not currently inside ::draw, xtext->draw_cr is NULL. In that case
 	 * just request a redraw and let the normal GTK paint cycle do the work.
 	 */
-#ifdef HAVE_GTK3
+#if HAVE_GTK3
 	if (xtext->draw_cr == NULL)
 	{
 		GtkWidget *w = GTK_WIDGET (xtext);
