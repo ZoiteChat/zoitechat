@@ -13,7 +13,7 @@ gnome = import('gnome')
 cc = meson.get_compiler('c')
 
 
-libgio_dep = dependency('gio-2.0', version: '>= 2.74.0')
+libgio_dep = dependency('gio-2.0', version: '>= 2.36.0')
 libgmodule_dep = dependency('gmodule-2.0')
 
 libcanberra_dep = dependency('libcanberra', version: '>= 0.22',
@@ -47,8 +47,8 @@ config_h.set('G_DISABLE_SINGLE_INCLUDES', true)
 config_h.set('GTK_DISABLE_DEPRECATED', true)
 config_h.set('GTK_DISABLE_SINGLE_INCLUDES', true)
 config_h.set('GDK_PIXBUF_DISABLE_SINGLE_INCLUDES', true)
-config_h.set('GLIB_VERSION_MAX_ALLOWED', 'GLIB_VERSION_2_86')
-config_h.set('GLIB_VERSION_MIN_REQUIRED', 'GLIB_VERSION_2_84')
+config_h.set('GLIB_VERSION_MAX_ALLOWED', 'GLIB_VERSION_2_36')
+config_h.set('GLIB_VERSION_MIN_REQUIRED', 'GLIB_VERSION_2_36')
 
 # Detected features
 config_h.set('HAVE_MEMRCHR', cc.has_function('memrchr'))
@@ -145,7 +145,7 @@ if not (host_machine.system() == 'windows' and get_option('debug'))
  test_ldflags += '-Wl,--dynamicbase'
 endif
 foreach ldflag : test_ldflags
-  if meson.version().version_compare('>= 0.46.0')
+  if meson.version().version_compare('>= 0.55.0')
     has_arg = cc.has_link_argument(ldflag)
   else
     has_arg = cc.has_argument(ldflag)
