@@ -25,12 +25,12 @@
   <ItemGroup>
     <None Include="$(DepsRoot)\bin\cert.pem" />
     <None Include="$(DepsRoot)\bin\atk-1.0-0.dll" />
-    <None Include="$(DepsRoot)\bin\cairo.dll" />
-    <None Include="$(DepsRoot)\bin\freetype.dll" />
+    <None Include="$(DepsRoot)\bin\cairo*.dll" />
+    <None Include="$(DepsRoot)\bin\freetype-*.dll" />
     <None Include="$(DepsRoot)\bin\fribidi-0.dll" />
-    <None Include="$(DepsRoot)\bin\fontconfig.dll" />
+    <None Include="$(DepsRoot)\bin\fontconfig-*.dll" />
     <None Include="$(DepsRoot)\bin\gdk_pixbuf-2.0-0.dll" />
-    <None Include="$(DepsRoot)\bin\gdk-3-0.dll" />
+    <None Include="$(DepsRoot)\bin\gdk-3-*.dll" />
     <None Include="$(DepsRoot)\bin\gio-2.0-0.dll" />
     <None Include="$(DepsRoot)\bin\glib-2.0-0.dll" />
     <None Include="$(DepsRoot)\bin\gmodule-2.0-0.dll" />
@@ -38,15 +38,15 @@
     <None Include="$(DepsRoot)\bin\gspawn-win$(PlatformArchitecture)-helper.exe" />
     <None Include="$(DepsRoot)\bin\gspawn-win$(PlatformArchitecture)-helper-console.exe" />
     <None Include="$(DepsRoot)\bin\gthread-2.0-0.dll" />
-    <None Include="$(DepsRoot)\bin\gtk-3-0.dll" />
+    <None Include="$(DepsRoot)\bin\gtk-3-*.dll" />
     <None Include="$(DepsRoot)\bin\iconv.dll" />
     <None Include="$(DepsRoot)\bin\libcrypto*.dll" />
     <None Include="$(DepsRoot)\bin\libssl*.dll" />
     <None Include="$(DepsRoot)\bin\libenchant.dll" />
-    <None Include="$(DepsRoot)\bin\ffi-7.dll" />
+    <None Include="$(DepsRoot)\bin\ffi-*.dll" />
     <None Include="$(DepsRoot)\bin\intl.dll" />
     <None Include="$(DepsRoot)\bin\libpng16.dll" />
-    <None Include="$(DepsRoot)\bin\libxml2.dll" />
+    <None Include="$(DepsRoot)\bin\libxml2-*.dll" />
     <None Include="$(DepsRoot)\bin\pango-1.0-0.dll" />
     <None Include="$(DepsRoot)\bin\pangocairo-1.0-0.dll" />
     <None Include="$(DepsRoot)\bin\pangoft2-1.0-0.dll" />
@@ -102,5 +102,6 @@
     <Copy SourceFiles="@(DepsRootDocs)" DestinationFiles="@(DepsRootDocs->'$(ZoiteChatRel)\share\doc\%(RecursiveDir)%(Filename)%(Extension)')" />
   </Target>
 </Project>
+
 
 
