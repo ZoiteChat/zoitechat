@@ -153,8 +153,10 @@ Source: "plugins\hcnotifications-winrt.dll"; DestDir: "{app}\plugins"; Flags: ig
 
 Source: "lib\enchant\*"; DestDir: "{app}\lib\enchant"; Flags: ignoreversion; Components: libs
 
-Source: "lib\gtk-3.0\3.0.0\immodules\*"; DestDir: "{app}\lib\gtk-3.0\3.0.0\immodules"; Flags: ignoreversion createallsubdirs recursesubdirs; Components: libs
-Source: "lib\gtk-3.0\3.0.0\printbackends\*"; DestDir: "{app}\lib\gtk-3.0\3.0.0\printbackends"; Flags: ignoreversion createallsubdirs recursesubdirs; Components: libs
+; GTK 3 input method modules (e.g. IMEs) and printing backends. These can be absent
+; in some CI dependency bundles, so skip when the directory isn't present.
+Source: "lib\gtk-3.0\3.0.0\immodules\*"; DestDir: "{app}\lib\gtk-3.0\3.0.0\immodules"; Flags: ignoreversion createallsubdirs recursesubdirs skipifsourcedoesntexist; Components: libs
+Source: "lib\gtk-3.0\3.0.0\printbackends\*"; DestDir: "{app}\lib\gtk-3.0\3.0.0\printbackends"; Flags: ignoreversion createallsubdirs recursesubdirs skipifsourcedoesntexist; Components: libs
 
 Source: "girepository-1.0-1.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: langs\lua
 Source: "lua51.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: langs\lua
