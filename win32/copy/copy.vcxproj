@@ -45,7 +45,9 @@
     <None Include="$(DepsRoot)\bin\libenchant.dll" />
     <None Include="$(DepsRoot)\bin\ffi-*.dll" />
     <None Include="$(DepsRoot)\bin\intl.dll" />
+    <None Include="$(DepsRoot)\bin\jpeg*.dll" />
     <None Include="$(DepsRoot)\bin\libpng16.dll" />
+    <None Include="$(DepsRoot)\bin\libjpeg*.dll" />
     <None Include="$(DepsRoot)\bin\libxml2-*.dll" />
     <None Include="$(DepsRoot)\bin\pango-1.0-0.dll" />
     <None Include="$(DepsRoot)\bin\pangocairo-1.0-0.dll" />
