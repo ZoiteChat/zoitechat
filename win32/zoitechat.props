@@ -28,6 +28,12 @@
 		<Python3Output>hcpython3</Python3Output>
 		<LuaInclude>$(DepsRoot)\include\luajit-2.1;$(DepsRoot)\include\lua;$(DepsRoot)\include\lua5.1;$(DepsRoot)\include\lua54;$(DepsRoot)\include\lua5.4;$(DepsRoot)\include\lua-5.4;$(SolutionDir)..\plugins\lua\luajit\src;$(SolutionDir)..\plugins\lua\luajit\src\jit</LuaInclude>
 		<LuaOutput>hclua</LuaOutput>
+		<LuaEnabled Condition="Exists('$(DepsRoot)\\include\\lua.h')">true</LuaEnabled>
+		<LuaEnabled Condition="'$(LuaEnabled)'=='' and Exists('$(DepsRoot)\\include\\lua5.1\\lua.h')">true</LuaEnabled>
+		<LuaEnabled Condition="'$(LuaEnabled)'=='' and Exists('$(DepsRoot)\\include\\lua5.4\\lua.h')">true</LuaEnabled>
+		<LuaEnabled Condition="'$(LuaEnabled)'=='' and Exists('$(DepsRoot)\\include\\lua-5.4\\lua.h')">true</LuaEnabled>
+		<LuaEnabled Condition="'$(LuaEnabled)'=='' and Exists('$(SolutionDir)..\\plugins\\lua\\luajit\\src\\lua.h')">true</LuaEnabled>
+		<LuaEnabled Condition="'$(LuaEnabled)'==''">false</LuaEnabled>
 		<LuaLib Condition="Exists('$(DepsRoot)\\lib\\lua51.lib')">lua51</LuaLib>
 		<LuaLib Condition="'$(LuaLib)'=='' and Exists('$(DepsRoot)\\lib\\lua5.1.lib')">lua5.1</LuaLib>
 		<LuaLib Condition="'$(LuaLib)'=='' and Exists('$(DepsRoot)\\lib\\lua54.lib')">lua54</LuaLib>
@@ -35,6 +41,9 @@
 		<LuaLib Condition="'$(LuaLib)'=='' and Exists('$(DepsRoot)\\lib\\lua-5.4.lib')">lua-5.4</LuaLib>
 		<LuaLib Condition="'$(LuaLib)'=='' and Exists('$(DepsRoot)\\lib\\lua.lib')">lua</LuaLib>
 		<LuaLib Condition="'$(LuaLib)'==''">lua51</LuaLib>
+		<GlibGenMarshal Condition="Exists('$(DepsRoot)\\bin\\glib-genmarshal.exe')">&quot;$(DepsRoot)\bin\glib-genmarshal.exe&quot;</GlibGenMarshal>
+		<GlibGenMarshal Condition="'$(GlibGenMarshal)'=='' and Exists('$(DepsRoot)\\bin\\glib-genmarshal')">&quot;$(DepsRoot)\bin\glib-genmarshal&quot;</GlibGenMarshal>
+		<GlibGenMarshal Condition="'$(GlibGenMarshal)'==''">&quot;$(Python3Path)\python.exe&quot; &quot;$(DepsRoot)\bin\glib-genmarshal&quot;</GlibGenMarshal>
 		<Glib>$(DepsRoot)\include\glib-2.0;$(DepsRoot)\lib\glib-2.0\include;$(DepsRoot)\include\libxml2</Glib>
         <UsingGtk3 Condition="Exists('$(DepsRoot)\\include\\gtk-3.0\\gtk\\gtk.h')">true</UsingGtk3>
         <GtkDefines>HAVE_GTK3</GtkDefines>
@@ -70,7 +79,11 @@
         <Gdk3Lib Condition="Exists('$(DepsRoot)\\lib\\gdk-3.0.lib')">gdk-3.0.lib</Gdk3Lib>
         <Gdk3Lib Condition="'$(Gdk3Lib)'=='' and Exists('$(DepsRoot)\\lib\\gdk-3-0.lib')">gdk-3-0.lib</Gdk3Lib>
         <Gdk3Lib Condition="'$(Gdk3Lib)'=='' and Exists('$(DepsRoot)\\lib\\gdk-3.lib')">gdk-3.lib</Gdk3Lib>
-        <Gtk3Libs>$(Gtk3Lib);$(Gdk3Lib);atk-1.0.lib;gio-2.0.lib;gdk_pixbuf-2.0.lib;pangowin32-1.0.lib;pangocairo-1.0.lib;pango-1.0.lib;cairo.lib;gobject-2.0.lib;gmodule-2.0.lib;glib-2.0.lib;intl.lib;iconv.lib;$(ZlibLib);$(XmlLib);jpeg.lib;libpng16.lib;$(CryptoLib);$(SslLib)</Gtk3Libs>
+      <AtkLib Condition="Exists('$(DepsRoot)\\lib\\atk-1.0.lib')">atk-1.0.lib</AtkLib>
+        <AtkLib Condition="'$(AtkLib)'=='' and Exists('$(DepsRoot)\\lib\\atk-1.0-0.lib')">atk-1.0-0.lib</AtkLib>
+        <AtkLib Condition="'$(AtkLib)'=='' and Exists('$(DepsRoot)\\lib\\libatk-1.0.lib')">libatk-1.0.lib</AtkLib>
+        <AtkLib Condition="'$(AtkLib)'==''">atk-1.0.lib</AtkLib>
+        <Gtk3Libs>$(Gtk3Lib);$(Gdk3Lib);$(AtkLib);gio-2.0.lib;gdk_pixbuf-2.0.lib;pangowin32-1.0.lib;pangocairo-1.0.lib;pango-1.0.lib;cairo.lib;gobject-2.0.lib;gmodule-2.0.lib;glib-2.0.lib;intl.lib;iconv.lib;$(ZlibLib);$(XmlLib);jpeg.lib;libpng16.lib;$(CryptoLib);$(SslLib)</Gtk3Libs>
 
         <DepLibs>$(Gtk3Libs);wininet.lib;winmm.lib;ws2_32.lib</DepLibs>
 		<DataDir>$(SolutionDir)..\data\\</DataDir>
