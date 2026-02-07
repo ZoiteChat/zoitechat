@@ -39,6 +39,21 @@
 #define SERVLIST_X_PADDING 4			/* horizontal paddig in the network editor */
 #define SERVLIST_Y_PADDING 0			/* vertical padding in the network editor */
 
+#if HAVE_GTK3
+#define ICON_SERVLIST_CONNECT "network-connect"
+#define ICON_SERVLIST_ADD "list-add"
+#define ICON_SERVLIST_REMOVE "list-remove"
+#define ICON_SERVLIST_CLOSE "window-close"
+#define ICON_SERVLIST_ERROR "dialog-error"
+#endif
+#if !HAVE_GTK3
+#define ICON_SERVLIST_CONNECT GTK_STOCK_CONNECT
+#define ICON_SERVLIST_ADD GTK_STOCK_ADD
+#define ICON_SERVLIST_REMOVE GTK_STOCK_REMOVE
+#define ICON_SERVLIST_CLOSE GTK_STOCK_CLOSE
+#define ICON_SERVLIST_ERROR GTK_STOCK_DIALOG_ERROR
+#endif
+
 #ifdef USE_OPENSSL
 # define DEFAULT_SERVER "newserver/6697"
 #else
@@ -91,6 +106,22 @@ static session *servlist_sess;
 
 static void servlist_network_row_cb (GtkTreeSelection *sel, gpointer user_data);
 static GtkWidget *servlist_open_edit (GtkWidget *parent, ircnet *net);
+
+#if HAVE_GTK3
+static GtkWidget *
+servlist_icon_button_new (const char *label, const char *icon_name)
+{
+	GtkWidget *button;
+	GtkWidget *image;
+
+	button = gtk_button_new_with_mnemonic (label);
+	image = gtk_image_new_from_icon_name (icon_name, GTK_ICON_SIZE_BUTTON);
+	gtk_button_set_image (GTK_BUTTON (button), image);
+	gtk_button_set_always_show_image (GTK_BUTTON (button), TRUE);
+
+	return button;
+}
+#endif
 
 
 static const char *pages[]=
@@ -1251,6 +1282,73 @@ servlist_check_cb (GtkWidget *but, gpointer num_p)
 	}
 }
 
+typedef enum
+{
+	SERVLIST_ALIGN_START,
+	SERVLIST_ALIGN_CENTER,
+	SERVLIST_ALIGN_FILL
+} servlist_align;
+
+#if HAVE_GTK3
+static GtkAlign
+servlist_align_to_gtk (servlist_align align)
+{
+	switch (align)
+	{
+	case SERVLIST_ALIGN_FILL:
+		return GTK_ALIGN_FILL;
+	case SERVLIST_ALIGN_CENTER:
+		return GTK_ALIGN_CENTER;
+	case SERVLIST_ALIGN_START:
+	default:
+		return GTK_ALIGN_START;
+	}
+}
+#endif
+
+static void
+servlist_table_attach (GtkWidget *table, GtkWidget *child,
+					   guint left_attach, guint right_attach,
+					   guint top_attach, guint bottom_attach,
+					   gboolean hexpand, gboolean vexpand,
+					   servlist_align halign, servlist_align valign,
+					   guint xpad, guint ypad)
+{
+#if HAVE_GTK3
+	gtk_widget_set_hexpand (child, hexpand);
+	gtk_widget_set_vexpand (child, vexpand);
+	gtk_widget_set_halign (child, servlist_align_to_gtk (halign));
+	gtk_widget_set_valign (child, servlist_align_to_gtk (valign));
+	gtk_widget_set_margin_start (child, xpad);
+	gtk_widget_set_margin_end (child, xpad);
+	gtk_widget_set_margin_top (child, ypad);
+	gtk_widget_set_margin_bottom (child, ypad);
+	gtk_grid_attach (GTK_GRID (table), child, left_attach, top_attach,
+					 right_attach - left_attach, bottom_attach - top_attach);
+#else
+	GtkAttachOptions xoptions = 0;
+	GtkAttachOptions yoptions = 0;
+
+	if (hexpand)
+		xoptions |= GTK_EXPAND;
+	else
+		xoptions |= GTK_SHRINK;
+	if (halign == SERVLIST_ALIGN_FILL)
+		xoptions |= GTK_FILL;
+
+	if (vexpand)
+		yoptions |= GTK_EXPAND;
+	else
+		yoptions |= GTK_SHRINK;
+	if (valign == SERVLIST_ALIGN_FILL)
+		yoptions |= GTK_FILL;
+
+	gtk_table_attach (GTK_TABLE (table), child, left_attach, right_attach,
+					  top_attach, bottom_attach, xoptions, yoptions,
+					  xpad, ypad);
+#endif
+}
+
 static GtkWidget *
 servlist_create_check (int num, int state, GtkWidget *table, int row, int col, char *labeltext)
 {
@@ -1260,7 +1358,10 @@ servlist_create_check (int num, int state, GtkWidget *table, int row, int col, c
 	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (but), state);
 	g_signal_connect (G_OBJECT (but), "toggled",
 							G_CALLBACK (servlist_check_cb), GINT_TO_POINTER (num));
-	gtk_table_attach (GTK_TABLE (table), but, col, col+2, row, row+1, GTK_FILL|GTK_EXPAND, 0, SERVLIST_X_PADDING, SERVLIST_Y_PADDING);
+	servlist_table_attach (table, but, col, col + 2, row, row + 1,
+						   TRUE, FALSE,
+						   SERVLIST_ALIGN_FILL, SERVLIST_ALIGN_CENTER,
+						   SERVLIST_X_PADDING, SERVLIST_Y_PADDING);
 	gtk_widget_show (but);
 
 	return but;
@@ -1276,8 +1377,16 @@ servlist_create_entry (GtkWidget *table, char *labeltext, int row,
 	if (label_ret)
 		*label_ret = label;
 	gtk_widget_show (label);
-	gtk_table_attach (GTK_TABLE (table), label, 0, 1, row, row+1, GTK_FILL, 0, SERVLIST_X_PADDING, SERVLIST_Y_PADDING);
+	servlist_table_attach (table, label, 0, 1, row, row + 1,
+						   FALSE, FALSE,
+						   SERVLIST_ALIGN_START, SERVLIST_ALIGN_CENTER,
+						   SERVLIST_X_PADDING, SERVLIST_Y_PADDING);
+#if HAVE_GTK3
+	gtk_widget_set_halign (label, GTK_ALIGN_START);
+	gtk_widget_set_valign (label, GTK_ALIGN_CENTER);
+#elif !HAVE_GTK3
 	gtk_misc_set_alignment (GTK_MISC (label), 0, 0.5);
+#endif
 
 	entry = gtk_entry_new ();
 	gtk_widget_set_tooltip_text (entry, tip);
@@ -1285,7 +1394,10 @@ servlist_create_entry (GtkWidget *table, char *labeltext, int row,
 	gtk_entry_set_text (GTK_ENTRY (entry), def ? def : "");
 	gtk_label_set_mnemonic_widget (GTK_LABEL (label), entry);
 
-	gtk_table_attach (GTK_TABLE (table), entry, 1, 2, row, row+1, GTK_FILL|GTK_EXPAND, 0, SERVLIST_X_PADDING, SERVLIST_Y_PADDING);
+	servlist_table_attach (table, entry, 1, 2, row, row + 1,
+						   TRUE, FALSE,
+						   SERVLIST_ALIGN_FILL, SERVLIST_ALIGN_CENTER,
+						   SERVLIST_X_PADDING, SERVLIST_Y_PADDING);
 
 	return entry;
 }
@@ -1563,14 +1675,24 @@ servlist_username_changed_cb (GtkEntry *entry, gpointer userdata)
 
 	if (gtk_entry_get_text (entry)[0] == 0)
 	{
+#if HAVE_GTK3
+		gtk_entry_set_icon_from_icon_name (entry, GTK_ENTRY_ICON_SECONDARY, ICON_SERVLIST_ERROR);
+#endif
+#if !HAVE_GTK3
 		gtk_entry_set_icon_from_stock (entry, GTK_ENTRY_ICON_SECONDARY, GTK_STOCK_DIALOG_ERROR);
+#endif
 		gtk_entry_set_icon_tooltip_text (entry, GTK_ENTRY_ICON_SECONDARY,
 										_("User name cannot be left blank."));
 		gtk_widget_set_sensitive (connect_btn, FALSE);
 	}
 	else
 	{
+#if HAVE_GTK3
+		gtk_entry_set_icon_from_icon_name (entry, GTK_ENTRY_ICON_SECONDARY, NULL);
+#endif
+#if !HAVE_GTK3
 		gtk_entry_set_icon_from_stock (entry, GTK_ENTRY_ICON_SECONDARY, NULL);
+#endif
 		gtk_widget_set_sensitive (connect_btn, TRUE);
 	}
 }
@@ -1585,22 +1707,38 @@ servlist_nick_changed_cb (GtkEntry *entry, gpointer userdata)
 	if (!nick1[0] || !nick2[0])
 	{
 		entry = GTK_ENTRY(!nick1[0] ? entry_nick1 : entry_nick2);
+#if HAVE_GTK3
+		gtk_entry_set_icon_from_icon_name (entry, GTK_ENTRY_ICON_SECONDARY, ICON_SERVLIST_ERROR);
+#endif
+#if !HAVE_GTK3
 		gtk_entry_set_icon_from_stock (entry, GTK_ENTRY_ICON_SECONDARY, GTK_STOCK_DIALOG_ERROR);
+#endif
 		gtk_entry_set_icon_tooltip_text (entry, GTK_ENTRY_ICON_SECONDARY,
 		                                 _("You cannot have an empty nick name."));
 		gtk_widget_set_sensitive (connect_btn, FALSE);
 	}
 	else if (!rfc_casecmp (nick1, nick2))
 	{
+#if HAVE_GTK3
+		gtk_entry_set_icon_from_icon_name (entry, GTK_ENTRY_ICON_SECONDARY, ICON_SERVLIST_ERROR);
+#endif
+#if !HAVE_GTK3
 		gtk_entry_set_icon_from_stock (entry, GTK_ENTRY_ICON_SECONDARY, GTK_STOCK_DIALOG_ERROR);
+#endif
 		gtk_entry_set_icon_tooltip_text (entry, GTK_ENTRY_ICON_SECONDARY,
 										_("You must have two unique nick names."));
 		gtk_widget_set_sensitive (connect_btn, FALSE);
 	}
 	else
 	{
+#if HAVE_GTK3
+		gtk_entry_set_icon_from_icon_name (GTK_ENTRY(entry_nick1), GTK_ENTRY_ICON_SECONDARY, NULL);
+		gtk_entry_set_icon_from_icon_name (GTK_ENTRY(entry_nick2), GTK_ENTRY_ICON_SECONDARY, NULL);
+#endif
+#if !HAVE_GTK3
 		gtk_entry_set_icon_from_stock (GTK_ENTRY(entry_nick1), GTK_ENTRY_ICON_SECONDARY, NULL);
 		gtk_entry_set_icon_from_stock (GTK_ENTRY(entry_nick2), GTK_ENTRY_ICON_SECONDARY, NULL);
+#endif
 		gtk_widget_set_sensitive (connect_btn, TRUE);
 	}
 }
@@ -1680,7 +1818,12 @@ bold_label (char *text)
 	g_snprintf (buf, sizeof (buf), "<b>%s</b>", text);
 	label = gtk_label_new (buf);
 	gtk_label_set_use_markup (GTK_LABEL (label), TRUE);
+#if HAVE_GTK3
+	gtk_widget_set_halign (label, GTK_ALIGN_START);
+	gtk_widget_set_valign (label, GTK_ALIGN_CENTER);
+#elif !HAVE_GTK3
 	gtk_misc_set_alignment (GTK_MISC (label), 0, 0.5);
+#endif
 	gtk_widget_show (label);
 
 	return label;
@@ -1727,12 +1870,12 @@ servlist_open_edit (GtkWidget *parent, ircnet *net)
 	gtk_window_set_type_hint (GTK_WINDOW (editwindow), GDK_WINDOW_TYPE_HINT_DIALOG);
 	gtk_window_set_role (GTK_WINDOW (editwindow), "editserv");
 
-	vbox5 = gtk_vbox_new (FALSE, 0);
+	vbox5 = gtkutil_box_new (GTK_ORIENTATION_VERTICAL, FALSE, 0);
 	gtk_container_add (GTK_CONTAINER (editwindow), vbox5);
 
 
 	/* Tabs and buttons */
-	hbox1 = gtk_hbox_new (FALSE, 0);
+	hbox1 = gtkutil_box_new (GTK_ORIENTATION_HORIZONTAL, FALSE, 0);
 	gtk_box_pack_start (GTK_BOX (vbox5), hbox1, TRUE, TRUE, 4);
 
 	scrolledwindow2 = gtk_scrolled_window_new (NULL, NULL);
@@ -1845,18 +1988,32 @@ servlist_open_edit (GtkWidget *parent, ircnet *net)
 
 
 	/* Button Box */
+#if HAVE_GTK3
+	vbuttonbox1 = gtk_button_box_new (GTK_ORIENTATION_VERTICAL);
+#elif !HAVE_GTK3
 	vbuttonbox1 = gtk_vbutton_box_new ();
+#endif
 	gtk_box_set_spacing (GTK_BOX (vbuttonbox1), 3);
 	gtk_button_box_set_layout (GTK_BUTTON_BOX (vbuttonbox1), GTK_BUTTONBOX_START);
 	gtk_box_pack_start (GTK_BOX (hbox1), vbuttonbox1, FALSE, FALSE, 3);
 
-	buttonadd = gtk_button_new_from_stock ("gtk-add");
+#if HAVE_GTK3
+	buttonadd = servlist_icon_button_new (_("_Add"), ICON_SERVLIST_ADD);
+#endif
+#if !HAVE_GTK3
+	buttonadd = gtk_button_new_from_stock (GTK_STOCK_ADD);
+#endif
 	g_signal_connect (G_OBJECT (buttonadd), "clicked",
 							G_CALLBACK (servlist_addbutton_cb), notebook);
 	gtk_container_add (GTK_CONTAINER (vbuttonbox1), buttonadd);
 	gtk_widget_set_can_default (buttonadd, TRUE);
 
-	buttonremove = gtk_button_new_from_stock ("gtk-remove");
+#if HAVE_GTK3
+	buttonremove = servlist_icon_button_new (_("_Remove"), ICON_SERVLIST_REMOVE);
+#endif
+#if !HAVE_GTK3
+	buttonremove = gtk_button_new_from_stock (GTK_STOCK_REMOVE);
+#endif
 	g_signal_connect (G_OBJECT (buttonremove), "clicked",
 							G_CALLBACK (servlist_deletebutton_cb), notebook);
 	gtk_container_add (GTK_CONTAINER (vbuttonbox1), buttonremove);
@@ -1870,10 +2027,15 @@ servlist_open_edit (GtkWidget *parent, ircnet *net)
 
 
 	/* Checkboxes and entries */
-	table3 = gtk_table_new (13, 2, FALSE);
+	table3 = gtkutil_grid_new (13, 2, FALSE);
 	gtk_box_pack_start (GTK_BOX (vbox5), table3, FALSE, FALSE, 0);
+#if HAVE_GTK3
+	gtk_grid_set_row_spacing (GTK_GRID (table3), 2);
+	gtk_grid_set_column_spacing (GTK_GRID (table3), 8);
+#else
 	gtk_table_set_row_spacings (GTK_TABLE (table3), 2);
 	gtk_table_set_col_spacings (GTK_TABLE (table3), 8);
+#endif
 
 	check = servlist_create_check (0, !(net->flags & FLAG_CYCLE), table3, 0, 0, _("Connect to selected server only"));
 	gtk_widget_set_tooltip_text (check, _("Don't cycle through all the servers when the connection fails."));
@@ -1895,10 +2057,21 @@ servlist_open_edit (GtkWidget *parent, ircnet *net)
 	edit_entry_user = servlist_create_entry (table3, _("_User name:"), 9, net->user, &edit_label_user, 0);
 
 	label_logintype = gtk_label_new (_("Login method:"));
-	gtk_table_attach (GTK_TABLE (table3), label_logintype, 0, 1, 10, 11, (GtkAttachOptions) (GTK_FILL), (GtkAttachOptions) (0), SERVLIST_X_PADDING, SERVLIST_Y_PADDING);
+	servlist_table_attach (table3, label_logintype, 0, 1, 10, 11,
+						   FALSE, FALSE,
+						   SERVLIST_ALIGN_START, SERVLIST_ALIGN_CENTER,
+						   SERVLIST_X_PADDING, SERVLIST_Y_PADDING);
+#if HAVE_GTK3
+	gtk_widget_set_halign (label_logintype, GTK_ALIGN_START);
+	gtk_widget_set_valign (label_logintype, GTK_ALIGN_CENTER);
+#elif !HAVE_GTK3
 	gtk_misc_set_alignment (GTK_MISC (label_logintype), 0, 0.5);
+#endif
 	combobox_logintypes = servlist_create_logintypecombo (notebook);
-	gtk_table_attach (GTK_TABLE (table3), combobox_logintypes, 1, 2, 10, 11, (GtkAttachOptions) (GTK_FILL), (GtkAttachOptions) (GTK_FILL), 4, 2);
+	servlist_table_attach (table3, combobox_logintypes, 1, 2, 10, 11,
+						   FALSE, FALSE,
+						   SERVLIST_ALIGN_FILL, SERVLIST_ALIGN_FILL,
+						   4, 2);
 
 	edit_entry_pass = servlist_create_entry (table3, _("Password:"), 11, net->pass, 0, _("Password used for login. If in doubt, leave blank."));
 	gtk_entry_set_visibility (GTK_ENTRY (edit_entry_pass), FALSE);
@@ -1906,21 +2079,46 @@ servlist_open_edit (GtkWidget *parent, ircnet *net)
 		gtk_widget_set_sensitive (edit_entry_pass, FALSE);
 
 	label34 = gtk_label_new (_("Character set:"));
-	gtk_table_attach (GTK_TABLE (table3), label34, 0, 1, 12, 13, (GtkAttachOptions) (GTK_FILL), (GtkAttachOptions) (0), SERVLIST_X_PADDING, SERVLIST_Y_PADDING);
+	servlist_table_attach (table3, label34, 0, 1, 12, 13,
+						   FALSE, FALSE,
+						   SERVLIST_ALIGN_START, SERVLIST_ALIGN_CENTER,
+						   SERVLIST_X_PADDING, SERVLIST_Y_PADDING);
+#if HAVE_GTK3
+	gtk_widget_set_halign (label34, GTK_ALIGN_START);
+	gtk_widget_set_valign (label34, GTK_ALIGN_CENTER);
+#elif !HAVE_GTK3
 	gtk_misc_set_alignment (GTK_MISC (label34), 0, 0.5);
+#endif
 	comboboxentry_charset = servlist_create_charsetcombo ();
-	gtk_table_attach (GTK_TABLE (table3), comboboxentry_charset, 1, 2, 12, 13, (GtkAttachOptions) (GTK_FILL), (GtkAttachOptions) (GTK_FILL), 4, 2);
+	servlist_table_attach (table3, comboboxentry_charset, 1, 2, 12, 13,
+						   FALSE, FALSE,
+						   SERVLIST_ALIGN_FILL, SERVLIST_ALIGN_FILL,
+						   4, 2);
 
 
 	/* Rule and Close button */
+#if HAVE_GTK3
+	hseparator2 = gtk_separator_new (GTK_ORIENTATION_HORIZONTAL);
+#elif !HAVE_GTK3
 	hseparator2 = gtk_hseparator_new ();
+#endif
 	gtk_box_pack_start (GTK_BOX (vbox5), hseparator2, FALSE, FALSE, 8);
 
-	hbuttonbox4 = gtk_hbutton_box_new ();
-	gtk_box_pack_start (GTK_BOX (vbox5), hbuttonbox4, FALSE, FALSE, 0);
+#if HAVE_GTK3
+	hbuttonbox4 = gtk_button_box_new (GTK_ORIENTATION_HORIZONTAL);
 	gtk_button_box_set_layout (GTK_BUTTON_BOX (hbuttonbox4), GTK_BUTTONBOX_END);
+#elif !HAVE_GTK3
+	hbuttonbox4 = gtk_hbutton_box_new ();
+	gtk_button_box_set_layout (GTK_BUTTON_BOX (hbuttonbox4), GTK_BUTTONBOX_END);
+#endif
+	gtk_box_pack_start (GTK_BOX (vbox5), hbuttonbox4, FALSE, FALSE, 0);
 
-	button10 = gtk_button_new_from_stock ("gtk-close");
+#if HAVE_GTK3
+	button10 = servlist_icon_button_new (_("_Close"), ICON_SERVLIST_CLOSE);
+#endif
+#if !HAVE_GTK3
+	button10 = gtk_button_new_from_stock (GTK_STOCK_CLOSE);
+#endif
 	g_signal_connect (G_OBJECT (button10), "clicked",
 							G_CALLBACK (servlist_edit_close_cb), 0);
 	gtk_container_add (GTK_CONTAINER (hbuttonbox4), button10);
@@ -1994,82 +2192,115 @@ servlist_open_networks (void)
 	if (current_sess)
 		gtk_window_set_transient_for (GTK_WINDOW (servlist), GTK_WINDOW (current_sess->gui->window));
 
-	vbox1 = gtk_vbox_new (FALSE, 0);
+	vbox1 = gtkutil_box_new (GTK_ORIENTATION_VERTICAL, FALSE, 0);
 	gtk_widget_show (vbox1);
 	gtk_container_add (GTK_CONTAINER (servlist), vbox1);
 
 	label2 = bold_label (_("User Information"));
 	gtk_box_pack_start (GTK_BOX (vbox1), label2, FALSE, FALSE, 0);
 
-	table1 = gtk_table_new (5, 2, FALSE);
+	table1 = gtkutil_grid_new (5, 2, FALSE);
 	gtk_widget_show (table1);
 	gtk_box_pack_start (GTK_BOX (vbox1), table1, FALSE, FALSE, 0);
 	gtk_container_set_border_width (GTK_CONTAINER (table1), 8);
+#if HAVE_GTK3
+	gtk_grid_set_row_spacing (GTK_GRID (table1), 2);
+	gtk_grid_set_column_spacing (GTK_GRID (table1), 4);
+#else
 	gtk_table_set_row_spacings (GTK_TABLE (table1), 2);
 	gtk_table_set_col_spacings (GTK_TABLE (table1), 4);
+#endif
 
 	label3 = gtk_label_new_with_mnemonic (_("_Nick name:"));
 	gtk_widget_show (label3);
-	gtk_table_attach (GTK_TABLE (table1), label3, 0, 1, 0, 1,
-							(GtkAttachOptions) (GTK_FILL),
-							(GtkAttachOptions) (0), 0, 0);
+	servlist_table_attach (table1, label3, 0, 1, 0, 1,
+						   FALSE, FALSE,
+						   SERVLIST_ALIGN_START, SERVLIST_ALIGN_CENTER,
+						   0, 0);
+#if HAVE_GTK3
+	gtk_widget_set_halign (label3, GTK_ALIGN_START);
+	gtk_widget_set_valign (label3, GTK_ALIGN_CENTER);
+#elif !HAVE_GTK3
 	gtk_misc_set_alignment (GTK_MISC (label3), 0, 0.5);
+#endif
 
 	label4 = gtk_label_new (_("Second choice:"));
 	gtk_widget_show (label4);
-	gtk_table_attach (GTK_TABLE (table1), label4, 0, 1, 1, 2,
-							(GtkAttachOptions) (GTK_FILL),
-							(GtkAttachOptions) (0), 0, 0);
+	servlist_table_attach (table1, label4, 0, 1, 1, 2,
+						   FALSE, FALSE,
+						   SERVLIST_ALIGN_START, SERVLIST_ALIGN_CENTER,
+						   0, 0);
+#if HAVE_GTK3
+	gtk_widget_set_halign (label4, GTK_ALIGN_START);
+	gtk_widget_set_valign (label4, GTK_ALIGN_CENTER);
+#elif !HAVE_GTK3
 	gtk_misc_set_alignment (GTK_MISC (label4), 0, 0.5);
+#endif
 
 	label5 = gtk_label_new (_("Third choice:"));
 	gtk_widget_show (label5);
-	gtk_table_attach (GTK_TABLE (table1), label5, 0, 1, 2, 3,
-							(GtkAttachOptions) (GTK_FILL),
-							(GtkAttachOptions) (0), 0, 0);
+	servlist_table_attach (table1, label5, 0, 1, 2, 3,
+						   FALSE, FALSE,
+						   SERVLIST_ALIGN_START, SERVLIST_ALIGN_CENTER,
+						   0, 0);
+#if HAVE_GTK3
+	gtk_widget_set_halign (label5, GTK_ALIGN_START);
+	gtk_widget_set_valign (label5, GTK_ALIGN_CENTER);
+#elif !HAVE_GTK3
 	gtk_misc_set_alignment (GTK_MISC (label5), 0, 0.5);
+#endif
 
 	label6 = gtk_label_new_with_mnemonic (_("_User name:"));
 	gtk_widget_show (label6);
-	gtk_table_attach (GTK_TABLE (table1), label6, 0, 1, 3, 4,
-							(GtkAttachOptions) (GTK_FILL),
-							(GtkAttachOptions) (0), 0, 0);
+	servlist_table_attach (table1, label6, 0, 1, 3, 4,
+						   FALSE, FALSE,
+						   SERVLIST_ALIGN_START, SERVLIST_ALIGN_CENTER,
+						   0, 0);
+#if HAVE_GTK3
+	gtk_widget_set_halign (label6, GTK_ALIGN_START);
+	gtk_widget_set_valign (label6, GTK_ALIGN_CENTER);
+#elif !HAVE_GTK3
 	gtk_misc_set_alignment (GTK_MISC (label6), 0, 0.5);
+#endif
 
 	/* label7 = gtk_label_new_with_mnemonic (_("Rea_l name:"));
 	gtk_widget_show (label7);
 	gtk_table_attach (GTK_TABLE (table1), label7, 0, 1, 4, 5,
 							(GtkAttachOptions) (GTK_FILL),
 							(GtkAttachOptions) (0), 0, 0);
-	gtk_misc_set_alignment (GTK_MISC (label7), 0, 0.5);*/
+	*/
 
 	entry_nick1 = entry1 = gtk_entry_new ();
 	gtk_entry_set_text (GTK_ENTRY (entry1), prefs.hex_irc_nick1);
 	gtk_widget_show (entry1);
-	gtk_table_attach (GTK_TABLE (table1), entry1, 1, 2, 0, 1,
-							(GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
-							(GtkAttachOptions) (0), 0, 0);
+	servlist_table_attach (table1, entry1, 1, 2, 0, 1,
+						   TRUE, FALSE,
+						   SERVLIST_ALIGN_FILL, SERVLIST_ALIGN_CENTER,
+						   0, 0);
 
 	entry_nick2 = entry2 = gtk_entry_new ();
 	gtk_entry_set_text (GTK_ENTRY (entry2), prefs.hex_irc_nick2);
 	gtk_widget_show (entry2);
-	gtk_table_attach (GTK_TABLE (table1), entry2, 1, 2, 1, 2,
-							(GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
-							(GtkAttachOptions) (0), 0, 0);
+	servlist_table_attach (table1, entry2, 1, 2, 1, 2,
+						   TRUE, FALSE,
+						   SERVLIST_ALIGN_FILL, SERVLIST_ALIGN_CENTER,
+						   0, 0);
 
 	entry_nick3 = entry3 = gtk_entry_new ();
 	gtk_entry_set_text (GTK_ENTRY (entry3), prefs.hex_irc_nick3);
 	gtk_widget_show (entry3);
-	gtk_table_attach (GTK_TABLE (table1), entry3, 1, 2, 2, 3,
-							(GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
-							(GtkAttachOptions) (0), 0, 0);
+	servlist_table_attach (table1, entry3, 1, 2, 2, 3,
+						   TRUE, FALSE,
+						   SERVLIST_ALIGN_FILL, SERVLIST_ALIGN_CENTER,
+						   0, 0);
 
 	entry_guser = entry4 = gtk_entry_new ();
 	gtk_entry_set_text (GTK_ENTRY (entry4), prefs.hex_irc_user_name);
 	gtk_widget_show (entry4);
-	gtk_table_attach (GTK_TABLE (table1), entry4, 1, 2, 3, 4,
-							(GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
-							(GtkAttachOptions) (0), 0, 0);
+	servlist_table_attach (table1, entry4, 1, 2, 3, 4,
+						   TRUE, FALSE,
+						   SERVLIST_ALIGN_FILL, SERVLIST_ALIGN_CENTER,
+						   0, 0);
 
 	/* entry_greal = entry5 = gtk_entry_new ();
 	gtk_entry_set_text (GTK_ENTRY (entry5), prefs.hex_irc_real_name);
@@ -2078,25 +2309,31 @@ servlist_open_networks (void)
 							(GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
 							(GtkAttachOptions) (0), 0, 0); */
 
-	vbox2 = gtk_vbox_new (FALSE, 0);
+	vbox2 = gtkutil_box_new (GTK_ORIENTATION_VERTICAL, FALSE, 0);
 	gtk_widget_show (vbox2);
 	gtk_box_pack_start (GTK_BOX (vbox1), vbox2, TRUE, TRUE, 0);
 
 	label1 = bold_label (_("Networks"));
 	gtk_box_pack_start (GTK_BOX (vbox2), label1, FALSE, FALSE, 0);
 
-	table4 = gtk_table_new (2, 2, FALSE);
+	table4 = gtkutil_grid_new (2, 2, FALSE);
 	gtk_widget_show (table4);
 	gtk_box_pack_start (GTK_BOX (vbox2), table4, TRUE, TRUE, 0);
 	gtk_container_set_border_width (GTK_CONTAINER (table4), 8);
+#if HAVE_GTK3
+	gtk_grid_set_row_spacing (GTK_GRID (table4), 2);
+	gtk_grid_set_column_spacing (GTK_GRID (table4), 3);
+#else
 	gtk_table_set_row_spacings (GTK_TABLE (table4), 2);
 	gtk_table_set_col_spacings (GTK_TABLE (table4), 3);
+#endif
 
 	scrolledwindow3 = gtk_scrolled_window_new (NULL, NULL);
 	gtk_widget_show (scrolledwindow3);
-	gtk_table_attach (GTK_TABLE (table4), scrolledwindow3, 0, 1, 0, 1,
-							(GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
-							(GtkAttachOptions) (GTK_EXPAND | GTK_FILL), 0, 0);
+	servlist_table_attach (table4, scrolledwindow3, 0, 1, 0, 1,
+						   TRUE, TRUE,
+						   SERVLIST_ALIGN_FILL, SERVLIST_ALIGN_FILL,
+						   0, 0);
 	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow3),
 											  GTK_POLICY_NEVER, GTK_POLICY_ALWAYS);
 	gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scrolledwindow3),
@@ -2123,10 +2360,11 @@ servlist_open_networks (void)
 								"weight", 2,
 								NULL);
 
-	hbox = gtk_hbox_new (0, FALSE);
-	gtk_table_attach (GTK_TABLE (table4), hbox, 0, 2, 1, 2,
-							(GtkAttachOptions) (GTK_FILL),
-							(GtkAttachOptions) (0), 0, 0);
+	hbox = gtkutil_box_new (GTK_ORIENTATION_HORIZONTAL, FALSE, 0);
+	servlist_table_attach (table4, hbox, 0, 2, 1, 2,
+						   FALSE, FALSE,
+						   SERVLIST_ALIGN_FILL, SERVLIST_ALIGN_CENTER,
+						   0, 0);
 	gtk_widget_show (hbox);
 
 	checkbutton_skip =
@@ -2147,22 +2385,37 @@ servlist_open_networks (void)
 							G_CALLBACK (fav_servlist), 0);
 	gtk_widget_show (checkbutton_fav);
 
+#if HAVE_GTK3
+	vbuttonbox2 = gtk_button_box_new (GTK_ORIENTATION_VERTICAL);
+#elif !HAVE_GTK3
 	vbuttonbox2 = gtk_vbutton_box_new ();
+#endif
 	gtk_box_set_spacing (GTK_BOX (vbuttonbox2), 3);
 	gtk_button_box_set_layout (GTK_BUTTON_BOX (vbuttonbox2), GTK_BUTTONBOX_START);
 	gtk_widget_show (vbuttonbox2);
-	gtk_table_attach (GTK_TABLE (table4), vbuttonbox2, 1, 2, 0, 1,
-							(GtkAttachOptions) (GTK_FILL),
-							(GtkAttachOptions) (GTK_FILL), 0, 0);
+	servlist_table_attach (table4, vbuttonbox2, 1, 2, 0, 1,
+						   FALSE, FALSE,
+						   SERVLIST_ALIGN_FILL, SERVLIST_ALIGN_FILL,
+						   0, 0);
 
-	button_add = gtk_button_new_from_stock ("gtk-add");
+#if HAVE_GTK3
+	button_add = servlist_icon_button_new (_("_Add"), ICON_SERVLIST_ADD);
+#endif
+#if !HAVE_GTK3
+	button_add = gtk_button_new_from_stock (GTK_STOCK_ADD);
+#endif
 	g_signal_connect (G_OBJECT (button_add), "clicked",
 							G_CALLBACK (servlist_addnet_cb), networks_tree);
 	gtk_widget_show (button_add);
 	gtk_container_add (GTK_CONTAINER (vbuttonbox2), button_add);
 	gtk_widget_set_can_default (button_add, TRUE);
 
-	button_remove = gtk_button_new_from_stock ("gtk-remove");
+#if HAVE_GTK3
+	button_remove = servlist_icon_button_new (_("_Remove"), ICON_SERVLIST_REMOVE);
+#endif
+#if !HAVE_GTK3
+	button_remove = gtk_button_new_from_stock (GTK_STOCK_REMOVE);
+#endif
 	g_signal_connect (G_OBJECT (button_remove), "clicked",
 							G_CALLBACK (servlist_deletenet_cb), 0);
 	gtk_widget_show (button_remove);
@@ -2193,23 +2446,38 @@ servlist_open_networks (void)
 	gtk_container_add (GTK_CONTAINER (vbuttonbox2), button_sort);
 	gtk_widget_set_can_default (button_sort, TRUE);
 
+#if HAVE_GTK3
+	hseparator1 = gtk_separator_new (GTK_ORIENTATION_HORIZONTAL);
+#elif !HAVE_GTK3
 	hseparator1 = gtk_hseparator_new ();
+#endif
 	gtk_widget_show (hseparator1);
 	gtk_box_pack_start (GTK_BOX (vbox1), hseparator1, FALSE, TRUE, 4);
 
+#if HAVE_GTK3
+	hbuttonbox1 = gtk_button_box_new (GTK_ORIENTATION_HORIZONTAL);
+	gtk_button_box_set_layout (GTK_BUTTON_BOX (hbuttonbox1), GTK_BUTTONBOX_SPREAD);
+#elif !HAVE_GTK3
 	hbuttonbox1 = gtk_hbutton_box_new ();
+	gtk_button_box_set_layout (GTK_BUTTON_BOX (hbuttonbox1), GTK_BUTTONBOX_SPREAD);
+#endif
 	gtk_widget_show (hbuttonbox1);
 	gtk_box_pack_start (GTK_BOX (vbox1), hbuttonbox1, FALSE, TRUE, 0);
 	gtk_container_set_border_width (GTK_CONTAINER (hbuttonbox1), 8);
 
-	button_close = gtk_button_new_from_stock ("gtk-close");
+#if HAVE_GTK3
+	button_close = servlist_icon_button_new (_("_Close"), ICON_SERVLIST_CLOSE);
+#endif
+#if !HAVE_GTK3
+	button_close = gtk_button_new_from_stock (GTK_STOCK_CLOSE);
+#endif
 	gtk_widget_show (button_close);
 	g_signal_connect (G_OBJECT (button_close), "clicked",
 							G_CALLBACK (servlist_close_cb), 0);
 	gtk_container_add (GTK_CONTAINER (hbuttonbox1), button_close);
 	gtk_widget_set_can_default (button_close, TRUE);
 
-	button_connect = gtkutil_button (hbuttonbox1, GTK_STOCK_CONNECT, NULL,
+button_connect = gtkutil_button (hbuttonbox1, ICON_SERVLIST_CONNECT, NULL,
 												servlist_connect_cb, NULL, _("C_onnect"));
 	gtk_widget_set_can_default (button_connect, TRUE);
 

@@ -62,6 +62,294 @@ struct file_req
 	int flags;		/* FRF_* flags */
 };
 
+#if HAVE_GTK3
+const char *
+gtkutil_icon_name_from_stock (const char *stock_name)
+{
+	static const struct
+	{
+		const char *stock;
+		const char *icon;
+	} icon_map[] = {
+		{ "gtk-new", "document-new" },
+		{ "gtk-open", "document-open" },
+		{ "gtk-revert-to-saved", "document-open" },
+		{ "gtk-save", "document-save" },
+		{ "gtk-save-as", "document-save-as" },
+		{ "gtk-add", "list-add" },
+		{ "gtk-cancel", "dialog-cancel" },
+		{ "gtk-ok", "dialog-ok" },
+		{ "gtk-no", "dialog-cancel" },
+		{ "gtk-yes", "dialog-ok" },
+		{ "gtk-apply", "dialog-apply" },
+		{ "gtk-dialog-error", "dialog-error" },
+		{ "gtk-copy", "edit-copy" },
+		{ "gtk-delete", "edit-delete" },
+		{ "gtk-remove", "list-remove" },
+		{ "gtk-clear", "edit-clear" },
+		{ "gtk-redo", "edit-redo" },
+		{ "gtk-find", "edit-find" },
+		{ "gtk-justify-left", "edit-find" },
+		{ "gtk-refresh", "view-refresh" },
+		{ "gtk-go-back", "go-previous" },
+		{ "gtk-go-forward", "go-next" },
+		{ "gtk-index", "view-list" },
+		{ "gtk-jump-to", "go-jump" },
+		{ "gtk-media-play", "media-playback-start" },
+		{ "gtk-preferences", "preferences-system" },
+		{ "gtk-help", "help-browser" },
+		{ "gtk-about", "help-about" },
+		{ "gtk-close", "window-close" },
+		{ "gtk-quit", "application-exit" },
+		{ "gtk-connect", "network-connect" },
+		{ "gtk-disconnect", "network-disconnect" },
+		{ "gtk-network", "network-workgroup" },
+		{ "gtk-spell-check", "tools-check-spelling" },
+	};
+	size_t i;
+
+	if (!stock_name)
+		return NULL;
+
+	for (i = 0; i < G_N_ELEMENTS (icon_map); i++)
+	{
+		if (strcmp (stock_name, icon_map[i].stock) == 0)
+			return icon_map[i].icon;
+	}
+
+	return stock_name;
+}
+#endif
+
+GtkWidget *
+gtkutil_image_new_from_stock (const char *stock, GtkIconSize size)
+{
+#if HAVE_GTK3
+	const char *icon_name = gtkutil_icon_name_from_stock (stock);
+
+	return gtk_image_new_from_icon_name (icon_name, size);
+#elif !HAVE_GTK3
+	return gtk_image_new_from_stock (stock, size);
+#endif
+}
+
+GtkWidget *
+gtkutil_button_new_from_stock (const char *stock, const char *label)
+{
+#if HAVE_GTK3
+	GtkWidget *button = label ? gtk_button_new_with_mnemonic (label) : gtk_button_new ();
+
+	if (stock)
+	{
+		GtkWidget *image = gtkutil_image_new_from_stock (stock, GTK_ICON_SIZE_BUTTON);
+
+		if (image)
+		{
+			gtk_button_set_image (GTK_BUTTON (button), image);
+			gtk_button_set_always_show_image (GTK_BUTTON (button), TRUE);
+		}
+	}
+
+	return button;
+#elif !HAVE_GTK3
+	if (stock)
+		return gtk_button_new_from_stock (stock);
+	if (label)
+		return gtk_button_new_with_mnemonic (label);
+	return gtk_button_new ();
+#endif
+}
+
+#if HAVE_GTK3
+void
+gtkutil_append_font_css (GString *css, const PangoFontDescription *font_desc)
+{
+	PangoFontMask mask;
+
+	if (!font_desc)
+		return;
+
+	mask = pango_font_description_get_set_fields (font_desc);
+
+	if (mask & PANGO_FONT_MASK_FAMILY)
+	{
+		const char *family = pango_font_description_get_family (font_desc);
+
+		if (family && *family)
+			g_string_append_printf (css, " font-family: \"%s\";", family);
+	}
+
+	if (mask & PANGO_FONT_MASK_STYLE)
+	{
+		const char *style = "normal";
+
+		switch (pango_font_description_get_style (font_desc))
+		{
+		case PANGO_STYLE_ITALIC:
+			style = "italic";
+			break;
+		case PANGO_STYLE_OBLIQUE:
+			style = "oblique";
+			break;
+		default:
+			style = "normal";
+			break;
+		}
+
+		g_string_append_printf (css, " font-style: %s;", style);
+	}
+
+	if (mask & PANGO_FONT_MASK_VARIANT)
+	{
+		const char *variant = "normal";
+
+		if (pango_font_description_get_variant (font_desc) == PANGO_VARIANT_SMALL_CAPS)
+			variant = "small-caps";
+
+		g_string_append_printf (css, " font-variant: %s;", variant);
+	}
+
+	if (mask & PANGO_FONT_MASK_WEIGHT)
+	{
+		int weight = (int) pango_font_description_get_weight (font_desc);
+
+		if (weight < 100)
+			weight = 100;
+		if (weight > 900)
+			weight = 900;
+
+		g_string_append_printf (css, " font-weight: %d;", weight);
+	}
+
+	if (mask & PANGO_FONT_MASK_STRETCH)
+	{
+		const char *stretch = "normal";
+
+		switch (pango_font_description_get_stretch (font_desc))
+		{
+		case PANGO_STRETCH_ULTRA_CONDENSED:
+			stretch = "ultra-condensed";
+			break;
+		case PANGO_STRETCH_EXTRA_CONDENSED:
+			stretch = "extra-condensed";
+			break;
+		case PANGO_STRETCH_CONDENSED:
+			stretch = "condensed";
+			break;
+		case PANGO_STRETCH_SEMI_CONDENSED:
+			stretch = "semi-condensed";
+			break;
+		case PANGO_STRETCH_SEMI_EXPANDED:
+			stretch = "semi-expanded";
+			break;
+		case PANGO_STRETCH_EXPANDED:
+			stretch = "expanded";
+			break;
+		case PANGO_STRETCH_EXTRA_EXPANDED:
+			stretch = "extra-expanded";
+			break;
+		case PANGO_STRETCH_ULTRA_EXPANDED:
+			stretch = "ultra-expanded";
+			break;
+		default:
+			stretch = "normal";
+			break;
+		}
+
+		g_string_append_printf (css, " font-stretch: %s;", stretch);
+	}
+
+	if (mask & PANGO_FONT_MASK_SIZE)
+	{
+		double size = (double) pango_font_description_get_size (font_desc) / PANGO_SCALE;
+		char size_buf[G_ASCII_DTOSTR_BUF_SIZE];
+		const char *unit = "pt";
+
+		if (pango_font_description_get_size_is_absolute (font_desc))
+			unit = "px";
+
+		g_ascii_formatd (size_buf, sizeof (size_buf), "%.2f", size);
+		g_string_append_printf (css, " font-size: %s%s;", size_buf, unit);
+	}
+}
+
+void
+gtkutil_apply_palette (GtkWidget *widget, const GdkRGBA *bg, const GdkRGBA *fg,
+                       const PangoFontDescription *font_desc)
+#else
+void
+gtkutil_apply_palette (GtkWidget *widget, const GdkColor *bg, const GdkColor *fg,
+                       const PangoFontDescription *font_desc)
+#endif
+{
+	if (!widget)
+		return;
+
+#if HAVE_GTK3
+	{
+		static const char *class_name = "zoitechat-palette";
+		GtkStyleContext *context = gtk_widget_get_style_context (widget);
+		GtkCssProvider *provider = g_object_get_data (G_OBJECT (widget),
+		                                             "zoitechat-palette-provider");
+		gboolean new_provider = FALSE;
+		GString *css;
+		gchar *bg_color = NULL;
+		gchar *fg_color = NULL;
+
+		if (!bg && !fg && !font_desc)
+		{
+			gtk_style_context_remove_class (context, class_name);
+			if (provider)
+			{
+				gtk_style_context_remove_provider (context, GTK_STYLE_PROVIDER (provider));
+				g_object_set_data (G_OBJECT (widget), "zoitechat-palette-provider", NULL);
+			}
+			return;
+		}
+
+		if (!provider)
+		{
+			provider = gtk_css_provider_new ();
+			g_object_set_data_full (G_OBJECT (widget), "zoitechat-palette-provider",
+			                        provider, g_object_unref);
+			new_provider = TRUE;
+		}
+
+		css = g_string_new (".");
+		g_string_append (css, class_name);
+		g_string_append (css, " {");
+		if (bg)
+		{
+			bg_color = gdk_rgba_to_string (bg);
+			g_string_append_printf (css, " background-color: %s;", bg_color);
+		}
+		if (fg)
+		{
+			fg_color = gdk_rgba_to_string (fg);
+			g_string_append_printf (css, " color: %s;", fg_color);
+		}
+		gtkutil_append_font_css (css, font_desc);
+		g_string_append (css, " }");
+
+		gtk_css_provider_load_from_data (provider, css->str, -1, NULL);
+		if (new_provider)
+		{
+			gtk_style_context_add_provider (context, GTK_STYLE_PROVIDER (provider),
+			                                GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+		}
+		gtk_style_context_add_class (context, class_name);
+
+		g_string_free (css, TRUE);
+		g_free (bg_color);
+		g_free (fg_color);
+	}
+#else
+	gtk_widget_modify_base (widget, GTK_STATE_NORMAL, bg);
+	gtk_widget_modify_text (widget, GTK_STATE_NORMAL, fg);
+	gtk_widget_modify_font (widget, (PangoFontDescription *) font_desc);
+#endif
+}
+
 static void
 gtkutil_file_req_destroy (GtkWidget * wid, struct file_req *freq)
 {
@@ -202,21 +490,37 @@ gtkutil_file_req (GtkWindow *parent, const char *title, void *callback, void *us
 
 	if (flags & FRF_WRITE)
 	{
+#if HAVE_GTK3
+		dialog = gtk_file_chooser_dialog_new (title, NULL,
+												GTK_FILE_CHOOSER_ACTION_SAVE,
+												_("_Cancel"), GTK_RESPONSE_CANCEL,
+												_("_Save"), GTK_RESPONSE_ACCEPT,
+												NULL);
+#elif !HAVE_GTK3
 		dialog = gtk_file_chooser_dialog_new (title, NULL,
 												GTK_FILE_CHOOSER_ACTION_SAVE,
 												GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
 												GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT,
 												NULL);
+#endif
 
 		if (!(flags & FRF_NOASKOVERWRITE))
 			gtk_file_chooser_set_do_overwrite_confirmation (GTK_FILE_CHOOSER (dialog), TRUE);
 	}
 	else
+#if HAVE_GTK3
+		dialog = gtk_file_chooser_dialog_new (title, NULL,
+												GTK_FILE_CHOOSER_ACTION_OPEN,
+												_("_Cancel"), GTK_RESPONSE_CANCEL,
+												_("_Open"), GTK_RESPONSE_ACCEPT,
+												NULL);
+#elif !HAVE_GTK3
 		dialog = gtk_file_chooser_dialog_new (title, NULL,
 												GTK_FILE_CHOOSER_ACTION_OPEN,
 												GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
 												GTK_STOCK_OK, GTK_RESPONSE_ACCEPT,
 												NULL);
+#endif
 
 	if (filter && filter[0] && (flags & FRF_FILTERISINITIAL))
 	{
@@ -355,10 +659,17 @@ fe_get_str (char *msg, char *def, void *callback, void *userdata)
 	GtkWidget *label;
 	extern GtkWidget *parent_window;
 
+#if HAVE_GTK3
+	dialog = gtk_dialog_new_with_buttons (msg, NULL, 0,
+										_("_Cancel"), GTK_RESPONSE_REJECT,
+										_("_OK"), GTK_RESPONSE_ACCEPT,
+										NULL);
+#elif !HAVE_GTK3
 	dialog = gtk_dialog_new_with_buttons (msg, NULL, 0,
 										GTK_STOCK_CANCEL, GTK_RESPONSE_REJECT,
 										GTK_STOCK_OK, GTK_RESPONSE_ACCEPT,
 										NULL);
+#endif
 
 	gtk_window_set_transient_for (GTK_WINDOW (dialog), GTK_WINDOW (parent_window));
 	gtk_box_set_homogeneous (GTK_BOX (gtk_dialog_get_content_area (GTK_DIALOG (dialog))), TRUE);
@@ -372,7 +683,7 @@ fe_get_str (char *msg, char *def, void *callback, void *userdata)
 		gtk_window_set_position (GTK_WINDOW (dialog), GTK_WIN_POS_MOUSE);
 	}
 
-	hbox = gtk_hbox_new (TRUE, 0);
+	hbox = gtkutil_box_new (GTK_ORIENTATION_HORIZONTAL, TRUE, 0);
 
 	g_object_set_data (G_OBJECT (dialog), "cb", callback);
 	g_object_set_data (G_OBJECT (dialog), "ud", userdata);
@@ -450,15 +761,22 @@ fe_get_int (char *msg, int def, void *callback, void *userdata)
 	GtkAdjustment *adj;
 	extern GtkWidget *parent_window;
 
+#if HAVE_GTK3
+	dialog = gtk_dialog_new_with_buttons (msg, NULL, 0,
+										_("_Cancel"), GTK_RESPONSE_REJECT,
+										_("_OK"), GTK_RESPONSE_ACCEPT,
+										NULL);
+#elif !HAVE_GTK3
 	dialog = gtk_dialog_new_with_buttons (msg, NULL, 0,
 										GTK_STOCK_CANCEL, GTK_RESPONSE_REJECT,
 										GTK_STOCK_OK, GTK_RESPONSE_ACCEPT,
 										NULL);
+#endif
 	gtk_box_set_homogeneous (GTK_BOX (gtk_dialog_get_content_area (GTK_DIALOG (dialog))), TRUE);
 	gtk_window_set_position (GTK_WINDOW (dialog), GTK_WIN_POS_MOUSE);
 	gtk_window_set_transient_for (GTK_WINDOW (dialog), GTK_WINDOW (parent_window));
 
-	hbox = gtk_hbox_new (TRUE, 0);
+	hbox = gtkutil_box_new (GTK_ORIENTATION_HORIZONTAL, TRUE, 0);
 
 	g_object_set_data (G_OBJECT (dialog), "cb", callback);
 	g_object_set_data (G_OBJECT (dialog), "ud", userdata);
@@ -490,10 +808,17 @@ fe_get_bool (char *title, char *prompt, void *callback, void *userdata)
 	GtkWidget *prompt_label;
 	extern GtkWidget *parent_window;
 
+#if HAVE_GTK3
+	dialog = gtk_dialog_new_with_buttons (title, NULL, 0,
+		_("_No"), GTK_RESPONSE_REJECT,
+		_("_Yes"), GTK_RESPONSE_ACCEPT,
+		NULL);
+#elif !HAVE_GTK3
 	dialog = gtk_dialog_new_with_buttons (title, NULL, 0,
 		GTK_STOCK_NO, GTK_RESPONSE_REJECT,
 		GTK_STOCK_YES, GTK_RESPONSE_ACCEPT,
 		NULL);
+#endif
 	gtk_box_set_homogeneous (GTK_BOX (gtk_dialog_get_content_area (GTK_DIALOG (dialog))), TRUE);
 	gtk_window_set_position (GTK_WINDOW (dialog), GTK_WIN_POS_MOUSE);
 	gtk_window_set_transient_for (GTK_WINDOW (dialog), GTK_WINDOW (parent_window));
@@ -523,20 +848,49 @@ gtkutil_button (GtkWidget *box, char *stock, char *tip, void *callback,
 	if (labeltext)
 	{
 		gtk_button_set_label (GTK_BUTTON (wid), labeltext);
-		gtk_button_set_image (GTK_BUTTON (wid), gtk_image_new_from_stock (stock, GTK_ICON_SIZE_MENU));
+		img = NULL;
+#if HAVE_GTK3
+		if (stock)
+			img = gtkutil_image_new_from_stock (stock, GTK_ICON_SIZE_BUTTON);
+#endif
+#if !HAVE_GTK3
+		if (stock)
+			img = gtk_image_new_from_stock (stock, GTK_ICON_SIZE_BUTTON);
+#endif
+		if (img)
+		{
+			gtk_button_set_image (GTK_BUTTON (wid), img);
+#if HAVE_GTK3
+			gtk_button_set_always_show_image (GTK_BUTTON (wid), TRUE);
+#endif
+		}
 		gtk_button_set_use_underline (GTK_BUTTON (wid), TRUE);
 		if (box)
 			gtk_container_add (GTK_CONTAINER (box), wid);
 	}
 	else
 	{
-		bbox = gtk_hbox_new (0, 0);
+		bbox = gtkutil_box_new (GTK_ORIENTATION_HORIZONTAL, FALSE, 0);
 		gtk_container_add (GTK_CONTAINER (wid), bbox);
 		gtk_widget_show (bbox);
 
-		img = gtk_image_new_from_stock (stock, GTK_ICON_SIZE_MENU);
-		gtk_container_add (GTK_CONTAINER (bbox), img);
-		gtk_widget_show (img);
+		img = NULL;
+#if HAVE_GTK3
+		if (stock)
+			img = gtkutil_image_new_from_stock (stock, GTK_ICON_SIZE_BUTTON);
+#endif
+#if !HAVE_GTK3
+		if (stock)
+			img = gtk_image_new_from_stock (stock, GTK_ICON_SIZE_BUTTON);
+#endif
+		if (img)
+		{
+			gtk_container_add (GTK_CONTAINER (bbox), img);
+			gtk_widget_show (img);
+#if HAVE_GTK3
+			gtk_button_set_always_show_image (GTK_BUTTON (wid), TRUE);
+#endif
+		}
 		gtk_box_pack_start (GTK_BOX (box), wid, 0, 0, 0);
 	}
 
@@ -752,11 +1106,13 @@ gtkutil_treeview_get_selected (GtkTreeView *view, GtkTreeIter *iter_ret, ...)
 gboolean
 gtkutil_tray_icon_supported (GtkWindow *window)
 {
-#ifndef GDK_WINDOWING_X11
-	return TRUE;
-#else
+#ifdef GDK_WINDOWING_X11
 	GdkScreen *screen = gtk_window_get_screen (window);
 	GdkDisplay *display = gdk_screen_get_display (screen);
+#if HAVE_GTK3
+	if (!GDK_IS_X11_DISPLAY (display))
+		return FALSE;
+#endif
 	int screen_number = gdk_screen_get_number (screen);
 	Display *xdisplay = gdk_x11_display_get_xdisplay (display);
 	char *selection_name = g_strdup_printf ("_NET_SYSTEM_TRAY_S%d", screen_number);
@@ -772,6 +1128,8 @@ gtkutil_tray_icon_supported (GtkWindow *window)
 	g_free (selection_name);
 
 	return (tray_window != None);
+#else
+	return TRUE;
 #endif
 }
 
@@ -805,3 +1163,95 @@ gtkutil_find_font (const char *fontname)
 	return FALSE;
 }
 #endif
+
+GtkWidget *
+gtkutil_box_new (GtkOrientation orientation, gboolean homogeneous, gint spacing)
+{
+#if HAVE_GTK3
+	GtkWidget *box = gtk_box_new (orientation, spacing);
+
+	gtk_box_set_homogeneous (GTK_BOX (box), homogeneous);
+	return box;
+#elif !HAVE_GTK3
+	if (orientation == GTK_ORIENTATION_HORIZONTAL)
+		return gtk_hbox_new (homogeneous, spacing);
+
+	return gtk_vbox_new (homogeneous, spacing);
+#endif
+}
+
+GtkWidget *
+gtkutil_grid_new (guint rows, guint columns, gboolean homogeneous)
+{
+#if HAVE_GTK3
+	GtkWidget *grid = gtk_grid_new ();
+
+	gtk_grid_set_row_homogeneous (GTK_GRID (grid), homogeneous);
+	gtk_grid_set_column_homogeneous (GTK_GRID (grid), homogeneous);
+	return grid;
+#elif !HAVE_GTK3
+	return gtk_table_new (rows, columns, homogeneous);
+#endif
+}
+
+#if HAVE_GTK3
+static GtkAlign
+gtkutil_align_from_options (GtkutilAttachOptions options, GtkAlign default_align)
+{
+	if (options & GTKUTIL_ATTACH_FILL)
+		return GTK_ALIGN_FILL;
+
+	return default_align;
+}
+#endif
+
+static gboolean
+gtkutil_expansion_from_options (GtkutilAttachOptions options, gboolean default_expand)
+{
+	if (options & GTKUTIL_ATTACH_EXPAND)
+		return TRUE;
+
+	return default_expand;
+}
+
+void
+gtkutil_grid_attach (GtkWidget *table, GtkWidget *child,
+		     guint left_attach, guint right_attach,
+		     guint top_attach, guint bottom_attach,
+		     GtkutilAttachOptions xoptions, GtkutilAttachOptions yoptions,
+		     guint xpad, guint ypad)
+{
+#if HAVE_GTK3
+	gtk_widget_set_hexpand (child, gtkutil_expansion_from_options (xoptions, FALSE));
+	gtk_widget_set_vexpand (child, gtkutil_expansion_from_options (yoptions, FALSE));
+	gtk_widget_set_halign (child, gtkutil_align_from_options (xoptions, GTK_ALIGN_CENTER));
+	gtk_widget_set_valign (child, gtkutil_align_from_options (yoptions, GTK_ALIGN_CENTER));
+	gtk_widget_set_margin_start (child, xpad);
+	gtk_widget_set_margin_end (child, xpad);
+	gtk_widget_set_margin_top (child, ypad);
+	gtk_widget_set_margin_bottom (child, ypad);
+	gtk_grid_attach (GTK_GRID (table), child, left_attach, top_attach,
+			 right_attach - left_attach, bottom_attach - top_attach);
+#elif !HAVE_GTK3
+	gtk_table_attach (GTK_TABLE (table), child, left_attach, right_attach,
+			  top_attach, bottom_attach, xoptions, yoptions, xpad, ypad);
+#endif
+}
+
+void
+gtkutil_grid_attach_defaults (GtkWidget *table, GtkWidget *child,
+			      guint left_attach, guint right_attach,
+			      guint top_attach, guint bottom_attach)
+{
+#if HAVE_GTK3
+	gtk_widget_set_hexpand (child, TRUE);
+	gtk_widget_set_vexpand (child, TRUE);
+	gtk_widget_set_halign (child, GTK_ALIGN_FILL);
+	gtk_widget_set_valign (child, GTK_ALIGN_FILL);
+	gtk_grid_attach (GTK_GRID (table), child, left_attach, top_attach,
+			 right_attach - left_attach, bottom_attach - top_attach);
+#elif !HAVE_GTK3
+	gtk_table_attach_defaults (GTK_TABLE (table), child, left_attach, right_attach,
+				   top_attach, bottom_attach);
+#endif
+}

@@ -53,6 +53,19 @@
 #include "textgui.h"
 #include "fkeys.h"
 
+#if HAVE_GTK3
+#define ICON_FKEYS_NEW "document-new"
+#define ICON_FKEYS_DELETE "edit-delete"
+#define ICON_FKEYS_CANCEL "dialog-cancel"
+#define ICON_FKEYS_SAVE "document-save"
+#endif
+#if !HAVE_GTK3
+#define ICON_FKEYS_NEW GTK_STOCK_NEW
+#define ICON_FKEYS_DELETE GTK_STOCK_DELETE
+#define ICON_FKEYS_CANCEL GTK_STOCK_CANCEL
+#define ICON_FKEYS_SAVE GTK_STOCK_SAVE
+#endif
+
 static void replace_handle (GtkWidget * wid);
 void key_check_replace_on_change (GtkEditable *editable, gpointer data);
 void key_action_tab_clean (void);
@@ -676,7 +689,30 @@ key_dialog_treeview_new (GtkWidget *box)
 	g_signal_connect (G_OBJECT (gtk_tree_view_get_selection (GTK_TREE_VIEW(view))),
 					"changed", G_CALLBACK (key_dialog_selection_changed), NULL);
 
+#if HAVE_GTK3
+	gtk_widget_set_name (view, "fkeys-treeview");
+	{
+		GtkCssProvider *provider = gtk_css_provider_new ();
+		GtkStyleContext *context = gtk_widget_get_style_context (view);
+
+		gtk_css_provider_load_from_data (
+			provider,
+			"treeview#fkeys-treeview row:nth-child(odd) {"
+			" background-color: @theme_base_color;"
+			"}"
+			"treeview#fkeys-treeview row:nth-child(even) {"
+			" background-color: shade(@theme_base_color, 0.96);"
+			"}",
+			-1,
+			NULL);
+		gtk_style_context_add_provider (context, GTK_STYLE_PROVIDER (provider),
+										GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+		g_object_unref (provider);
+	}
+#endif
+#if !HAVE_GTK3
 	gtk_tree_view_set_rules_hint (GTK_TREE_VIEW (view), TRUE);
+#endif
 
 	render = gtk_cell_renderer_accel_new ();
 	g_object_set (render, "editable", TRUE,
@@ -825,18 +861,23 @@ key_dialog_show ()
 	g_object_set_data (G_OBJECT (key_dialog), "view", view);
 	g_object_set_data (G_OBJECT (key_dialog), "xtext", xtext);
 
+#if HAVE_GTK3
+	box = gtk_button_box_new (GTK_ORIENTATION_HORIZONTAL);
+	gtk_button_box_set_layout (GTK_BUTTON_BOX (box), GTK_BUTTONBOX_SPREAD);
+#elif !HAVE_GTK3
 	box = gtk_hbutton_box_new ();
 	gtk_button_box_set_layout (GTK_BUTTON_BOX (box), GTK_BUTTONBOX_SPREAD);
+#endif
 	gtk_box_pack_start (GTK_BOX (vbox), box, FALSE, FALSE, 2);
 	gtk_container_set_border_width (GTK_CONTAINER (box), 5);
 
-	gtkutil_button (box, GTK_STOCK_NEW, NULL, key_dialog_add,
+	gtkutil_button (box, ICON_FKEYS_NEW, NULL, key_dialog_add,
 					NULL, _("Add"));
-	gtkutil_button (box, GTK_STOCK_DELETE, NULL, key_dialog_delete,
+	gtkutil_button (box, ICON_FKEYS_DELETE, NULL, key_dialog_delete,
 					NULL, _("Delete"));
-	gtkutil_button (box, GTK_STOCK_CANCEL, NULL, key_dialog_close,
+	gtkutil_button (box, ICON_FKEYS_CANCEL, NULL, key_dialog_close,
 					NULL, _("Cancel"));
-	gtkutil_button (box, GTK_STOCK_SAVE, NULL, key_dialog_save,
+	gtkutil_button (box, ICON_FKEYS_SAVE, NULL, key_dialog_save,
 					NULL, _("Save"));
 
 	store = GTK_LIST_STORE (gtk_tree_view_get_model (GTK_TREE_VIEW (view)));
@@ -1184,7 +1225,7 @@ key_action_page_switch (GtkWidget * wid, GdkEventKey * evt, char *d1,
 	if (!len)
 		return 1;
 
-	if (strcasecmp(d1, "auto") == 0)
+	if (g_ascii_strcasecmp(d1, "auto") == 0)
 	{
 		/* Auto switch makes no sense in detached sessions */
 		if (!sess->gui->is_tab)

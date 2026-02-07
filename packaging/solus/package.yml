@@ -1,0 +1,34 @@
+name       : zoitechat
+version    : 2.17.4
+release    : 1
+source     :
+    - https://github.com/ZoiteChat/zoitechat/archive/refs/tags/zoitechat-2.17.4.tar.gz : 77d787cf00abd533326440eab01ca077c21cdfd2eb56807fc21d6fb70f34ada6
+homepage   : https://zoitechat.zoite.net/
+license    : GPL-2.0-only
+component  : network.irc
+summary    : HexChat-based IRC client
+description: |
+    ZoiteChat is a HexChat-based IRC client for Windows and UNIX-like systems.
+builddeps  :
+    - pkgconfig(glib-2.0)
+    - pkgconfig(gmodule-2.0)
+    - pkgconfig(gtk+-3.0)
+    - pkgconfig(ayatana-appindicator3-0.1)
+    - pkgconfig(dbus-glib-1)
+    - pkgconfig(libcanberra)
+    - pkgconfig(openssl)
+    - pkgconfig(iso-codes)
+    - meson
+    - ninja
+    - pkgconfig
+    - gcc
+    - gettext
+setup      : |
+    %meson_configure \
+        -Dgtk-frontend=true \
+        -Dgtk3=true \
+        -Dinstall-appdata=true
+build      : |
+    %ninja_build
+install    : |
+    %ninja_install

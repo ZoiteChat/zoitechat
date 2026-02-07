@@ -22,6 +22,9 @@
 
 #include <gtk/gtk.h>
 
+typedef struct _CustomList CustomList;
+typedef struct _CustomListClass CustomListClass;
+
 GType custom_list_get_type (void);
 
 /* Some boilerplate GObject defines. 'klass' is used
@@ -62,20 +65,19 @@ typedef struct
 }
 chanlistrow;
 
-typedef struct _CustomList CustomList;
-typedef struct _CustomListClass CustomListClass;
-
-
-
 /* CustomList: this structure contains everything we need for our
  *             model implementation. You can add extra fields to
  *             this structure, e.g. hashtables to quickly lookup
  *             rows or whatever else you might need, but it is
- *             crucial that 'parent' is the first member of the
+ *             crucial that 'parent_instance' is the first member of the
  *             structure.                                          */
 struct _CustomList
 {
+#if HAVE_GTK3
+	GObject parent_instance;
+#else
 	GObject parent;
+#endif
 
 	guint num_rows;     /* number of rows that we have used */
 	guint num_alloc;    /* number of rows allocated */

@@ -18,6 +18,10 @@
  */
 
 #include <glib.h>
+
+#if defined(HAVE_GTK3) || defined(HAVE_GTK2) || defined(HAVE_GTK)
+#include <gdk/gdk.h>
+#endif
 #include "parse.h"
 #include "match.h"
 #include "sysinfo.h"
@@ -167,4 +171,87 @@ char *sysinfo_backend_get_network(void)
 	}
 	
 	return g_strdup (ethernet_card);
+}
+
+static const char *sysinfo_detect_toolkit(void)
+{
+#if defined(HAVE_GTK3)
+	return "GTK3";
+#elif defined(HAVE_GTK2)
+	return "GTK2";
+#elif defined(HAVE_GTK)
+	return "GTK";
+#else
+	return NULL;
+#endif
+}
+
+static const char *sysinfo_detect_display_backend(void)
+{
+	const char *backend = NULL;
+	const char *gdk_backend = g_getenv("GDK_BACKEND");
+	const char *session = g_getenv("XDG_SESSION_TYPE");
+	const gboolean session_wayland = session && g_ascii_strcasecmp(session, "wayland") == 0;
+
+	/* Best-effort: ask GDK what it actually opened, if available. */
+#if defined(HAVE_GTK3) || defined(HAVE_GTK2) || defined(HAVE_GTK)
+	{
+		GdkDisplay *display = gdk_display_get_default();
+		if (display)
+		{
+			const char *type_name = G_OBJECT_TYPE_NAME(display);
+			if (type_name)
+			{
+				if (g_strrstr(type_name, "Wayland"))
+					backend = "Wayland";
+				else if (g_strrstr(type_name, "X11"))
+					backend = "X11";
+			}
+		}
+	}
+#endif
+
+	/* Next best: honor explicit backend preference. */
+	if (!backend && gdk_backend)
+	{
+		if (g_strrstr(gdk_backend, "wayland"))
+			backend = "Wayland";
+		else if (g_strrstr(gdk_backend, "x11"))
+			backend = "X11";
+	}
+
+	/* Last resort: infer from common env vars. */
+	if (!backend)
+	{
+		const gboolean has_wayland = g_getenv("WAYLAND_DISPLAY") != NULL;
+		const gboolean has_x11 = g_getenv("DISPLAY") != NULL;
+		if (has_wayland && !has_x11)
+			backend = "Wayland";
+		else if (has_x11 && !has_wayland)
+			backend = "X11";
+		else if (session_wayland)
+			backend = "Wayland";
+		else
+			backend = NULL;
+	}
+
+	/* If we're using X11 inside a Wayland session, call it what it is. */
+	if (backend && g_strcmp0(backend, "X11") == 0 && session_wayland)
+		return "XWayland";
+
+	return backend;
+}
+
+char *sysinfo_backend_get_ui(void)
+{
+	const char *toolkit = sysinfo_detect_toolkit();
+	const char *display = sysinfo_detect_display_backend();
+
+	if (toolkit && display)
+		return g_strdup_printf("%s / %s", toolkit, display);
+	if (toolkit)
+		return g_strdup(toolkit);
+	if (display)
+		return g_strdup(display);
+	return NULL;
 }

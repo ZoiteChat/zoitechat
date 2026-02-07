@@ -40,14 +40,11 @@ static GList *contexts = NULL;
 static GHashTable *clients = NULL;
 static DBusGConnection *connection;
 
-typedef struct RemoteObject RemoteObject;
-typedef struct RemoteObjectClass RemoteObjectClass;
+G_DECLARE_FINAL_TYPE (RemoteObject, remote_object, REMOTE, OBJECT, GObject)
 
-GType Remote_object_get_type (void);
-
-struct RemoteObject
+struct _RemoteObject
 {
-	GObject parent;
+	GObject parent_instance;
 
 	guint last_hook_id;
 	guint last_list_id;
@@ -57,11 +54,6 @@ struct RemoteObject
 	GHashTable *hooks;
 	GHashTable *lists;
 	void *handle;
-};
-
-struct RemoteObjectClass
-{
-	GObjectClass parent;
 };
 
 typedef struct 
@@ -89,12 +81,6 @@ enum
 
 static guint signals[LAST_SIGNAL] = { 0 };
 
-#define REMOTE_TYPE_OBJECT              (remote_object_get_type ())
-#define REMOTE_OBJECT(object)           (G_TYPE_CHECK_INSTANCE_CAST ((object), REMOTE_TYPE_OBJECT, RemoteObject))
-#define REMOTE_OBJECT_CLASS(klass)      (G_TYPE_CHECK_CLASS_CAST ((klass), REMOTE_TYPE_OBJECT, RemoteObjectClass))
-#define REMOTE_IS_OBJECT(object)        (G_TYPE_CHECK_INSTANCE_TYPE ((object), REMOTE_TYPE_OBJECT))
-#define REMOTE_IS_OBJECT_CLASS(klass)   (G_TYPE_CHECK_CLASS_TYPE ((klass), REMOTE_TYPE_OBJECT))
-#define REMOTE_OBJECT_GET_CLASS(obj)    (G_TYPE_INSTANCE_GET_CLASS ((obj), REMOTE_TYPE_OBJECT, RemoteObjectClass))
 #define REMOTE_OBJECT_ERROR (remote_object_error_quark ())
 #define REMOTE_TYPE_ERROR (remote_object_error_get_type ()) 
 
@@ -376,7 +362,7 @@ remote_object_connect (RemoteObject *obj,
 	}
 	g_snprintf(count_buffer, sizeof(count_buffer), "%u", count++);
 	path = g_build_filename (DBUS_OBJECT_PATH, count_buffer, NULL);
-	remote_object = g_object_new (REMOTE_TYPE_OBJECT, NULL);
+	remote_object = g_object_new (remote_object_get_type (), NULL);
 	remote_object->dbus_path = path;
 	remote_object->filename = g_path_get_basename (filename);
 	remote_object->handle = zoitechat_plugingui_add (ph,
@@ -891,8 +877,8 @@ init_dbus (void)
 	guint request_name_result;
 	GError *error = NULL;
 
-	dbus_g_object_type_install_info (REMOTE_TYPE_OBJECT,
-					 &dbus_glib_remote_object_object_info);
+	dbus_g_object_type_install_info (remote_object_get_type (),
+											 &dbus_glib_remote_object_object_info);
 
 	connection = dbus_g_bus_get (DBUS_BUS_SESSION, &error);
 	if (connection == NULL) {
@@ -930,7 +916,7 @@ init_dbus (void)
 				     G_CALLBACK (name_owner_changed),
 				     NULL, NULL);
 
-	remote = g_object_new (REMOTE_TYPE_OBJECT, NULL);
+	remote = g_object_new (remote_object_get_type (), NULL);
 	dbus_g_connection_register_g_object (connection,
 					     DBUS_OBJECT_PATH"/Remote",
 					     G_OBJECT (remote));

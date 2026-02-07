@@ -103,3 +103,30 @@ static char *get_memory_info (void)
 
 	return sysinfo_format_memory (meminfo.ullTotalPhys, meminfo.ullAvailPhys);
 }
+
+static const char *sysinfo_detect_toolkit(void)
+{
+#if defined(HAVE_GTK3)
+	return "GTK3";
+#elif defined(HAVE_GTK2)
+	return "GTK2";
+#elif defined(HAVE_GTK)
+	return "GTK";
+#else
+	return NULL;
+#endif
+}
+
+char *
+sysinfo_backend_get_ui (void)
+{
+	const char *toolkit = sysinfo_detect_toolkit();
+
+	/* On Windows we don't have X11/Wayland. Keep it simple. */
+	if (toolkit)
+	{
+		return g_strdup_printf ("Windows / %s", toolkit);
+	}
+
+	return g_strdup ("Windows");
+}

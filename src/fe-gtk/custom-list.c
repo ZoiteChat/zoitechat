@@ -101,9 +101,13 @@ static void custom_list_sortable_set_default_sort_func (GtkTreeSortable *
 static gboolean custom_list_sortable_has_default_sort_func (GtkTreeSortable *
 																				sortable);
 
+static void custom_list_sortable_init (GtkTreeSortableIface * iface);
 
 
-static GObjectClass *parent_class = NULL;	/* GObject stuff - nothing to worry about */
+
+G_DEFINE_TYPE_WITH_CODE (CustomList, custom_list, G_TYPE_OBJECT,
+	G_IMPLEMENT_INTERFACE (GTK_TYPE_TREE_MODEL, custom_list_tree_model_init)
+	G_IMPLEMENT_INTERFACE (GTK_TYPE_TREE_SORTABLE, custom_list_sortable_init))
 
 
 static void
@@ -114,70 +118,6 @@ custom_list_sortable_init (GtkTreeSortableIface * iface)
 	iface->set_sort_func = custom_list_sortable_set_sort_func;	/* NOT SUPPORTED */
 	iface->set_default_sort_func = custom_list_sortable_set_default_sort_func;	/* NOT SUPPORTED */
 	iface->has_default_sort_func = custom_list_sortable_has_default_sort_func;	/* NOT SUPPORTED */
-}
-
-/*****************************************************************************
- *
- *  custom_list_get_type: here we register our new type and its interfaces
- *                        with the type system. If you want to implement
- *                        additional interfaces like GtkTreeSortable, you
- *                        will need to do it here.
- *
- *****************************************************************************/
-
-GType
-custom_list_get_type (void)
-{
-	static GType custom_list_type = 0;
-
-	if (custom_list_type)
-		return custom_list_type;
-
-	/* Some boilerplate type registration stuff */
-	{
-		static const GTypeInfo custom_list_info = {
-			sizeof (CustomListClass),
-			NULL,	/* base_init */
-			NULL,	/* base_finalize */
-			(GClassInitFunc) custom_list_class_init,
-			NULL,	/* class finalize */
-			NULL,	/* class_data */
-			sizeof (CustomList),
-			0,	/* n_preallocs */
-			(GInstanceInitFunc) custom_list_init
-		};
-
-		custom_list_type =
-			g_type_register_static (G_TYPE_OBJECT, "CustomList",
-											&custom_list_info, (GTypeFlags) 0);
-	}
-
-	/* Here we register our GtkTreeModel interface with the type system */
-	{
-		static const GInterfaceInfo tree_model_info = {
-			(GInterfaceInitFunc) custom_list_tree_model_init,
-			NULL,
-			NULL
-		};
-
-		g_type_add_interface_static (custom_list_type, GTK_TYPE_TREE_MODEL,
-											  &tree_model_info);
-	}
-
-	/* Add GtkTreeSortable interface */
-	{
-		static const GInterfaceInfo tree_sortable_info = {
-			(GInterfaceInitFunc) custom_list_sortable_init,
-			NULL,
-			NULL
-		};
-
-		g_type_add_interface_static (custom_list_type,
-											  GTK_TYPE_TREE_SORTABLE,
-											  &tree_sortable_info);
-	}
-
-	return custom_list_type;
 }
 
 /*****************************************************************************
@@ -193,7 +133,6 @@ custom_list_class_init (CustomListClass * klass)
 {
 	GObjectClass *object_class;
 
-	parent_class = (GObjectClass *) g_type_class_peek_parent (klass);
 	object_class = (GObjectClass *) klass;
 
 	object_class->finalize = custom_list_finalize;
@@ -265,7 +204,7 @@ custom_list_finalize (GObject * object)
 	custom_list_clear (CUSTOM_LIST (object));
 
 	/* must chain up - finalize parent */
-	(*parent_class->finalize) (object);
+	G_OBJECT_CLASS (custom_list_parent_class)->finalize (object);
 }
 
 

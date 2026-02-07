@@ -48,6 +48,38 @@ enum
 
 static GtkWidget *plugin_window = NULL;
 
+#if HAVE_GTK3
+#define ICON_PLUGIN_LOAD "document-open"
+#define ICON_PLUGIN_UNLOAD "edit-delete"
+#define ICON_PLUGIN_RELOAD "view-refresh"
+#endif
+#if !HAVE_GTK3
+#define ICON_PLUGIN_LOAD GTK_STOCK_REVERT_TO_SAVED
+#define ICON_PLUGIN_UNLOAD GTK_STOCK_DELETE
+#define ICON_PLUGIN_RELOAD GTK_STOCK_REFRESH
+#endif
+
+#if HAVE_GTK3
+static GtkWidget *
+plugingui_icon_button (GtkWidget *box, const char *label,
+							  const char *icon_name, GCallback callback,
+							  gpointer userdata)
+{
+	GtkWidget *button;
+	GtkWidget *image;
+
+	button = gtk_button_new_with_mnemonic (label);
+	image = gtk_image_new_from_icon_name (icon_name, GTK_ICON_SIZE_MENU);
+	gtk_button_set_image (GTK_BUTTON (button), image);
+	gtk_button_set_use_underline (GTK_BUTTON (button), TRUE);
+	gtk_container_add (GTK_CONTAINER (box), button);
+	g_signal_connect (G_OBJECT (button), "clicked", callback, userdata);
+	gtk_widget_show (button);
+
+	return button;
+}
+#endif
+
 
 static GtkWidget *
 plugingui_treeview_new (GtkWidget *box)
@@ -247,19 +279,36 @@ plugingui_open (void)
 	g_object_set_data (G_OBJECT (plugin_window), "view", view);
 
 
+#if HAVE_GTK3
+	hbox = gtk_button_box_new (GTK_ORIENTATION_HORIZONTAL);
+	gtk_button_box_set_layout (GTK_BUTTON_BOX (hbox), GTK_BUTTONBOX_SPREAD);
+#elif !HAVE_GTK3
 	hbox = gtk_hbutton_box_new ();
 	gtk_button_box_set_layout (GTK_BUTTON_BOX (hbox), GTK_BUTTONBOX_SPREAD);
+#endif
 	gtk_container_set_border_width (GTK_CONTAINER (hbox), 5);
 	gtk_box_pack_end (GTK_BOX (vbox), hbox, 0, 0, 0);
 
-	gtkutil_button (hbox, GTK_STOCK_REVERT_TO_SAVED, NULL,
+#if HAVE_GTK3
+	{
+		plugingui_icon_button (hbox, _("_Load..."), ICON_PLUGIN_LOAD,
+									  G_CALLBACK (plugingui_loadbutton_cb), NULL);
+		plugingui_icon_button (hbox, _("_Unload"), ICON_PLUGIN_UNLOAD,
+									  G_CALLBACK (plugingui_unload), NULL);
+		plugingui_icon_button (hbox, _("_Reload"), ICON_PLUGIN_RELOAD,
+									  G_CALLBACK (plugingui_reloadbutton_cb), view);
+	}
+#endif
+#if !HAVE_GTK3
+	gtkutil_button (hbox, ICON_PLUGIN_LOAD, NULL,
 	                plugingui_loadbutton_cb, NULL, _("_Load..."));
 
-	gtkutil_button (hbox, GTK_STOCK_DELETE, NULL,
+	gtkutil_button (hbox, ICON_PLUGIN_UNLOAD, NULL,
 	                plugingui_unload, NULL, _("_Unload"));
 
-	gtkutil_button (hbox, GTK_STOCK_REFRESH, NULL,
+	gtkutil_button (hbox, ICON_PLUGIN_RELOAD, NULL,
 	                plugingui_reloadbutton_cb, view, _("_Reload"));
+#endif
 
 	fe_pluginlist_update ();
 

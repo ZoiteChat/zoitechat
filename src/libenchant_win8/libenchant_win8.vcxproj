@@ -32,7 +32,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
-      <AdditionalIncludeDirectories>..\common;$(ZoiteChatLib);$(DepsRoot)\include\enchant;$(DepsRoot)\include;$(Glib);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\common;$(ZoiteChatLib);$(DepsRoot)\include\enchant;$(DepsRoot)\include;$(OpenSslInclude);$(Glib);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <AdditionalDependencies>$(DepLibs);%(AdditionalDependencies)</AdditionalDependencies>

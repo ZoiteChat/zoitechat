@@ -27,7 +27,7 @@
     <TargetName>$(LuaOutput)</TargetName>
     <OutDir>$(ZoiteChatRel)plugins\</OutDir>
   </PropertyGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+  <ItemDefinitionGroup Condition="'$(LuaEnabled)'=='true' and '$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;$(OwnFlags);%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(Glib);$(LuaInclude);..\..\src\common;$(ZoiteChatLib);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -37,7 +37,7 @@
       <AdditionalLibraryDirectories>$(DepsRoot)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+  <ItemDefinitionGroup Condition="'$(LuaEnabled)'=='true' and '$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <PreprocessorDefinitions>WIN32;_WIN64;_AMD64_;NDEBUG;_WINDOWS;_USRDLL;$(OwnFlags);%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(Glib);$(LuaInclude);..\..\src\common;$(ZoiteChatLib);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -47,8 +47,11 @@
       <AdditionalLibraryDirectories>$(DepsRoot)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup>
+  <ItemGroup Condition="'$(LuaEnabled)'=='true'">
     <ClCompile Include="lua.c" />
   </ItemGroup>
-  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" Condition="'$(LuaEnabled)'=='true'" />
+  <Target Name="Build" Condition="'$(LuaEnabled)'!='true'">
+    <Message Text="Lua headers not found; skipping Lua plugin build." Importance="high" />
+  </Target>
 </Project>
