@@ -1,6 +1,13 @@
 ZoiteChat ChangeLog
 =================
 
+2.17.4 (2026-02-03)
+-------------------
+
+- STS handling now persists server policies, enforces upgrades more consistently, and falls back to current ports when needed.
+- Windows build workflow updated (MSYS2 setup changes) and OpenSSL trust store handling tightened for safer TLS connections.
+- Reduced GLib coupling in multiple Windows subsystems (spellcheck, history, sysinfo) plus small stability fixes.
+
 2.17.3 (2026-01-17)
 -------------------
 
