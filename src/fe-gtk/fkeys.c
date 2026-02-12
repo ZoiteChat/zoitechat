@@ -150,14 +150,77 @@ static int key_action_put_history (GtkWidget * wid, GdkEventKey * evt,
 
 static GSList *keybind_list = NULL;
 
+static gsize
+key_action_decode_escapes (const char *input, char *output)
+{
+	gsize ii;
+	gsize oi = 0;
+	gsize len = strlen (input);
+
+	for (ii = 0; ii < len; ii++)
+	{
+		if (input[ii] != '\\')
+		{
+			output[oi++] = input[ii];
+			continue;
+		}
+
+		if (ii + 1 >= len)
+		{
+			output[oi++] = '\\';
+			break;
+		}
+
+		ii++;
+
+		switch (input[ii])
+		{
+		case 'n':
+			output[oi++] = '\n';
+			break;
+		case 'r':
+			output[oi++] = '\r';
+			break;
+		case 't':
+			output[oi++] = '\t';
+			break;
+		case '\\':
+			output[oi++] = '\\';
+			break;
+		case 'x':
+			if (ii + 2 < len && g_ascii_isxdigit (input[ii + 1]) &&
+				 g_ascii_isxdigit (input[ii + 2]))
+			{
+				output[oi++] =
+					(g_ascii_xdigit_value (input[ii + 1]) << 4) |
+					 g_ascii_xdigit_value (input[ii + 2]);
+				ii += 2;
+			}
+			else
+			{
+				output[oi++] = '\\';
+				output[oi++] = 'x';
+			}
+			break;
+		default:
+			output[oi++] = '\\';
+			output[oi++] = input[ii];
+			break;
+		}
+	}
+
+	output[oi] = 0;
+	return oi;
+}
+
 static const struct key_action key_actions[KEY_MAX_ACTIONS + 1] = {
 
 	{key_action_handle_command, "Run Command",
-	 N_("The \002Run Command\002 action runs the data in Data 1 as if it had been typed into the entry box where you pressed the key sequence. Thus it can contain text (which will be sent to the channel/person), commands or user commands. When run all \002\\n\002 characters in Data 1 are used to deliminate separate commands so it is possible to run more than one command. If you want a \002\\\002 in the actual text run then enter \002\\\\\002")},
+	 N_("The \002Run Command\002 action runs the data in Data 1 as if it had been typed into the entry box where you pressed the key sequence. Thus it can contain text (which will be sent to the channel/person), commands or user commands. Escapes in Data 1 are interpreted (for example \002\\n\002, \002\\r\002, \002\\t\002, \002\\xNN\002 and \002\\\\\002), so it is possible to run more than one command by using newlines.")},
 	{key_action_page_switch, "Change Page",
 	 N_("The \002Change Page\002 command switches between pages in the notebook. Set Data 1 to the page you want to switch to. If Data 2 is set to anything then the switch will be relative to the current position. Set Data 1 to auto to switch to the page with the most recent and important activity (queries first, then channels with hilight, channels with dialogue, channels with other data)")},
 	{key_action_insert, "Insert in Buffer",
-	 N_("The \002Insert in Buffer\002 command will insert the contents of Data 1 into the entry where the key sequence was pressed at the current cursor position")},
+	 N_("The \002Insert in Buffer\002 command will insert the contents of Data 1 into the entry where the key sequence was pressed at the current cursor position. Escapes in Data 1 are interpreted (for example \002\\n\002, \002\\r\002, \002\\t\002, \002\\xNN\002 and \002\\\\\002).")},
 	{key_action_scroll_page, "Scroll Page",
 	 N_("The \002Scroll Page\002 command scrolls the text widget up or down one page or one line. Set Data 1 to either Top, Bottom, Up, Down, +1 or -1.")},
 	{key_action_set_buffer, "Set Buffer",
@@ -1162,38 +1225,16 @@ static int
 key_action_handle_command (GtkWidget * wid, GdkEventKey * evt, char *d1,
 									char *d2, struct session *sess)
 {
-	int ii, oi, len;
-	char out[2048], d = 0;
+	char *out;
 
 	if (!d1)
 		return 0;
 
-	len = strlen (d1);
-
-	/* Replace each "\n" substring with '\n' */
-	for (ii = oi = 0; ii < len; ii++)
-	{
-		d = d1[ii];
-		if (d == '\\')
-		{
-			ii++;
-			d = d1[ii];
-			if (d == 'n')
-				out[oi++] = '\n';
-			else if (d == '\\')
-				out[oi++] = '\\';
-			else
-			{
-				out[oi++] = '\\';
-				out[oi++] = d;
-			}
-			continue;
-		}
-		out[oi++] = d;
-	}
-	out[oi] = 0;
+	out = g_malloc (strlen (d1) + 1);
+	key_action_decode_escapes (d1, out);
 
 	handle_multiline (sess, out, 0, 0);
+	g_free (out);
 	return 0;
 }
 
@@ -1275,13 +1316,19 @@ key_action_insert (GtkWidget * wid, GdkEventKey * evt, char *d1, char *d2,
 						 struct session *sess)
 {
 	int tmp_pos;
+	char *decoded;
+	gsize decoded_len;
 
 	if (!d1)
 		return 1;
 
+	decoded = g_malloc (strlen (d1) + 1);
+	decoded_len = key_action_decode_escapes (d1, decoded);
+
 	tmp_pos = SPELL_ENTRY_GET_POS (wid);
-	SPELL_ENTRY_INSERT (wid, d1, strlen (d1), &tmp_pos);
+	SPELL_ENTRY_INSERT (wid, decoded, decoded_len, &tmp_pos);
 	SPELL_ENTRY_SET_POS (wid, tmp_pos);
+	g_free (decoded);
 	return 2;
 }
 
