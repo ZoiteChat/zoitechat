@@ -2,7 +2,9 @@ PREFIX ?= /usr/local
 BUILD_DIR ?= build
 MESON ?= meson
 NINJA ?= ninja
+C_STD ?= c17
 MESON_SETUP_ARGS ?=
+MESON_SETUP_ARGS += -Dc_std=$(C_STD)
 MESON_COMPILE_ARGS ?=
 MESON_INSTALL_ARGS ?=
 

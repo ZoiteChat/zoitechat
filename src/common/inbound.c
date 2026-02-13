@@ -1424,9 +1424,9 @@ inbound_foundip (session *sess, char *ip, const message_tags_data *tags_data)
 	HostAddr = gethostbyname (ip);
 	if (HostAddr)
 	{
-		sess->server->dcc_ip = ((struct in_addr *) HostAddr->h_addr)->s_addr;
+		sess->server->dcc_ip = ((struct in_addr *) HostAddr->h_addr_list[0])->s_addr;
 		EMIT_SIGNAL_TIMESTAMP (XP_TE_FOUNDIP, sess->server->server_session,
-									  inet_ntoa (*((struct in_addr *) HostAddr->h_addr)),
+									  inet_ntoa (*((struct in_addr *) HostAddr->h_addr_list[0])),
 									  NULL, NULL, NULL, 0, tags_data->timestamp);
 	}
 }
