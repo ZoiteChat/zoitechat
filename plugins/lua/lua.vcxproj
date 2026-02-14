@@ -52,6 +52,6 @@
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" Condition="'$(LuaEnabled)'=='true'" />
   <Target Name="Build" Condition="'$(LuaEnabled)'!='true'">
-    <Message Text="Lua headers not found; skipping Lua plugin build." Importance="high" />
+    <Message Text="Lua development files not found (LuaInclude=$(LuaInclude), LuaLib=$(LuaLib)); skipping Lua plugin build." Importance="high" />
   </Target>
 </Project>
