@@ -4,9 +4,11 @@
 
 		<!-- SPECIFY YOUR DEPENDENCY DIRECTORIES HERE -->
 
+		<YourDepsPath Condition="'$(YourDepsPath)'=='' and '$(ZOITECHAT_DEPS_PATH)'!=''">$(ZOITECHAT_DEPS_PATH)</YourDepsPath>
 		<YourDepsPath Condition="'$(YourDepsPath)'==''">c:\gtk-build\gtk</YourDepsPath>
 		<YourGendefPath Condition="'$(YourGendefPath)'==''">c:\gtk-build\gendef</YourGendefPath>
 		<YourPerlPath Condition="'$(YourPerlPath)'==''">c:\gtk-build\perl-5.20</YourPerlPath>
+		<YourPython3Path Condition="'$(YourPython3Path)'=='' and '$(ZOITECHAT_PYTHON3_PATH)'!=''">$(ZOITECHAT_PYTHON3_PATH)</YourPython3Path>
 		<YourPython3Path Condition="'$(YourPython3Path)'==''">c:\gtk-build\python-3.14</YourPython3Path>
 		<YourWinSparklePath Condition="'$(YourWinSparklePath)'==''">c:\gtk-build\WinSparkle</YourWinSparklePath>
 
@@ -40,8 +42,8 @@
 		<LuaLib Condition="'$(LuaLib)'=='' and Exists('$(DepsRoot)\lib\luajit.lib')">luajit</LuaLib>
 		<LuaEnabled Condition="'$(LuaInclude)'!='' and '$(LuaLib)'!=''">true</LuaEnabled>
 		<LuaEnabled Condition="'$(LuaEnabled)'==''">false</LuaEnabled>
-		<GlibGenMarshal Condition="'$(GlibGenMarshal)'=='' and Exists('$(DepsRoot)\\bin\\glib-genmarshal')">&quot;$(Python3Path)\python.exe&quot; &quot;$(DepsRoot)\bin\glib-genmarshal&quot;</GlibGenMarshal>
-		<GlibGenMarshal Condition="'$(GlibGenMarshal)'==''">&quot;$(Python3Path)\python.exe&quot; &quot;$(DepsRoot)\bin\glib-genmarshal&quot;</GlibGenMarshal>
+		<GlibGenMarshal Condition="Exists('$(DepsRoot)\bin\glib-genmarshal.exe')">"$(DepsRoot)\bin\glib-genmarshal.exe"</GlibGenMarshal>
+		<GlibGenMarshal Condition="'$(GlibGenMarshal)'=='' and Exists('$(DepsRoot)\bin\glib-genmarshal') and Exists('$(Python3Path)\python.exe')">"$(Python3Path)\python.exe" "$(DepsRoot)\bin\glib-genmarshal"</GlibGenMarshal>
 		<Glib>$(DepsRoot)\include\glib-2.0;$(DepsRoot)\lib\glib-2.0\include;$(DepsRoot)\include\libxml2</Glib>
         <UsingGtk3 Condition="Exists('$(DepsRoot)\\include\\gtk-3.0\\gtk\\gtk.h')">true</UsingGtk3>
         <GtkDefines>HAVE_GTK3</GtkDefines>
@@ -55,7 +57,32 @@
         <OpenSslLibs Condition="'$(SslModernLib)' != '' and '$(CryptoModernLib)' != ''">$(SslModernLib);$(CryptoModernLib)</OpenSslLibs>
         <OpenSslLibs Condition="'$(OpenSslLibs)' == '' and '$(SslLegacyLib)' != '' and '$(CryptoLegacyLib)' != ''">$(SslLegacyLib);$(CryptoLegacyLib)</OpenSslLibs>
         <OpenSslInclude Condition="Exists('$(DepsRoot)\\include\\openssl\\ssl.h')">$(DepsRoot)\include</OpenSslInclude>
-        <DepLibs>gtk-3.lib;gdk-3.lib;wininet.lib;winmm.lib;ws2_32.lib;atk-1.0.lib;gio-2.0.lib;gdk_pixbuf-2.0.lib;pangowin32-1.0.lib;pangocairo-1.0.lib;pango-1.0.lib;cairo.lib;gobject-2.0.lib;gmodule-2.0.lib;glib-2.0.lib;intl.lib;iconv.lib;zlib1.lib;xml2.lib;jpeg.lib;libpng16.lib;$(OpenSslLibs)</DepLibs>
+        <!-- Resolve library names across dependency bundles -->
+        <Gtk3Lib Condition="Exists('$(DepsRoot)\lib\gtk-3.lib')">gtk-3.lib</Gtk3Lib>
+        <Gtk3Lib Condition="'$(Gtk3Lib)'=='' and Exists('$(DepsRoot)\lib\gtk-3.0.lib')">gtk-3.0.lib</Gtk3Lib>
+        <Gtk3Lib Condition="'$(Gtk3Lib)'=='' and Exists('$(DepsRoot)\lib\libgtk-3.lib')">libgtk-3.lib</Gtk3Lib>
+        <Gtk3Lib Condition="'$(Gtk3Lib)'=='' and Exists('$(DepsRoot)\lib\libgtk-3.0.lib')">libgtk-3.0.lib</Gtk3Lib>
+        <Gdk3Lib Condition="Exists('$(DepsRoot)\lib\gdk-3.lib')">gdk-3.lib</Gdk3Lib>
+        <Gdk3Lib Condition="'$(Gdk3Lib)'=='' and Exists('$(DepsRoot)\lib\gdk-3.0.lib')">gdk-3.0.lib</Gdk3Lib>
+        <Gdk3Lib Condition="'$(Gdk3Lib)'=='' and Exists('$(DepsRoot)\lib\libgdk-3.lib')">libgdk-3.lib</Gdk3Lib>
+        <Gdk3Lib Condition="'$(Gdk3Lib)'=='' and Exists('$(DepsRoot)\lib\libgdk-3.0.lib')">libgdk-3.0.lib</Gdk3Lib>
+        <IntlLib Condition="Exists('$(DepsRoot)\lib\intl.lib')">intl.lib</IntlLib>
+        <IntlLib Condition="'$(IntlLib)'=='' and Exists('$(DepsRoot)\lib\libintl.lib')">libintl.lib</IntlLib>
+        <IconvLib Condition="Exists('$(DepsRoot)\lib\iconv.lib')">iconv.lib</IconvLib>
+        <IconvLib Condition="'$(IconvLib)'=='' and Exists('$(DepsRoot)\lib\libiconv.lib')">libiconv.lib</IconvLib>
+        <ZlibLib Condition="Exists('$(DepsRoot)\lib\zlib1.lib')">zlib1.lib</ZlibLib>
+        <ZlibLib Condition="'$(ZlibLib)'=='' and Exists('$(DepsRoot)\lib\zlib.lib')">zlib.lib</ZlibLib>
+        <Xml2Lib Condition="Exists('$(DepsRoot)\lib\libxml2.lib')">libxml2.lib</Xml2Lib>
+        <Xml2Lib Condition="'$(Xml2Lib)'=='' and Exists('$(DepsRoot)\lib\xml2.lib')">xml2.lib</Xml2Lib>
+        <Xml2Lib Condition="'$(Xml2Lib)'=='' and Exists('$(DepsRoot)\lib\libxml2-2.lib')">libxml2-2.lib</Xml2Lib>
+        <JpegLib Condition="Exists('$(DepsRoot)\lib\jpeg.lib')">jpeg.lib</JpegLib>
+        <JpegLib Condition="'$(JpegLib)'=='' and Exists('$(DepsRoot)\lib\libjpeg.lib')">libjpeg.lib</JpegLib>
+        <JpegLib Condition="'$(JpegLib)'=='' and Exists('$(DepsRoot)\lib\libjpeg-8.lib')">libjpeg-8.lib</JpegLib>
+        <JpegLib Condition="'$(JpegLib)'=='' and Exists('$(DepsRoot)\lib\libjpeg-9.lib')">libjpeg-9.lib</JpegLib>
+        <PngLib Condition="Exists('$(DepsRoot)\lib\libpng16.lib')">libpng16.lib</PngLib>
+        <PngLib Condition="'$(PngLib)'=='' and Exists('$(DepsRoot)\lib\libpng16_static.lib')">libpng16_static.lib</PngLib>
+        <PngLib Condition="'$(PngLib)'=='' and Exists('$(DepsRoot)\lib\libpng.lib')">libpng.lib</PngLib>
+        <DepLibs>$(Gtk3Lib);$(Gdk3Lib);wininet.lib;winmm.lib;ws2_32.lib;atk-1.0.lib;gio-2.0.lib;gdk_pixbuf-2.0.lib;pangowin32-1.0.lib;pangocairo-1.0.lib;pango-1.0.lib;cairo.lib;gobject-2.0.lib;gmodule-2.0.lib;glib-2.0.lib;$(IntlLib);$(IconvLib);$(ZlibLib);$(Xml2Lib);$(JpegLib);$(PngLib);$(OpenSslLibs)</DepLibs>
 		<DataDir>$(SolutionDir)..\data\\</DataDir>
 		<ZoiteChatBuild>$(SolutionDir)..\..\zoitechat-build</ZoiteChatBuild>
 		<ZoiteChatBin>$(ZoiteChatBuild)\$(PlatformName)\bin\</ZoiteChatBin>
@@ -68,6 +95,7 @@
 		<IsccPath Condition="'$(IsccPath)'=='' and '$(ProgramFiles(x86))'!='' and Exists('$(ProgramFiles(x86))\Inno Setup 6\iscc.exe')">$(ProgramFiles(x86))\Inno Setup 6\iscc.exe</IsccPath>
 		<IsccPath Condition="'$(IsccPath)'=='' and '$(ProgramFiles)'!='' and Exists('$(ProgramFiles)\Inno Setup 5\iscc.exe')">$(ProgramFiles)\Inno Setup 5\iscc.exe</IsccPath>
 		<IsccPath Condition="'$(IsccPath)'=='' and '$(ProgramFiles)'!='' and Exists('$(ProgramFiles)\Inno Setup 6\iscc.exe')">$(ProgramFiles)\Inno Setup 6\iscc.exe</IsccPath>
+		<InstallerEnabled Condition="Exists('$(IsccPath)')">true</InstallerEnabled>
 	</PropertyGroup>
 
 	<PropertyGroup>
@@ -115,6 +143,8 @@
 		<Error Condition="!Exists('$(DepsRoot)\include\glib-2.0\glib.h')" Text="Missing GTK/GLib headers under $(DepsRoot). Set YourDepsPath in win32\zoitechat.props or set ZOITECHAT_DEPS_PATH before launching Visual Studio." />
 		<Error Condition="!Exists('$(DepsRoot)\lib\glib-2.0\include\glibconfig.h')" Text="Missing glibconfig.h under $(DepsRoot). Ensure prebuilt dependencies are unpacked for $(PlatformName)." />
 		<Error Condition="!Exists('$(DepsRoot)\include\gtk-3.0\gtk\gtk.h')" Text="Missing GTK headers under $(DepsRoot). Install GTK runtime/devel files and verify YourDepsPath/ZOITECHAT_DEPS_PATH." />
+		<Error Condition="'$(Gtk3Lib)'==''" Text="Missing GTK import library (gtk-3*.lib) under $(DepsRoot)\lib. Ensure your dependency bundle includes MSVC .lib files (not just .dll)." />
+		<Error Condition="'$(Gdk3Lib)'==''" Text="Missing GDK import library (gdk-3*.lib) under $(DepsRoot)\lib. Ensure your dependency bundle includes MSVC .lib files." />
 		<Error Condition="!Exists('$(DepsRoot)\include\openssl\ssl.h') and !Exists('$(DepsRoot)\include\openssl3\openssl\ssl.h') and !Exists('$(DepsRoot)\include\openssl-3\openssl\ssl.h')" Text="Missing OpenSSL headers under $(DepsRoot). Install OpenSSL development files for your target architecture." />
 		<Error Condition="!Exists('$(Python3Path)\python.exe')" Text="Missing Python at $(Python3Path). Set YourPython3Path in win32\zoitechat.props or set ZOITECHAT_PYTHON3_PATH." />
 	</Target>

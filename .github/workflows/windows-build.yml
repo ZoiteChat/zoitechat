@@ -212,7 +212,10 @@ jobs:
 
           msbuild win32\zoitechat.sln /m /verbosity:minimal /p:Configuration=Release /p:Platform=${{ matrix.platform }}
 
-          set "PLUGIN_DIR=..\zoitechat-build\${{ matrix.platform }}\rel\plugins"
+          set "BUILD_DIR=..\zoitechat-build\${{ matrix.platform }}"
+          if not exist "%BUILD_DIR%" if /I "${{ matrix.platform }}"=="win32" set "BUILD_DIR=..\zoitechat-build\Win32"
+          if not exist "%BUILD_DIR%" if /I "${{ matrix.platform }}"=="win32" set "BUILD_DIR=..\zoitechat-build\WIN32"
+          set "PLUGIN_DIR=%BUILD_DIR%\rel\plugins"
           for %%F in (hcchecksum.dll hcexec.dll hcfishlim.dll hcsysinfo.dll hcupd.dll hcwinamp.dll hcperl.dll hcpython3.dll hclua.dll) do (
             if not exist "%PLUGIN_DIR%\%%F" (
               if /I "%%F"=="hclua.dll" (
@@ -230,7 +233,15 @@ jobs:
 
       - name: Preparing Artifacts
         run: |
-          move ..\zoitechat-build\${{ matrix.platform }}\ZoiteChat*.exe .\
+          set "BUILD_DIR=..\zoitechat-build\${{ matrix.platform }}"
+          if not exist "%BUILD_DIR%" if /I "${{ matrix.platform }}"=="win32" set "BUILD_DIR=..\zoitechat-build\Win32"
+          if not exist "%BUILD_DIR%" if /I "${{ matrix.platform }}"=="win32" set "BUILD_DIR=..\zoitechat-build\WIN32"
+          if not exist "%BUILD_DIR%" (
+            echo Missing build output dir: %BUILD_DIR%
+            dir ..\zoitechat-build
+            exit /b 1
+          )
+          move "%BUILD_DIR%\ZoiteChat*.exe" .\
           move ..\zoitechat-build .\
         shell: cmd
 
