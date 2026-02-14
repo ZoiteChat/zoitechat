@@ -93,8 +93,14 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install cffi
 
-          Invoke-WebRequest https://github.com/ZoiteChat/gvsbuild/releases/download/zoitechat-2.18.0-pre1/GTK3_Gvsbuild_zoitechat-2.18.0-pre1_x64.7z -OutFile deps\gtk.7z
-          & 7z.exe x deps\gtk.7z -oC:\gtk-build\gtk\x64\release
+          $gtkArchive = "GTK3_Gvsbuild_zoitechat-2.18.0-pre1_${{ matrix.arch }}.7z"
+          Invoke-WebRequest "https://github.com/ZoiteChat/gvsbuild/releases/download/zoitechat-2.18.0-pre1/$gtkArchive" -OutFile deps\gtk.7z
+
+          if ("${{ matrix.platform }}" -eq "x64") {
+            & 7z.exe x deps\gtk.7z -oC:\gtk-build\gtk\x64\release
+          } else {
+            & 7z.exe x deps\gtk.7z -oC:\gtk-build\gtk\x86\release
+          }
 
           if ($LASTEXITCODE -gt 1) {
             throw "gtk.7z extraction failed with exit code $LASTEXITCODE"
@@ -124,6 +130,15 @@ jobs:
           set "INCLUDE=%PYTHON_DIR%\include;%INCLUDE%"
 
           msbuild win32\zoitechat.sln /m /verbosity:minimal /p:Configuration=Release /p:Platform=${{ matrix.platform }}
+
+          set "PLUGIN_DIR=..\zoitechat-build\${{ matrix.platform }}\rel\plugins"
+          for %%F in (hcchecksum.dll hcexec.dll hcfishlim.dll hcsysinfo.dll hcupd.dll hcwinamp.dll hcperl.dll hcpython3.dll hclua.dll) do (
+            if not exist "%PLUGIN_DIR%\%%F" (
+              echo Missing expected plugin: %PLUGIN_DIR%\%%F
+              exit /b 1
+            )
+          )
+
         shell: cmd
 
       - name: Preparing Artifacts
