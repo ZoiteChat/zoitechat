@@ -72,12 +72,10 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install cffi
 
-          git clone --depth 1 https://github.com/ZoiteChat/gvsbuild.git C:\gtk-build\github\gvsbuild
-          python -m pip install C:\gtk-build\github\gvsbuild
+          Invoke-WebRequest https://github.com/ZoiteChat/gvsbuild/releases/download/zoitechat-2.18.0-pre1/gtk-x64-2026.7z -OutFile deps\gtk.7z
+          & 7z.exe x deps\gtk.7z -oC:\gtk-build
 
-          $gvsPlatform = if ("${{ matrix.platform }}" -eq "win32") { "x86" } else { "x64" }
-          gvsbuild build --vs-ver vs2019 --configuration release --platform $gvsPlatform gtk3 openssl lgi luajit libxml2 enchant gstreamer hicolor-icon-theme
-          if ($gvsPlatform -eq "x86") {
+          if ("${{ matrix.platform }}" -eq "win32" -and (Test-Path "C:\gtk-build\gtk\x86")) {
             $gtkRoot = "C:\gtk-build\gtk"
             foreach ($alias in @("Win32", "win32")) {
               $aliasPath = Join-Path $gtkRoot $alias
