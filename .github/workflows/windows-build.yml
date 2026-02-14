@@ -10,7 +10,7 @@ on:
 
 jobs:
   windows_build:
-    runs-on: windows-2019
+    runs-on: windows-2022
 
     permissions:
       contents: read
@@ -87,8 +87,8 @@ jobs:
 
       - name: Build
         run: |
-          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\VsDevCmd.bat"
-
+          call "C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\Tools\VsDevCmd.bat"
+          
           set "PYTHON_DIR=C:\gtk-build\python-3.14.2\${{ matrix.platform }}"
           if not exist "%PYTHON_DIR%\libs\python314.lib" (
             echo Missing %PYTHON_DIR%\libs\python314.lib
