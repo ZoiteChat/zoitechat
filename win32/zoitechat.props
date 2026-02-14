@@ -33,6 +33,8 @@
 		<LuaInclude>$(DepsRoot)\include\luajit-2.1</LuaInclude>
 		<LuaOutput>hclua</LuaOutput>
 		<LuaLib>lua51</LuaLib>
+		<LuaEnabled Condition="Exists('$(LuaInclude)\\lua.h') and Exists('$(DepsRoot)\\lib\\$(LuaLib).lib')">true</LuaEnabled>
+		<LuaEnabled Condition="'$(LuaEnabled)'==''">false</LuaEnabled>
 		<GlibGenMarshal Condition="'$(GlibGenMarshal)'=='' and Exists('$(DepsRoot)\\bin\\glib-genmarshal')">&quot;$(Python3Path)\python.exe&quot; &quot;$(DepsRoot)\bin\glib-genmarshal&quot;</GlibGenMarshal>
 		<GlibGenMarshal Condition="'$(GlibGenMarshal)'==''">&quot;$(Python3Path)\python.exe&quot; &quot;$(DepsRoot)\bin\glib-genmarshal&quot;</GlibGenMarshal>
 		<Glib>$(DepsRoot)\include\glib-2.0;$(DepsRoot)\lib\glib-2.0\include;$(DepsRoot)\include\libxml2</Glib>
@@ -113,6 +115,7 @@
 	</Target>
 
 </Project>
+
 
 
 
