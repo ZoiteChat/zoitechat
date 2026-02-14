@@ -59,7 +59,7 @@
     <None Include="readme.url" />
 
     <None Include="$(DepsRoot)\bin\lua51.dll" />
-    <None Include="$(DepsRoot)\bin\girepository-2.0.dll" />
+    <None Include="$(DepsRoot)\bin\girepository-2.0-0.dll" />
     <LuaLib Include="$(DepsRoot)\lib\lua\**\*.dll" />
     <LuaShare Include="$(DepsRoot)\share\lua\*.lua" />
     <LuaShare Include="$(DepsRoot)\share\lua\**\*.lua" />
@@ -104,6 +104,7 @@
     <Copy SourceFiles="@(DepsRootDocs)" DestinationFiles="@(DepsRootDocs->'$(ZoiteChatRel)\share\doc\%(RecursiveDir)%(Filename)%(Extension)')" />
   </Target>
 </Project>
+
 
 
 
