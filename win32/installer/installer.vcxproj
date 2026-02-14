@@ -37,9 +37,8 @@
       <Command>
       <![CDATA[
 SET SOLUTIONDIR=$(SolutionDir)..\
-if not exist "$(ZoiteChatBin)" mkdir "$(ZoiteChatBin)"
 powershell -File "$(SolutionDir)..\win32\version-template.ps1" "$(SolutionDir)..\win32\installer\zoitechat.iss.tt" "$(ZoiteChatBin)zoitechat.iss"
-"$(IsccPath)" /dPROJECTDIR="$(ProjectDir)" /dAPPARCH="$(Platform)" "$(ZoiteChatBin)zoitechat.iss"
+$(IsccPath) /dPROJECTDIR="$(ProjectDir)" /dAPPARCH="$(Platform)" "$(ZoiteChatBin)zoitechat.iss"
       ]]>
       </Command>
     </PreBuildEvent>
@@ -49,8 +48,6 @@ powershell -File "$(SolutionDir)..\win32\version-template.ps1" "$(SolutionDir)..
     <None Include="wizardsmallimage.bmp" />
     <None Include="zoitechat.iss" />
   </ItemGroup>
-  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" Condition="'$(InstallerEnabled)'=='true'" />
-  <Target Name="Build" Condition="'$(InstallerEnabled)'!='true'">
-    <Message Text="Inno Setup (iscc.exe) not found; skipping installer build." Importance="high" />
-  </Target>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>
+
