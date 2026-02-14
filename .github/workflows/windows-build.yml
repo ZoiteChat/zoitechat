@@ -45,6 +45,27 @@ jobs:
           Invoke-WebRequest http://files.jrsoftware.org/is/5/innosetup-5.5.9-unicode.exe -OutFile deps\innosetup-unicode.exe
           & deps\innosetup-unicode.exe /VERYSILENT | Out-Null
 
+          $isccCandidates = @(
+            (Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 5\iscc.exe'),
+            (Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\iscc.exe'),
+            (Join-Path $env:ProgramFiles 'Inno Setup 5\iscc.exe'),
+            (Join-Path $env:ProgramFiles 'Inno Setup 6\iscc.exe')
+          ) | Where-Object { $_ -and (Test-Path $_) }
+
+          $isccPath = $isccCandidates | Select-Object -First 1
+          if (-not $isccPath) {
+            $isccCmd = Get-Command iscc.exe -ErrorAction SilentlyContinue
+            if ($isccCmd) { $isccPath = $isccCmd.Source }
+          }
+
+          if (-not $isccPath) {
+            throw 'Inno Setup compiler (iscc.exe) not found after installer step.'
+          }
+
+          "ISCC_EXE=$isccPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+
+
           Invoke-WebRequest https://github.com/zoitechat/gvsbuild/releases/download/zoitechat-2.17.0/idpsetup-1.5.1.exe -OutFile deps\idpsetup.exe
           & deps\idpsetup.exe /VERYSILENT
 
