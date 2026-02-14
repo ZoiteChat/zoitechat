@@ -4,11 +4,16 @@
 
 		<!-- SPECIFY YOUR DEPENDENCY DIRECTORIES HERE -->
 
-		<YourDepsPath>c:\gtk-build\gtk</YourDepsPath>
-		<YourGendefPath>c:\gtk-build\gendef</YourGendefPath>
-		<YourPerlPath>c:\gtk-build\perl-5.20</YourPerlPath>
-		<YourPython3Path>c:\gtk-build\python-3.14</YourPython3Path>
-		<YourWinSparklePath>c:\gtk-build\WinSparkle</YourWinSparklePath>
+		<YourDepsPath Condition="'$(YourDepsPath)'=='' and '$(ZOITECHAT_DEPS_PATH)'!=''">$(ZOITECHAT_DEPS_PATH)</YourDepsPath>
+		<YourDepsPath Condition="'$(YourDepsPath)'==''">c:\gtk-build\gtk</YourDepsPath>
+		<YourGendefPath Condition="'$(YourGendefPath)'=='' and '$(ZOITECHAT_GENDEF_PATH)'!=''">$(ZOITECHAT_GENDEF_PATH)</YourGendefPath>
+		<YourGendefPath Condition="'$(YourGendefPath)'==''">c:\gtk-build\gendef</YourGendefPath>
+		<YourPerlPath Condition="'$(YourPerlPath)'=='' and '$(ZOITECHAT_PERL_PATH)'!=''">$(ZOITECHAT_PERL_PATH)</YourPerlPath>
+		<YourPerlPath Condition="'$(YourPerlPath)'==''">c:\gtk-build\perl-5.20</YourPerlPath>
+		<YourPython3Path Condition="'$(YourPython3Path)'=='' and '$(ZOITECHAT_PYTHON3_PATH)'!=''">$(ZOITECHAT_PYTHON3_PATH)</YourPython3Path>
+		<YourPython3Path Condition="'$(YourPython3Path)'==''">c:\gtk-build\python-3.14</YourPython3Path>
+		<YourWinSparklePath Condition="'$(YourWinSparklePath)'=='' and '$(ZOITECHAT_WINSPARKLE_PATH)'!=''">$(ZOITECHAT_WINSPARKLE_PATH)</YourWinSparklePath>
+		<YourWinSparklePath Condition="'$(YourWinSparklePath)'==''">c:\gtk-build\WinSparkle</YourWinSparklePath>
 
 		<!-- YOU SHOULDN'T TOUCH ANYTHING BELOW -->
 
@@ -140,8 +145,16 @@
 	</ItemDefinitionGroup>
 
 	<ItemGroup />
-</Project>
 
+	<Target Name="ValidateWindowsBuildEnvironment" BeforeTargets="PrepareForBuild">
+		<Error Condition="!Exists('$(DepsRoot)\include\glib-2.0\glib.h')" Text="Missing GTK/GLib headers under $(DepsRoot). Set YourDepsPath in win32\zoitechat.props or set ZOITECHAT_DEPS_PATH before launching Visual Studio." />
+		<Error Condition="!Exists('$(DepsRoot)\lib\glib-2.0\include\glibconfig.h')" Text="Missing glibconfig.h under $(DepsRoot). Ensure prebuilt dependencies are unpacked for $(GtkPlatform)." />
+		<Error Condition="!Exists('$(DepsRoot)\include\gtk-3.0\gtk\gtk.h')" Text="Missing GTK headers under $(DepsRoot). Install GTK runtime/devel files and verify YourDepsPath/ZOITECHAT_DEPS_PATH." />
+		<Error Condition="!Exists('$(DepsRoot)\include\openssl\ssl.h') and !Exists('$(DepsRoot)\include\openssl3\openssl\ssl.h') and !Exists('$(DepsRoot)\include\openssl-3\openssl\ssl.h')" Text="Missing OpenSSL headers under $(DepsRoot). Install OpenSSL development files for your target architecture." />
+		<Error Condition="!Exists('$(Python3Path)\python.exe')" Text="Missing Python at $(Python3Path). Set YourPython3Path in win32\zoitechat.props or set ZOITECHAT_PYTHON3_PATH." />
+	</Target>
+
+</Project>
 
 
 
