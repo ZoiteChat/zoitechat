@@ -56,7 +56,11 @@
 		<ZoiteChatLib>$(ZoiteChatBuild)\$(PlatformName)\lib\</ZoiteChatLib>
 		<ZoiteChatPdb>$(ZoiteChatBuild)\$(PlatformName)\pdb\</ZoiteChatPdb>
 		<ZoiteChatRel>$(ZoiteChatBuild)\$(PlatformName)\rel\</ZoiteChatRel>
-		<IsccPath>"$(ProgramFiles(x86))\Inno Setup 5\iscc.exe"</IsccPath>
+		<IsccPath Condition="'$(IsccPath)'=='' and '$(ISCC_EXE)'!=''">$(ISCC_EXE)</IsccPath>
+		<IsccPath Condition="'$(IsccPath)'=='' and '$(ProgramFiles(x86))'!='' and Exists('$(ProgramFiles(x86))\Inno Setup 5\iscc.exe')">$(ProgramFiles(x86))\Inno Setup 5\iscc.exe</IsccPath>
+		<IsccPath Condition="'$(IsccPath)'=='' and '$(ProgramFiles(x86))'!='' and Exists('$(ProgramFiles(x86))\Inno Setup 6\iscc.exe')">$(ProgramFiles(x86))\Inno Setup 6\iscc.exe</IsccPath>
+		<IsccPath Condition="'$(IsccPath)'=='' and '$(ProgramFiles)'!='' and Exists('$(ProgramFiles)\Inno Setup 5\iscc.exe')">$(ProgramFiles)\Inno Setup 5\iscc.exe</IsccPath>
+		<IsccPath Condition="'$(IsccPath)'=='' and '$(ProgramFiles)'!='' and Exists('$(ProgramFiles)\Inno Setup 6\iscc.exe')">$(ProgramFiles)\Inno Setup 6\iscc.exe</IsccPath>
 	</PropertyGroup>
 
 	<PropertyGroup>
@@ -109,6 +113,7 @@
 	</Target>
 
 </Project>
+
 
 
 
