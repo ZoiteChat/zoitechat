@@ -64,7 +64,7 @@
     <LuaShare Include="$(DepsRoot)\share\lua\*.lua" />
     <LuaShare Include="$(DepsRoot)\share\lua\**\*.lua" />
     <LuaShare Include="$(DepsRoot)\share\lua\**\**\*.lua" />
-    <Typelib Include="$(DepsRoot)\lib\girepository-2.0\*.typelib" />
+    <Typelib Include="$(DepsRoot)\lib\girepository-1.0\*.typelib" />
     <None Include="$(Python3Path)\Lib\site-packages\_cffi_backend.*.pyd" />
 
     <Gtk3Immodules Include="$(DepsRoot)\lib\gtk-3.0\3.0.0\immodules\**\*" />
@@ -94,7 +94,7 @@
     <Copy SourceFiles="@(MSWindowsTheme)" DestinationFiles="@(MSWindowsTheme->'$(ZoiteChatRel)\share\themes\MS-Windows\%(RecursiveDir)%(Filename)%(Extension)')" />
     <Copy SourceFiles="@(LuaShare)" DestinationFiles="@(LuaShare->'$(ZoiteChatRel)\share\lua\%(RecursiveDir)%(Filename)%(Extension)')" />
     <Copy SourceFiles="@(LuaLib)" DestinationFiles="@(LuaLib->'$(ZoiteChatRel)\lib\lua\%(RecursiveDir)%(Filename)%(Extension)')" />
-    <Copy SourceFiles="@(Typelib)" DestinationFiles="@(Typelib->'$(ZoiteChatRel)\lib\girepository-2.0\%(Filename)%(Extension)')" />
+    <Copy SourceFiles="@(Typelib)" DestinationFiles="@(Typelib->'$(ZoiteChatRel)\lib\girepository-1.0\%(Filename)%(Extension)')" />
     <Copy SourceFiles="..\..\plugins\python\xchat.py" DestinationFolder="$(ZoiteChatRel)\python" />
     <Copy SourceFiles="..\..\plugins\python\zoitechat.py" DestinationFolder="$(ZoiteChatRel)\python" />
     <Copy SourceFiles="..\..\plugins\python\_zoitechat.py" DestinationFolder="$(ZoiteChatRel)\python" />
@@ -104,6 +104,7 @@
     <Copy SourceFiles="@(DepsRootDocs)" DestinationFiles="@(DepsRootDocs->'$(ZoiteChatRel)\share\doc\%(RecursiveDir)%(Filename)%(Extension)')" />
   </Target>
 </Project>
+
 
 
 
