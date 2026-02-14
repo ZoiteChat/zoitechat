@@ -87,8 +87,23 @@ jobs:
 
       - name: Build
         run: |
-          call "C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\Tools\VsDevCmd.bat"
-          
+          set "VSWHERE=%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe"
+          if not exist "%VSWHERE%" (
+            echo Unable to find vswhere at %VSWHERE%
+            exit /b 1
+          )
+
+          for /f "usebackq delims=" %%I in (`"%VSWHERE%" -latest -products * -version [17.0^,18.0^) -requires Microsoft.Component.MSBuild -property installationPath`) do set "VSINSTALLDIR=%%I"
+          if not defined VSINSTALLDIR (
+            echo Unable to locate a Visual Studio 2022 installation with MSBuild.
+            exit /b 1
+          )
+
+          call "%VSINSTALLDIR%\Common7\Tools\VsDevCmd.bat"
+          if errorlevel 1 (
+            echo Failed to initialize Visual Studio Developer Command Prompt.
+            exit /b 1
+          )          
           set "PYTHON_DIR=C:\gtk-build\python-3.14.2\${{ matrix.platform }}"
           if not exist "%PYTHON_DIR%\libs\python314.lib" (
             echo Missing %PYTHON_DIR%\libs\python314.lib
