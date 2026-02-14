@@ -2672,7 +2672,7 @@ setup_create_pages (GtkWidget *box)
 
         gtk_notebook_set_show_tabs (GTK_NOTEBOOK (book), FALSE);
         gtk_notebook_set_show_border (GTK_NOTEBOOK (book), FALSE);
-        gtk_container_add (GTK_CONTAINER (box), book);
+        gtk_box_pack_start (GTK_BOX (box), book, TRUE, TRUE, 0);
 
         return book;
 }
@@ -3140,7 +3140,7 @@ setup_window_open (void)
 #elif !HAVE_GTK3
         hbox = gtkutil_box_new (GTK_ORIENTATION_HORIZONTAL, FALSE, 4);
 #endif
-        gtk_container_add (GTK_CONTAINER (vbox), hbox);
+        gtk_box_pack_start (GTK_BOX (vbox), hbox, TRUE, TRUE, 0);
 
         setup_create_tree (hbox, setup_create_pages (hbox));
 
