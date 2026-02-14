@@ -116,6 +116,87 @@ jobs:
             }
           }
 
+      - name: Install Lua Dependencies
+        run: |
+          $releaseArch = if ("${{ matrix.arch }}" -eq "x64") { "x64" } else { "x86" }
+          $gtkRelease = "C:\gtk-build\gtk\$releaseArch\release"
+          if (-not (Test-Path $gtkRelease)) {
+            throw "GTK release root '$gtkRelease' is missing before Lua dependency extraction."
+          }
+
+          $luaArchive = if ($releaseArch -eq "x64") { "gtk-x64-2018-08-29-openssl1.1.7z" } else { "gtk-win32-2018-08-29-openssl1.1.7z" }
+          $luaArchivePath = "deps\$luaArchive"
+          Invoke-WebRequest "https://github.com/zoitechat/gvsbuild/releases/download/zoitechat-2.17.0/$luaArchive" -OutFile $luaArchivePath
+
+          & 7z.exe x $luaArchivePath -o$gtkRelease include\luajit*\* include\lua*\* lib\lua51.lib lib\luajit*.lib bin\lua51.dll bin\luajit*.dll lib\lua\2.1\* lib\girepository-1.0\*.typelib share\lua\2.1\* -r
+          if ($LASTEXITCODE -gt 1) {
+            throw "Lua dependency extraction failed with exit code $LASTEXITCODE"
+          }
+
+      - name: Validate Lua Prerequisites
+        run: |
+          $releaseArch = if ("${{ matrix.arch }}" -eq "x64") { "x64" } else { "x86" }
+          $gtkRelease = "C:\gtk-build\gtk\$releaseArch\release"
+
+          $includeCandidates = @(
+            "include\luajit-2.1\lua.h",
+            "include\luajit\lua.h",
+            "include\lua5.1\lua.h",
+            "include\lua51\lua.h"
+          )
+          $libCandidates = @(
+            "lib\lua51.lib",
+            "lib\luajit-5.1.lib",
+            "lib\luajit.lib"
+          )
+          $dllCandidates = @(
+            "bin\lua51.dll",
+            "bin\luajit-5.1.dll",
+            "bin\luajit.dll"
+          )
+
+          function Test-AnyPath([string]$root, [string[]]$candidates) {
+            foreach ($candidate in $candidates) {
+              if (Test-Path (Join-Path $root $candidate)) {
+                return $true
+              }
+            }
+            return $false
+          }
+
+          $missing = New-Object System.Collections.Generic.List[string]
+          if (-not (Test-AnyPath $gtkRelease $includeCandidates)) {
+            $missing.Add("include (expected one of: $($includeCandidates -join ', '))")
+          }
+          if (-not (Test-AnyPath $gtkRelease $libCandidates)) {
+            $missing.Add("lib import library (expected one of: $($libCandidates -join ', '))")
+          }
+          if (-not (Test-AnyPath $gtkRelease $dllCandidates)) {
+            $missing.Add("bin runtime DLL (expected one of: $($dllCandidates -join ', '))")
+          }
+
+          $lgiNative = Join-Path $gtkRelease "lib\lua\2.1\lgi"
+          if (-not (Test-Path $lgiNative) -or -not (Get-ChildItem $lgiNative -Filter *.dll -File -ErrorAction SilentlyContinue)) {
+            $missing.Add("lib\\lua\\2.1\\lgi\\*.dll")
+          }
+
+          $typelibDir = Join-Path $gtkRelease "lib\girepository-1.0"
+          if (-not (Test-Path $typelibDir) -or -not (Get-ChildItem $typelibDir -Filter *.typelib -File -ErrorAction SilentlyContinue)) {
+            $missing.Add("lib\\girepository-1.0\\*.typelib")
+          }
+
+          $lgiShare = Join-Path $gtkRelease "share\lua\2.1\lgi"
+          if (-not (Test-Path $lgiShare) -or -not (Get-ChildItem $lgiShare -Filter *.lua -File -Recurse -ErrorAction SilentlyContinue)) {
+            $missing.Add("share\\lua\\2.1\\lgi\\*.lua")
+          }
+
+          if ($missing.Count -gt 0) {
+            Write-Error "Lua prerequisites are missing under '$gtkRelease': $($missing -join '; '). Ensure the Lua/LuaJIT dependency artifact for $releaseArch was downloaded and extracted."
+            exit 1
+          }
+
+          "LUA_PREREQ_ROOT=$gtkRelease" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
       - name: Build
         run: |
           call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat"
@@ -134,7 +215,13 @@ jobs:
           set "PLUGIN_DIR=..\zoitechat-build\${{ matrix.platform }}\rel\plugins"
           for %%F in (hcchecksum.dll hcexec.dll hcfishlim.dll hcsysinfo.dll hcupd.dll hcwinamp.dll hcperl.dll hcpython3.dll hclua.dll) do (
             if not exist "%PLUGIN_DIR%\%%F" (
-              echo Missing expected plugin: %PLUGIN_DIR%\%%F
+              if /I "%%F"=="hclua.dll" (
+                echo Missing expected plugin: %PLUGIN_DIR%\%%F
+                echo hclua.dll is built from Lua/LuaJIT prerequisites under %LUA_PREREQ_ROOT%.
+                echo Verify include/lib/bin/share Lua files were present during dependency validation.
+              ) else (
+                echo Missing expected plugin: %PLUGIN_DIR%\%%F
+              )
               exit /b 1
             )
           )
