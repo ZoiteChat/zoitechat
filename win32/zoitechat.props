@@ -30,10 +30,15 @@
 		<PerlEnabled Condition="'$(PerlEnabled)'==''">false</PerlEnabled>
 		<InstallerEnabled Condition="Exists('$(IsccPath)')">true</InstallerEnabled>
 		<InstallerEnabled Condition="'$(InstallerEnabled)'==''">false</InstallerEnabled>
-		<LuaInclude>$(DepsRoot)\include\luajit-2.1</LuaInclude>
-		<LuaOutput>hclua</LuaOutput>
-		<LuaLib>lua51</LuaLib>
-		<LuaEnabled Condition="Exists('$(LuaInclude)\\lua.h') and Exists('$(DepsRoot)\\lib\\$(LuaLib).lib')">true</LuaEnabled>
+		<LuaInclude Condition="Exists('$(DepsRoot)\include\luajit-2.1\lua.h')">$(DepsRoot)\include\luajit-2.1</LuaInclude>
+		<LuaInclude Condition="'$(LuaInclude)'=='' and Exists('$(DepsRoot)\include\luajit\lua.h')">$(DepsRoot)\include\luajit</LuaInclude>
+		<LuaInclude Condition="'$(LuaInclude)'=='' and Exists('$(DepsRoot)\include\lua5.1\lua.h')">$(DepsRoot)\include\lua5.1</LuaInclude>
+		<LuaInclude Condition="'$(LuaInclude)'=='' and Exists('$(DepsRoot)\include\lua51\lua.h')">$(DepsRoot)\include\lua51</LuaInclude>
+        <LuaOutput>hclua</LuaOutput>
+		<LuaLib Condition="Exists('$(DepsRoot)\lib\lua51.lib')">lua51</LuaLib>
+		<LuaLib Condition="'$(LuaLib)'=='' and Exists('$(DepsRoot)\lib\luajit-5.1.lib')">luajit-5.1</LuaLib>
+		<LuaLib Condition="'$(LuaLib)'=='' and Exists('$(DepsRoot)\lib\luajit.lib')">luajit</LuaLib>
+		<LuaEnabled Condition="'$(LuaInclude)'!='' and '$(LuaLib)'!=''">true</LuaEnabled>
 		<LuaEnabled Condition="'$(LuaEnabled)'==''">false</LuaEnabled>
 		<GlibGenMarshal Condition="'$(GlibGenMarshal)'=='' and Exists('$(DepsRoot)\\bin\\glib-genmarshal')">&quot;$(Python3Path)\python.exe&quot; &quot;$(DepsRoot)\bin\glib-genmarshal&quot;</GlibGenMarshal>
 		<GlibGenMarshal Condition="'$(GlibGenMarshal)'==''">&quot;$(Python3Path)\python.exe&quot; &quot;$(DepsRoot)\bin\glib-genmarshal&quot;</GlibGenMarshal>
@@ -115,6 +120,7 @@
 	</Target>
 
 </Project>
+
 
 
 
