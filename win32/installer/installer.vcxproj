@@ -37,6 +37,7 @@
       <Command>
       <![CDATA[
 SET SOLUTIONDIR=$(SolutionDir)..\
+if not exist "$(ZoiteChatBin)" mkdir "$(ZoiteChatBin)"
 powershell -File "$(SolutionDir)..\win32\version-template.ps1" "$(SolutionDir)..\win32\installer\zoitechat.iss.tt" "$(ZoiteChatBin)zoitechat.iss"
 $(IsccPath) /dPROJECTDIR="$(ProjectDir)" /dAPPARCH="$(Platform)" "$(ZoiteChatBin)zoitechat.iss"
       ]]>
