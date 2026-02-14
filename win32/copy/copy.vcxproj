@@ -1,7 +1,7 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup Label="Configuration">
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
     <ConfigurationType>Application</ConfigurationType>
   </PropertyGroup>
   <ItemGroup Label="ProjectConfigurations">
@@ -25,12 +25,12 @@
   <ItemGroup>
     <None Include="$(DepsRoot)\bin\cert.pem" />
     <None Include="$(DepsRoot)\bin\atk-1.0-0.dll" />
-    <None Include="$(DepsRoot)\bin\cairo*.dll" />
-    <None Include="$(DepsRoot)\bin\freetype-*.dll" />
+    <None Include="$(DepsRoot)\bin\cairo.dll" />
+    <None Include="$(DepsRoot)\bin\freetype.dll" />
     <None Include="$(DepsRoot)\bin\fribidi-0.dll" />
-    <None Include="$(DepsRoot)\bin\fontconfig-*.dll" />
+    <None Include="$(DepsRoot)\bin\fontconfig.dll" />
     <None Include="$(DepsRoot)\bin\gdk_pixbuf-2.0-0.dll" />
-    <None Include="$(DepsRoot)\bin\gdk-3-*.dll" />
+    <None Include="$(DepsRoot)\bin\gdk-win32-2.0.dll" />
     <None Include="$(DepsRoot)\bin\gio-2.0-0.dll" />
     <None Include="$(DepsRoot)\bin\glib-2.0-0.dll" />
     <None Include="$(DepsRoot)\bin\gmodule-2.0-0.dll" />
@@ -38,17 +38,15 @@
     <None Include="$(DepsRoot)\bin\gspawn-win$(PlatformArchitecture)-helper.exe" />
     <None Include="$(DepsRoot)\bin\gspawn-win$(PlatformArchitecture)-helper-console.exe" />
     <None Include="$(DepsRoot)\bin\gthread-2.0-0.dll" />
-    <None Include="$(DepsRoot)\bin\gtk-3-*.dll" />
+    <None Include="$(DepsRoot)\bin\gtk-win32-2.0.dll" />
     <None Include="$(DepsRoot)\bin\iconv.dll" />
     <None Include="$(DepsRoot)\bin\libcrypto*.dll" />
     <None Include="$(DepsRoot)\bin\libssl*.dll" />
     <None Include="$(DepsRoot)\bin\libenchant.dll" />
-    <None Include="$(DepsRoot)\bin\ffi-*.dll" />
+    <None Include="$(DepsRoot)\bin\ffi-7.dll" />
     <None Include="$(DepsRoot)\bin\intl.dll" />
-    <None Include="$(DepsRoot)\bin\jpeg*.dll" />
     <None Include="$(DepsRoot)\bin\libpng16.dll" />
-    <None Include="$(DepsRoot)\bin\libjpeg*.dll" />
-    <None Include="$(DepsRoot)\bin\libxml2-*.dll" />
+    <None Include="$(DepsRoot)\bin\libxml2.dll" />
     <None Include="$(DepsRoot)\bin\pango-1.0-0.dll" />
     <None Include="$(DepsRoot)\bin\pangocairo-1.0-0.dll" />
     <None Include="$(DepsRoot)\bin\pangoft2-1.0-0.dll" />
@@ -59,7 +57,7 @@
     <None Include="readme.url" />
 
     <None Include="$(DepsRoot)\bin\lua51.dll" />
-    <None Include="$(DepsRoot)\bin\girepository-2.0-0.dll" />
+    <None Include="$(DepsRoot)\bin\girepository-1.0-1.dll" />
     <LuaLib Include="$(DepsRoot)\lib\lua\**\*.dll" />
     <LuaShare Include="$(DepsRoot)\share\lua\*.lua" />
     <LuaShare Include="$(DepsRoot)\share\lua\**\*.lua" />
@@ -67,8 +65,7 @@
     <Typelib Include="$(DepsRoot)\lib\girepository-1.0\*.typelib" />
     <None Include="$(Python3Path)\Lib\site-packages\_cffi_backend.*.pyd" />
 
-    <Gtk3Immodules Include="$(DepsRoot)\lib\gtk-3.0\3.0.0\immodules\**\*" />
-    <Gtk3PrintBackends Include="$(DepsRoot)\lib\gtk-3.0\3.0.0\printbackends\**\*" />
+    <Engines Include="$(DepsRoot)\lib\gtk-2.0\i686-pc-vs14\engines\**\*" />
 
     <FontConfig Include="$(DepsRoot)\etc\fonts\*"/>
 
@@ -84,8 +81,7 @@
   <Target Name="Build">
     <Copy SourceFiles="@(None)" DestinationFolder="$(ZoiteChatRel)" />
     <Copy SourceFiles="@(FontConfig)" DestinationFolder="$(ZoiteChatRel)\etc\fonts" />
-    <Copy SourceFiles="@(Gtk3Immodules)" DestinationFiles="@(Gtk3Immodules->'$(ZoiteChatRel)\lib\gtk-3.0\3.0.0\immodules\%(RecursiveDir)%(Filename)%(Extension)')" />
-    <Copy SourceFiles="@(Gtk3PrintBackends)" DestinationFiles="@(Gtk3PrintBackends->'$(ZoiteChatRel)\lib\gtk-3.0\3.0.0\printbackends\%(RecursiveDir)%(Filename)%(Extension)')" />
+    <Copy SourceFiles="@(Engines)" DestinationFiles="@(Engines->'$(ZoiteChatRel)\lib\gtk-2.0\i686-pc-vs14\engines\%(RecursiveDir)%(Filename)%(Extension)')" />
     <Copy SourceFiles="@(Share)" DestinationFiles="@(Share->'$(ZoiteChatRel)\share\%(RecursiveDir)%(Filename)%(Extension)')" />
     <Copy SourceFiles="..\..\COPYING" DestinationFolder="$(ZoiteChatRel)\share\doc\zoitechat" />
     <Copy SourceFiles="$(WinSparklePath)\COPYING" DestinationFolder="$(ZoiteChatRel)\share\doc\WinSparkle" />
