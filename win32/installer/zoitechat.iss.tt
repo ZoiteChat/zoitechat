@@ -64,17 +64,17 @@ Name: "icons\desktopicon"; Description: "Create Desktop Shortcut"; Types: custom
 Name: "icons\quicklaunchicon"; Description: "Create Quick Launch Shortcut"; Types: custom; Flags: disablenouninstallwarning
 Name: "translations"; Description: "Translations"; Types: normal custom; Flags: disablenouninstallwarning
 Name: "spell"; Description: "Spelling Dictionaries"; Types: custom; Flags: disablenouninstallwarning
-Name: "plugins"; Description: "Plugins"; Types: custom; Flags: disablenouninstallwarning
-Name: "plugins\checksum"; Description: "Checksum"; Types: custom; Flags: disablenouninstallwarning
-Name: "plugins\exec"; Description: "Exec"; Types: custom; Flags: disablenouninstallwarning
-Name: "plugins\fishlim"; Description: "FiSHLiM"; Types: custom; Flags: disablenouninstallwarning
-Name: "plugins\sysinfo"; Description: "SysInfo"; Types: custom; Flags: disablenouninstallwarning
+Name: "plugins"; Description: "Plugins"; Types: normal custom; Flags: disablenouninstallwarning
+Name: "plugins\checksum"; Description: "Checksum"; Types: normal custom; Flags: disablenouninstallwarning
+Name: "plugins\exec"; Description: "Exec"; Types: normal custom; Flags: disablenouninstallwarning
+Name: "plugins\fishlim"; Description: "FiSHLiM"; Types: normal custom; Flags: disablenouninstallwarning
+Name: "plugins\sysinfo"; Description: "SysInfo"; Types: normal custom; Flags: disablenouninstallwarning
 Name: "plugins\upd"; Description: "Update Checker"; Types: normal custom; Flags: disablenouninstallwarning
 Name: "plugins\winamp"; Description: "Winamp"; Types: custom; Flags: disablenouninstallwarning
 Name: "langs"; Description: "Language Interfaces"; Types: custom; Flags: disablenouninstallwarning
 Name: "langs\lua"; Description: "Lua"; Types: normal custom; Flags: disablenouninstallwarning
-Name: "langs\perl"; Description: "Perl (requires Perl 5.20)"; Types: custom; Flags: disablenouninstallwarning
-Name: "langs\python"; Description: "Python (requires Python 3.14.2)"; Types: custom; Flags: disablenouninstallwarning
+Name: "langs\perl"; Description: "Perl (requires Perl 5.20)"; Types: normal custom; Flags: disablenouninstallwarning
+Name: "langs\python"; Description: "Python (requires Python 3.14.2)"; Types: normal custom; Flags: disablenouninstallwarning
 
 [Tasks]
 Name: portable; Description: "Yes"; GroupDescription: "Portable Mode: Stores configuration files within install directory for portable drives."; Flags: unchecked
