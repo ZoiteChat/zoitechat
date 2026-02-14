@@ -44,8 +44,8 @@
 		<LuaLib Condition="'$(LuaLib)'=='' and Exists('$(DepsRoot)\\lib\\lua-5.4.lib')">lua-5.4</LuaLib>
 		<LuaLib Condition="'$(LuaLib)'=='' and Exists('$(DepsRoot)\\lib\\lua.lib')">lua</LuaLib>
 		<LuaLib Condition="'$(LuaLib)'==''">lua51</LuaLib>
-		<GlibGenMarshal Condition="Exists('$(DepsRoot)\\bin\\glib-genmarshal.exe')">&quot;$(DepsRoot)\bin\glib-genmarshal.exe&quot;</GlibGenMarshal>
-		<GlibGenMarshal Condition="'$(GlibGenMarshal)'=='' and Exists('$(DepsRoot)\\bin\\glib-genmarshal')">&quot;$(DepsRoot)\bin\glib-genmarshal&quot;</GlibGenMarshal>
+		<GlibGenMarshal Condition="Exists('$(DepsRoot)\\bin\\glib-genmarshal.exe')">&quot;$(DepsRoot)\bin\glib-genmarshal.exe&quot;</GlibGenMarshal>␊
+		<GlibGenMarshal Condition="'$(GlibGenMarshal)'=='' and Exists('$(DepsRoot)\\bin\\glib-genmarshal')">&quot;$(Python3Path)\python.exe&quot; &quot;$(DepsRoot)\bin\glib-genmarshal&quot;</GlibGenMarshal>
 		<GlibGenMarshal Condition="'$(GlibGenMarshal)'=='' and Exists('$(DepsRoot)\\bin\\glib-genmarshal.py')">&quot;$(Python3Path)\python.exe&quot; &quot;$(DepsRoot)\bin\glib-genmarshal.py&quot;</GlibGenMarshal>
 		<GlibGenMarshal Condition="'$(GlibGenMarshal)'=='' and Exists('$(DepsRoot)\\share\\glib-2.0\\codegen\\glib-genmarshal.py')">&quot;$(Python3Path)\python.exe&quot; &quot;$(DepsRoot)\share\glib-2.0\codegen\glib-genmarshal.py&quot;</GlibGenMarshal>
 		<GlibGenMarshal Condition="'$(GlibGenMarshal)'==''">&quot;$(Python3Path)\python.exe&quot; &quot;$(DepsRoot)\bin\glib-genmarshal&quot;</GlibGenMarshal>
