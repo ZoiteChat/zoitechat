@@ -43,8 +43,12 @@
         <Gtk>$(Gtk3);$(GtkCommon)</Gtk>
         <SslLegacyLib Condition="Exists('$(DepsRoot)\\lib\\ssleay32.lib')">ssleay32.lib</SslLegacyLib>
         <CryptoLegacyLib Condition="Exists('$(DepsRoot)\\lib\\libeay32.lib')">libeay32.lib</CryptoLegacyLib>
+        <SslModernLib Condition="Exists('$(DepsRoot)\\lib\\libssl.lib')">libssl.lib</SslModernLib>
+        <CryptoModernLib Condition="Exists('$(DepsRoot)\\lib\\libcrypto.lib')">libcrypto.lib</CryptoModernLib>
+        <OpenSslLibs Condition="'$(SslModernLib)' != '' and '$(CryptoModernLib)' != ''">$(SslModernLib);$(CryptoModernLib)</OpenSslLibs>
+        <OpenSslLibs Condition="'$(OpenSslLibs)' == '' and '$(SslLegacyLib)' != '' and '$(CryptoLegacyLib)' != ''">$(SslLegacyLib);$(CryptoLegacyLib)</OpenSslLibs>
         <OpenSslInclude Condition="Exists('$(DepsRoot)\\include\\openssl\\ssl.h')">$(DepsRoot)\include</OpenSslInclude>
-        <DepLibs>gtk-3.lib;wininet.lib;winmm.lib;ws2_32.lib;atk-1.0.lib;gio-2.0.lib;gdk_pixbuf-2.0.lib;pangowin32-1.0.lib;pangocairo-1.0.lib;pango-1.0.lib;cairo.lib;gobject-2.0.lib;gmodule-2.0.lib;glib-2.0.lib;intl.lib;iconv.lib;zlib1.lib;xml2.lib;jpeg.lib;libpng16.lib;libssl.lib</DepLibs>
+        <DepLibs>gtk-3.lib;wininet.lib;winmm.lib;ws2_32.lib;atk-1.0.lib;gio-2.0.lib;gdk_pixbuf-2.0.lib;pangowin32-1.0.lib;pangocairo-1.0.lib;pango-1.0.lib;cairo.lib;gobject-2.0.lib;gmodule-2.0.lib;glib-2.0.lib;intl.lib;iconv.lib;zlib1.lib;xml2.lib;jpeg.lib;libpng16.lib;$(OpenSslLibs)</DepLibs>
 		<DataDir>$(SolutionDir)..\data\\</DataDir>
 		<ZoiteChatBuild>$(SolutionDir)..\..\zoitechat-build</ZoiteChatBuild>
 		<ZoiteChatBin>$(ZoiteChatBuild)\$(PlatformName)\bin\</ZoiteChatBin>
@@ -105,6 +109,7 @@
 	</Target>
 
 </Project>
+
 
 
 
