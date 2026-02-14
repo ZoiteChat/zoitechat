@@ -4,15 +4,10 @@
 
 		<!-- SPECIFY YOUR DEPENDENCY DIRECTORIES HERE -->
 
-		<YourDepsPath Condition="'$(YourDepsPath)'=='' and '$(ZOITECHAT_DEPS_PATH)'!=''">$(ZOITECHAT_DEPS_PATH)</YourDepsPath>
 		<YourDepsPath Condition="'$(YourDepsPath)'==''">c:\gtk-build\gtk</YourDepsPath>
-		<YourGendefPath Condition="'$(YourGendefPath)'=='' and '$(ZOITECHAT_GENDEF_PATH)'!=''">$(ZOITECHAT_GENDEF_PATH)</YourGendefPath>
 		<YourGendefPath Condition="'$(YourGendefPath)'==''">c:\gtk-build\gendef</YourGendefPath>
-		<YourPerlPath Condition="'$(YourPerlPath)'=='' and '$(ZOITECHAT_PERL_PATH)'!=''">$(ZOITECHAT_PERL_PATH)</YourPerlPath>
 		<YourPerlPath Condition="'$(YourPerlPath)'==''">c:\gtk-build\perl-5.20</YourPerlPath>
-		<YourPython3Path Condition="'$(YourPython3Path)'=='' and '$(ZOITECHAT_PYTHON3_PATH)'!=''">$(ZOITECHAT_PYTHON3_PATH)</YourPython3Path>
 		<YourPython3Path Condition="'$(YourPython3Path)'==''">c:\gtk-build\python-3.14</YourPython3Path>
-		<YourWinSparklePath Condition="'$(YourWinSparklePath)'=='' and '$(ZOITECHAT_WINSPARKLE_PATH)'!=''">$(ZOITECHAT_WINSPARKLE_PATH)</YourWinSparklePath>
 		<YourWinSparklePath Condition="'$(YourWinSparklePath)'==''">c:\gtk-build\WinSparkle</YourWinSparklePath>
 
 		<!-- YOU SHOULDN'T TOUCH ANYTHING BELOW -->
@@ -35,25 +30,10 @@
 		<PerlEnabled Condition="'$(PerlEnabled)'==''">false</PerlEnabled>
 		<InstallerEnabled Condition="Exists('$(IsccPath)')">true</InstallerEnabled>
 		<InstallerEnabled Condition="'$(InstallerEnabled)'==''">false</InstallerEnabled>
-		<LuaInclude>$(DepsRoot)\include\luajit-2.1;$(DepsRoot)\include\lua;$(DepsRoot)\include\lua5.1;$(DepsRoot)\include\lua54;$(DepsRoot)\include\lua5.4;$(DepsRoot)\include\lua-5.4;$(SolutionDir)..\plugins\lua\luajit\src;$(SolutionDir)..\plugins\lua\luajit\src\jit</LuaInclude>
+		<LuaInclude>$(DepsRoot)\include\luajit-2.1</LuaInclude>
 		<LuaOutput>hclua</LuaOutput>
-		<LuaEnabled Condition="Exists('$(DepsRoot)\\include\\lua.h')">true</LuaEnabled>
-		<LuaEnabled Condition="'$(LuaEnabled)'=='' and Exists('$(DepsRoot)\\include\\lua5.1\\lua.h')">true</LuaEnabled>
-		<LuaEnabled Condition="'$(LuaEnabled)'=='' and Exists('$(DepsRoot)\\include\\lua5.4\\lua.h')">true</LuaEnabled>
-		<LuaEnabled Condition="'$(LuaEnabled)'=='' and Exists('$(DepsRoot)\\include\\lua-5.4\\lua.h')">true</LuaEnabled>
-		<LuaEnabled Condition="'$(LuaEnabled)'=='' and Exists('$(SolutionDir)..\\plugins\\lua\\luajit\\src\\lua.h')">true</LuaEnabled>
-		<LuaEnabled Condition="'$(LuaEnabled)'==''">false</LuaEnabled>
-		<LuaLib Condition="Exists('$(DepsRoot)\\lib\\lua51.lib')">lua51</LuaLib>
-		<LuaLib Condition="'$(LuaLib)'=='' and Exists('$(DepsRoot)\\lib\\lua5.1.lib')">lua5.1</LuaLib>
-		<LuaLib Condition="'$(LuaLib)'=='' and Exists('$(DepsRoot)\\lib\\lua54.lib')">lua54</LuaLib>
-		<LuaLib Condition="'$(LuaLib)'=='' and Exists('$(DepsRoot)\\lib\\lua5.4.lib')">lua5.4</LuaLib>
-		<LuaLib Condition="'$(LuaLib)'=='' and Exists('$(DepsRoot)\\lib\\lua-5.4.lib')">lua-5.4</LuaLib>
-		<LuaLib Condition="'$(LuaLib)'=='' and Exists('$(DepsRoot)\\lib\\lua.lib')">lua</LuaLib>
-		<LuaLib Condition="'$(LuaLib)'==''">lua51</LuaLib>
-		<GlibGenMarshal Condition="Exists('$(DepsRoot)\\bin\\glib-genmarshal.exe')">&quot;$(DepsRoot)\bin\glib-genmarshal.exe&quot;</GlibGenMarshal>
+		<LuaLib>lua51</LuaLib>
 		<GlibGenMarshal Condition="'$(GlibGenMarshal)'=='' and Exists('$(DepsRoot)\\bin\\glib-genmarshal')">&quot;$(Python3Path)\python.exe&quot; &quot;$(DepsRoot)\bin\glib-genmarshal&quot;</GlibGenMarshal>
-		<GlibGenMarshal Condition="'$(GlibGenMarshal)'=='' and Exists('$(DepsRoot)\\bin\\glib-genmarshal.py')">&quot;$(Python3Path)\python.exe&quot; &quot;$(DepsRoot)\bin\glib-genmarshal.py&quot;</GlibGenMarshal>
-		<GlibGenMarshal Condition="'$(GlibGenMarshal)'=='' and Exists('$(DepsRoot)\\share\\glib-2.0\\codegen\\glib-genmarshal.py')">&quot;$(Python3Path)\python.exe&quot; &quot;$(DepsRoot)\share\glib-2.0\codegen\glib-genmarshal.py&quot;</GlibGenMarshal>
 		<GlibGenMarshal Condition="'$(GlibGenMarshal)'==''">&quot;$(Python3Path)\python.exe&quot; &quot;$(DepsRoot)\bin\glib-genmarshal&quot;</GlibGenMarshal>
 		<Glib>$(DepsRoot)\include\glib-2.0;$(DepsRoot)\lib\glib-2.0\include;$(DepsRoot)\include\libxml2</Glib>
         <UsingGtk3 Condition="Exists('$(DepsRoot)\\include\\gtk-3.0\\gtk\\gtk.h')">true</UsingGtk3>
@@ -61,44 +41,10 @@
         <Gtk3>$(DepsRoot)\include\gtk-3.0;$(DepsRoot)\lib\gtk-3.0\include</Gtk3>
         <GtkCommon>$(DepsRoot)\include\atk-1.0;$(DepsRoot)\include\cairo;$(DepsRoot)\include\pango-1.0;$(DepsRoot)\include\gdk-pixbuf-2.0;$(DepsRoot)\include\harfbuzz</GtkCommon>
         <Gtk>$(Gtk3);$(GtkCommon)</Gtk>
-        <XmlLib Condition="Exists('$(DepsRoot)\\lib\\libxml2-2.0.lib')">libxml2-2.0.lib</XmlLib>
-        <XmlLib Condition="'$(XmlLib)'=='' and Exists('$(DepsRoot)\\lib\\libxml2-2.lib')">libxml2-2.lib</XmlLib>
-        <XmlLib Condition="'$(XmlLib)'=='' and Exists('$(DepsRoot)\\lib\\xml2.lib')">xml2.lib</XmlLib>
-        <XmlLib Condition="'$(XmlLib)'==''">libxml2.lib</XmlLib>
-        <SslLib Condition="Exists('$(DepsRoot)\\lib\\libssl.lib')">libssl.lib</SslLib>
-        <SslLib Condition="'$(SslLib)'=='' and Exists('$(DepsRoot)\\lib\\libssl-3-x64.lib')">libssl-3-x64.lib</SslLib>
-        <SslLib Condition="'$(SslLib)'=='' and Exists('$(DepsRoot)\\lib\\libssl-3-x86.lib')">libssl-3-x86.lib</SslLib>
-        <SslLib Condition="'$(SslLib)'=='' and Exists('$(DepsRoot)\\lib\\libssl-3.lib')">libssl-3.lib</SslLib>
-        <SslLib Condition="'$(SslLib)'=='' and Exists('$(DepsRoot)\\lib\\ssl.lib')">ssl.lib</SslLib>
-        <CryptoLib Condition="Exists('$(DepsRoot)\\lib\\libcrypto.lib')">libcrypto.lib</CryptoLib>
-        <CryptoLib Condition="'$(CryptoLib)'=='' and Exists('$(DepsRoot)\\lib\\libcrypto-3-x64.lib')">libcrypto-3-x64.lib</CryptoLib>
-        <CryptoLib Condition="'$(CryptoLib)'=='' and Exists('$(DepsRoot)\\lib\\libcrypto-3-x86.lib')">libcrypto-3-x86.lib</CryptoLib>
-        <CryptoLib Condition="'$(CryptoLib)'=='' and Exists('$(DepsRoot)\\lib\\libcrypto-3.lib')">libcrypto-3.lib</CryptoLib>
-        <CryptoLib Condition="'$(CryptoLib)'=='' and Exists('$(DepsRoot)\\lib\\crypto.lib')">crypto.lib</CryptoLib>
         <SslLegacyLib Condition="Exists('$(DepsRoot)\\lib\\ssleay32.lib')">ssleay32.lib</SslLegacyLib>
         <CryptoLegacyLib Condition="Exists('$(DepsRoot)\\lib\\libeay32.lib')">libeay32.lib</CryptoLegacyLib>
         <OpenSslInclude Condition="Exists('$(DepsRoot)\\include\\openssl\\ssl.h')">$(DepsRoot)\include</OpenSslInclude>
-        <OpenSslInclude Condition="'$(OpenSslInclude)'=='' and Exists('$(DepsRoot)\\include\\openssl3\\openssl\\ssl.h')">$(DepsRoot)\include\openssl3</OpenSslInclude>
-        <OpenSslInclude Condition="'$(OpenSslInclude)'=='' and Exists('$(DepsRoot)\\include\\openssl-3\\openssl\\ssl.h')">$(DepsRoot)\include\openssl-3</OpenSslInclude>
-        <ZlibLib Condition="Exists('$(DepsRoot)\\lib\\zlib.lib')">zlib.lib</ZlibLib>
-        <ZlibLib Condition="'$(ZlibLib)'=='' and Exists('$(DepsRoot)\\lib\\zlib1.lib')">zlib1.lib</ZlibLib>
-        <ZlibLib Condition="'$(ZlibLib)'=='' and Exists('$(DepsRoot)\\lib\\zlibstatic.lib')">zlibstatic.lib</ZlibLib>
-        <ZlibLib Condition="'$(ZlibLib)'==''">zlib.lib</ZlibLib>
-        <Gtk3Lib Condition="Exists('$(DepsRoot)\\lib\\gtk-3.0.lib')">gtk-3.0.lib</Gtk3Lib>
-        <Gtk3Lib Condition="'$(Gtk3Lib)'=='' and Exists('$(DepsRoot)\\lib\\gtk-3.lib')">gtk-3.lib</Gtk3Lib>
-        <Gtk3Lib Condition="'$(Gtk3Lib)'=='' and Exists('$(DepsRoot)\\lib\\gtk-3-0.lib')">gtk-3-0.lib</Gtk3Lib>
-        <Gdk3Lib Condition="Exists('$(DepsRoot)\\lib\\gdk-3.0.lib')">gdk-3.0.lib</Gdk3Lib>
-        <Gdk3Lib Condition="'$(Gdk3Lib)'=='' and Exists('$(DepsRoot)\\lib\\gdk-3-0.lib')">gdk-3-0.lib</Gdk3Lib>
-        <Gdk3Lib Condition="'$(Gdk3Lib)'=='' and Exists('$(DepsRoot)\\lib\\gdk-3.lib')">gdk-3.lib</Gdk3Lib>
-        <AtkLib Condition="Exists('$(DepsRoot)\\lib\\atk-1.0.lib')">atk-1.0.lib</AtkLib>
-        <AtkLib Condition="'$(AtkLib)'=='' and Exists('$(DepsRoot)\\lib\\atk-1.0-0.lib')">atk-1.0-0.lib</AtkLib>
-        <AtkLib Condition="'$(AtkLib)'=='' and Exists('$(DepsRoot)\\lib\\libatk-1.0-0.lib')">libatk-1.0-0.lib</AtkLib>
-        <AtkLib Condition="'$(AtkLib)'=='' and Exists('$(DepsRoot)\\lib\\libatk-1.0.lib')">libatk-1.0.lib</AtkLib>
-        <AtkLib Condition="'$(AtkLib)'==''">atk-1.0.lib</AtkLib>
-        <AtkLib Condition="'$(AtkLib)'==''">atk-1.0.lib</AtkLib>
-        <Gtk3Libs>$(Gtk3Lib);$(Gdk3Lib);$(AtkLib);gio-2.0.lib;gdk_pixbuf-2.0.lib;pangowin32-1.0.lib;pangocairo-1.0.lib;pango-1.0.lib;cairo.lib;gobject-2.0.lib;gmodule-2.0.lib;glib-2.0.lib;intl.lib;iconv.lib;$(ZlibLib);$(XmlLib);jpeg.lib;libpng16.lib;$(CryptoLib);$(SslLib)</Gtk3Libs>
-
-        <DepLibs>$(Gtk3Libs);wininet.lib;winmm.lib;ws2_32.lib</DepLibs>
+        <DepLibs>gtk-3.lib;wininet.lib;winmm.lib;ws2_32.lib;atk-1.0.lib;gio-2.0.lib;gdk_pixbuf-2.0.lib;pangowin32-1.0.lib;pangocairo-1.0.lib;pango-1.0.lib;cairo.lib;gobject-2.0.lib;gmodule-2.0.lib;glib-2.0.lib;intl.lib;iconv.lib;zlib1.lib;xml2.lib;jpeg.lib;libpng16.lib;libssl.lib</DepLibs>
 		<DataDir>$(SolutionDir)..\data\\</DataDir>
 		<ZoiteChatBuild>$(SolutionDir)..\..\zoitechat-build</ZoiteChatBuild>
 		<ZoiteChatBin>$(ZoiteChatBuild)\$(PlatformName)\bin\</ZoiteChatBin>
@@ -159,6 +105,7 @@
 	</Target>
 
 </Project>
+
 
 
 
