@@ -33,7 +33,7 @@
 		<Python3Enabled Condition="'$(Python3Enabled)'==''">false</Python3Enabled>
 		<PerlEnabled Condition="Exists('$(PerlPath)\\bin\\perl.exe') and Exists('$(PerlPath)\\bin\\$(PerlLib).dll') and Exists('$(GendefPath)\\gendef.exe')">true</PerlEnabled>
 		<PerlEnabled Condition="'$(PerlEnabled)'==''">false</PerlEnabled>
-		<InstallerEnabled Condition="Exists($(IsccPath))">true</InstallerEnabled>
+		<InstallerEnabled Condition="Exists('$(IsccPath)')">true</InstallerEnabled>
 		<InstallerEnabled Condition="'$(InstallerEnabled)'==''">false</InstallerEnabled>
 		<LuaInclude>$(DepsRoot)\include\luajit-2.1;$(DepsRoot)\include\lua;$(DepsRoot)\include\lua5.1;$(DepsRoot)\include\lua54;$(DepsRoot)\include\lua5.4;$(DepsRoot)\include\lua-5.4;$(SolutionDir)..\plugins\lua\luajit\src;$(SolutionDir)..\plugins\lua\luajit\src\jit</LuaInclude>
 		<LuaOutput>hclua</LuaOutput>
