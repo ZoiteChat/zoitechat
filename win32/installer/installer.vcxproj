@@ -38,7 +38,7 @@
       <![CDATA[
 SET SOLUTIONDIR=$(SolutionDir)..\
 powershell -File "$(SolutionDir)..\win32\version-template.ps1" "$(SolutionDir)..\win32\installer\zoitechat.iss.tt" "$(ZoiteChatBin)zoitechat.iss"
-$(IsccPath) /dPROJECTDIR="$(ProjectDir)" /dAPPARCH="$(Platform)" "$(ZoiteChatBin)zoitechat.iss"
+"$(IsccPath)" /dPROJECTDIR="$(ProjectDir)" /dAPPARCH="$(Platform)" "$(ZoiteChatBin)zoitechat.iss"
       ]]>
       </Command>
     </PreBuildEvent>
@@ -50,3 +50,4 @@ $(IsccPath) /dPROJECTDIR="$(ProjectDir)" /dAPPARCH="$(Platform)" "$(ZoiteChatBin
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>
+
