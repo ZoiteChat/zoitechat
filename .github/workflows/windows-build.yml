@@ -96,6 +96,10 @@ jobs:
           Invoke-WebRequest https://github.com/ZoiteChat/gvsbuild/releases/download/zoitechat-2.18.0-pre1/gtk-x64-2026.7z -OutFile deps\gtk.7z
           & 7z.exe x deps\gtk.7z -oC:\gtk-build\gtk
 
+          if ($LASTEXITCODE -gt 1) {
+            throw "gtk.7z extraction failed with exit code $LASTEXITCODE"
+          }
+
           if ("${{ matrix.platform }}" -eq "win32" -and (Test-Path "C:\gtk-build\gtk\x86")) {
             $gtkRoot = "C:\gtk-build\gtk"
             foreach ($alias in @("Win32", "win32")) {
