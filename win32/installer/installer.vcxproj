@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup Label="Configuration">
     <PlatformToolset>v142</PlatformToolset>
@@ -49,5 +49,8 @@ $(IsccPath) /dPROJECTDIR="$(ProjectDir)" /dAPPARCH="$(Platform)" "$(ZoiteChatBin
     <None Include="wizardsmallimage.bmp" />
     <None Include="zoitechat.iss" />
   </ItemGroup>
-  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" Condition="'$(InstallerEnabled)'=='true'" />
+  <Target Name="Build" Condition="'$(InstallerEnabled)'!='true'">
+    <Message Text="Inno Setup (iscc.exe) not found; skipping installer build." Importance="high" />
+  </Target>
 </Project>

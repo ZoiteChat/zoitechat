@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup Label="Configuration">
     <PlatformToolset>v142</PlatformToolset>
@@ -27,7 +27,7 @@
     <TargetName>$(Python3Output)</TargetName>
     <OutDir>$(ZoiteChatRel)plugins\</OutDir>
   </PropertyGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+  <ItemDefinitionGroup Condition="'$(Python3Enabled)'=='true' and '$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;PYTHON_EXPORTS;$(OwnFlags);%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(Glib);$(Python3Path)\include;..\..\src\common;$(ZoiteChatLib);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -41,7 +41,7 @@
       <Command>"$(Python3Path)\python.exe" generate_plugin.py ..\..\src\common\zoitechat-plugin.h python.py "$(IntDir)python.c"</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+  <ItemDefinitionGroup Condition="'$(Python3Enabled)'=='true' and '$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <PreprocessorDefinitions>WIN32;_WIN64;_AMD64_;NDEBUG;_WINDOWS;_USRDLL;PYTHON_EXPORTS;$(OwnFlags);%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(Glib);$(Python3Path)\include;..\..\src\common;$(ZoiteChatLib);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -63,8 +63,11 @@
     <None Include="xchat.py" />
     <None Include="_zoitechat.py" />
   </ItemGroup>
-  <ItemGroup>
+  <ItemGroup Condition="'$(Python3Enabled)'=='true'">
     <ClCompile Include="$(IntDir)python.c" />
   </ItemGroup>
-  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" Condition="'$(Python3Enabled)'=='true'" />
+  <Target Name="Build" Condition="'$(Python3Enabled)'!='true'">
+    <Message Text="Python 3 build prerequisites not found (python/cffi/libs); skipping Python plugin build." Importance="high" />
+  </Target>
 </Project>
