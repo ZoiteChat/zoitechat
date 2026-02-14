@@ -93,8 +93,8 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install cffi
 
-          Invoke-WebRequest https://github.com/ZoiteChat/gvsbuild/releases/download/zoitechat-2.18.0-pre1/gtk-x64-2026.7z -OutFile deps\gtk.7z
-          & 7z.exe x deps\gtk.7z -oC:\gtk-build\gtk
+          Invoke-WebRequest https://github.com/ZoiteChat/gvsbuild/releases/download/zoitechat-2.18.0-pre1/GTK3_Gvsbuild_zoitechat-2.18.0-pre1_x64.zip -OutFile deps\gtk.7z
+          & 7z.exe x deps\gtk.7z -oC:\gtk-build\gtk\x64\release
 
           if ($LASTEXITCODE -gt 1) {
             throw "gtk.7z extraction failed with exit code $LASTEXITCODE"
