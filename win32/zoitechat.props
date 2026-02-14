@@ -106,7 +106,7 @@
 		<ZoiteChatLib>$(ZoiteChatBuild)\$(PlatformName)\lib\</ZoiteChatLib>
 		<ZoiteChatPdb>$(ZoiteChatBuild)\$(PlatformName)\pdb\</ZoiteChatPdb>
 		<ZoiteChatRel>$(ZoiteChatBuild)\$(PlatformName)\rel\</ZoiteChatRel>
-		<IsccPath>"$(ProgramFiles)\Inno Setup 5\iscc.exe"</IsccPath>
+		<IsccPath>"$(ProgramFiles)\Inno Setup 6\iscc.exe"</IsccPath>
 	</PropertyGroup>
 
 	<PropertyGroup>
@@ -159,6 +159,7 @@
 	</Target>
 
 </Project>
+
 
 
 
