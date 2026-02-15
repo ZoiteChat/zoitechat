@@ -93,7 +93,7 @@ jobs:
 
       - name: Preparing Artifacts
         run: |
-          move ..\zoitechat-build\${{ matrix.platform }}\rel\zoitechat*.exe .\
+          move ..\zoitechat-build\${{ matrix.platform }}\ZoiteChat-*.exe .\
           move ..\zoitechat-build .\
         shell: cmd
 
@@ -102,7 +102,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Installer ${{ matrix.arch }}
-          path: zoitechat*.exe
+          path: ZoiteChat-*.exe
           
       - name: Attest Installer (Artifact Attestation)
         if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
