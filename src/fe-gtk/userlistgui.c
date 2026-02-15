@@ -46,9 +46,10 @@ enum
 	COL_NICK=1,		/* char * */
 	COL_HOST=2,		/* char * */
 	COL_USER=3,		/* struct User * */
-	COL_GDKCOLOR=4	/* GdkColor * */
+	COL_GDKCOLOR=4	/* PaletteColor */
 };
 
+static void userlist_store_color (GtkListStore *store, GtkTreeIter *iter, int color_index);
 
 GdkPixbuf *
 get_user_icon (server *serv, struct User *user)
@@ -327,8 +328,8 @@ fe_userlist_rehash (session *sess, struct User *user)
 
 	gtk_list_store_set (GTK_LIST_STORE (sess->res->user_model), iter,
 							  COL_HOST, user->hostname,
-							  COL_GDKCOLOR, nick_color ? &colors[nick_color] : NULL,
 							  -1);
+	userlist_store_color (GTK_LIST_STORE (sess->res->user_model), iter, nick_color);
 }
 
 void
@@ -362,8 +363,8 @@ fe_userlist_insert (session *sess, struct User *newuser, gboolean sel)
 									COL_NICK, nick,
 									COL_HOST, newuser->hostname,
 									COL_USER, newuser,
-									COL_GDKCOLOR, nick_color ? &colors[nick_color] : NULL,
 								  -1);
+	userlist_store_color (GTK_LIST_STORE (model), &iter, nick_color);
 
 	if (!prefs.hex_gui_ulist_icons)
 	{
@@ -467,6 +468,26 @@ userlist_ops_cmp (GtkTreeModel *model, GtkTreeIter *iter_a, GtkTreeIter *iter_b,
 	return nick_cmp_az_ops (((session*)userdata)->server, user_a, user_b);
 }
 
+static void
+userlist_store_color (GtkListStore *store, GtkTreeIter *iter, int color_index)
+{
+	const PaletteColor *color = color_index ? &colors[color_index] : NULL;
+
+#if HAVE_GTK3
+	if (color)
+	{
+		GdkRGBA rgba = *color;
+		gtk_list_store_set (store, iter, COL_GDKCOLOR, &rgba, -1);
+	}
+	else
+	{
+		gtk_list_store_set (store, iter, COL_GDKCOLOR, NULL, -1);
+	}
+#else
+	gtk_list_store_set (store, iter, COL_GDKCOLOR, color, -1);
+#endif
+}
+
 GtkListStore *
 userlist_create_model (session *sess)
 {
@@ -475,7 +496,7 @@ userlist_create_model (session *sess)
 	GtkSortType sort_type;
 
 	store = gtk_list_store_new (5, GDK_TYPE_PIXBUF, G_TYPE_STRING, G_TYPE_STRING,
-										G_TYPE_POINTER, GDK_TYPE_COLOR);
+										G_TYPE_POINTER, PALETTE_GDK_TYPE);
 
 	switch (prefs.hex_gui_ulist_sort)
 	{
@@ -528,7 +549,7 @@ userlist_add_columns (GtkTreeView * treeview)
 	gtk_cell_renderer_text_set_fixed_height_from_font (GTK_CELL_RENDERER_TEXT (renderer), 1);
 	gtk_tree_view_insert_column_with_attributes (GTK_TREE_VIEW (treeview),
 																-1, NULL, renderer,
-													"text", 1, "foreground-gdk", 4, NULL);
+													"text", 1, PALETTE_FOREGROUND_PROPERTY, 4, NULL);
 
 	if (prefs.hex_gui_ulist_show_hosts)
 	{

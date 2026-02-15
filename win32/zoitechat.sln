@@ -1,7 +1,6 @@
-﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.25420.1
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "common", "..\src\common\common.vcxproj", "{87554B59-006C-4D94-9714-897B27067BA3}"
 EndProject
@@ -201,3 +200,4 @@ Global
 		{4C0F3940-2EEE-4646-82F7-6CE75B9A72F4} = {D237DA6B-BD5F-46C0-8BEA-50E9A1340240}
 	EndGlobalSection
 EndGlobal
+

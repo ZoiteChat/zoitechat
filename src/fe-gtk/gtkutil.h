@@ -22,14 +22,42 @@
 
 #include <gtk/gtk.h>
 #include "../common/fe.h"
+#include "palette.h"
 
 typedef void (*filereqcallback) (void *, char *file);
+
+#ifndef HAVE_GTK3
+#if GTK_MAJOR_VERSION >= 3
+#define HAVE_GTK3 1
+#else
+#define HAVE_GTK3 0
+#endif
+#endif
+
+#if HAVE_GTK3
+typedef enum
+{
+	GTKUTIL_ATTACH_EXPAND = 1 << 0,
+	GTKUTIL_ATTACH_SHRINK = 1 << 1,
+	GTKUTIL_ATTACH_FILL = 1 << 2
+} GtkutilAttachOptions;
+#else
+typedef GtkAttachOptions GtkutilAttachOptions;
+#define GTKUTIL_ATTACH_EXPAND GTK_EXPAND
+#define GTKUTIL_ATTACH_SHRINK GTK_SHRINK
+#define GTKUTIL_ATTACH_FILL GTK_FILL
+#endif
 
 void gtkutil_file_req (GtkWindow *parent, const char *title, void *callback, void *userdata, char *filter, char *extensions, int flags);
 void gtkutil_destroy (GtkWidget * igad, GtkWidget * dgad);
 void gtkutil_destroy_on_esc (GtkWidget *win);
 GtkWidget *gtkutil_button (GtkWidget *box, char *stock, char *tip, void *callback,
 				 void *userdata, char *labeltext);
+GtkWidget *gtkutil_image_new_from_stock (const char *stock, GtkIconSize size);
+GtkWidget *gtkutil_button_new_from_stock (const char *stock, const char *label);
+#if HAVE_GTK3
+const char *gtkutil_icon_name_from_stock (const char *stock_name);
+#endif
 void gtkutil_label_new (char *text, GtkWidget * box);
 GtkWidget *gtkutil_entry_new (int max, GtkWidget * box, void *callback,
 										gpointer userdata);
@@ -44,6 +72,24 @@ gboolean gtkutil_treemodel_string_to_iter (GtkTreeModel *model, gchar *pathstr, 
 gboolean gtkutil_treeview_get_selected_iter (GtkTreeView *view, GtkTreeIter *iter_ret);
 gboolean gtkutil_treeview_get_selected (GtkTreeView *view, GtkTreeIter *iter_ret, ...);
 gboolean gtkutil_tray_icon_supported (GtkWindow *window);
+GtkWidget *gtkutil_box_new (GtkOrientation orientation, gboolean homogeneous, gint spacing);
+GtkWidget *gtkutil_grid_new (guint rows, guint columns, gboolean homogeneous);
+void gtkutil_grid_attach (GtkWidget *table, GtkWidget *child,
+				  guint left_attach, guint right_attach,
+				  guint top_attach, guint bottom_attach,
+				  GtkutilAttachOptions xoptions, GtkutilAttachOptions yoptions,
+				  guint xpad, guint ypad);
+void gtkutil_grid_attach_defaults (GtkWidget *table, GtkWidget *child,
+					   guint left_attach, guint right_attach,
+					   guint top_attach, guint bottom_attach);
+#if HAVE_GTK3
+void gtkutil_apply_palette (GtkWidget *widget, const GdkRGBA *bg, const GdkRGBA *fg,
+                            const PangoFontDescription *font_desc);
+void gtkutil_append_font_css (GString *css, const PangoFontDescription *font_desc);
+#else
+void gtkutil_apply_palette (GtkWidget *widget, const GdkColor *bg, const GdkColor *fg,
+                            const PangoFontDescription *font_desc);
+#endif
 
 #if defined (WIN32) || defined (__APPLE__)
 gboolean gtkutil_find_font (const char *fontname);

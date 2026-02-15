@@ -45,7 +45,11 @@ struct _chanview
 	int size;			/* number of channels in view */
 
 	GtkWidget *box;	/* the box we destroy when changing implementations */
-	GtkStyle *style;	/* style used for tree */
+#if HAVE_GTK3
+	PangoFontDescription *font_desc;	/* font used for tree */
+#else
+	InputStyle *style;	/* style used for tree */
+#endif
 	chan *focused;		/* currently focused channel */
 	int trunc_len;
 
@@ -124,14 +128,12 @@ chanview_apply_theme (chanview *cv)
 	w = GTK_WIDGET (tv->tree);
 	if (fe_dark_mode_is_enabled () || prefs.hex_gui_dark_mode == ZOITECHAT_DARK_MODE_LIGHT)
 	{
-		gtk_widget_modify_base (w, GTK_STATE_NORMAL, &colors[COL_BG]);
-		gtk_widget_modify_text (w, GTK_STATE_NORMAL, &colors[COL_FG]);
+		gtkutil_apply_palette (w, &colors[COL_BG], &colors[COL_FG], NULL);
 	}
 	else
 	{
 		/* Revert back to theme defaults. */
-		gtk_widget_modify_base (w, GTK_STATE_NORMAL, NULL);
-		gtk_widget_modify_text (w, GTK_STATE_NORMAL, NULL);
+		gtkutil_apply_palette (w, NULL, NULL, NULL);
 	}
 }
 
@@ -294,15 +296,28 @@ chanview_box_destroy_cb (GtkWidget *box, chanview *cv)
 
 chanview *
 chanview_new (int type, int trunc_len, gboolean sort, gboolean use_icons,
-				  GtkStyle *style)
+#if HAVE_GTK3
+				  PangoFontDescription *font_desc
+#else
+				  InputStyle *style
+#endif
+)
 {
 	chanview *cv;
 
 	cv = g_new0 (chanview, 1);
 	cv->store = gtk_tree_store_new (4, G_TYPE_STRING, G_TYPE_POINTER,
 											  PANGO_TYPE_ATTR_LIST, GDK_TYPE_PIXBUF);
+#if HAVE_GTK3
+	cv->font_desc = font_desc;
+#else
 	cv->style = style;
+#endif
+#if HAVE_GTK3
+	cv->box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
+#elif !HAVE_GTK3
 	cv->box = gtk_hbox_new (0, 0);
+#endif
 	cv->trunc_len = trunc_len;
 	cv->sorted = sort;
 	cv->use_icons = use_icons;

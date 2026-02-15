@@ -49,6 +49,26 @@
 #include "../common/zoitechatc.h"
 #include "palette.h"
 #include "xtext.h"
+#include "gtkutil.h"
+
+#ifndef HAVE_GTK3
+#if GTK_MAJOR_VERSION >= 3
+#define HAVE_GTK3 1
+#else
+#define HAVE_GTK3 0
+#endif
+#endif
+
+#if HAVE_GTK3
+#define ICON_ADD "list-add"
+#define ICON_REMOVE "list-remove"
+#define ICON_SPELL_CHECK "tools-check-spelling"
+#endif
+#if !HAVE_GTK3
+#define ICON_ADD GTK_STOCK_ADD
+#define ICON_REMOVE GTK_STOCK_REMOVE
+#define ICON_SPELL_CHECK GTK_STOCK_SPELL_CHECK
+#endif
 
 /*
  * Bunch of poop to make enchant into a runtime dependency rather than a
@@ -95,11 +115,21 @@ struct _SexySpellEntryPriv
 };
 
 static void sexy_spell_entry_class_init(SexySpellEntryClass *klass);
+#if HAVE_GTK3
+static void sexy_spell_entry_editable_init (GtkEditableInterface *iface);
+#endif
+#if !HAVE_GTK3
 static void sexy_spell_entry_editable_init (GtkEditableClass *iface);
+#endif
 static void sexy_spell_entry_init(SexySpellEntry *entry);
 static void sexy_spell_entry_finalize(GObject *obj);
 static void sexy_spell_entry_destroy(GObject *obj);
+#if HAVE_GTK3
+static gboolean sexy_spell_entry_draw(GtkWidget *widget, cairo_t *cr);
+#endif
+#if !HAVE_GTK3
 static gint sexy_spell_entry_expose(GtkWidget *widget, GdkEventExpose *event);
+#endif
 static gint sexy_spell_entry_button_press(GtkWidget *widget, GdkEventButton *event);
 
 /* GtkEditable handlers */
@@ -243,7 +273,12 @@ sexy_spell_entry_class_init(SexySpellEntryClass *klass)
 
 	object_class->dispose = sexy_spell_entry_destroy;
 
+#if HAVE_GTK3
+	widget_class->draw = sexy_spell_entry_draw;
+#endif
+#if !HAVE_GTK3
 	widget_class->expose_event = sexy_spell_entry_expose;
+#endif
 	widget_class->button_press_event = sexy_spell_entry_button_press;
 
 	/**
@@ -274,10 +309,19 @@ sexy_spell_entry_class_init(SexySpellEntryClass *klass)
 	}
 }
 
+#if HAVE_GTK3
+static void
+sexy_spell_entry_editable_init (GtkEditableInterface *iface)
+{
+}
+#endif
+
+#if !HAVE_GTK3
 static void
 sexy_spell_entry_editable_init (GtkEditableClass *iface)
 {
 }
+#endif
 
 static gint
 gtk_entry_find_position (GtkEntry *entry, gint x)
@@ -290,15 +334,34 @@ gtk_entry_find_position (GtkEntry *entry, gint x)
 	gint pos;
 	gboolean trailing;
 
+#if HAVE_GTK3
+	{
+		gint layout_x;
+		gint layout_y;
+
+		gtk_entry_get_layout_offsets(entry, &layout_x, &layout_y);
+		x -= layout_x;
+	}
+#endif
+#if !HAVE_GTK3
 	x = x + entry->scroll_offset;
+#endif
 
 	layout = gtk_entry_get_layout(entry);
 	text = pango_layout_get_text(layout);
+#if HAVE_GTK3
+	cursor_index = g_utf8_offset_to_pointer(
+		text,
+		gtk_editable_get_position(GTK_EDITABLE(entry))) - text;
+#endif
+#if !HAVE_GTK3
 	cursor_index = g_utf8_offset_to_pointer(text, entry->current_pos) - text;
+#endif
 
 	line = pango_layout_get_lines(layout)->data;
 	pango_layout_line_x_to_index(line, x * PANGO_SCALE, &index, &trailing);
 
+#if !HAVE_GTK3
 	if (index >= cursor_index && entry->preedit_length) {
 		if (index >= cursor_index + entry->preedit_length) {
 			index -= entry->preedit_length;
@@ -307,6 +370,7 @@ gtk_entry_find_position (GtkEntry *entry, gint x)
 			trailing = FALSE;
 		}
 	}
+#endif
 
 	pos = g_utf8_pointer_to_offset (text, text + index);
 	pos += trailing;
@@ -342,8 +406,12 @@ insert_underline_error (SexySpellEntry *entry, guint start, guint end)
 {
 	PangoAttribute *ucolor;
 	PangoAttribute *unline;
+	guint16 red;
+	guint16 green;
+	guint16 blue;
 
-	ucolor = pango_attr_underline_color_new (colors[COL_SPELL].red, colors[COL_SPELL].green, colors[COL_SPELL].blue);
+	palette_color_get_rgb16 (&colors[COL_SPELL], &red, &green, &blue);
+	ucolor = pango_attr_underline_color_new (red, green, blue);
 	unline = pango_attr_underline_new (PANGO_UNDERLINE_ERROR);
 
 	ucolor->start_index = start;
@@ -406,22 +474,33 @@ insert_color (SexySpellEntry *entry, guint start, int fgcolor, int bgcolor)
 	PangoAttribute *fgattr;
 	PangoAttribute *ulattr;
 	PangoAttribute *bgattr;
+	guint16 red;
+	guint16 green;
+	guint16 blue;
 
 	if (fgcolor < 0 || fgcolor > MAX_COL)
 	{
-		fgattr = pango_attr_foreground_new (colors[COL_FG].red, colors[COL_FG].green, colors[COL_FG].blue);
-		ulattr = pango_attr_underline_color_new (colors[COL_FG].red, colors[COL_FG].green, colors[COL_FG].blue);
+		palette_color_get_rgb16 (&colors[COL_FG], &red, &green, &blue);
+		fgattr = pango_attr_foreground_new (red, green, blue);
+		ulattr = pango_attr_underline_color_new (red, green, blue);
 	}
 	else
 	{
-		fgattr = pango_attr_foreground_new (colors[fgcolor].red, colors[fgcolor].green, colors[fgcolor].blue);
-		ulattr = pango_attr_underline_color_new (colors[fgcolor].red, colors[fgcolor].green, colors[fgcolor].blue);
+		palette_color_get_rgb16 (&colors[fgcolor], &red, &green, &blue);
+		fgattr = pango_attr_foreground_new (red, green, blue);
+		ulattr = pango_attr_underline_color_new (red, green, blue);
 	}
 
 	if (bgcolor < 0 || bgcolor > MAX_COL)
-		bgattr = pango_attr_background_new (colors[COL_BG].red, colors[COL_BG].green, colors[COL_BG].blue);
+	{
+		palette_color_get_rgb16 (&colors[COL_BG], &red, &green, &blue);
+		bgattr = pango_attr_background_new (red, green, blue);
+	}
 	else
-		bgattr = pango_attr_background_new (colors[bgcolor].red, colors[bgcolor].green, colors[bgcolor].blue);
+	{
+		palette_color_get_rgb16 (&colors[bgcolor], &red, &green, &blue);
+		bgattr = pango_attr_background_new (red, green, blue);
+	}
 
 	fgattr->start_index = start;
 	fgattr->end_index = PANGO_ATTR_INDEX_TO_TEXT_END;
@@ -540,7 +619,36 @@ replace_word(GtkWidget *menuitem, SexySpellEntry *entry)
 
 	get_word_extents_from_position(entry, &start, &end, entry->priv->mark_character);
 	oldword = gtk_editable_get_chars(GTK_EDITABLE(entry), start, end);
-	newword = gtk_label_get_text(GTK_LABEL(gtk_bin_get_child (GTK_BIN(menuitem))));
+	newword = gtk_menu_item_get_label (GTK_MENU_ITEM (menuitem));
+	if (!newword)
+	{
+		/* GTK3 menu items may have a box child (icon + label). */
+		GtkWidget *child = gtk_bin_get_child (GTK_BIN (menuitem));
+		if (GTK_IS_LABEL (child))
+		{
+			newword = gtk_label_get_text (GTK_LABEL (child));
+		}
+		else if (GTK_IS_CONTAINER (child))
+		{
+			GList *kids, *l;
+			kids = gtk_container_get_children (GTK_CONTAINER (child));
+			for (l = kids; l; l = l->next)
+			{
+				if (GTK_IS_LABEL (l->data))
+				{
+					newword = gtk_label_get_text (GTK_LABEL (l->data));
+					break;
+				}
+			}
+			g_list_free (kids);
+		}
+	}
+	if (!newword)
+	{
+		g_free (oldword);
+		return;
+	}
+
 
 	cursor = gtk_editable_get_position(GTK_EDITABLE(entry));
 	/* is the cursor at the end? If so, restore it there */
@@ -614,6 +722,39 @@ build_suggestion_menu(SexySpellEntry *entry, GtkWidget *menu, struct EnchantDict
 }
 
 static GtkWidget *
+sexy_spell_entry_icon_menu_item (const char *label, const char *stock_name)
+{
+	GtkWidget *item;
+#if HAVE_GTK3
+	const char *icon_name;
+	GtkWidget *box;
+	GtkWidget *image = NULL;
+	GtkWidget *label_widget;
+
+	icon_name = gtkutil_icon_name_from_stock (stock_name);
+	if (!icon_name)
+		icon_name = stock_name;
+	item = gtk_menu_item_new ();
+	box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 6);
+	if (icon_name)
+		image = gtk_image_new_from_icon_name (icon_name, GTK_ICON_SIZE_MENU);
+	label_widget = gtk_label_new_with_mnemonic (label);
+	if (image)
+		gtk_box_pack_start (GTK_BOX (box), image, FALSE, FALSE, 0);
+	gtk_box_pack_start (GTK_BOX (box), label_widget, FALSE, FALSE, 0);
+	gtk_container_add (GTK_CONTAINER (item), box);
+#else
+	GtkWidget *image;
+
+	item = gtk_image_menu_item_new_with_label (label);
+	image = gtk_image_new_from_stock (stock_name, GTK_ICON_SIZE_MENU);
+	gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (item), image);
+#endif
+
+	return item;
+}
+
+static GtkWidget *
 build_spelling_menu(SexySpellEntry *entry, const gchar *word)
 {
 	struct EnchantDict *dict;
@@ -667,10 +808,8 @@ build_spelling_menu(SexySpellEntry *entry, const gchar *word)
 
 	/* + Add to Dictionary */
 	label = g_strdup_printf(_("Add \"%s\" to Dictionary"), word);
-	mi = gtk_image_menu_item_new_with_label(label);
+	mi = sexy_spell_entry_icon_menu_item (label, ICON_ADD);
 	g_free(label);
-
-	gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(mi), gtk_image_new_from_stock(GTK_STOCK_ADD, GTK_ICON_SIZE_MENU));
 
 	if (g_slist_length(entry->priv->dict_list) == 1) {
 		dict = (struct EnchantDict *) entry->priv->dict_list->data;
@@ -711,8 +850,7 @@ build_spelling_menu(SexySpellEntry *entry, const gchar *word)
 	gtk_menu_shell_append(GTK_MENU_SHELL(topmenu), mi);
 
 	/* - Ignore All */
-	mi = gtk_image_menu_item_new_with_label(_("Ignore All"));
-	gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(mi), gtk_image_new_from_stock(GTK_STOCK_REMOVE, GTK_ICON_SIZE_MENU));
+	mi = sexy_spell_entry_icon_menu_item (_("Ignore All"), ICON_REMOVE);
 	g_signal_connect(G_OBJECT(mi), "activate", G_CALLBACK(ignore_all), entry);
 	gtk_widget_show_all(mi);
 	gtk_menu_shell_append(GTK_MENU_SHELL(topmenu), mi);
@@ -723,7 +861,7 @@ build_spelling_menu(SexySpellEntry *entry, const gchar *word)
 static void
 sexy_spell_entry_populate_popup(SexySpellEntry *entry, GtkMenu *menu, gpointer data)
 {
-	GtkWidget *icon, *mi;
+	GtkWidget *mi;
 	gint start, end;
 	gchar *word;
 
@@ -745,9 +883,7 @@ sexy_spell_entry_populate_popup(SexySpellEntry *entry, GtkMenu *menu, gpointer d
 	gtk_menu_shell_prepend(GTK_MENU_SHELL(menu), mi);
 
 	/* Above the separator, show the suggestions menu */
-	icon = gtk_image_new_from_stock(GTK_STOCK_SPELL_CHECK, GTK_ICON_SIZE_MENU);
-	mi = gtk_image_menu_item_new_with_label(_("Spelling Suggestions"));
-	gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(mi), icon);
+	mi = sexy_spell_entry_icon_menu_item (_("Spelling Suggestions"), ICON_SPELL_CHECK);
 
 	word = gtk_editable_get_chars(GTK_EDITABLE(entry), start, end);
 	g_assert(word != NULL);
@@ -1115,6 +1251,22 @@ sexy_spell_entry_recheck_all(SexySpellEntry *entry)
 	}
 }
 
+#if HAVE_GTK3
+static gboolean
+sexy_spell_entry_draw(GtkWidget *widget, cairo_t *cr)
+{
+	SexySpellEntry *entry = SEXY_SPELL_ENTRY(widget);
+	GtkEntry *gtk_entry = GTK_ENTRY(widget);
+	PangoLayout *layout;
+
+	layout = gtk_entry_get_layout(gtk_entry);
+	pango_layout_set_attributes(layout, entry->priv->attr_list);
+
+	return GTK_WIDGET_CLASS(parent_class)->draw (widget, cr);
+}
+#endif
+
+#if !HAVE_GTK3
 static gint
 sexy_spell_entry_expose(GtkWidget *widget, GdkEventExpose *event)
 {
@@ -1122,7 +1274,6 @@ sexy_spell_entry_expose(GtkWidget *widget, GdkEventExpose *event)
 	GtkEntry *gtk_entry = GTK_ENTRY(widget);
 	PangoLayout *layout;
 
-	
 	layout = gtk_entry_get_layout(gtk_entry);
 	if (gtk_entry->preedit_length == 0)
 	{
@@ -1135,6 +1286,7 @@ sexy_spell_entry_expose(GtkWidget *widget, GdkEventExpose *event)
 
 	return GTK_WIDGET_CLASS(parent_class)->expose_event (widget, event);
 }
+#endif
 
 static gint
 sexy_spell_entry_button_press(GtkWidget *widget, GdkEventButton *event)

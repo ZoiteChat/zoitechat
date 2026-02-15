@@ -10,7 +10,7 @@ on:
 
 jobs:
   windows_build:
-    runs-on: windows-2019
+    runs-on: windows-2022
 
     permissions:
       contents: read
@@ -20,13 +20,8 @@ jobs:
 
     strategy:
       matrix:
-        platform: [x64, win32]
-        arch: [x64, x86]
-        exclude:
-          - platform: x64
-            arch: x86
-          - platform: win32
-            arch: x64
+        platform: [x64]
+        arch: [x64]
       fail-fast: false
 
     steps:
@@ -39,16 +34,16 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          New-Item -Name "deps" -ItemType "Directory"
+          New-Item -Name "deps" -ItemType "Directory" -Force | Out-Null
 
-          Invoke-WebRequest http://files.jrsoftware.org/is/5/innosetup-5.5.9-unicode.exe -OutFile deps\innosetup-unicode.exe
+          Invoke-WebRequest https://files.jrsoftware.org/is/6/innosetup-6.7.0.exe -OutFile deps\innosetup-unicode.exe
           & deps\innosetup-unicode.exe /VERYSILENT | Out-Null
 
           Invoke-WebRequest https://github.com/zoitechat/gvsbuild/releases/download/zoitechat-2.17.0/idpsetup-1.5.1.exe -OutFile deps\idpsetup.exe
           & deps\idpsetup.exe /VERYSILENT
 
-          Invoke-WebRequest https://github.com/zoitechat/gvsbuild/releases/download/zoitechat-2.17.0/gtk-${{ matrix.platform }}-2018-08-29-openssl1.1.7z -OutFile deps\gtk-${{ matrix.arch }}.7z
-          & 7z.exe x deps\gtk-${{ matrix.arch }}.7z -oC:\gtk-build\gtk
+          Invoke-WebRequest https://github.com/ZoiteChat/gvsbuild/releases/download/zoitechat-2.18.0-pre1/GTK3_Gvsbuild_zoitechat-2.18.0-pre1_${{ matrix.platform }}.7z -OutFile deps\gtk-${{ matrix.arch }}.7z
+          & 7z.exe x deps\gtk-${{ matrix.arch }}.7z -oC:\gtk-build\gtk\x64\release
 
           Invoke-WebRequest https://github.com/zoitechat/gvsbuild/releases/download/zoitechat-2.17.0/gendef-20111031.7z -OutFile deps\gendef.7z
           & 7z.exe x deps\gendef.7z -oC:\gtk-build
@@ -76,7 +71,7 @@ jobs:
 
       - name: Build
         run: |
-          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\VsDevCmd.bat"
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat"
 
           set "PYTHON_DIR=C:\gtk-build\python-3.14.2\${{ matrix.platform }}"
           if not exist "%PYTHON_DIR%\libs\python314.lib" (
@@ -93,7 +88,7 @@ jobs:
 
       - name: Preparing Artifacts
         run: |
-          move ..\zoitechat-build\${{ matrix.platform }}\ZoiteChat*.exe .\
+          move ..\zoitechat-build\${{ matrix.platform }}\ZoiteChat-*.exe .\
           move ..\zoitechat-build .\
         shell: cmd
 
@@ -102,7 +97,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Installer ${{ matrix.arch }}
-          path: ZoiteChat*.exe
+          path: ZoiteChat-*.exe
 
       - name: Attest Installer (Artifact Attestation)
         if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}

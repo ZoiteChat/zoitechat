@@ -42,6 +42,15 @@
 #include "xtext.h"
 #include "fkeys.h"
 
+#if HAVE_GTK3
+#define ICON_RAWLOG_CLEAR "edit-clear"
+#define ICON_RAWLOG_SAVE_AS "document-save-as"
+#endif
+#if !HAVE_GTK3
+#define ICON_RAWLOG_CLEAR GTK_STOCK_CLEAR
+#define ICON_RAWLOG_SAVE_AS GTK_STOCK_SAVE_AS
+#endif
+
 static void
 close_rawlog (GtkWidget *wid, server *serv)
 {
@@ -119,7 +128,13 @@ open_rawlog (struct server *serv)
 	scrolledwindow = gtk_scrolled_window_new (NULL, NULL);
 	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow), GTK_POLICY_NEVER, GTK_POLICY_ALWAYS);
 	gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scrolledwindow), GTK_SHADOW_IN);
+#if HAVE_GTK3
+	gtk_widget_set_hexpand (scrolledwindow, TRUE);
+	gtk_widget_set_vexpand (scrolledwindow, TRUE);
+	gtk_box_pack_start (GTK_BOX (vbox), scrolledwindow, TRUE, TRUE, 0);
+#elif !HAVE_GTK3
 	gtk_container_add (GTK_CONTAINER (vbox), scrolledwindow);
+#endif
 
 	palette_get_xtext_colors (xtext_palette, XTEXT_COLS);
 	serv->gui->rawlog_textlist = gtk_xtext_new (xtext_palette, 0);
@@ -127,14 +142,19 @@ open_rawlog (struct server *serv)
 	gtk_xtext_set_font (GTK_XTEXT (serv->gui->rawlog_textlist), prefs.hex_text_font);
 	GTK_XTEXT (serv->gui->rawlog_textlist)->ignore_hidden = 1;
 
+#if HAVE_GTK3
+	bbox = gtk_button_box_new (GTK_ORIENTATION_HORIZONTAL);
+	gtk_button_box_set_layout (GTK_BUTTON_BOX (bbox), GTK_BUTTONBOX_SPREAD);
+#elif !HAVE_GTK3
 	bbox = gtk_hbutton_box_new ();
 	gtk_button_box_set_layout (GTK_BUTTON_BOX (bbox), GTK_BUTTONBOX_SPREAD);
+#endif
 	gtk_box_pack_end (GTK_BOX (vbox), bbox, 0, 0, 4);
 
-	gtkutil_button (bbox, GTK_STOCK_CLEAR, NULL, rawlog_clearbutton,
+	gtkutil_button (bbox, ICON_RAWLOG_CLEAR, NULL, rawlog_clearbutton,
 						 serv, _("Clear Raw Log"));
 
-	gtkutil_button (bbox, GTK_STOCK_SAVE_AS, NULL, rawlog_savebutton,
+	gtkutil_button (bbox, ICON_RAWLOG_SAVE_AS, NULL, rawlog_savebutton,
 						 serv, _("Save As..."));
 
 	/* Copy selection to clipboard when Ctrl+Shift+C is pressed AND text auto-copy is disabled */

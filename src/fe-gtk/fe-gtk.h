@@ -32,6 +32,14 @@
 #include <gtk/gtk.h>
 #include <cairo.h>
 
+#ifndef HAVE_GTK3
+#if GTK_MAJOR_VERSION >= 3
+#define HAVE_GTK3 1
+#else
+#define HAVE_GTK3 0
+#endif
+#endif
+
 #ifdef HAVE_GTK_MAC
 #include <gtkosxapplication.h>
 #endif
@@ -47,6 +55,15 @@
 #define flag_k flag_wid[6]
 #define flag_b flag_wid[7]
 #define NUM_FLAG_WIDS 8
+
+#if HAVE_GTK3
+typedef struct _input_style
+{
+	PangoFontDescription *font_desc;
+} InputStyle;
+#else
+typedef GtkStyle InputStyle;
+#endif
 
 #ifdef HAVE_GTK_MAC
 extern GtkosxApplication *osx_app;

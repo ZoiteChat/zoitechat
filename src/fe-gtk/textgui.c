@@ -38,6 +38,17 @@
 #include "palette.h"
 #include "textgui.h"
 
+#if HAVE_GTK3
+#define ICON_TEXTEVENT_SAVE_AS "document-save-as"
+#define ICON_TEXTEVENT_OPEN "document-open"
+#define ICON_TEXTEVENT_OK "dialog-ok"
+#endif
+#if !HAVE_GTK3
+#define ICON_TEXTEVENT_SAVE_AS GTK_STOCK_SAVE_AS
+#define ICON_TEXTEVENT_OPEN GTK_STOCK_OPEN
+#define ICON_TEXTEVENT_OK GTK_STOCK_OK
+#endif
+
 extern struct text_event te[];
 extern char *pntevts_text[];
 extern char *pntevts[];
@@ -451,7 +462,11 @@ pevent_dialog_show ()
 											 TRUE, FALSE, pevent_dialog_close, NULL,
 											 600, 455, &vbox, 0);
 
+#if HAVE_GTK3
+	pane = gtk_paned_new (GTK_ORIENTATION_VERTICAL);
+#elif !HAVE_GTK3
 	pane = gtk_vpaned_new ();
+#endif
 	gtk_box_pack_start (GTK_BOX (vbox), pane, TRUE, TRUE, 0);
 	
 	pevent_dialog_list = pevent_treeview_new (pane);
@@ -470,16 +485,21 @@ pevent_dialog_show ()
 	gtk_container_add (GTK_CONTAINER (wid), pevent_dialog_twid);
 	gtk_xtext_set_font (GTK_XTEXT (pevent_dialog_twid), prefs.hex_text_font);
 
+#if HAVE_GTK3
+	hbox = gtk_button_box_new (GTK_ORIENTATION_HORIZONTAL);
+	gtk_button_box_set_layout (GTK_BUTTON_BOX (hbox), GTK_BUTTONBOX_SPREAD);
+#elif !HAVE_GTK3
 	hbox = gtk_hbutton_box_new ();
 	gtk_button_box_set_layout (GTK_BUTTON_BOX (hbox), GTK_BUTTONBOX_SPREAD);
+#endif
 	gtk_box_pack_start (GTK_BOX (vbox), hbox, FALSE, FALSE, 4);
-	gtkutil_button (hbox, GTK_STOCK_SAVE_AS, NULL, pevent_save_cb,
+	gtkutil_button (hbox, ICON_TEXTEVENT_SAVE_AS, NULL, pevent_save_cb,
 						 (void *) 1, _("Save As..."));
-	gtkutil_button (hbox, GTK_STOCK_OPEN, NULL, pevent_load_cb,
+	gtkutil_button (hbox, ICON_TEXTEVENT_OPEN, NULL, pevent_load_cb,
 						 NULL, _("Load From..."));
 	gtkutil_button (hbox, NULL, NULL, pevent_test_cb,
 						pevent_dialog_twid, _("Test All"));
-	gtkutil_button (hbox, GTK_STOCK_OK, NULL, pevent_ok_cb,
+	gtkutil_button (hbox, ICON_TEXTEVENT_OK, NULL, pevent_ok_cb,
 						NULL, _("OK"));
 
 	gtk_widget_show_all (pevent_dialog);

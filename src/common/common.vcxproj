@@ -99,13 +99,13 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
       <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;$(OwnFlags);%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(ZoiteChatLib);$(DepsRoot)\include;$(Glib);$(Gtk);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ZoiteChatLib);$(DepsRoot)\include;$(OpenSslInclude);$(Glib);$(Gtk);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <PreprocessorDefinitions>WIN32;_WIN64;_AMD64_;NDEBUG;_LIB;$(OwnFlags);%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(ZoiteChatLib);$(DepsRoot)\include;$(Glib);$(Gtk);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ZoiteChatLib);$(DepsRoot)\include;$(OpenSslInclude);$(Glib);$(Gtk);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4267;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
   </ItemDefinitionGroup>
@@ -116,8 +116,8 @@
 SET SOLUTIONDIR=$(SolutionDir)..\
 "$(Python3Path)\python.exe" $(ProjectDir)make-te.py "$(ProjectDir)textevents.in" "$(ZoiteChatLib)textevents.h" "$(ZoiteChatLib)textenums.h"
 powershell -File "$(SolutionDir)..\win32\version-template.ps1" "$(SolutionDir)..\win32\config.h.tt" "$(ZoiteChatLib)config.h"
-"$(Python3Path)\python.exe" "$(DepsRoot)\bin\glib-genmarshal" --prefix=_zoitechat_marshal --header "$(ProjectDir)marshalers.list" --output "$(ZoiteChatLib)marshal.h"
-"$(Python3Path)\python.exe" "$(DepsRoot)\bin\glib-genmarshal" --prefix=_zoitechat_marshal --body "$(ProjectDir)marshalers.list" --output "$(ZoiteChatLib)marshal.c"
+$(GlibGenMarshal) --prefix=_zoitechat_marshal --header "$(ProjectDir)marshalers.list" --output "$(ZoiteChatLib)marshal.h"
+$(GlibGenMarshal) --prefix=_zoitechat_marshal --body "$(ProjectDir)marshalers.list" --output "$(ZoiteChatLib)marshal.c"
       ]]></Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
