@@ -31,6 +31,7 @@
     <None Include="$(DepsRoot)\bin\*fontconfig*.dll" />
     <None Include="$(DepsRoot)\bin\*gdk_pixbuf*.dll" />
     <None Include="$(DepsRoot)\bin\*gdk-3*.dll" />
+    <None Include="$(DepsRoot)\bin\*epoxy*.dll" />
     <None Include="$(DepsRoot)\bin\*gio-2*.dll" />
     <None Include="$(DepsRoot)\bin\*glib-2*.dll" />
     <None Include="$(DepsRoot)\bin\*gmodule-2*.dll" />
@@ -47,7 +48,11 @@
     <None Include="$(DepsRoot)\bin\*intl*.dll" />
     <None Include="$(DepsRoot)\bin\*jpeg*.dll" />
     <None Include="$(DepsRoot)\bin\*png*.dll" />
-    <None Include="$(DepsRoot)\bin\*jpeg*.dll" />
+    <None Include="$(DepsRoot)\bin\*pcre2-8*.dll" />
+    <None Include="$(DepsRoot)\bin\*pixman-1*.dll" />
+    <None Include="$(DepsRoot)\bin\*tiff*.dll" />
+    <None Include="$(DepsRoot)\bin\*harfbuzz*.dll" />
+    <None Include="$(DepsRoot)\bin\*expat*.dll" />
     <None Include="$(DepsRoot)\bin\*xml2*.dll" />
     <None Include="$(DepsRoot)\bin\*pango-1.0-0.dll" />
     <None Include="$(DepsRoot)\bin\*pangocairo-1.0-0.dll" />
