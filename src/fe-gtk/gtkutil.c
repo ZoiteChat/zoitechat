@@ -493,9 +493,9 @@ gtkutil_file_req (GtkWindow *parent, const char *title, void *callback, void *us
 	struct file_req *freq;
 	GtkWidget *dialog;
 	GtkFileFilter *filefilter;
-	extern char *get_xdir_fs (void);
 	char *token;
 	char *tokenbuffer;
+	const char *xdir;
 
 	if (flags & FRF_WRITE)
 	{
@@ -531,20 +531,33 @@ gtkutil_file_req (GtkWindow *parent, const char *title, void *callback, void *us
 												NULL);
 #endif
 
+	xdir = get_xdir ();
+
 	if (filter && filter[0] && (flags & FRF_FILTERISINITIAL))
 	{
 		if (flags & FRF_WRITE)
 		{
 			char temp[1024];
 			path_part (filter, temp, sizeof (temp));
-			gtk_file_chooser_set_current_folder (GTK_FILE_CHOOSER (dialog), temp);
+			if (temp[0] && g_file_test (temp, G_FILE_TEST_IS_DIR))
+				gtk_file_chooser_set_current_folder (GTK_FILE_CHOOSER (dialog), temp);
+			else if (xdir && xdir[0] && g_file_test (xdir, G_FILE_TEST_IS_DIR))
+				gtk_file_chooser_set_current_folder (GTK_FILE_CHOOSER (dialog), xdir);
 			gtk_file_chooser_set_current_name (GTK_FILE_CHOOSER (dialog), file_part (filter));
 		}
 		else
-			gtk_file_chooser_set_current_folder (GTK_FILE_CHOOSER (dialog), filter);
+		{
+			if (g_file_test (filter, G_FILE_TEST_IS_DIR))
+				gtk_file_chooser_set_current_folder (GTK_FILE_CHOOSER (dialog), filter);
+			else if (xdir && xdir[0] && g_file_test (xdir, G_FILE_TEST_IS_DIR))
+				gtk_file_chooser_set_current_folder (GTK_FILE_CHOOSER (dialog), xdir);
+		}
 	}
 	else if (!(flags & FRF_RECENTLYUSED))
-		gtk_file_chooser_set_current_folder (GTK_FILE_CHOOSER (dialog), get_xdir ());
+	{
+		if (xdir && xdir[0] && g_file_test (xdir, G_FILE_TEST_IS_DIR))
+			gtk_file_chooser_set_current_folder (GTK_FILE_CHOOSER (dialog), xdir);
+	}
 
 	if (flags & FRF_MULTIPLE)
 		gtk_file_chooser_set_select_multiple (GTK_FILE_CHOOSER (dialog), TRUE);
@@ -570,7 +583,14 @@ gtkutil_file_req (GtkWindow *parent, const char *title, void *callback, void *us
 		gtk_file_chooser_set_filter (GTK_FILE_CHOOSER (dialog), filefilter);
 	}
 
-	gtk_file_chooser_add_shortcut_folder (GTK_FILE_CHOOSER (dialog), get_xdir (), NULL);
+	if (xdir && xdir[0] && g_file_test (xdir, G_FILE_TEST_IS_DIR))
+	{
+		GError *shortcut_error = NULL;
+
+		gtk_file_chooser_add_shortcut_folder (GTK_FILE_CHOOSER (dialog), xdir, &shortcut_error);
+		if (shortcut_error)
+			g_error_free (shortcut_error);
+	}
 
 	freq = g_new (struct file_req, 1);
 	freq->dialog = dialog;
