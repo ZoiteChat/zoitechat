@@ -41,7 +41,7 @@ jobs:
         run: |
           New-Item -Name "deps" -ItemType "Directory"
 
-          Invoke-WebRequest http://files.jrsoftware.org/is/5/innosetup-5.5.9-unicode.exe -OutFile deps\innosetup-unicode.exe
+          Invoke-WebRequest https://files.jrsoftware.org/is/6/innosetup-6.7.0.exe -OutFile deps\innosetup-unicode.exe
           & deps\innosetup-unicode.exe /VERYSILENT | Out-Null
 
           Invoke-WebRequest https://github.com/zoitechat/gvsbuild/releases/download/zoitechat-2.17.0/idpsetup-1.5.1.exe -OutFile deps\idpsetup.exe
