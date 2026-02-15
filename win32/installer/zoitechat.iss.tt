@@ -119,7 +119,7 @@ Source: "etc\fonts\*"; DestDir: "{app}\etc\fonts"; Flags: ignoreversion createal
 
 Source: "atk-1.0-0.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 Source: "cairo-2.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
-Source: "freetype.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
+Source: "freetype-6.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 Source: "fribidi-0.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 Source: "fontconfig.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 Source: "gdk_pixbuf-2.0-0.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
