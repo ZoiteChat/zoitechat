@@ -124,19 +124,14 @@ Source: "fribidi-0.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: lib
 Source: "fontconfig-1.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 Source: "gdk_pixbuf-2.0-0.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 Source: "gdk-3-vs17.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
+Source: "epoxy-0.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 Source: "gio-2.0-0.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 Source: "glib-2.0-0.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 Source: "gmodule-2.0-0.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 Source: "gobject-2.0-0.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
-#if APPARCH == "x64"
 Source: "gspawn-win64-helper.exe"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 Source: "gspawn-win64-helper-console.exe"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
-#else
-Source: "gspawn-win32-helper.exe"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
-Source: "gspawn-win32-helper-console.exe"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
-#endif
 Source: "gthread-2.0-0.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
-Source: "gdk-3-vs17.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 Source: "iconv.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 Source: "libcrypto-3-x64.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 Source: "libssl-3-x64.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
@@ -147,9 +142,12 @@ Source: "libpng16.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 Source: "xml2-16.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 Source: "pango-1.0-0.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 Source: "pangocairo-1.0-0.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
+Source: "cairo-gobject-2.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 Source: "pangoft2-1.0-0.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 Source: "pangowin32-1.0-0.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 Source: "zlib1.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
+Source: "jpeg62.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
+Source: "harfbuzz.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 
 Source: "plugins\hcnotifications-winrt.dll"; DestDir: "{app}\plugins"; Flags: ignoreversion; Components: libs
 
