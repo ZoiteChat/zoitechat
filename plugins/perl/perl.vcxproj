@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup Label="Configuration">
     <PlatformToolset>v142</PlatformToolset>
@@ -27,7 +27,7 @@
     <TargetName>hcperl</TargetName>
     <OutDir>$(ZoiteChatRel)plugins\</OutDir>
   </PropertyGroup>
-  <ItemDefinitionGroup Condition="'$(PerlEnabled)'=='true' and '$(Configuration)|$(Platform)'=='Release|Win32'">
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;PERL520_EXPORTS;HAS_BOOL;$(OwnFlags);%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(IntDir);..\..\src\common;$(ZoiteChatLib);$(PerlPath)\lib\CORE;$(Glib);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -47,7 +47,7 @@ move irc.pm.h "$(IntDir)"
 move zoitechat.pm.h "$(IntDir)"</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(PerlEnabled)'=='true' and '$(Configuration)|$(Platform)'=='Release|x64'">
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <PreprocessorDefinitions>WIN32;_WIN64;_AMD64_;NDEBUG;_WINDOWS;_USRDLL;PERL520_EXPORTS;HAS_BOOL;$(OwnFlags);%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(IntDir);..\..\src\common;$(ZoiteChatLib);$(PerlPath)\lib\CORE;$(Glib);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -70,11 +70,8 @@ move zoitechat.pm.h "$(IntDir)"</Command>
   <ItemGroup>
     <None Include="perl.def" />
   </ItemGroup>
-  <ItemGroup Condition="'$(PerlEnabled)'=='true'">
+  <ItemGroup>
     <ClCompile Include="perl.c" />
   </ItemGroup>
-  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" Condition="'$(PerlEnabled)'=='true'" />
-  <Target Name="Build" Condition="'$(PerlEnabled)'!='true'">
-    <Message Text="Perl build prerequisites not found (perl/gendef/runtime); skipping Perl plugin build." Importance="high" />
-  </Target>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>
