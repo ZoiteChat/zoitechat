@@ -49,8 +49,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "%SOLUTIONDIR%win32\version-
   <ItemGroup>
     <None Include="wizardimage.bmp" />
     <None Include="wizardsmallimage.bmp" />
-    <None Include="zoitechat.iss" />
+    <None Include="zoitechat.iss.tt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>
+
 
