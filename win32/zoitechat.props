@@ -6,7 +6,7 @@
 
 		<YourDepsPath Condition="'$(YourDepsPath)'=='' and '$(ZOITECHAT_DEPS_PATH)'!=''">$(ZOITECHAT_DEPS_PATH)</YourDepsPath>
 		<YourDepsPath Condition="'$(YourDepsPath)'==''">c:\gtk-build\gtk</YourDepsPath>
-		<YourGendefPath Condition="'$(YourGendefPath)'==''">c:\gtk-build</YourGendefPath>
+		<YourGendefPath Condition="'$(YourGendefPath)'==''">c:\gtk-build\gendef</YourGendefPath>
 		<YourPerlPath Condition="'$(YourPerlPath)'==''">c:\gtk-build\perl-5.20</YourPerlPath>
 		<YourPython3Path Condition="'$(YourPython3Path)'=='' and '$(ZOITECHAT_PYTHON3_PATH)'!=''">$(ZOITECHAT_PYTHON3_PATH)</YourPython3Path>
 		<YourPython3Path Condition="'$(YourPython3Path)'==''">c:\gtk-build\python-3.14</YourPython3Path>
