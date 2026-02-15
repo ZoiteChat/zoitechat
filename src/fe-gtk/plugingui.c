@@ -48,6 +48,12 @@ enum
 
 static GtkWidget *plugin_window = NULL;
 
+static const char *
+plugingui_safe_string (const char *value)
+{
+	return value ? value : "";
+}
+
 static session *
 plugingui_get_target_session (void)
 {
@@ -169,14 +175,14 @@ fe_pluginlist_update (void)
 	while (list)
 	{
 		pl = list->data;
-		if (pl->version[0] != 0)
+		if (pl && pl->version && pl->version[0] != 0)
 		{
 			gtk_list_store_append (store, &iter);
 			gtk_list_store_set (store, &iter, NAME_COLUMN, pl->name,
 			                    VERSION_COLUMN, pl->version,
-			                    FILE_COLUMN, file_part (pl->filename),
+			                    FILE_COLUMN, pl->filename ? file_part (pl->filename) : "",
 			                    DESC_COLUMN, pl->desc,
-			                    FILEPATH_COLUMN, pl->filename, -1);
+			                    FILEPATH_COLUMN, plugingui_safe_string (pl->filename), -1);
 		}
 		list = list->next;
 	}
@@ -236,6 +242,12 @@ plugingui_unload (GtkWidget * wid, gpointer unused)
 	if (!gtkutil_treeview_get_selected (view, &iter, NAME_COLUMN, &modname,
 	                                    FILEPATH_COLUMN, &file, -1))
 		return;
+	if (!file || !*file)
+	{
+		g_free (modname);
+		g_free (file);
+		return;
+	}
 
 	if (g_str_has_suffix (file, "."PLUGIN_SUFFIX))
 	{
@@ -315,7 +327,11 @@ plugingui_open (void)
 	view = plugingui_treeview_new (vbox);
 	view_scroll = gtk_widget_get_parent (view);
 	if (view_scroll)
+	{
 		gtk_box_set_child_packing (GTK_BOX (vbox), view_scroll, TRUE, TRUE, 0, GTK_PACK_START);
+		gtk_widget_set_hexpand (view_scroll, TRUE);
+		gtk_widget_set_vexpand (view_scroll, TRUE);
+	}
 	g_object_set_data (G_OBJECT (plugin_window), "view", view);
 
 
