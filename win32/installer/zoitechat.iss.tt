@@ -118,7 +118,7 @@ Source: "atk-1.0-0.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: lib
 Source: "cairo.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 Source: "freetype.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 Source: "fribidi-0.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
-Source: "fontconfig-1.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
+Source: "fontconfig.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 Source: "gdk_pixbuf-2.0-0.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 Source: "gdk-win32-2.0.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 Source: "gio-2.0-0.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
