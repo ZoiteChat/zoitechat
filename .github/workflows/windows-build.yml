@@ -200,7 +200,8 @@ jobs:
       - name: Build
         run: |
           call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat"
-            set "PYTHON_DIR=C:\gtk-build\python-3.14.2\${{ matrix.platform }}"
+          set "PYTHON_ROOT=C:\gtk-build\python-3.14.2"
+          set "PYTHON_DIR=%PYTHON_ROOT%\${{ matrix.platform }}"
           if not exist "%PYTHON_DIR%\libs\python314.lib" (
             echo Missing %PYTHON_DIR%\libs\python314.lib
             dir "%PYTHON_DIR%\libs"
@@ -209,7 +210,8 @@ jobs:
 
           set "LIB=%PYTHON_DIR%\libs;%LIB%"
           set "INCLUDE=%PYTHON_DIR%\include;%INCLUDE%"
-
+          set "ZOITECHAT_PYTHON3_PATH=%PYTHON_ROOT%"
+          
           msbuild win32\zoitechat.sln /m /verbosity:minimal /p:Configuration=Release /p:Platform=${{ matrix.platform }}
 
           set "BUILD_DIR=..\zoitechat-build\${{ matrix.platform }}"
