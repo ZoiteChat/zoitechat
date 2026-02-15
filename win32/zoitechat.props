@@ -41,7 +41,14 @@
 		<LuaLib Condition="'$(LuaLib)'=='' and Exists('$(DepsRoot)\lib\luajit-5.1.lib')">luajit-5.1</LuaLib>
 		<LuaLib Condition="'$(LuaLib)'=='' and Exists('$(DepsRoot)\lib\luajit.lib')">luajit</LuaLib>
 		<LuaEnabled Condition="'$(LuaInclude)'!='' and '$(LuaLib)'!=''">true</LuaEnabled>
-		<LuaEnabled Condition="'$(LuaEnabled)'==''">false</LuaEnabled>
+		<LuaRuntimeDll Condition="Exists('$(DepsRoot)\bin\lua51.dll')">lua51.dll</LuaRuntimeDll>
+		<LuaRuntimeDll Condition="'$(LuaRuntimeDll)'=='' and Exists('$(DepsRoot)\bin\luajit-5.1.dll')">luajit-5.1.dll</LuaRuntimeDll>
+		<LuaRuntimeDll Condition="'$(LuaRuntimeDll)'=='' and Exists('$(DepsRoot)\bin\luajit.dll')">luajit.dll</LuaRuntimeDll>
+		<LuaShareDir Condition="Exists('$(DepsRoot)\share\lua\2.1\lgi\init.lua')">$(DepsRoot)\share\lua\2.1</LuaShareDir>
+		<LuaShareDir Condition="'$(LuaShareDir)'=='' and Exists('$(DepsRoot)\share\lua\5.1\lgi\init.lua')">$(DepsRoot)\share\lua\5.1</LuaShareDir>
+		<LuaLibDir Condition="Exists('$(DepsRoot)\lib\lua\2.1\lgi')">$(DepsRoot)\lib\lua\2.1</LuaLibDir>
+		<LuaLibDir Condition="'$(LuaLibDir)'=='' and Exists('$(DepsRoot)\lib\lua\5.1\lgi')">$(DepsRoot)\lib\lua\5.1</LuaLibDir>
+        <LuaEnabled Condition="'$(LuaEnabled)'==''">false</LuaEnabled>
 		<GlibGenMarshal Condition="Exists('$(DepsRoot)\bin\glib-genmarshal.exe')">"$(DepsRoot)\bin\glib-genmarshal.exe"</GlibGenMarshal>
 		<GlibGenMarshal Condition="'$(GlibGenMarshal)'=='' and Exists('$(DepsRoot)\bin\glib-genmarshal') and Exists('$(Python3Path)\python.exe')">"$(Python3Path)\python.exe" "$(DepsRoot)\bin\glib-genmarshal"</GlibGenMarshal>
 		<Glib>$(DepsRoot)\include\glib-2.0;$(DepsRoot)\lib\glib-2.0\include;$(DepsRoot)\include\libxml2</Glib>
