@@ -362,6 +362,12 @@ gtkutil_check_file (char *filename, struct file_req *freq)
 {
 	int axs = FALSE;
 
+	if (filename == NULL || filename[0] == '\0')
+	{
+		fe_message (_("No file selected."), FE_MSG_ERROR);
+		return;
+	}
+
 	GFile *file = g_file_new_for_path (filename);
 
 	if (freq->flags & FRF_WRITE)
@@ -453,8 +459,11 @@ gtkutil_file_req_done (GtkWidget * wid, struct file_req *freq)
 		else
 		{
 			gchar *filename = gtk_file_chooser_get_filename (fs);
-			gtkutil_check_file (gtk_file_chooser_get_filename (fs), freq);
-			g_free (filename);
+			if (filename != NULL)
+			{
+				gtkutil_check_file (filename, freq);
+				g_free (filename);
+			}
 		}
 	}
 
