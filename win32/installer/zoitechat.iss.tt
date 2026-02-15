@@ -5,10 +5,7 @@
 ;#define PROJECTDIR "C:\...\zoitechat\win32\installer\"
 
 ;http://mitrich.net23.net/?/inno-download-plugin.html
-#ifexist "idp.iss"
-#define USE_INNO_DOWNLOAD_PLUGIN
 #include <idp.iss>
-#endif
 
 [Setup]
 AppName=ZoiteChat
@@ -206,22 +203,6 @@ Name: "{commonappdata}\Microsoft\Internet Explorer\Quick Launch\ZoiteChat"; File
 BeveledLabel= {#APPNAM}
 
 [Code]
-#ifndef USE_INNO_DOWNLOAD_PLUGIN
-// The Inno Download Plugin isn't always installed in CI environments.
-// Provide no-op fallback procedures so installer compilation still succeeds.
-procedure idpDownloadAfter(PageID: Integer);
-begin
-end;
-
-procedure idpClearFiles;
-begin
-end;
-
-procedure idpAddFile(URL: String; Filename: String);
-begin
-end;
-#endif
-
 /////////////////////////////////////////////////////////////////////
 procedure InitializeWizard;
 begin
