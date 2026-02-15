@@ -229,7 +229,15 @@ static char *query_wmi (QueryWmiType type)
 		query = SysAllocString (L"SELECT Name FROM Win32_VideoController");
 		break;
 	case QUERY_WMI_HDD:
-		query = SysAllocString (L"SELECT Name, Capacity, FreeSpace FROM Win32_Volume");
+		/*
+		 * Query local fixed logical disks only.
+		 *
+		 * Win32_Volume can cause Windows to probe additional network-backed
+		 * providers (for example Plan9/WSL providers), which may trigger RPC
+		 * failures in debugger sessions. Restricting this to fixed logical disks
+		 * avoids those probes while still providing useful local disk stats.
+		 */
+		query = SysAllocString (L"SELECT Name, Size, FreeSpace FROM Win32_LogicalDisk WHERE DriveType = 3");
 		break;
 	default:
 		goto release_queryLanguageName;
@@ -465,7 +473,7 @@ static char *read_hdd_info (IWbemClassObject *object)
 
 	VariantClear (&name_variant);
 
-	hr = object->lpVtbl->Get (object, L"Capacity", 0, &capacity_variant, NULL, NULL);
+	hr = object->lpVtbl->Get (object, L"Size", 0, &capacity_variant, NULL, NULL);
 	if (FAILED (hr))
 	{
 		return NULL;
