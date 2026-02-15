@@ -20,13 +20,8 @@ jobs:
 
     strategy:
       matrix:
-        platform: [x64, win32]
-        arch: [x64, x86]
-        exclude:
-          - platform: x64
-            arch: x86
-          - platform: win32
-            arch: x64
+        platform: [x64]
+        arch: [x64]
       fail-fast: false
 
     steps:
@@ -39,7 +34,7 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          New-Item -Name "deps" -ItemType "Directory"
+          New-Item -Name "deps" -ItemType "Directory" -Force | Out-Null
 
           Invoke-WebRequest https://files.jrsoftware.org/is/6/innosetup-6.7.0.exe -OutFile deps\innosetup-unicode.exe
           & deps\innosetup-unicode.exe /VERYSILENT | Out-Null
@@ -103,7 +98,7 @@ jobs:
         with:
           name: Installer ${{ matrix.arch }}
           path: ZoiteChat-*.exe
-          
+
       - name: Attest Installer (Artifact Attestation)
         if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
         uses: actions/attest-build-provenance@v3
