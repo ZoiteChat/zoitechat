@@ -14,7 +14,7 @@
 
 		<!-- G_DISABLE_DEPRECATED is unfeasible due to g_completion_* -->
 		<!-- must be buildable with GSEAL_ENABLE in the future, xtext, setup, and chanview-tabs stand in the way -->
-		<OwnFlags>GTK_DISABLE_DEPRECATED;GDK_PIXBUF_DISABLE_DEPRECATED;G_DISABLE_SINGLE_INCLUDES;GDK_PIXBUF_DISABLE_SINGLE_INCLUDES;GTK_DISABLE_SINGLE_INCLUDES;HAVE_X509_GET_SIGNATURE_NID;HAVE_SSL_CTX_GET_SSL_METHOD;DEFAULT_CERT_FILE="cert.pem";HAVE_STRTOULL;strtoull=_strtoui64;strcasecmp=stricmp;strncasecmp=strnicmp;__inline__=__inline</OwnFlags>
+		<OwnFlags>GTK_DISABLE_DEPRECATED;GDK_PIXBUF_DISABLE_DEPRECATED;G_DISABLE_SINGLE_INCLUDES;GDK_PIXBUF_DISABLE_SINGLE_INCLUDES;GTK_DISABLE_SINGLE_INCLUDES;HAVE_X509_GET_SIGNATURE_NID;HAVE_SSL_CTX_GET_SSL_METHOD;DEFAULT_CERT_FILE="cert.pem";HAVE_STRTOULL;strtoull=_strtoui64;strcasecmp=stricmp;strncasecmp=strnicmp;__inline__=__inline;$(GtkDefines)</OwnFlags>
 		<!-- FIXME: Add ability to use debug builds -->
 		<DepsRoot>$(YourDepsPath)\$(PlatformName)\release</DepsRoot>
 		<GendefPath>$(YourGendefPath)</GendefPath>
@@ -24,9 +24,44 @@
 		<Python3Path>$(YourPython3Path)\$(PlatformName)</Python3Path>
 		<Python3Lib>python314</Python3Lib>
 		<Python3Output>hcpython3</Python3Output>
-		<LuaInclude>$(DepsRoot)\include\luajit-2.1</LuaInclude>
-		<LuaOutput>hclua</LuaOutput>
-		<LuaLib>lua51</LuaLib>
+		<Python3Enabled Condition="Exists('$(Python3Path)\\python.exe') and Exists('$(Python3Path)\\libs\\$(Python3Lib).lib') and Exists('$(Python3Path)\\Lib\\site-packages\\cffi')">true</Python3Enabled>
+		<Python3Enabled Condition="'$(Python3Enabled)'==''">false</Python3Enabled>
+		<PerlEnabled Condition="Exists('$(PerlPath)\\bin\\perl.exe') and Exists('$(PerlPath)\\bin\\$(PerlLib).dll') and Exists('$(GendefPath)\\gendef.exe')">true</PerlEnabled>
+		<PerlEnabled Condition="'$(PerlEnabled)'==''">false</PerlEnabled>
+		<InstallerEnabled Condition="Exists('$(IsccPath)')">true</InstallerEnabled>
+		<InstallerEnabled Condition="'$(InstallerEnabled)'==''">false</InstallerEnabled>
+		<LuaInclude Condition="Exists('$(DepsRoot)\include\luajit-2.1\lua.h')">$(DepsRoot)\include\luajit-2.1</LuaInclude>
+		<LuaInclude Condition="'$(LuaInclude)'=='' and Exists('$(DepsRoot)\include\luajit\lua.h')">$(DepsRoot)\include\luajit</LuaInclude>
+		<LuaInclude Condition="'$(LuaInclude)'=='' and Exists('$(DepsRoot)\include\lua5.1\lua.h')">$(DepsRoot)\include\lua5.1</LuaInclude>
+		<LuaInclude Condition="'$(LuaInclude)'=='' and Exists('$(DepsRoot)\include\lua51\lua.h')">$(DepsRoot)\include\lua51</LuaInclude>
+        <LuaOutput>hclua</LuaOutput>
+		<LuaLib Condition="Exists('$(DepsRoot)\lib\lua51.lib')">lua51</LuaLib>
+		<LuaLib Condition="'$(LuaLib)'=='' and Exists('$(DepsRoot)\lib\luajit-5.1.lib')">luajit-5.1</LuaLib>
+		<LuaLib Condition="'$(LuaLib)'=='' and Exists('$(DepsRoot)\lib\luajit.lib')">luajit</LuaLib>
+		<LuaEnabled Condition="'$(LuaInclude)'!='' and '$(LuaLib)'!=''">true</LuaEnabled>
+		<LuaRuntimeDll Condition="Exists('$(DepsRoot)\bin\lua51.dll')">lua51.dll</LuaRuntimeDll>
+		<LuaRuntimeDll Condition="'$(LuaRuntimeDll)'=='' and Exists('$(DepsRoot)\bin\luajit-5.1.dll')">luajit-5.1.dll</LuaRuntimeDll>
+		<LuaRuntimeDll Condition="'$(LuaRuntimeDll)'=='' and Exists('$(DepsRoot)\bin\luajit.dll')">luajit.dll</LuaRuntimeDll>
+		<LuaShareDir Condition="Exists('$(DepsRoot)\share\lua\2.1\lgi\init.lua')">$(DepsRoot)\share\lua\2.1</LuaShareDir>
+		<LuaShareDir Condition="'$(LuaShareDir)'=='' and Exists('$(DepsRoot)\share\lua\5.1\lgi\init.lua')">$(DepsRoot)\share\lua\5.1</LuaShareDir>
+		<LuaLibDir Condition="Exists('$(DepsRoot)\lib\lua\2.1\lgi')">$(DepsRoot)\lib\lua\2.1</LuaLibDir>
+		<LuaLibDir Condition="'$(LuaLibDir)'=='' and Exists('$(DepsRoot)\lib\lua\5.1\lgi')">$(DepsRoot)\lib\lua\5.1</LuaLibDir>
+        <LuaEnabled Condition="'$(LuaEnabled)'==''">false</LuaEnabled>
+		<GlibGenMarshal Condition="Exists('$(DepsRoot)\bin\glib-genmarshal.exe')">"$(DepsRoot)\bin\glib-genmarshal.exe"</GlibGenMarshal>
+		<GlibGenMarshal Condition="'$(GlibGenMarshal)'=='' and Exists('$(DepsRoot)\bin\glib-genmarshal') and Exists('$(Python3Path)\python.exe')">"$(Python3Path)\python.exe" "$(DepsRoot)\bin\glib-genmarshal"</GlibGenMarshal>
+		<Glib>$(DepsRoot)\include\glib-2.0;$(DepsRoot)\lib\glib-2.0\include;$(DepsRoot)\include\libxml2</Glib>
+        <UsingGtk3 Condition="Exists('$(DepsRoot)\\include\\gtk-3.0\\gtk\\gtk.h')">true</UsingGtk3>
+        <GtkDefines>HAVE_GTK3</GtkDefines>
+        <Gtk3>$(DepsRoot)\include\gtk-3.0;$(DepsRoot)\lib\gtk-3.0\include</Gtk3>
+        <GtkCommon>$(DepsRoot)\include\atk-1.0;$(DepsRoot)\include\cairo;$(DepsRoot)\include\pango-1.0;$(DepsRoot)\include\gdk-pixbuf-2.0;$(DepsRoot)\include\harfbuzz</GtkCommon>
+        <Gtk>$(Gtk3);$(GtkCommon)</Gtk>
+        <SslLegacyLib Condition="Exists('$(DepsRoot)\\lib\\ssleay32.lib')">ssleay32.lib</SslLegacyLib>
+        <CryptoLegacyLib Condition="Exists('$(DepsRoot)\\lib\\libeay32.lib')">libeay32.lib</CryptoLegacyLib>
+        <SslModernLib Condition="Exists('$(DepsRoot)\\lib\\libssl.lib')">libssl.lib</SslModernLib>
+        <CryptoModernLib Condition="Exists('$(DepsRoot)\\lib\\libcrypto.lib')">libcrypto.lib</CryptoModernLib>
+        <OpenSslLibs Condition="'$(SslModernLib)' != '' and '$(CryptoModernLib)' != ''">$(SslModernLib);$(CryptoModernLib)</OpenSslLibs>
+        <OpenSslLibs Condition="'$(OpenSslLibs)' == '' and '$(SslLegacyLib)' != '' and '$(CryptoLegacyLib)' != ''">$(SslLegacyLib);$(CryptoLegacyLib)</OpenSslLibs>
+        <OpenSslInclude Condition="Exists('$(DepsRoot)\\include\\openssl\\ssl.h')">$(DepsRoot)\include</OpenSslInclude>
         <!-- Resolve library names across dependency bundles -->
         <Gtk3Lib Condition="Exists('$(DepsRoot)\lib\gtk-3.lib')">gtk-3.lib</Gtk3Lib>
         <Gtk3Lib Condition="'$(Gtk3Lib)'=='' and Exists('$(DepsRoot)\lib\gtk-3.0.lib')">gtk-3.0.lib</Gtk3Lib>
