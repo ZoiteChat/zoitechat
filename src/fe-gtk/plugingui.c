@@ -175,15 +175,24 @@ fe_pluginlist_update (void)
 static void
 plugingui_load_cb (session *sess, char *file)
 {
+	session *target_sess;
+
 	if (file)
 	{
 		char *buf;
+
+		target_sess = is_session (sess) ? sess : current_sess;
+		if (!is_session (target_sess))
+		{
+			fe_message (_("No active session available for loading addons."), FE_MSG_ERROR);
+			return;
+		}
 
 		if (strchr (file, ' '))
 			buf = g_strdup_printf ("LOAD \"%s\"", file);
 		else
 			buf = g_strdup_printf ("LOAD %s", file);
-		handle_command (sess, buf, FALSE);
+		handle_command (target_sess, buf, FALSE);
 		g_free (buf);
 	}
 }
@@ -193,7 +202,7 @@ plugingui_load (void)
 {
 	char *sub_dir = g_build_filename (get_xdir(), "addons", NULL);
 
-	gtkutil_file_req (NULL, _("Select a Plugin or Script to load"), plugingui_load_cb, current_sess,
+	gtkutil_file_req (NULL, _("Select a Plugin or Script to load"), plugingui_load_cb, NULL,
 							sub_dir, "*."PLUGIN_SUFFIX";*.lua;*.pl;*.py;*.tcl;*.js", FRF_FILTERISINITIAL|FRF_EXTENSIONS);
 
 	g_free (sub_dir);
