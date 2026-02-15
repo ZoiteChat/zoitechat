@@ -216,8 +216,8 @@ jobs:
           if not exist "%BUILD_DIR%" if /I "${{ matrix.platform }}"=="win32" set "BUILD_DIR=..\zoitechat-build\Win32"
           if not exist "%BUILD_DIR%" if /I "${{ matrix.platform }}"=="win32" set "BUILD_DIR=..\zoitechat-build\WIN32"
           set "PLUGIN_DIR=%BUILD_DIR%\rel\plugins"
-          for %%F in (hcchecksum.dll hcexec.dll hcfishlim.dll hcsysinfo.dll hcupd.dll hcwinamp.dll hcperl.dll hcpython3.dll hclua.dll) do (
-            if not exist "%PLUGIN_DIR%\%%F" (
+          for %%F in (hcchecksum.dll hcexec.dll hcfishlim.dll hcsysinfo.dll hcupd.dll hcwinamp.dll hcpython3.dll hclua.dll) do (
+          if not exist "%PLUGIN_DIR%\%%F" (
               if /I "%%F"=="hclua.dll" (
                 echo Missing expected plugin: %PLUGIN_DIR%\%%F
                 echo hclua.dll is built from Lua/LuaJIT prerequisites under %LUA_PREREQ_ROOT%.
@@ -227,6 +227,16 @@ jobs:
               )
               exit /b 1
             )
+          )
+
+          set "PERL_DIR=C:\gtk-build\perl-5.20\${{ matrix.platform }}"
+          if exist "%PERL_DIR%\bin\perl.exe" if exist "%PERL_DIR%\bin\perl520.dll" if exist "C:\gtk-build\gendef\gendef.exe" (
+            if not exist "%PLUGIN_DIR%\hcperl.dll" (
+              echo Missing expected plugin: %PLUGIN_DIR%\hcperl.dll
+              exit /b 1
+            )
+          ) else (
+            echo Perl prerequisites not found for ${{ matrix.platform }}; skipping hcperl.dll verification.
           )
 
         shell: cmd
