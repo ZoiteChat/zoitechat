@@ -115,6 +115,27 @@ create_msg_dialog (gchar *title, gchar *message)
 	gtk_dialog_run (GTK_DIALOG (dialog));
 	gtk_widget_destroy (dialog);
 }
+
+static void
+win32_set_gsettings_schema_dir (void)
+{
+	char *base_path;
+	char *schema_path;
+
+	if (g_getenv ("GSETTINGS_SCHEMA_DIR") != NULL)
+		return;
+
+	base_path = g_win32_get_package_installation_directory_of_module (NULL);
+	if (base_path == NULL)
+		return;
+
+	schema_path = g_build_filename (base_path, "share", "glib-2.0", "schemas", NULL);
+	if (g_file_test (schema_path, G_FILE_TEST_IS_DIR))
+		g_setenv ("GSETTINGS_SCHEMA_DIR", schema_path, FALSE);
+
+	g_free (schema_path);
+	g_free (base_path);
+}
 #endif
 
 int
@@ -224,6 +245,8 @@ fe_args (int argc, char *argv[])
 	}
 
 #ifdef WIN32
+	win32_set_gsettings_schema_dir ();
+
 	/* this is mainly for irc:// URL handling. When windows calls us from */
 	/* I.E, it doesn't give an option of "Start in" directory, like short */
 	/* cuts can. So we have to set the current dir manually, to the path  */
