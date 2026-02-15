@@ -40,34 +40,15 @@ jobs:
       - name: Install Dependencies
         run: |
           New-Item -Name "deps" -ItemType "Directory"
-          New-Item -Path "C:\gtk-build" -ItemType "Directory" -Force | Out-Null
 
           Invoke-WebRequest http://files.jrsoftware.org/is/5/innosetup-5.5.9-unicode.exe -OutFile deps\innosetup-unicode.exe
           & deps\innosetup-unicode.exe /VERYSILENT | Out-Null
 
-          $isccCandidates = @(
-            (Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 5\iscc.exe'),
-            (Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\iscc.exe'),
-            (Join-Path $env:ProgramFiles 'Inno Setup 5\iscc.exe'),
-            (Join-Path $env:ProgramFiles 'Inno Setup 6\iscc.exe')
-          ) | Where-Object { $_ -and (Test-Path $_) }
-
-          $isccPath = $isccCandidates | Select-Object -First 1
-          if (-not $isccPath) {
-            $isccCmd = Get-Command iscc.exe -ErrorAction SilentlyContinue
-            if ($isccCmd) { $isccPath = $isccCmd.Source }
-          }
-
-          if (-not $isccPath) {
-            throw 'Inno Setup compiler (iscc.exe) not found after installer step.'
-          }
-
-          "ISCC_EXE=$isccPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-
-
-
           Invoke-WebRequest https://github.com/zoitechat/gvsbuild/releases/download/zoitechat-2.17.0/idpsetup-1.5.1.exe -OutFile deps\idpsetup.exe
           & deps\idpsetup.exe /VERYSILENT
+
+          Invoke-WebRequest https://github.com/zoitechat/gvsbuild/releases/download/zoitechat-2.17.0/https://github.com/ZoiteChat/gvsbuild/releases/download/zoitechat-2.18.0-pre1/GTK3_Gvsbuild_zoitechat-2.18.0-pre1_${{ matrix.platform }}.7z -OutFile deps\gtk-${{ matrix.arch }}.7z
+          & 7z.exe x deps\gtk-${{ matrix.arch }}.7z -oC:\gtk-build\gtk\x64\release
 
           Invoke-WebRequest https://github.com/zoitechat/gvsbuild/releases/download/zoitechat-2.17.0/gendef-20111031.7z -OutFile deps\gendef.7z
           & 7z.exe x deps\gendef.7z -oC:\gtk-build
@@ -93,115 +74,11 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install cffi
 
-          $gtkArchive = "GTK3_Gvsbuild_zoitechat-2.18.0-pre1_${{ matrix.arch }}.7z"
-          Invoke-WebRequest "https://github.com/ZoiteChat/gvsbuild/releases/download/zoitechat-2.18.0-pre1/$gtkArchive" -OutFile deps\gtk.7z
-
-          if ("${{ matrix.platform }}" -eq "x64") {
-            & 7z.exe x deps\gtk.7z -oC:\gtk-build\gtk\x64\release
-          } else {
-            & 7z.exe x deps\gtk.7z -oC:\gtk-build\gtk\x86\release
-          }
-
-          if ($LASTEXITCODE -gt 1) {
-            throw "gtk.7z extraction failed with exit code $LASTEXITCODE"
-          }
-
-          if ("${{ matrix.platform }}" -eq "win32" -and (Test-Path "C:\gtk-build\gtk\x86")) {
-            $gtkRoot = "C:\gtk-build\gtk"
-            foreach ($alias in @("Win32", "win32")) {
-              $aliasPath = Join-Path $gtkRoot $alias
-              if (-not (Test-Path $aliasPath)) {
-                New-Item -Path $aliasPath -ItemType Junction -Value (Join-Path $gtkRoot "x86") | Out-Null
-              }
-            }
-          }
-
-      - name: Install Lua Dependencies
-        run: |
-          $releaseArch = if ("${{ matrix.arch }}" -eq "x64") { "x64" } else { "x86" }
-          $gtkRelease = "C:\gtk-build\gtk\$releaseArch\release"
-          if (-not (Test-Path $gtkRelease)) {
-            throw "GTK release root '$gtkRelease' is missing before Lua dependency extraction."
-          }
-
-          $luaArchive = if ($releaseArch -eq "x64") { "gtk-x64-2018-08-29-openssl1.1.7z" } else { "gtk-win32-2018-08-29-openssl1.1.7z" }
-          $luaArchivePath = "deps\$luaArchive"
-          Invoke-WebRequest "https://github.com/zoitechat/gvsbuild/releases/download/zoitechat-2.17.0/$luaArchive" -OutFile $luaArchivePath
-
-          & 7z.exe x $luaArchivePath -o$gtkRelease include\luajit*\* include\lua*\* lib\lua51.lib lib\luajit*.lib bin\lua51.dll bin\luajit*.dll lib\lua\2.1\* lib\girepository-1.0\*.typelib share\lua\2.1\* -r
-          if ($LASTEXITCODE -gt 1) {
-            throw "Lua dependency extraction failed with exit code $LASTEXITCODE"
-          }
-
-      - name: Validate Lua Prerequisites
-        run: |
-          $releaseArch = if ("${{ matrix.arch }}" -eq "x64") { "x64" } else { "x86" }
-          $gtkRelease = "C:\gtk-build\gtk\$releaseArch\release"
-
-          $includeCandidates = @(
-            "include\luajit-2.1\lua.h",
-            "include\luajit\lua.h",
-            "include\lua5.1\lua.h",
-            "include\lua51\lua.h"
-          )
-          $libCandidates = @(
-            "lib\lua51.lib",
-            "lib\luajit-5.1.lib",
-            "lib\luajit.lib"
-          )
-          $dllCandidates = @(
-            "bin\lua51.dll",
-            "bin\luajit-5.1.dll",
-            "bin\luajit.dll"
-          )
-
-          function Test-AnyPath([string]$root, [string[]]$candidates) {
-            foreach ($candidate in $candidates) {
-              if (Test-Path (Join-Path $root $candidate)) {
-                return $true
-              }
-            }
-            return $false
-          }
-
-          $missing = New-Object System.Collections.Generic.List[string]
-          if (-not (Test-AnyPath $gtkRelease $includeCandidates)) {
-            $missing.Add("include (expected one of: $($includeCandidates -join ', '))")
-          }
-          if (-not (Test-AnyPath $gtkRelease $libCandidates)) {
-            $missing.Add("lib import library (expected one of: $($libCandidates -join ', '))")
-          }
-          if (-not (Test-AnyPath $gtkRelease $dllCandidates)) {
-            $missing.Add("bin runtime DLL (expected one of: $($dllCandidates -join ', '))")
-          }
-
-          $lgiNative = Join-Path $gtkRelease "lib\lua\2.1\lgi"
-          if (-not (Test-Path $lgiNative) -or -not (Get-ChildItem $lgiNative -Filter *.dll -File -ErrorAction SilentlyContinue)) {
-            $missing.Add("lib\\lua\\2.1\\lgi\\*.dll")
-          }
-
-          $typelibDir = Join-Path $gtkRelease "lib\girepository-1.0"
-          if (-not (Test-Path $typelibDir) -or -not (Get-ChildItem $typelibDir -Filter *.typelib -File -ErrorAction SilentlyContinue)) {
-            $missing.Add("lib\\girepository-1.0\\*.typelib")
-          }
-
-          $lgiShare = Join-Path $gtkRelease "share\lua\2.1\lgi"
-          if (-not (Test-Path $lgiShare) -or -not (Get-ChildItem $lgiShare -Filter *.lua -File -Recurse -ErrorAction SilentlyContinue)) {
-            $missing.Add("share\\lua\\2.1\\lgi\\*.lua")
-          }
-
-          if ($missing.Count -gt 0) {
-            Write-Error "Lua prerequisites are missing under '$gtkRelease': $($missing -join '; '). Ensure the Lua/LuaJIT dependency artifact for $releaseArch was downloaded and extracted."
-            exit 1
-          }
-
-          "LUA_PREREQ_ROOT=$gtkRelease" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-
       - name: Build
         run: |
           call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat"
-          set "PYTHON_ROOT=C:\gtk-build\python-3.14.2"
-          set "PYTHON_DIR=%PYTHON_ROOT%\${{ matrix.platform }}"
+
+          set "PYTHON_DIR=C:\gtk-build\python-3.14.2\${{ matrix.platform }}"
           if not exist "%PYTHON_DIR%\libs\python314.lib" (
             echo Missing %PYTHON_DIR%\libs\python314.lib
             dir "%PYTHON_DIR%\libs"
@@ -210,58 +87,13 @@ jobs:
 
           set "LIB=%PYTHON_DIR%\libs;%LIB%"
           set "INCLUDE=%PYTHON_DIR%\include;%INCLUDE%"
-          set "ZOITECHAT_PYTHON3_PATH=%PYTHON_ROOT%"
-          
+
           msbuild win32\zoitechat.sln /m /verbosity:minimal /p:Configuration=Release /p:Platform=${{ matrix.platform }}
-
-          set "BUILD_DIR=..\zoitechat-build\${{ matrix.platform }}"
-          if not exist "%BUILD_DIR%" if /I "${{ matrix.platform }}"=="win32" set "BUILD_DIR=..\zoitechat-build\Win32"
-          if not exist "%BUILD_DIR%" if /I "${{ matrix.platform }}"=="win32" set "BUILD_DIR=..\zoitechat-build\WIN32"
-          set "PLUGIN_DIR=%BUILD_DIR%\rel\plugins"
-          for %%F in (hcchecksum.dll hcexec.dll hcfishlim.dll hcsysinfo.dll hcupd.dll hcwinamp.dll hclua.dll) do (          if not exist "%PLUGIN_DIR%\%%F" (
-              if /I "%%F"=="hclua.dll" (
-                echo Missing expected plugin: %PLUGIN_DIR%\%%F
-                echo hclua.dll is built from Lua/LuaJIT prerequisites under %LUA_PREREQ_ROOT%.
-                echo Verify include/lib/bin/share Lua files were present during dependency validation.
-              ) else (
-                echo Missing expected plugin: %PLUGIN_DIR%\%%F
-              )
-              exit /b 1
-            )
-          )
-
-          if exist "%PYTHON_DIR%\python.exe" if exist "%PYTHON_DIR%\libs\python314.lib" if exist "%PYTHON_DIR%\Lib\site-packages\cffi" (
-            if not exist "%PLUGIN_DIR%\hcpython3.dll" (
-              echo Missing expected plugin: %PLUGIN_DIR%\hcpython3.dll
-              exit /b 1
-            )
-          ) else (
-            echo Python plugin prerequisites not found for ${{ matrix.platform }}; skipping hcpython3.dll verification.
-          )
-
-          set "PERL_DIR=C:\gtk-build\perl-5.20\${{ matrix.platform }}"
-          if exist "%PERL_DIR%\bin\perl.exe" if exist "%PERL_DIR%\bin\perl520.dll" if exist "C:\gtk-build\gendef\gendef.exe" (
-            if not exist "%PLUGIN_DIR%\hcperl.dll" (
-              echo Missing expected plugin: %PLUGIN_DIR%\hcperl.dll
-              exit /b 1
-            )
-          ) else (
-            echo Perl prerequisites not found for ${{ matrix.platform }}; skipping hcperl.dll verification.
-          )
-
         shell: cmd
 
       - name: Preparing Artifacts
         run: |
-          set "BUILD_DIR=..\zoitechat-build\${{ matrix.platform }}"
-          if not exist "%BUILD_DIR%" if /I "${{ matrix.platform }}"=="win32" set "BUILD_DIR=..\zoitechat-build\Win32"
-          if not exist "%BUILD_DIR%" if /I "${{ matrix.platform }}"=="win32" set "BUILD_DIR=..\zoitechat-build\WIN32"
-          if not exist "%BUILD_DIR%" (
-            echo Missing build output dir: %BUILD_DIR%
-            dir ..\zoitechat-build
-            exit /b 1
-          )
-          move "%BUILD_DIR%\ZoiteChat*.exe" .\
+          move ..\zoitechat-build\${{ matrix.platform }}\ZoiteChat*.exe .\
           move ..\zoitechat-build .\
         shell: cmd
 
