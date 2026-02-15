@@ -25,9 +25,10 @@
   <PropertyGroup>
     <OutDir>$(ZoiteChatRel)</OutDir>
   </PropertyGroup>
-<PropertyGroup>
-  <IsccPath Condition="'$(IsccPath)'==''">"$(ProgramFiles)\Inno Setup 6\ISCC.exe"</IsccPath>
-</PropertyGroup>
+  <PropertyGroup>
+    <IsccPath Condition="'$(IsccPath)'=='' and Exists('$(ProgramFiles(x86))\Inno Setup 6\ISCC.exe')">"$(ProgramFiles(x86))\Inno Setup 6\ISCC.exe"</IsccPath>
+    <IsccPath Condition="'$(IsccPath)'=='' and Exists('$(ProgramFiles)\Inno Setup 6\ISCC.exe')">"$(ProgramFiles)\Inno Setup 6\ISCC.exe"</IsccPath>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
     <ClCompile>
     </ClCompile>
@@ -40,6 +41,7 @@
       <Command>
       <![CDATA[
 SET SOLUTIONDIR=$(SolutionDir)..\
+if not exist "$(ZoiteChatBin)" mkdir "$(ZoiteChatBin)"
 powershell -File "$(SolutionDir)..\win32\version-template.ps1" "$(SolutionDir)..\win32\installer\zoitechat.iss.tt" "$(ZoiteChatBin)zoitechat.iss"
 $(IsccPath) /dPROJECTDIR="$(ProjectDir)" /dAPPARCH="$(Platform)" "$(ZoiteChatBin)zoitechat.iss"
       ]]>
@@ -53,6 +55,7 @@ $(IsccPath) /dPROJECTDIR="$(ProjectDir)" /dAPPARCH="$(Platform)" "$(ZoiteChatBin
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>
+
 
 
 
