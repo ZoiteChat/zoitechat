@@ -28,6 +28,7 @@
   <PropertyGroup>
     <IsccPath Condition="'$(IsccPath)'=='' and Exists('$(ProgramFiles(x86))\Inno Setup 6\ISCC.exe')">"$(ProgramFiles(x86))\Inno Setup 6\ISCC.exe"</IsccPath>
     <IsccPath Condition="'$(IsccPath)'=='' and Exists('$(ProgramFiles)\Inno Setup 6\ISCC.exe')">"$(ProgramFiles)\Inno Setup 6\ISCC.exe"</IsccPath>
+    <IsccPath Condition="'$(IsccPath)'==''">ISCC.exe</IsccPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
     <ClCompile>
@@ -55,6 +56,7 @@ $(IsccPath) /dPROJECTDIR="$(ProjectDir)" /dAPPARCH="$(Platform)" "$(ZoiteChatBin
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>
+
 
 
 
