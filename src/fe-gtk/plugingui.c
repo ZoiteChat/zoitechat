@@ -48,6 +48,16 @@ enum
 
 static GtkWidget *plugin_window = NULL;
 
+static session *
+plugingui_get_target_session (void)
+{
+	if (is_session (current_sess))
+		return current_sess;
+
+	fe_message (_("No active session available for addon command."), FE_MSG_ERROR);
+	return NULL;
+}
+
 #if HAVE_GTK3
 #define ICON_PLUGIN_LOAD "document-open"
 #define ICON_PLUGIN_UNLOAD "edit-delete"
@@ -218,6 +228,7 @@ static void
 plugingui_unload (GtkWidget * wid, gpointer unused)
 {
 	char *modname, *file;
+	session *target_sess;
 	GtkTreeView *view;
 	GtkTreeIter iter;
 	
@@ -235,11 +246,19 @@ plugingui_unload (GtkWidget * wid, gpointer unused)
 	{
 		char *buf;
 		/* let python.so or perl.so handle it */
+		target_sess = plugingui_get_target_session ();
+		if (!target_sess)
+		{
+			g_free (modname);
+			g_free (file);
+			return;
+		}
+
 		if (strchr (file, ' '))
 			buf = g_strdup_printf ("UNLOAD \"%s\"", file);
 		else
 			buf = g_strdup_printf ("UNLOAD %s", file);
-		handle_command (current_sess, buf, FALSE);
+		handle_command (target_sess, buf, FALSE);
 		g_free (buf);
 	}
 
@@ -251,16 +270,24 @@ static void
 plugingui_reloadbutton_cb (GtkWidget *wid, GtkTreeView *view)
 {
 	char *file = plugingui_getfilename(view);
+	session *target_sess;
 
 	if (file)
 	{
 		char *buf;
 
+		target_sess = plugingui_get_target_session ();
+		if (!target_sess)
+		{
+			g_free (file);
+			return;
+		}
+
 		if (strchr (file, ' '))
 			buf = g_strdup_printf ("RELOAD \"%s\"", file);
 		else
 			buf = g_strdup_printf ("RELOAD %s", file);
-		handle_command (current_sess, buf, FALSE);
+		handle_command (target_sess, buf, FALSE);
 		g_free (buf);
 		g_free (file);
 	}
@@ -270,6 +297,7 @@ void
 plugingui_open (void)
 {
 	GtkWidget *view;
+	GtkWidget *view_scroll;
 	GtkWidget *vbox, *hbox;
 	char buf[128];
 
@@ -285,6 +313,9 @@ plugingui_open (void)
 	gtkutil_destroy_on_esc (plugin_window);
 
 	view = plugingui_treeview_new (vbox);
+	view_scroll = gtk_widget_get_parent (view);
+	if (view_scroll)
+		gtk_box_set_child_packing (GTK_BOX (vbox), view_scroll, TRUE, TRUE, 0, GTK_PACK_START);
 	g_object_set_data (G_OBJECT (plugin_window), "view", view);
 
 
