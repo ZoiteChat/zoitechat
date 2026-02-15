@@ -168,7 +168,13 @@ fe_pluginlist_update (void)
 		return;
 
 	view = g_object_get_data (G_OBJECT (plugin_window), "view");
+	if (!GTK_IS_TREE_VIEW (view))
+		return;
+
 	store = GTK_LIST_STORE (gtk_tree_view_get_model (view));
+	if (!GTK_IS_LIST_STORE (store))
+		return;
+
 	gtk_list_store_clear (store);
 
 	list = plugin_list;
@@ -178,10 +184,10 @@ fe_pluginlist_update (void)
 		if (pl && pl->version && pl->version[0] != 0)
 		{
 			gtk_list_store_append (store, &iter);
-			gtk_list_store_set (store, &iter, NAME_COLUMN, pl->name,
-			                    VERSION_COLUMN, pl->version,
+			gtk_list_store_set (store, &iter, NAME_COLUMN, plugingui_safe_string (pl->name),
+			                    VERSION_COLUMN, plugingui_safe_string (pl->version),
 			                    FILE_COLUMN, pl->filename ? file_part (pl->filename) : "",
-			                    DESC_COLUMN, pl->desc,
+			                    DESC_COLUMN, plugingui_safe_string (pl->desc),
 			                    FILEPATH_COLUMN, plugingui_safe_string (pl->filename), -1);
 		}
 		list = list->next;
@@ -242,6 +248,12 @@ plugingui_unload (GtkWidget * wid, gpointer unused)
 	if (!gtkutil_treeview_get_selected (view, &iter, NAME_COLUMN, &modname,
 	                                    FILEPATH_COLUMN, &file, -1))
 		return;
+	if (!modname || !*modname)
+	{
+		g_free (modname);
+		g_free (file);
+		return;
+	}
 	if (!file || !*file)
 	{
 		g_free (modname);
