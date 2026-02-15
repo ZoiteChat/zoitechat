@@ -47,7 +47,7 @@ jobs:
           Invoke-WebRequest https://github.com/zoitechat/gvsbuild/releases/download/zoitechat-2.17.0/idpsetup-1.5.1.exe -OutFile deps\idpsetup.exe
           & deps\idpsetup.exe /VERYSILENT
 
-          Invoke-WebRequest https://github.com/zoitechat/gvsbuild/releases/download/zoitechat-2.17.0/https://github.com/ZoiteChat/gvsbuild/releases/download/zoitechat-2.18.0-pre1/GTK3_Gvsbuild_zoitechat-2.18.0-pre1_${{ matrix.platform }}.7z -OutFile deps\gtk-${{ matrix.arch }}.7z
+          Invoke-WebRequest https://github.com/ZoiteChat/gvsbuild/releases/download/zoitechat-2.18.0-pre1/GTK3_Gvsbuild_zoitechat-2.18.0-pre1_${{ matrix.platform }}.7z -OutFile deps\gtk-${{ matrix.arch }}.7z
           & 7z.exe x deps\gtk-${{ matrix.arch }}.7z -oC:\gtk-build\gtk\x64\release
 
           Invoke-WebRequest https://github.com/zoitechat/gvsbuild/releases/download/zoitechat-2.17.0/gendef-20111031.7z -OutFile deps\gendef.7z
