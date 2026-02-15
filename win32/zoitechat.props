@@ -156,6 +156,11 @@
 		<Error Condition="'$(Gtk3Lib)'==''" Text="Missing GTK import library (gtk-3*.lib) under $(DepsRoot)\lib. Ensure your dependency bundle includes MSVC .lib files (not just .dll)." />
 		<Error Condition="'$(Gdk3Lib)'==''" Text="Missing GDK import library (gdk-3*.lib) under $(DepsRoot)\lib. Ensure your dependency bundle includes MSVC .lib files." />
 		<Error Condition="!Exists('$(DepsRoot)\include\openssl\ssl.h') and !Exists('$(DepsRoot)\include\openssl3\openssl\ssl.h') and !Exists('$(DepsRoot)\include\openssl-3\openssl\ssl.h')" Text="Missing OpenSSL headers under $(DepsRoot). Install OpenSSL development files for your target architecture." />
+		<Error Condition="'$(LuaInclude)'==''" Text="Missing Lua/LuaJIT headers under $(DepsRoot)\include (expected lua.h in luajit-2.1, luajit, lua5.1, or lua51)." />
+		<Error Condition="'$(LuaLib)'==''" Text="Missing Lua/LuaJIT import library under $(DepsRoot)\lib (expected lua51.lib, luajit-5.1.lib, or luajit.lib)." />
+		<Error Condition="'$(LuaRuntimeDll)'==''" Text="Missing Lua/LuaJIT runtime DLL under $(DepsRoot)\bin (expected lua51.dll, luajit-5.1.dll, or luajit.dll)." />
+		<Error Condition="'$(LuaLibDir)'==''" Text="Missing Lua native modules under $(DepsRoot)\lib\lua (expected lgi modules under 2.1 or 5.1)." />
+		<Error Condition="'$(LuaShareDir)'==''" Text="Missing Lua shared scripts under $(DepsRoot)\share\lua (expected lgi scripts under 2.1 or 5.1)." />
 		<Error Condition="!Exists('$(Python3Path)\python.exe')" Text="Missing Python at $(Python3Path). Set YourPython3Path in win32\zoitechat.props or set ZOITECHAT_PYTHON3_PATH." />
 	</Target>
 
