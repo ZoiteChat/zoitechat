@@ -36,9 +36,12 @@
     <PreBuildEvent>
       <Command>
       <![CDATA[
-SET SOLUTIONDIR=$(SolutionDir)..\
-powershell -File "$(SolutionDir)..\win32\version-template.ps1" "$(SolutionDir)..\win32\installer\zoitechat.iss.tt" "$(ZoiteChatBin)zoitechat.iss"
-$(IsccPath) /dPROJECTDIR="$(ProjectDir)" /dAPPARCH="$(Platform)" "$(ZoiteChatBin)zoitechat.iss"
+set "SOLUTIONDIR=$(SolutionDir)..\"
+
+powershell -NoProfile -ExecutionPolicy Bypass -File "%SOLUTIONDIR%win32\version-template.ps1" "%SOLUTIONDIR%win32\installer\zoitechat.iss.tt" "$(ZoiteChatBin)zoitechat.iss" ^
+&& if /I "$(Platform)"=="Win32" (set "APPARCH=x86") else (set "APPARCH=x64") ^
+&& if not exist "$(IsccPath)" (echo ISCC not found: $(IsccPath) & exit /b 9009) ^
+&& "$(IsccPath)" /dPROJECTDIR="$(ProjectDir)" /dAPPARCH="%APPARCH%" "$(ZoiteChatBin)zoitechat.iss"
       ]]>
       </Command>
     </PreBuildEvent>
@@ -50,3 +53,4 @@ $(IsccPath) /dPROJECTDIR="$(ProjectDir)" /dAPPARCH="$(Platform)" "$(ZoiteChatBin
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>
+
