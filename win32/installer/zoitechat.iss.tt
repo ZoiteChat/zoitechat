@@ -148,6 +148,11 @@ Source: "pangowin32-1.0-0.dll"; DestDir: "{app}"; Flags: ignoreversion; Componen
 Source: "zlib1.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 Source: "jpeg62.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 Source: "harfbuzz.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
+Source: "gtk-3-vs17.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
+Source: "libexpat.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
+Source: "pcre2-8-0.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
+Source: "pixman-1-0.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
+Source: "tiff.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 
 Source: "plugins\hcnotifications-winrt.dll"; DestDir: "{app}\plugins"; Flags: ignoreversion; Components: libs
 
