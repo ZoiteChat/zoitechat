@@ -20,4 +20,4 @@ override_dh_installchangelogs:
 		debian/zoitechat-lua/usr/share/doc/zoitechat-lua \
 		debian/zoitechat-plugins/usr/share/doc/zoitechat-plugins \
 		debian/zoitechat-dev/usr/share/doc/zoitechat-dev
-	dh_installchangelogs debian/changelog.txt
+	dh_installchangelogs changelog.rst
