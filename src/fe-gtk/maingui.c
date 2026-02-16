@@ -2894,6 +2894,7 @@ mg_create_center (session *sess, session_gui *gui, GtkWidget *box)
 	/* sep between left and xtext */
 #if HAVE_GTK3
 	gui->hpane_left = gtk_paned_new (GTK_ORIENTATION_HORIZONTAL);
+	gtk_paned_set_wide_handle (GTK_PANED (gui->hpane_left), FALSE);
 #elif !HAVE_GTK3
 	gui->hpane_left = gtk_hpaned_new ();
 #endif
