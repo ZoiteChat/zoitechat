@@ -149,6 +149,8 @@
 			<WarningLevel>Level3</WarningLevel>
 			<PrecompiledHeader>NotUsing</PrecompiledHeader>
 			<DisableSpecificWarnings>4996</DisableSpecificWarnings>
+			<BasicRuntimeChecks>Default</BasicRuntimeChecks>
+			<SmallerTypeCheck>false</SmallerTypeCheck>
 			<AdditionalOptions>/d2Zi+ %(AdditionalOptions)</AdditionalOptions>
 			<WholeProgramOptimization>false</WholeProgramOptimization>
 			<!-- UNCOMMENT ONLY ONE -->
