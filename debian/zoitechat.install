@@ -1,5 +1,2 @@
 usr/bin/zoitechat
-usr/share/applications
 usr/share/man/man1/zoitechat.1
-usr/share/metainfo/net.zoite.Zoitechat.appdata.xml
-usr/share/mime/packages/net.zoite.Zoitechat.mime.xml

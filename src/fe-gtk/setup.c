@@ -2816,7 +2816,7 @@ setup_apply_to_sess (session_gui *gui)
 			bg = &colors[COL_BG];
 		if (fe_dark_mode_is_enabled ())
 			fg = &colors[COL_FG];
-		if (prefs.hex_gui_ulist_style)
+		if (input_style)
 			font = input_style->font_desc;
 
 		gtkutil_apply_palette (gui->user_tree, bg, fg, font);

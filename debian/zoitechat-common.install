@@ -1,0 +1,7 @@
+usr/share/applications/net.zoite.Zoitechat.desktop
+usr/share/dbus-1/services/org.zoitechat.service.service
+usr/share/icons/hicolor/48x48/apps/net.zoite.Zoitechat.png
+usr/share/icons/hicolor/scalable/apps/net.zoite.Zoitechat.svg
+usr/share/locale/*/LC_MESSAGES/zoitechat.mo
+usr/share/metainfo/net.zoite.Zoitechat.appdata.xml
+usr/share/mime/packages/net.zoite.Zoitechat.mime.xml
