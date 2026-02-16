@@ -12,4 +12,12 @@ override_dh_auto_configure:
 		-Dwith-lua=lua53
 
 override_dh_installchangelogs:
+	install -m0755 -d \
+		debian/zoitechat/usr/share/doc/zoitechat \
+		debian/zoitechat-common/usr/share/doc/zoitechat-common \
+		debian/zoitechat-perl/usr/share/doc/zoitechat-perl \
+		debian/zoitechat-python3/usr/share/doc/zoitechat-python3 \
+		debian/zoitechat-lua/usr/share/doc/zoitechat-lua \
+		debian/zoitechat-plugins/usr/share/doc/zoitechat-plugins \
+		debian/zoitechat-dev/usr/share/doc/zoitechat-dev
 	dh_installchangelogs debian/changelog.txt
