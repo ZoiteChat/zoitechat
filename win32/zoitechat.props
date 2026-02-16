@@ -139,7 +139,7 @@
 	<PropertyGroup>
 		<LinkIncremental>false</LinkIncremental>
 		<IntDir>$(ZoiteChatObj)$(ProjectName)\</IntDir>
-		<UseDebugLibraries>true</UseDebugLibraries>
+		<UseDebugLibraries>false</UseDebugLibraries>
 		<WholeProgramOptimization>true</WholeProgramOptimization>
 		<CharacterSet>MultiByte</CharacterSet>
 	</PropertyGroup>
