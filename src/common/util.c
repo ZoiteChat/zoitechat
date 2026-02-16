@@ -185,6 +185,14 @@ waitline (int sok, char *buf, int bufsize, int use_recv)
 {
 	int i = 0;
 
+	if (bufsize <= 0)
+		return -1;
+
+#ifdef WIN32
+	if (!use_recv && _get_osfhandle (sok) == -1)
+		return -1;
+#endif
+
 	while (1)
 	{
 		if (use_recv)
