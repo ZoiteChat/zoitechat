@@ -1063,8 +1063,8 @@ gtk_xtext_realize (GtkWidget * widget)
 	attributes.window_type = GDK_WINDOW_CHILD;
 	attributes.event_mask = gtk_widget_get_events (widget) |
 		GDK_EXPOSURE_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK
-		| GDK_POINTER_MOTION_MASK | GDK_LEAVE_NOTIFY_MASK;
-
+		| GDK_POINTER_MOTION_MASK | GDK_LEAVE_NOTIFY_MASK | GDK_SCROLL_MASK;
+	
 	window = gdk_window_new (parent_window, &attributes, attributes_mask);
 
 #if HAVE_GTK3
