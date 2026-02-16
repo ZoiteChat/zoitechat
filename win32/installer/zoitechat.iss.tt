@@ -325,8 +325,8 @@ begin
 				idpAddFile(PERL, ExpandConstant('{tmp}\perl.msi'))
 			end;
 
-			if IsComponentSelected('langs\python\python3') and not CheckDLL('python314.dll') then
-				idpAddFile(PY3, ExpandConstant('{tmp}\python.exe'));
+			if IsComponentSelected('langs\python') and not CheckDLL('python314.dll') then
+                idpAddFile(PY3, ExpandConstant('{tmp}\python.exe'));
 		end;
 	end;
   end;
