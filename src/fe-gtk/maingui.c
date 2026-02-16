@@ -4013,6 +4013,27 @@ mg_win32_filter (GdkXEvent *xevent, GdkEvent *event, gpointer data)
 		}
 	}
 
+	if (msg->message == WM_MOUSEWHEEL || msg->message == WM_MOUSEHWHEEL)
+	{
+		POINT cursor_pos;
+		HWND hover_hwnd;
+		DWORD hover_pid = 0;
+
+		if (!GetCursorPos (&cursor_pos))
+			return GDK_FILTER_CONTINUE;
+
+		hover_hwnd = WindowFromPoint (cursor_pos);
+		if (!hover_hwnd || hover_hwnd == msg->hwnd)
+			return GDK_FILTER_CONTINUE;
+
+		GetWindowThreadProcessId (hover_hwnd, &hover_pid);
+		if (hover_pid != GetCurrentProcessId ())
+			return GDK_FILTER_CONTINUE;
+
+		PostMessage (hover_hwnd, msg->message, msg->wParam, msg->lParam);
+		return GDK_FILTER_REMOVE;
+	}
+	
         return GDK_FILTER_CONTINUE;
 }
 #endif
