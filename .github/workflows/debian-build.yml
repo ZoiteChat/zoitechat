@@ -35,11 +35,14 @@ jobs:
           set -eux
           dpkg-buildpackage -us -uc -b
 
+      - name: Collect Debian artifacts
+        run: |
+          set -eux
+          mkdir -p artifacts
+          cp -v ../*.deb ../*.changes ../*.buildinfo artifacts/
+
       - name: Upload Debian artifacts
         uses: actions/upload-artifact@v4
         with:
           name: zoitechat-debian-packages
-          path: |
-            ../*.deb
-            ../*.changes
-            ../*.buildinfo
+          path: artifacts/*
