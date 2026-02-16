@@ -140,7 +140,7 @@
 		<LinkIncremental>false</LinkIncremental>
 		<IntDir>$(ZoiteChatObj)$(ProjectName)\</IntDir>
 		<UseDebugLibraries>true</UseDebugLibraries>
-		<WholeProgramOptimization>false</WholeProgramOptimization>
+		<WholeProgramOptimization>true</WholeProgramOptimization>
 		<CharacterSet>MultiByte</CharacterSet>
 	</PropertyGroup>
 
@@ -152,10 +152,10 @@
 			<AdditionalOptions>/d2Zi+ %(AdditionalOptions)</AdditionalOptions>
 			<WholeProgramOptimization>false</WholeProgramOptimization>
 			<!-- UNCOMMENT ONLY ONE -->
-			<Optimization>Disabled</Optimization>
+			<!--<Optimization>Disabled</Optimization>-->
 			<!--Optimization>MaxSpeed</Optimization-->
 			<!--Optimization>MinSpace</Optimization-->
-			<!--Optimization>Full</Optimization-->
+			<Optimization>Full</Optimization>
 			<FunctionLevelLinking>true</FunctionLevelLinking>
 			<IntrinsicFunctions>true</IntrinsicFunctions>
 			<MultiProcessorCompilation>true</MultiProcessorCompilation>
