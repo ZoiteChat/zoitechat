@@ -492,6 +492,15 @@ gtkutil_file_req_response (GtkWidget *dialog, gint res, struct file_req *freq)
 	}
 }
 
+#if defined (WIN32) && HAVE_GTK3
+static gboolean
+gtkutil_native_dialog_unref_idle (gpointer native)
+{
+	g_object_unref (native);
+	return G_SOURCE_REMOVE;
+}
+#endif
+
 void
 gtkutil_file_req (GtkWindow *parent, const char *title, void *callback, void *userdata, char *filter, char *extensions,
 						int flags)
@@ -582,7 +591,11 @@ gtkutil_file_req (GtkWindow *parent, const char *title, void *callback, void *us
 		if (response == GTK_RESPONSE_ACCEPT)
 			gtkutil_file_req_done_chooser (native_chooser, freq);
 
-		g_object_unref (native);
+		/*
+		 * Defer unref until idle to avoid disposing the native chooser while
+		 * still in the button-release signal stack on Windows.
+		 */
+		g_idle_add (gtkutil_native_dialog_unref_idle, native);
 		g_free (freq);
 		return;
 	}
