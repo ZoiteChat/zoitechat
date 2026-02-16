@@ -2721,11 +2721,13 @@ mg_create_center (session *sess, session_gui *gui, GtkWidget *box)
         if (prefs.hex_gui_win_swap)
         {
                 gtk_paned_pack2 (GTK_PANED (gui->hpane_left), gui->vpane_left, FALSE, TRUE);
+			    gtk_paned_pack2 (GTK_PANED (gui->hpane_left), gui->vpane_left, TRUE, TRUE);
                 gtk_paned_pack1 (GTK_PANED (gui->hpane_left), gui->hpane_right, TRUE, TRUE);
         }
         else
         {
                 gtk_paned_pack1 (GTK_PANED (gui->hpane_left), gui->vpane_left, FALSE, TRUE);
+			    gtk_paned_pack1 (GTK_PANED (gui->hpane_left), gui->vpane_left, TRUE, TRUE);
                 gtk_paned_pack2 (GTK_PANED (gui->hpane_left), gui->hpane_right, TRUE, TRUE);
         }
         gtk_paned_pack2 (GTK_PANED (gui->hpane_right), gui->vpane_right, FALSE, TRUE);
