@@ -1,6 +1,15 @@
 ZoiteChat ChangeLog
 =================
 
+2.18.0-pre1 (2026-02-16)
+------------------------
+
+- Switched Debian packaging/builds to GTK 3 (Build-Depends, Meson flags, and package metadata).
+- Added Debian package split install manifests so files are assigned to the correct binary packages.
+- Fixed Debian packaging coverage for the man page and MIME XML to avoid unassigned-file (dh_missing) failures.
+- Updated Debian CI packaging workflow and artifact upload paths for actions/upload-artifact@v4 compatibility.
+- Improved GTK3 font consistency by applying the configured input font to channel tree and user list theming paths.
+
 2.17.4 (2026-02-03)
 -------------------
 
