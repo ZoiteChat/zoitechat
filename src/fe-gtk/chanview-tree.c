@@ -106,15 +106,20 @@ cv_tree_init (chanview *cv)
 	};
 
 	win = gtk_scrolled_window_new (0, 0);
+	gtk_widget_set_hexpand (win, TRUE);
+	gtk_widget_set_vexpand (win, TRUE);
+
 	/*gtk_container_set_border_width (GTK_CONTAINER (win), 1);*/
 	gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (win),
-													 GTK_SHADOW_IN);
+									 GTK_SHADOW_IN);
 	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (win),
 											  GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
 	gtk_container_add (GTK_CONTAINER (cv->box), win);
 	gtk_widget_show (win);
 
 	view = gtk_tree_view_new_with_model (GTK_TREE_MODEL (cv->store));
+	gtk_widget_set_hexpand (view, TRUE);
+	gtk_widget_set_vexpand (view, TRUE);
 	gtk_widget_set_name (view, "zoitechat-tree");
 	if (
 #if HAVE_GTK3
