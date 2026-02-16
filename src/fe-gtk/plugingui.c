@@ -202,6 +202,7 @@ plugingui_load_cb (session *sess, char *file)
 	if (file)
 	{
 		char *buf;
+		char *load_target;
 
 		target_sess = is_session (sess) ? sess : current_sess;
 		if (!is_session (target_sess))
@@ -210,11 +211,22 @@ plugingui_load_cb (session *sess, char *file)
 			return;
 		}
 
-		if (strchr (file, ' '))
-			buf = g_strdup_printf ("LOAD \"%s\"", file);
+		load_target = g_strdup (file);
+
+#ifdef WIN32
+		/*
+		 * The command parser is more reliable with forward slashes on Windows
+		 * paths (especially when quoted), so normalize before issuing LOAD.
+		 */
+		g_strdelimit (load_target, "\\", '/');
+#endif
+
+		if (strchr (load_target, ' '))
+			buf = g_strdup_printf ("LOAD \"%s\"", load_target);
 		else
-			buf = g_strdup_printf ("LOAD %s", file);
+			buf = g_strdup_printf ("LOAD %s", load_target);
 		handle_command (target_sess, buf, FALSE);
+		g_free (load_target);
 		g_free (buf);
 	}
 }
