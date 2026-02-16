@@ -7,6 +7,7 @@ export DH_VERBOSE=1
 
 override_dh_auto_configure:
 	dh_auto_configure -- \
+		-Dgtk3=true \
 		-Dinstall-plugin-metainfo=false \
 		-Dwith-lua=lua53
 

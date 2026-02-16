@@ -1,3 +1,12 @@
+zoitechat (2.17.0-1) unstable; urgency=medium
+
+  * Switch Debian build to GTK 3 packaging:
+    - replace libgtk2.0-dev with libgtk-3-dev in Build-Depends.
+    - pass -Dgtk3=true to Meson during package builds.
+    - update package description to explicitly reference GTK 3.
+
+ -- ZoiteChat Maintainers <zoitechat@users.noreply.github.com>  Sun, 16 Feb 2026 00:00:00 +0000
+
 zoitechat (2.17.0-0) stable; urgency=medium
 
   * Initial ZoiteChat packaging (forked from HexChat's Debian packaging).
