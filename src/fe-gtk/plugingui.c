@@ -234,12 +234,15 @@ plugingui_load_cb (session *sess, char *file)
 void
 plugingui_load (void)
 {
-	char *sub_dir = g_build_filename (get_xdir(), "addons", NULL);
+	const char *xdir = get_xdir ();
+	char *sub_dir = NULL;
+
+	if (xdir && xdir[0] != '\0')
+		sub_dir = g_build_filename (xdir, "addons", NULL);
 
 	gtkutil_file_req (NULL, _("Select a Plugin or Script to load"), plugingui_load_cb, NULL,
-							sub_dir, "*."PLUGIN_SUFFIX";*.lua;*.pl;*.py;*.tcl;*.js", FRF_FILTERISINITIAL|FRF_EXTENSIONS);
-
-	g_free (sub_dir);
+						sub_dir, "*."PLUGIN_SUFFIX";*.lua;*.pl;*.py;*.tcl;*.js", FRF_FILTERISINITIAL|FRF_EXTENSIONS);
+		g_free (sub_dir);
 }
 
 static void
