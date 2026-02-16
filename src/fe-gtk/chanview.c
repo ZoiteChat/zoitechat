@@ -113,6 +113,7 @@ chanview_apply_theme (chanview *cv)
 {
 	GtkWidget *w;
 	treeview *tv;
+	const PangoFontDescription *font = NULL;
 
 	if (cv == NULL)
 		return;
@@ -126,14 +127,17 @@ chanview_apply_theme (chanview *cv)
 		return;
 
 	w = GTK_WIDGET (tv->tree);
+	if (input_style)
+		font = input_style->font_desc;
+
 	if (fe_dark_mode_is_enabled () || prefs.hex_gui_dark_mode == ZOITECHAT_DARK_MODE_LIGHT)
 	{
-		gtkutil_apply_palette (w, &colors[COL_BG], &colors[COL_FG], NULL);
+		gtkutil_apply_palette (w, &colors[COL_BG], &colors[COL_FG], font);
 	}
 	else
 	{
-		/* Revert back to theme defaults. */
-		gtkutil_apply_palette (w, NULL, NULL, NULL);
+		/* Keep list font in sync while reverting colors to theme defaults. */
+		gtkutil_apply_palette (w, NULL, NULL, font);
 	}
 }
 

@@ -2825,7 +2825,7 @@ mg_create_userlist (session_gui *gui, GtkWidget *box)
         if (prefs.hex_gui_ulist_style || fe_dark_mode_is_enabled ())
         {
                 gtkutil_apply_palette (ulist, &colors[COL_BG], &colors[COL_FG],
-                                       prefs.hex_gui_ulist_style ? input_style->font_desc : NULL);
+                                       input_style ? input_style->font_desc : NULL);
         }
 
         mg_create_meters (gui, vbox);
@@ -3774,7 +3774,7 @@ mg_create_tabs (session_gui *gui)
         gui->chanview = chanview_new (prefs.hex_gui_tab_layout, prefs.hex_gui_tab_trunc,
                                                                                         prefs.hex_gui_tab_sort, use_icons,
 #if HAVE_GTK3
-                                                                                        prefs.hex_gui_ulist_style && input_style ? input_style->font_desc : NULL
+                                                                                        input_style ? input_style->font_desc : NULL
 #else
                                                                                         prefs.hex_gui_ulist_style ? input_style : NULL
 #endif
