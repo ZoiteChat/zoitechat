@@ -588,7 +588,16 @@ static char *zoitechat_strdup_printf (const char *format, ...)
 
 	va_start (args, format);
 	va_copy (args_copy, args);
+	/*
+	 * MSVC's debug CRT treats vsnprintf(NULL, 0, ...) as an invalid parameter,
+	 * which triggers a fatal runtime exception via ucrtbased.dll. Use
+	 * _vscprintf() to determine required output length on that toolchain.
+	 */
+#ifdef _MSC_VER
+	length = _vscprintf (format, args_copy);
+#else
 	length = vsnprintf (NULL, 0, format, args_copy);
+#endif	
 	va_end (args_copy);
 
 	if (length < 0)
