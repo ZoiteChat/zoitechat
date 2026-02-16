@@ -152,8 +152,8 @@
 			<AdditionalOptions>/d2Zi+ %(AdditionalOptions)</AdditionalOptions>
 			<WholeProgramOptimization>false</WholeProgramOptimization>
 			<!-- UNCOMMENT ONLY ONE -->
-			Optimization>Disabled</Optimization
-			<Optimization>MaxSpeed</Optimization>
+			<Optimization>Disabled</Optimization>
+			<!--Optimization>MaxSpeed</Optimization-->
 			<!--Optimization>MinSpace</Optimization-->
 			<!--Optimization>Full</Optimization-->
 			<FunctionLevelLinking>true</FunctionLevelLinking>
