@@ -40,6 +40,14 @@
 #endif
 #endif
 
+#if !HAVE_GTK3
+/* GtkWidget expansion APIs were introduced in GTK3. Keep GTK2 builds
+ * source-compatible by accepting the calls as no-ops.
+ */
+#define gtk_widget_set_hexpand(widget, expand) G_STMT_START { (void) (widget); (void) (expand); } G_STMT_END
+#define gtk_widget_set_vexpand(widget, expand) G_STMT_START { (void) (widget); (void) (expand); } G_STMT_END
+#endif
+
 #ifdef HAVE_GTK_MAC
 #include <gtkosxapplication.h>
 #endif
