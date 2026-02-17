@@ -427,6 +427,46 @@ fe_system_prefers_dark (void)
 
 static gboolean auto_dark_mode_enabled = FALSE;
 
+#ifdef G_OS_WIN32
+static void
+fe_apply_windows_theme (gboolean dark)
+{
+	GtkSettings *settings = gtk_settings_get_default ();
+
+	if (settings && g_object_class_find_property (G_OBJECT_GET_CLASS (settings),
+	                                              "gtk-application-prefer-dark-theme"))
+	{
+		g_object_set (settings, "gtk-application-prefer-dark-theme", dark, NULL);
+	}
+
+#if HAVE_GTK3
+	{
+		static GtkCssProvider *win_theme_provider = NULL;
+		GdkScreen *screen = gdk_screen_get_default ();
+		const char *css =
+			"window.zoitechat-dark, .zoitechat-dark {"
+			"background-color: #202020;"
+			"color: #f0f0f0;"
+			"}"
+			"window.zoitechat-light, .zoitechat-light {"
+			"background-color: #f6f6f6;"
+			"color: #101010;"
+			"}";
+
+		if (!win_theme_provider)
+			win_theme_provider = gtk_css_provider_new ();
+
+		gtk_css_provider_load_from_data (win_theme_provider, css, -1, NULL);
+		if (screen)
+			gtk_style_context_add_provider_for_screen (
+				screen,
+				GTK_STYLE_PROVIDER (win_theme_provider),
+				GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+	}
+#endif
+}
+#endif
+
 static void
 fe_auto_dark_mode_changed (GtkSettings *settings, GParamSpec *pspec, gpointer data)
 {
@@ -466,6 +506,10 @@ fe_apply_theme_for_mode (unsigned int mode, gboolean *palette_changed)
 	gboolean enabled = fe_dark_mode_is_enabled_for (mode);
 	gboolean changed = palette_apply_dark_mode (enabled);
 
+#ifdef G_OS_WIN32
+	fe_apply_windows_theme (enabled);
+#endif
+
 	if (palette_changed)
 		*palette_changed = changed;
 
@@ -481,6 +525,20 @@ fe_apply_theme_to_toplevel (GtkWidget *window)
 	if (!window)
 		return;
 
+#if defined(G_OS_WIN32) && HAVE_GTK3
+	{
+		GtkStyleContext *context = gtk_widget_get_style_context (window);
+		gboolean dark = fe_dark_mode_is_enabled ();
+
+		if (context)
+		{
+			gtk_style_context_remove_class (context, "zoitechat-dark");
+			gtk_style_context_remove_class (context, "zoitechat-light");
+			gtk_style_context_add_class (context, dark ? "zoitechat-dark" : "zoitechat-light");
+		}
+	}
+#endif
+
 	fe_win32_apply_native_titlebar (window, fe_dark_mode_is_enabled ());
 }
 
@@ -495,7 +553,7 @@ fe_dark_mode_is_enabled_for (unsigned int mode)
 		return FALSE;
 	case ZOITECHAT_DARK_MODE_AUTO:
 	default:
-		return fe_system_prefers_dark ();
+		return auto_dark_mode_enabled;
 	}
 }
 
@@ -705,6 +763,10 @@ fe_init (void)
 	GtkSettings *settings;
 
 	palette_load ();
+	settings = gtk_settings_get_default ();
+	if (settings)
+		auto_dark_mode_enabled = fe_system_prefers_dark ();
+
 	fe_apply_theme_for_mode (prefs.hex_gui_dark_mode, NULL);
 	key_init ();
 	pixmaps_init ();
@@ -719,12 +781,10 @@ fe_init (void)
 	input_style = create_input_style (gtk_style_new ());
 #endif
 
-	settings = gtk_settings_get_default ();
 	if (settings)
 	{
-		auto_dark_mode_enabled = fe_system_prefers_dark ();
 		g_signal_connect (settings, "notify::gtk-application-prefer-dark-theme",
-						  G_CALLBACK (fe_auto_dark_mode_changed), NULL);
+					  G_CALLBACK (fe_auto_dark_mode_changed), NULL);
 		g_signal_connect (settings, "notify::gtk-theme-name",
 						  G_CALLBACK (fe_auto_dark_mode_changed), NULL);
 	}
