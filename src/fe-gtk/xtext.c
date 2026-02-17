@@ -195,6 +195,8 @@ static void gtk_xtext_search_textentry_fini (gpointer, gpointer);
 static void gtk_xtext_search_fini (xtext_buffer *);
 static gboolean gtk_xtext_search_init (xtext_buffer *buf, const gchar *text, gtk_xtext_search_flags flags, GError **perr);
 static char * gtk_xtext_get_word (GtkXText * xtext, int x, int y, textentry ** ret_ent, int *ret_off, int *ret_len, GSList **slp);
+static gboolean gtk_xtext_word_select_char (const unsigned char *ch);
+static gboolean gtk_xtext_get_word_select_range (GtkXText *xtext, int x, int y, textentry **ret_ent, int *ret_off, int *ret_len);
 
 static inline void
 gtk_xtext_cursor_unref (GdkCursor *cursor)
@@ -1856,10 +1858,12 @@ gtk_xtext_selection_draw (GtkXText * xtext, GdkEventMotion * event, gboolean ren
 	if (xtext->word_select)
 	{
 		/* a word selection cannot be started if the cursor is out of bounds in gtk_xtext_button_press */
-		gtk_xtext_get_word (xtext, low_x, low_y, NULL, &low_offs, NULL, NULL);
+		if (!gtk_xtext_get_word_select_range (xtext, low_x, low_y, NULL, &low_offs, NULL))
+			gtk_xtext_get_word (xtext, low_x, low_y, NULL, &low_offs, NULL, NULL);
 
 		/* in case the cursor is out of bounds we keep offset_end from gtk_xtext_find_char and fix the length */
-		if (gtk_xtext_get_word (xtext, high_x, high_y, NULL, &high_offs, &high_len, NULL) == NULL)
+		if (!gtk_xtext_get_word_select_range (xtext, high_x, high_y, NULL, &high_offs, &high_len) &&
+			 gtk_xtext_get_word (xtext, high_x, high_y, NULL, &high_offs, &high_len, NULL) == NULL)
 			high_len = high_offs == high_ent->str_len? 0: -1; /* -1 for the space, 0 if at the end */
 		high_offs += high_len;
 		if (low_y < 0)
@@ -2132,6 +2136,57 @@ gtk_xtext_get_word (GtkXText * xtext, int x, int y, textentry ** ret_ent,
 	}
 
 	return word;
+}
+
+static gboolean
+gtk_xtext_word_select_char (const unsigned char *ch)
+{
+	gunichar uc;
+
+	if (!ch || !*ch)
+		return FALSE;
+
+	uc = g_utf8_get_char_validated ((const gchar *)ch, -1);
+	if (uc == (gunichar)-1 || uc == (gunichar)-2)
+		return FALSE;
+	return g_unichar_isalnum (uc) || uc == '_' || uc == '-';
+}
+
+static gboolean
+gtk_xtext_get_word_select_range (GtkXText *xtext, int x, int y, textentry **ret_ent, int *ret_off, int *ret_len)
+{
+	textentry *ent;
+	int offset;
+	unsigned char *start, *end;
+
+	ent = gtk_xtext_find_char (xtext, x, y, &offset, NULL);
+	if (!ent || offset < 0 || offset >= ent->str_len)
+		return FALSE;
+
+	start = ent->str + offset;
+	end = g_utf8_find_next_char (start, ent->str + ent->str_len);
+	if (!gtk_xtext_word_select_char (start))
+		return FALSE;
+
+	while (start > ent->str)
+	{
+		unsigned char *prev = g_utf8_find_prev_char (ent->str, start);
+		if (!prev || !gtk_xtext_word_select_char (prev))
+			break;
+		start = prev;
+	}
+
+	while (end && end < ent->str + ent->str_len && gtk_xtext_word_select_char (end))
+		end = g_utf8_find_next_char (end, ent->str + ent->str_len);
+
+	if (ret_ent)
+		*ret_ent = ent;
+	if (ret_off)
+		*ret_off = (int)(start - ent->str);
+	if (ret_len)
+		*ret_len = (int)(end - start);
+
+	return TRUE;
 }
 
 static void
@@ -2581,7 +2636,8 @@ gtk_xtext_button_press (GtkWidget * widget, GdkEventButton * event)
 	if (event->type == GDK_2BUTTON_PRESS)	/* WORD select */
 	{
 		gtk_xtext_check_mark_stamp (xtext, mask);
-		if (gtk_xtext_get_word (xtext, x, y, &ent, &offset, &len, 0))
+		if (gtk_xtext_get_word_select_range (xtext, x, y, &ent, &offset, &len) ||
+			 gtk_xtext_get_word (xtext, x, y, &ent, &offset, &len, 0))
 		{
 			if (len == 0)
 				return FALSE;
@@ -4324,6 +4380,21 @@ gtk_xtext_nth (GtkXText *xtext, int line, int *subline)
 static int
 gtk_xtext_render_ents (GtkXText * xtext, textentry * enta, textentry * entb)
 {
+	/*
+	 * On GTK3 (especially Wayland), event handlers are outside ::draw and direct
+	 * window painting may not be presented immediately. Queue a frame instead so
+	 * selections appear right away.
+	 */
+#if HAVE_GTK3
+	if (xtext->draw_cr == NULL)
+	{
+		GtkWidget *w = GTK_WIDGET (xtext);
+		if (gtk_widget_get_realized (w))
+			gtk_widget_queue_draw (w);
+		return 0;
+	}
+#endif
+
 	textentry *ent, *orig_ent, *tmp_ent;
 	int line;
 	int lines_max;
@@ -5355,10 +5426,16 @@ gtk_xtext_append_entry (xtext_buffer *buf, textentry * ent, time_t stamp)
 				g_source_remove (buf->xtext->io_tag);
 				buf->xtext->io_tag = 0;
 			}
-			buf->xtext->add_io_tag = g_timeout_add (REFRESH_TIMEOUT * 2,
-															(GSourceFunc)
-															gtk_xtext_render_page_timeout,
-															buf->xtext);
+			/* When at the bottom of the buffer, render immediately so long
+			 * scrollback doesn't delay newly-sent messages appearing.
+			 * Otherwise, keep idle batching to avoid extra redraws while
+			 * scrolling around old content. */
+			if (buf->scrollbar_down)
+				gtk_xtext_render_page_timeout (buf->xtext);
+			else
+				buf->xtext->add_io_tag = g_idle_add ((GSourceFunc)
+										gtk_xtext_render_page_timeout,
+										buf->xtext);
 		}
 	}
 	if (buf->scrollbar_down)
@@ -5390,6 +5467,7 @@ gtk_xtext_append_indent (xtext_buffer *buf,
 	int space;
 	int tempindent;
 	int left_width;
+	int min_indent;
 
 	if (left_len == -1)
 		left_len = strlen (left_text);
@@ -5428,24 +5506,32 @@ gtk_xtext_append_indent (xtext_buffer *buf,
 	else
 		space = 0;
 
+	min_indent = MARGIN + space;
+
 	/* do we need to auto adjust the separator position? */
 	if (buf->xtext->auto_indent &&
 		 buf->indent < buf->xtext->max_auto_indent &&
-		 ent->indent < MARGIN + space)
+		 ent->indent < min_indent)
 	{
-		tempindent = MARGIN + space + buf->xtext->space_width + left_width;
+		tempindent = min_indent + buf->xtext->space_width + left_width;
 
-		if (tempindent > buf->indent)
+		/* Ignore tiny one-pixel style nudges.
+		 * They can trigger expensive full-width recalculations and are
+		 * perceived as a slight delay when sending messages with indenting on. */
+		if (tempindent > buf->indent + buf->xtext->space_width)
 			buf->indent = tempindent;
 
 		if (buf->indent > buf->xtext->max_auto_indent)
 			buf->indent = buf->xtext->max_auto_indent;
 
-		gtk_xtext_fix_indent (buf);
-		gtk_xtext_recalc_widths (buf, FALSE);
+		if (buf->indent > ent->indent + left_width + buf->xtext->space_width)
+		{
+			gtk_xtext_fix_indent (buf);
+			gtk_xtext_recalc_widths (buf, FALSE);
 
-		ent->indent = (buf->indent - left_width) - buf->xtext->space_width;
-		buf->xtext->force_render = TRUE;
+			ent->indent = (buf->indent - left_width) - buf->xtext->space_width;
+			buf->xtext->force_render = TRUE;
+		}
 	}
 
 	gtk_xtext_append_entry (buf, ent, stamp);

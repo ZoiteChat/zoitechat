@@ -247,6 +247,85 @@ zoitechat_remote_win32 (void)
 }
 #endif
 
+
+static gboolean
+zoitechat_copy_theme_file (const char *src, const char *dest, GError **error)
+{
+	char *data = NULL;
+	gsize len = 0;
+
+	if (!g_file_get_contents (src, &data, &len, error))
+		return FALSE;
+
+	if (!g_file_set_contents (dest, data, len, error))
+	{
+		g_free (data);
+		return FALSE;
+	}
+
+	g_free (data);
+	return TRUE;
+}
+
+gboolean
+zoitechat_apply_theme (const char *theme_name, GError **error)
+{
+	char *theme_dir;
+	char *colors_src;
+	char *colors_dest;
+	char *events_src;
+	char *events_dest;
+	gboolean ok = FALSE;
+
+	if (!theme_name || !*theme_name)
+	{
+		g_set_error (error, G_IO_ERROR, G_IO_ERROR_INVALID_ARGUMENT,
+		             _("No theme name specified."));
+		return FALSE;
+	}
+
+	theme_dir = g_build_filename (get_xdir (), "themes", theme_name, NULL);
+	colors_src = g_build_filename (theme_dir, "colors.conf", NULL);
+	colors_dest = g_build_filename (get_xdir (), "colors.conf", NULL);
+	events_src = g_build_filename (theme_dir, "pevents.conf", NULL);
+	events_dest = g_build_filename (get_xdir (), "pevents.conf", NULL);
+
+	if (!g_file_test (colors_src, G_FILE_TEST_IS_REGULAR))
+	{
+		g_set_error (error, G_IO_ERROR, G_IO_ERROR_NOT_FOUND,
+		             _("This theme is missing a colors.conf file."));
+		goto cleanup;
+	}
+
+	if (!zoitechat_copy_theme_file (colors_src, colors_dest, error))
+		goto cleanup;
+
+	if (g_file_test (events_src, G_FILE_TEST_IS_REGULAR))
+	{
+		if (!zoitechat_copy_theme_file (events_src, events_dest, error))
+			goto cleanup;
+	}
+	else if (g_file_test (events_dest, G_FILE_TEST_EXISTS))
+	{
+		if (g_unlink (events_dest) != 0)
+		{
+			g_set_error (error, G_FILE_ERROR, g_file_error_from_errno (errno),
+			             _("Failed to remove existing event settings."));
+			goto cleanup;
+		}
+	}
+
+	ok = TRUE;
+
+cleanup:
+	g_free (events_dest);
+	g_free (events_src);
+	g_free (colors_dest);
+	g_free (colors_src);
+	g_free (theme_dir);
+	return ok;
+}
+
 gboolean
 zoitechat_import_theme (const char *path, GError **error)
 {
@@ -754,9 +833,19 @@ irc_init (session *sess)
 
 			if (zoitechat_import_theme (theme_path, &error))
 			{
-				message = g_strdup_printf (_("Theme \"%s\" imported."), basename);
-				fe_message (message, FE_MSG_INFO);
-				g_free (message);
+				if (zoitechat_apply_theme (basename, &error))
+				{
+					message = g_strdup_printf (_("Theme \"%s\" imported and applied."), basename);
+					fe_message (message, FE_MSG_INFO);
+					handle_command (sess, "gui apply", FALSE);
+					g_free (message);
+				}
+				else
+				{
+					fe_message (error ? error->message : _("Theme imported, but failed to apply."),
+					            FE_MSG_ERROR);
+					g_clear_error (&error);
+				}
 			}
 			else
 			{
@@ -796,9 +885,19 @@ irc_init (session *sess)
 
 				if (zoitechat_import_theme (theme_path, &error))
 				{
-					message = g_strdup_printf (_("Theme \"%s\" imported."), basename);
-					fe_message (message, FE_MSG_INFO);
-					g_free (message);
+					if (zoitechat_apply_theme (basename, &error))
+					{
+						message = g_strdup_printf (_("Theme \"%s\" imported and applied."), basename);
+						fe_message (message, FE_MSG_INFO);
+						handle_command (sess, "gui apply", FALSE);
+						g_free (message);
+					}
+					else
+					{
+						fe_message (error ? error->message : _("Theme imported, but failed to apply."),
+						            FE_MSG_ERROR);
+						g_clear_error (&error);
+					}
 				}
 				else
 				{

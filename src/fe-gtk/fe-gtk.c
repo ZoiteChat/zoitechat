@@ -28,6 +28,7 @@
 
 #ifdef WIN32
 #include <windows.h>
+#include <dwmapi.h>
 #else
 #include <unistd.h>
 #endif
@@ -285,6 +286,8 @@ const char cursor_color_rc[] =
 	"}"
 	"widget \"*.zoitechat-inputbox\" style : application \"xc-ib-st\"";
 
+InputStyle *create_input_style (InputStyle *style);
+
 static const char adwaita_workaround_rc[] =
 	"style \"zoitechat-input-workaround\""
 	"{"
@@ -301,6 +304,85 @@ static const char adwaita_workaround_rc[] =
 	"}"
 	"widget \"*.zoitechat-inputbox\" style \"zoitechat-input-workaround\"";
 
+#ifdef G_OS_WIN32
+#ifndef DWMWA_USE_IMMERSIVE_DARK_MODE
+#define DWMWA_USE_IMMERSIVE_DARK_MODE 20
+#endif
+
+static gboolean
+fe_win32_high_contrast_is_enabled (void)
+{
+	HIGHCONTRASTW hc;
+
+	ZeroMemory (&hc, sizeof (hc));
+	hc.cbSize = sizeof (hc);
+	if (!SystemParametersInfoW (SPI_GETHIGHCONTRAST, sizeof (hc), &hc, 0))
+		return FALSE;
+
+	return (hc.dwFlags & HCF_HIGHCONTRASTON) != 0;
+}
+
+static gboolean
+fe_win32_try_get_system_dark (gboolean *prefer_dark)
+{
+	DWORD value = 1;
+	DWORD value_size = sizeof (value);
+	LSTATUS status;
+
+	status = RegGetValueW (HKEY_CURRENT_USER,
+	                       L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
+	                       L"AppsUseLightTheme",
+	                       RRF_RT_REG_DWORD,
+	                       NULL,
+	                       &value,
+	                       &value_size);
+	if (status != ERROR_SUCCESS)
+		status = RegGetValueW (HKEY_CURRENT_USER,
+		                       L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
+		                       L"SystemUsesLightTheme",
+		                       RRF_RT_REG_DWORD,
+		                       NULL,
+		                       &value,
+		                       &value_size);
+
+	if (status != ERROR_SUCCESS)
+		return FALSE;
+
+	*prefer_dark = (value == 0);
+	return TRUE;
+}
+
+static void
+fe_win32_apply_native_titlebar (GtkWidget *window, gboolean dark_mode)
+{
+	HWND hwnd;
+	BOOL use_dark;
+
+	if (!window || !gtk_widget_get_realized (window))
+		return;
+
+	hwnd = gdk_win32_window_get_handle (gtk_widget_get_window (window));
+	if (!hwnd)
+		return;
+
+	if (fe_win32_high_contrast_is_enabled ())
+		return;
+
+	use_dark = dark_mode ? TRUE : FALSE;
+	DwmSetWindowAttribute (hwnd,
+	                       DWMWA_USE_IMMERSIVE_DARK_MODE,
+	                       &use_dark,
+	                       sizeof (use_dark));
+}
+#else
+static void
+fe_win32_apply_native_titlebar (GtkWidget *window, gboolean dark_mode)
+{
+	(void) window;
+	(void) dark_mode;
+}
+#endif
+
 static gboolean
 fe_system_prefers_dark (void)
 {
@@ -309,42 +391,16 @@ fe_system_prefers_dark (void)
 	char *theme_name = NULL;
 #ifdef G_OS_WIN32
 	gboolean have_win_pref = FALSE;
+
+	if (fe_win32_high_contrast_is_enabled ())
+		return FALSE;
 #endif
 
 	if (!settings)
 		return FALSE;
 
 #ifdef G_OS_WIN32
-	{
-		DWORD value = 1;
-		DWORD value_size = sizeof (value);
-		LSTATUS status;
-
-		status = RegGetValueW (HKEY_CURRENT_USER,
-		                       L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
-		                       L"AppsUseLightTheme",
-		                       RRF_RT_REG_DWORD,
-		                       NULL,
-		                       &value,
-		                       &value_size);
-		if (status != ERROR_SUCCESS)
-			status = RegGetValueW (HKEY_CURRENT_USER,
-			                       L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
-			                       L"SystemUsesLightTheme",
-			                       RRF_RT_REG_DWORD,
-			                       NULL,
-			                       &value,
-			                       &value_size);
-
-		if (status == ERROR_SUCCESS)
-		{
-			prefer_dark = (value == 0);
-			have_win_pref = TRUE;
-		}
-	}
-#endif
-
-#ifdef G_OS_WIN32
+	have_win_pref = fe_win32_try_get_system_dark (&prefer_dark);
 	if (!have_win_pref)
 #endif
 	if (g_object_class_find_property (G_OBJECT_GET_CLASS (settings),
@@ -371,6 +427,46 @@ fe_system_prefers_dark (void)
 
 static gboolean auto_dark_mode_enabled = FALSE;
 
+#ifdef G_OS_WIN32
+static void
+fe_apply_windows_theme (gboolean dark)
+{
+	GtkSettings *settings = gtk_settings_get_default ();
+
+	if (settings && g_object_class_find_property (G_OBJECT_GET_CLASS (settings),
+	                                              "gtk-application-prefer-dark-theme"))
+	{
+		g_object_set (settings, "gtk-application-prefer-dark-theme", dark, NULL);
+	}
+
+#if HAVE_GTK3
+	{
+		static GtkCssProvider *win_theme_provider = NULL;
+		GdkScreen *screen = gdk_screen_get_default ();
+		const char *css =
+			"window.zoitechat-dark, .zoitechat-dark {"
+			"background-color: #202020;"
+			"color: #f0f0f0;"
+			"}"
+			"window.zoitechat-light, .zoitechat-light {"
+			"background-color: #f6f6f6;"
+			"color: #101010;"
+			"}";
+
+		if (!win_theme_provider)
+			win_theme_provider = gtk_css_provider_new ();
+
+		gtk_css_provider_load_from_data (win_theme_provider, css, -1, NULL);
+		if (screen)
+			gtk_style_context_add_provider_for_screen (
+				screen,
+				GTK_STYLE_PROVIDER (win_theme_provider),
+				GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+	}
+#endif
+}
+#endif
+
 static void
 fe_auto_dark_mode_changed (GtkSettings *settings, GParamSpec *pspec, gpointer data)
 {
@@ -388,7 +484,7 @@ fe_auto_dark_mode_changed (GtkSettings *settings, GParamSpec *pspec, gpointer da
 		return;
 
 	auto_dark_mode_enabled = enabled;
-	palette_apply_dark_mode (enabled);
+	fe_apply_theme_for_mode (ZOITECHAT_DARK_MODE_AUTO, NULL);
 	setup_apply_real (0, TRUE, FALSE, FALSE);
 }
 
@@ -405,6 +501,48 @@ fe_refresh_auto_dark_mode (void)
 }
 
 gboolean
+fe_apply_theme_for_mode (unsigned int mode, gboolean *palette_changed)
+{
+	gboolean enabled = fe_dark_mode_is_enabled_for (mode);
+	gboolean changed = palette_apply_dark_mode (enabled);
+
+#ifdef G_OS_WIN32
+	fe_apply_windows_theme (enabled);
+#endif
+
+	if (palette_changed)
+		*palette_changed = changed;
+
+	if (input_style)
+		create_input_style (input_style);
+
+	return enabled;
+}
+
+void
+fe_apply_theme_to_toplevel (GtkWidget *window)
+{
+	if (!window)
+		return;
+
+#if defined(G_OS_WIN32) && HAVE_GTK3
+	{
+		GtkStyleContext *context = gtk_widget_get_style_context (window);
+		gboolean dark = fe_dark_mode_is_enabled ();
+
+		if (context)
+		{
+			gtk_style_context_remove_class (context, "zoitechat-dark");
+			gtk_style_context_remove_class (context, "zoitechat-light");
+			gtk_style_context_add_class (context, dark ? "zoitechat-dark" : "zoitechat-light");
+		}
+	}
+#endif
+
+	fe_win32_apply_native_titlebar (window, fe_dark_mode_is_enabled ());
+}
+
+gboolean
 fe_dark_mode_is_enabled_for (unsigned int mode)
 {
 	switch (mode)
@@ -415,7 +553,7 @@ fe_dark_mode_is_enabled_for (unsigned int mode)
 		return FALSE;
 	case ZOITECHAT_DARK_MODE_AUTO:
 	default:
-		return fe_system_prefers_dark ();
+		return auto_dark_mode_enabled;
 	}
 }
 
@@ -625,7 +763,11 @@ fe_init (void)
 	GtkSettings *settings;
 
 	palette_load ();
-	palette_apply_dark_mode (fe_dark_mode_is_enabled ());
+	settings = gtk_settings_get_default ();
+	if (settings)
+		auto_dark_mode_enabled = fe_system_prefers_dark ();
+
+	fe_apply_theme_for_mode (prefs.hex_gui_dark_mode, NULL);
 	key_init ();
 	pixmaps_init ();
 
@@ -639,12 +781,10 @@ fe_init (void)
 	input_style = create_input_style (gtk_style_new ());
 #endif
 
-	settings = gtk_settings_get_default ();
 	if (settings)
 	{
-		auto_dark_mode_enabled = fe_system_prefers_dark ();
 		g_signal_connect (settings, "notify::gtk-application-prefer-dark-theme",
-						  G_CALLBACK (fe_auto_dark_mode_changed), NULL);
+					  G_CALLBACK (fe_auto_dark_mode_changed), NULL);
 		g_signal_connect (settings, "notify::gtk-theme-name",
 						  G_CALLBACK (fe_auto_dark_mode_changed), NULL);
 	}

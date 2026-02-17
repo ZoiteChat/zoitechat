@@ -77,6 +77,7 @@ zoitechat_gtk_ldflags = []
 
 if host_machine.system() == 'windows'
   zoitechat_gtk_sources += 'notifications/notification-windows.c'
+  zoitechat_gtk_deps += cc.find_library('dwmapi', required: true)
 
   # TODO: mingw doesn't have these headers or libs
   # add_languages('cpp')

@@ -2045,22 +2045,6 @@ setup_theme_show_message (GtkMessageType message_type, const char *primary)
         gtk_widget_destroy (dialog);
 }
 
-static gboolean
-setup_theme_copy_file (const char *src, const char *dest, GError **error)
-{
-        GFile *src_file;
-        GFile *dest_file;
-        gboolean success;
-
-        src_file = g_file_new_for_path (src);
-        dest_file = g_file_new_for_path (dest);
-        success = g_file_copy (src_file, dest_file, G_FILE_COPY_OVERWRITE, NULL, NULL, NULL, error);
-        g_object_unref (src_file);
-        g_object_unref (dest_file);
-
-        return success;
-}
-
 static void
 setup_theme_populate (setup_theme_ui *ui)
 {
@@ -2138,11 +2122,6 @@ setup_theme_apply_cb (GtkWidget *button, gpointer user_data)
         GtkWidget *dialog;
         gint response;
         char *theme;
-        char *theme_dir = NULL;
-        char *colors_src = NULL;
-        char *colors_dest = NULL;
-        char *events_src = NULL;
-        char *events_dest = NULL;
         GError *error = NULL;
 
         theme = gtk_combo_box_text_get_active_text (GTK_COMBO_BOX_TEXT (ui->combo));
@@ -2161,38 +2140,11 @@ setup_theme_apply_cb (GtkWidget *button, gpointer user_data)
                 return;
         }
 
-        theme_dir = g_build_filename (get_xdir (), "themes", theme, NULL);
-        colors_src = g_build_filename (theme_dir, "colors.conf", NULL);
-        colors_dest = g_build_filename (get_xdir (), "colors.conf", NULL);
-
-        if (!g_file_test (colors_src, G_FILE_TEST_IS_REGULAR))
-        {
-                setup_theme_show_message (GTK_MESSAGE_ERROR, _("This theme is missing a colors.conf file."));
-                goto cleanup;
-        }
-
-        if (!setup_theme_copy_file (colors_src, colors_dest, &error))
+        if (!zoitechat_apply_theme (theme, &error))
         {
                 setup_theme_show_message (GTK_MESSAGE_ERROR, error ? error->message : _("Failed to apply theme."));
                 g_clear_error (&error);
                 goto cleanup;
-        }
-
-        events_src = g_build_filename (theme_dir, "pevents.conf", NULL);
-        events_dest = g_build_filename (get_xdir (), "pevents.conf", NULL);
-
-        if (g_file_test (events_src, G_FILE_TEST_IS_REGULAR))
-        {
-                if (!setup_theme_copy_file (events_src, events_dest, &error))
-                {
-                        setup_theme_show_message (GTK_MESSAGE_ERROR, error ? error->message : _("Failed to apply event settings."));
-                        g_clear_error (&error);
-                        goto cleanup;
-                }
-        }
-        else if (g_file_test (events_dest, G_FILE_TEST_EXISTS))
-        {
-                g_unlink (events_dest);
         }
 
 	palette_load ();
@@ -2203,11 +2155,6 @@ setup_theme_apply_cb (GtkWidget *button, gpointer user_data)
         setup_theme_show_message (GTK_MESSAGE_INFO, _("Theme applied. Some changes may require a restart to take full effect."));
 
 cleanup:
-        g_free (events_dest);
-        g_free (events_src);
-        g_free (colors_dest);
-        g_free (colors_src);
-        g_free (theme_dir);
         g_free (theme);
 }
 
@@ -3059,7 +3006,9 @@ setup_apply (struct zoitechatprefs *pr)
 	 * the preference flips but the palette stays the same (aka: "nothing happens").
 	 */
 	{
-		gboolean pal_changed = palette_apply_dark_mode (fe_dark_mode_is_enabled_for (prefs.hex_gui_dark_mode));
+		gboolean pal_changed = FALSE;
+
+		fe_apply_theme_for_mode (prefs.hex_gui_dark_mode, &pal_changed);
 		if (prefs.hex_gui_dark_mode != old_dark_mode || pal_changed)
 			color_change = TRUE;
 	}

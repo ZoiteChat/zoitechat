@@ -19,7 +19,7 @@ else:
 if not hasattr(sys, 'argv'):
     sys.argv = ['<zoitechat>']
 
-VERSION = b'2.0'  # Sync with zoitechat.__version__
+VERSION = b'2.18.0-pre1'  # Sync with zoitechat.__version__
 PLUGIN_NAME = ffi.new('char[]', b'Python')
 PLUGIN_DESC = ffi.new('char[]', b'Python %d.%d scripting interface' % (sys.version_info[0], sys.version_info[1]))
 PLUGIN_VERSION = ffi.new('char[]', VERSION)
