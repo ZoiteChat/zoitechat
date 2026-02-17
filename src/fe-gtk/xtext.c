@@ -5426,10 +5426,11 @@ gtk_xtext_append_entry (xtext_buffer *buf, textentry * ent, time_t stamp)
 				g_source_remove (buf->xtext->io_tag);
 				buf->xtext->io_tag = 0;
 			}
-			buf->xtext->add_io_tag = g_timeout_add (REFRESH_TIMEOUT * 2,
-															(GSourceFunc)
-															gtk_xtext_render_page_timeout,
-															buf->xtext);
+			/* Render new lines as soon as the UI is idle to avoid a noticeable
+			 * delay between pressing Enter and seeing your own message. */
+			buf->xtext->add_io_tag = g_idle_add ((GSourceFunc)
+												gtk_xtext_render_page_timeout,
+												buf->xtext);
 		}
 	}
 	if (buf->scrollbar_down)
