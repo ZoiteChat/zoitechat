@@ -5462,6 +5462,7 @@ gtk_xtext_append_indent (xtext_buffer *buf,
 	int space;
 	int tempindent;
 	int left_width;
+	int min_indent;
 
 	if (left_len == -1)
 		left_len = strlen (left_text);
@@ -5500,24 +5501,32 @@ gtk_xtext_append_indent (xtext_buffer *buf,
 	else
 		space = 0;
 
+	min_indent = MARGIN + space;
+
 	/* do we need to auto adjust the separator position? */
 	if (buf->xtext->auto_indent &&
 		 buf->indent < buf->xtext->max_auto_indent &&
-		 ent->indent < MARGIN + space)
+		 ent->indent < min_indent)
 	{
-		tempindent = MARGIN + space + buf->xtext->space_width + left_width;
+		tempindent = min_indent + buf->xtext->space_width + left_width;
 
-		if (tempindent > buf->indent)
+		/* Ignore tiny one-pixel style nudges.
+		 * They can trigger expensive full-width recalculations and are
+		 * perceived as a slight delay when sending messages with indenting on. */
+		if (tempindent > buf->indent + buf->xtext->space_width)
 			buf->indent = tempindent;
 
 		if (buf->indent > buf->xtext->max_auto_indent)
 			buf->indent = buf->xtext->max_auto_indent;
 
-		gtk_xtext_fix_indent (buf);
-		gtk_xtext_recalc_widths (buf, FALSE);
+		if (buf->indent > ent->indent + left_width + buf->xtext->space_width)
+		{
+			gtk_xtext_fix_indent (buf);
+			gtk_xtext_recalc_widths (buf, FALSE);
 
-		ent->indent = (buf->indent - left_width) - buf->xtext->space_width;
-		buf->xtext->force_render = TRUE;
+			ent->indent = (buf->indent - left_width) - buf->xtext->space_width;
+			buf->xtext->force_render = TRUE;
+		}
 	}
 
 	gtk_xtext_append_entry (buf, ent, stamp);
