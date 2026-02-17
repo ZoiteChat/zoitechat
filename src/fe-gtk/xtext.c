@@ -931,16 +931,13 @@ gtk_xtext_finalize (GObject *object)
 static void
 gtk_xtext_unrealize (GtkWidget * widget)
 {
-#if HAVE_GTK3
-	GdkWindow *window = gtk_widget_get_window (widget);
-#endif
 	backend_deinit (GTK_XTEXT (widget));
 
-	/* if there are still events in the queue, this'll avoid segfault */
-#if HAVE_GTK3
-	if (window)
-		gdk_window_set_user_data (window, NULL);
-#endif
+	/*
+	 * Keep GtkWidget/GdkWindow association intact until parent unrealize.
+	 * GtkWidget's unrealize path unregisters the window and expects
+	 * gdk_window_get_user_data(window) == widget.
+	 */
 #if !HAVE_GTK3
 	gdk_window_set_user_data (widget->window, NULL);
 #endif
