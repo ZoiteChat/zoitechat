@@ -499,6 +499,23 @@ gtkutil_native_dialog_unref_idle (gpointer native)
 	g_object_unref (native);
 	return G_SOURCE_REMOVE;
 }
+
+static void
+gtkutil_native_file_req_response (GtkNativeDialog *dialog, gint res, struct file_req *freq)
+{
+	if (res == GTK_RESPONSE_ACCEPT)
+		gtkutil_file_req_done_chooser (GTK_FILE_CHOOSER (dialog), freq);
+
+	/* Match gtk dialog flow by always sending NULL to indicate completion. */
+	freq->callback (freq->userdata, NULL);
+	g_free (freq);
+
+	/*
+	 * Defer unref until idle to avoid disposing the native chooser while
+	 * still in the button-release signal stack on Windows.
+	 */
+	g_idle_add (gtkutil_native_dialog_unref_idle, dialog);
+}
 #endif
 
 void
@@ -529,7 +546,6 @@ gtkutil_file_req (GtkWindow *parent, const char *title, void *callback, void *us
 			(flags & FRF_WRITE) ? _("_Save") : _("_Open"),
 			_("_Cancel"));
 		GtkFileChooser *native_chooser = GTK_FILE_CHOOSER (native);
-		int response;
 
 		if (flags & FRF_MULTIPLE)
 			gtk_file_chooser_set_select_multiple (native_chooser, TRUE);
@@ -587,16 +603,9 @@ gtkutil_file_req (GtkWindow *parent, const char *title, void *callback, void *us
 		freq->callback = callback;
 		freq->userdata = userdata;
 
-		response = gtk_native_dialog_run (GTK_NATIVE_DIALOG (native));
-		if (response == GTK_RESPONSE_ACCEPT)
-			gtkutil_file_req_done_chooser (native_chooser, freq);
-
-		/*
-		 * Defer unref until idle to avoid disposing the native chooser while
-		 * still in the button-release signal stack on Windows.
-		 */
-		g_idle_add (gtkutil_native_dialog_unref_idle, native);
-		g_free (freq);
+		g_signal_connect (native, "response",
+						G_CALLBACK (gtkutil_native_file_req_response), freq);
+		gtk_native_dialog_show (GTK_NATIVE_DIALOG (native));
 		return;
 	}
 #endif
