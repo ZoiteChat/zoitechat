@@ -3783,9 +3783,19 @@ cmd_url (struct session *sess, char *tbuf, char *word[], char *word_eol[])
 
 			if (zoitechat_import_theme (theme_path, &error))
 			{
-				message = g_strdup_printf (_("Theme \"%s\" imported."), basename);
-				fe_message (message, FE_MSG_INFO);
-				g_free (message);
+				if (zoitechat_apply_theme (basename, &error))
+				{
+					message = g_strdup_printf (_("Theme \"%s\" imported and applied."), basename);
+					fe_message (message, FE_MSG_INFO);
+					handle_command (sess, "gui apply", FALSE);
+					g_free (message);
+				}
+				else
+				{
+					fe_message (error ? error->message : _("Theme imported, but failed to apply."),
+					            FE_MSG_ERROR);
+					g_clear_error (&error);
+				}
 			}
 			else
 			{
