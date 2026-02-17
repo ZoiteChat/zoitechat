@@ -81,6 +81,7 @@
 
       <Gtk3Immodules Include="$(DepsRoot)\lib\gtk-3.0\3.0.0\immodules\**\*" />
       <Gtk3PrintBackends Include="$(DepsRoot)\lib\gtk-3.0\3.0.0\printbackends\**\*" />
+      <GSettingsSchemas Include="$(DepsRoot)\share\glib-2.0\schemas\*" />
 
       <FontConfig Include="$(DepsRoot)\etc\fonts\*" />
       <Share Include="share\**\*" />
@@ -93,6 +94,7 @@
     <Copy SourceFiles="@(FontConfig)" DestinationFolder="$(ZoiteChatRel)\etc\fonts" />
     <Copy SourceFiles="@(Gtk3Immodules)" DestinationFiles="@(Gtk3Immodules->'$(ZoiteChatRel)\lib\gtk-3.0\3.0.0\immodules\%(RecursiveDir)%(Filename)%(Extension)')" />
     <Copy SourceFiles="@(Gtk3PrintBackends)" DestinationFiles="@(Gtk3PrintBackends->'$(ZoiteChatRel)\lib\gtk-3.0\3.0.0\printbackends\%(RecursiveDir)%(Filename)%(Extension)')" />
+    <Copy SourceFiles="@(GSettingsSchemas)" DestinationFiles="@(GSettingsSchemas->'$(ZoiteChatRel)\share\glib-2.0\schemas\%(Filename)%(Extension)')" />
     <Copy SourceFiles="@(Share)" DestinationFiles="@(Share->'$(ZoiteChatRel)\share\%(RecursiveDir)%(Filename)%(Extension)')" />
     <Copy SourceFiles="..\..\COPYING" DestinationFolder="$(ZoiteChatRel)\share\doc\zoitechat" />
     <Copy SourceFiles="$(WinSparklePath)\COPYING" DestinationFolder="$(ZoiteChatRel)\share\doc\WinSparkle" />
@@ -111,7 +113,6 @@
     <Copy SourceFiles="@(DepsRootDocs)" DestinationFiles="@(DepsRootDocs->'$(ZoiteChatRel)\share\doc\%(RecursiveDir)%(Filename)%(Extension)')" />
   </Target>
 </Project>
-
 
 
 

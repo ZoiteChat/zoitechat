@@ -480,16 +480,14 @@ gtkutil_file_req_done (GtkWidget * wid, struct file_req *freq)
 static void
 gtkutil_file_req_response (GtkWidget *dialog, gint res, struct file_req *freq)
 {
-	switch (res)
+	if (res == GTK_RESPONSE_ACCEPT)
 	{
-	case GTK_RESPONSE_ACCEPT:
 		gtkutil_file_req_done (dialog, freq);
-		break;
-
-	case GTK_RESPONSE_CANCEL:
-		/* this should call the "destroy" cb, where we free(freq) */
-		gtk_widget_destroy (freq->dialog);
+		return;
 	}
+
+	/* this should call the "destroy" cb, where we free(freq) */
+	gtk_widget_destroy (dialog);
 }
 
 #if defined (WIN32) && HAVE_GTK3
