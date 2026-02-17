@@ -37,6 +37,19 @@
 #include "palette.h"
 #include "notifygui.h"
 
+#if HAVE_GTK3
+#define ICON_NOTIFY_NEW "document-new"
+#define ICON_NOTIFY_DELETE "edit-delete"
+#define LABEL_NOTIFY_CANCEL _("_Cancel")
+#define LABEL_NOTIFY_OK _("_OK")
+#endif
+#if !HAVE_GTK3
+#define ICON_NOTIFY_NEW GTK_STOCK_NEW
+#define ICON_NOTIFY_DELETE GTK_STOCK_DELETE
+#define LABEL_NOTIFY_CANCEL GTK_STOCK_CANCEL
+#define LABEL_NOTIFY_OK GTK_STOCK_OK
+#endif
+
 
 /* model for the notify treeview */
 enum
@@ -64,7 +77,7 @@ notify_closegui (void)
 }
 
 /* Need this to be able to set the foreground colour property of a row
- * from a GdkColor * in the model  -Vince
+ * from a PaletteColor * in the model  -Vince
  */
 static void
 notify_treecell_property_mapper (GtkTreeViewColumn *col, GtkCellRenderer *cell,
@@ -72,15 +85,42 @@ notify_treecell_property_mapper (GtkTreeViewColumn *col, GtkCellRenderer *cell,
                                  gpointer data)
 {
 	gchar *text;
-	GdkColor *colour;
+	PaletteColor *colour;
 	int model_column = GPOINTER_TO_INT (data);
 
 	gtk_tree_model_get (GTK_TREE_MODEL (model), iter, 
 	                    COLOUR_COLUMN, &colour,
 	                    model_column, &text, -1);
-	g_object_set (G_OBJECT (cell), "text", text, NULL);
-	g_object_set (G_OBJECT (cell), "foreground-gdk", colour, NULL);
+#if HAVE_GTK3
+	g_object_set (G_OBJECT (cell), "text", text,
+	              PALETTE_FOREGROUND_PROPERTY, colour, NULL);
+	if (colour)
+		gdk_rgba_free (colour);
+#else
+	g_object_set (G_OBJECT (cell), "text", text,
+	              PALETTE_FOREGROUND_PROPERTY, colour, NULL);
+	if (colour)
+		gdk_color_free (colour);
+#endif
 	g_free (text);
+}
+
+static void
+notify_store_color (GtkListStore *store, GtkTreeIter *iter, const PaletteColor *color)
+{
+#if HAVE_GTK3
+	if (color)
+	{
+		GdkRGBA rgba = *color;
+		gtk_list_store_set (store, iter, COLOUR_COLUMN, &rgba, -1);
+	}
+	else
+	{
+		gtk_list_store_set (store, iter, COLOUR_COLUMN, NULL, -1);
+	}
+#else
+	gtk_list_store_set (store, iter, COLOUR_COLUMN, color, -1);
+#endif
 }
 
 static void
@@ -105,6 +145,7 @@ notify_treeview_new (GtkWidget *box)
 {
 	GtkListStore *store;
 	GtkWidget *view;
+	GtkWidget *scroll;
 	GtkTreeViewColumn *col;
 	int col_id;
 
@@ -113,7 +154,7 @@ notify_treeview_new (GtkWidget *box)
 	                            G_TYPE_STRING,
 	                            G_TYPE_STRING,
 	                            G_TYPE_STRING,
-	                            G_TYPE_POINTER,	/* can't specify colour! */
+	                            PALETTE_GDK_TYPE,
 										 G_TYPE_POINTER
 	                           );
 	g_return_val_if_fail (store != NULL, NULL);
@@ -124,6 +165,8 @@ notify_treeview_new (GtkWidget *box)
 	                             STATUS_COLUMN, _("Status"),
 	                             SERVER_COLUMN, _("Network"),
 	                             SEEN_COLUMN, _("Last Seen"), -1);
+	scroll = gtk_widget_get_parent (view);
+	gtk_box_set_child_packing (GTK_BOX (box), scroll, TRUE, TRUE, 0, GTK_PACK_START);
 	gtk_tree_view_column_set_expand (gtk_tree_view_get_column (GTK_TREE_VIEW (view), 0), TRUE);
 
 	for (col_id=0; (col = gtk_tree_view_get_column (GTK_TREE_VIEW (view), col_id));
@@ -200,7 +243,8 @@ notify_gui_update (void)
 			if (!valid)	/* create new tree row if required */
 				gtk_list_store_append (store, &iter);
 			gtk_list_store_set (store, &iter, 0, name, 1, status,
-			                    2, server, 3, seen, 4, &colors[4], 5, NULL, -1);
+			                    2, server, 3, seen, 5, NULL, -1);
+			notify_store_color (store, &iter, &colors[4]);
 			if (valid)
 				valid = gtk_tree_model_iter_next (GTK_TREE_MODEL (store), &iter);
 
@@ -225,7 +269,8 @@ notify_gui_update (void)
 					if (!valid)	/* create new tree row if required */
 						gtk_list_store_append (store, &iter);
 					gtk_list_store_set (store, &iter, 0, name, 1, status,
-					                    2, server, 3, seen, 4, &colors[3], 5, servnot, -1);
+					                    2, server, 3, seen, 5, servnot, -1);
+					notify_store_color (store, &iter, &colors[3]);
 					if (valid)
 						valid = gtk_tree_model_iter_next (GTK_TREE_MODEL (store), &iter);
 
@@ -344,45 +389,50 @@ fe_notify_ask (char *nick, char *networks)
 	char buf[256];
 
 	dialog = gtk_dialog_new_with_buttons (msg, NULL, 0,
-										GTK_STOCK_CANCEL, GTK_RESPONSE_REJECT,
-										GTK_STOCK_OK, GTK_RESPONSE_ACCEPT,
+										LABEL_NOTIFY_CANCEL, GTK_RESPONSE_REJECT,
+										LABEL_NOTIFY_OK, GTK_RESPONSE_ACCEPT,
 										NULL);
 	if (parent_window)
 		gtk_window_set_transient_for (GTK_WINDOW (dialog), GTK_WINDOW (parent_window));
 	gtk_window_set_position (GTK_WINDOW (dialog), GTK_WIN_POS_MOUSE);
 
-	table = gtk_table_new (2, 3, FALSE);
+	table = gtkutil_grid_new (2, 3, FALSE);
 	gtk_container_set_border_width (GTK_CONTAINER (table), 12);
+#if HAVE_GTK3
+	gtk_grid_set_row_spacing (GTK_GRID (table), 3);
+	gtk_grid_set_column_spacing (GTK_GRID (table), 8);
+#else
 	gtk_table_set_row_spacings (GTK_TABLE (table), 3);
 	gtk_table_set_col_spacings (GTK_TABLE (table), 8);
+#endif
 	gtk_container_add (GTK_CONTAINER (gtk_dialog_get_content_area (GTK_DIALOG (dialog))), table);
 
 	label = gtk_label_new (msg);
-	gtk_table_attach_defaults (GTK_TABLE (table), label, 0, 1, 0, 1);
+	gtkutil_grid_attach_defaults (table, label, 0, 1, 0, 1);
 
 	entry = gtk_entry_new ();
 	gtk_entry_set_text (GTK_ENTRY (entry), nick);
 	g_signal_connect (G_OBJECT (entry), "activate",
 						 	G_CALLBACK (notifygui_add_enter), dialog);
-	gtk_table_attach_defaults (GTK_TABLE (table), entry, 1, 2, 0, 1);
+	gtkutil_grid_attach_defaults (table, entry, 1, 2, 0, 1);
 
 	g_signal_connect (G_OBJECT (dialog), "response",
 						   G_CALLBACK (notifygui_add_cb), entry);
 
 	label = gtk_label_new (_("Notify on these networks:"));
-	gtk_table_attach_defaults (GTK_TABLE (table), label, 0, 1, 2, 3);
+	gtkutil_grid_attach_defaults (table, label, 0, 1, 2, 3);
 
 	wid = gtk_entry_new ();
 	g_object_set_data (G_OBJECT (entry), "net", wid);
 	g_signal_connect (G_OBJECT (wid), "activate",
 						 	G_CALLBACK (notifygui_add_enter), dialog);
 	gtk_entry_set_text (GTK_ENTRY (wid), networks ? networks : "ALL");
-	gtk_table_attach_defaults (GTK_TABLE (table), wid, 1, 2, 2, 3);
+	gtkutil_grid_attach_defaults (table, wid, 1, 2, 2, 3);
 
 	label = gtk_label_new (NULL);
 	g_snprintf (buf, sizeof (buf), "<i><span size=\"smaller\">%s</span></i>", _("Comma separated list of networks is accepted."));
 	gtk_label_set_markup (GTK_LABEL (label), buf);
-	gtk_table_attach_defaults (GTK_TABLE (table), label, 1, 2, 3, 4);
+	gtkutil_grid_attach_defaults (table, label, 1, 2, 3, 4);
 
 	gtk_widget_show_all (dialog);
 }
@@ -415,17 +465,22 @@ notify_opengui (void)
 	view = notify_treeview_new (vbox);
 	g_object_set_data (G_OBJECT (notify_window), "view", view);
   
+#if HAVE_GTK3
+	bbox = gtk_button_box_new (GTK_ORIENTATION_HORIZONTAL);
+	gtk_button_box_set_layout (GTK_BUTTON_BOX (bbox), GTK_BUTTONBOX_SPREAD);
+#elif !HAVE_GTK3
 	bbox = gtk_hbutton_box_new ();
 	gtk_button_box_set_layout (GTK_BUTTON_BOX (bbox), GTK_BUTTONBOX_SPREAD);
+#endif
 	gtk_container_set_border_width (GTK_CONTAINER (bbox), 5);
 	gtk_box_pack_end (GTK_BOX (vbox), bbox, 0, 0, 0);
 	gtk_widget_show (bbox);
 
-	gtkutil_button (bbox, GTK_STOCK_NEW, 0, notify_add_clicked, 0,
+	gtkutil_button (bbox, ICON_NOTIFY_NEW, 0, notify_add_clicked, 0,
 	                _("Add..."));
 
 	notify_button_remove =
-	gtkutil_button (bbox, GTK_STOCK_DELETE, 0, notify_remove_clicked, 0,
+	gtkutil_button (bbox, ICON_NOTIFY_DELETE, 0, notify_remove_clicked, 0,
 	                _("Remove"));
 
 	notify_button_opendialog =

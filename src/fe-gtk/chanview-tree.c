@@ -106,21 +106,37 @@ cv_tree_init (chanview *cv)
 	};
 
 	win = gtk_scrolled_window_new (0, 0);
+	gtk_widget_set_hexpand (win, TRUE);
+	gtk_widget_set_vexpand (win, TRUE);
+
 	/*gtk_container_set_border_width (GTK_CONTAINER (win), 1);*/
 	gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (win),
-													 GTK_SHADOW_IN);
+									 GTK_SHADOW_IN);
 	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (win),
 											  GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
 	gtk_container_add (GTK_CONTAINER (cv->box), win);
 	gtk_widget_show (win);
 
 	view = gtk_tree_view_new_with_model (GTK_TREE_MODEL (cv->store));
+	gtk_widget_set_hexpand (view, TRUE);
+	gtk_widget_set_vexpand (view, TRUE);
 	gtk_widget_set_name (view, "zoitechat-tree");
-	if (cv->style)
+	if (
+#if HAVE_GTK3
+		cv->font_desc
+#else
+		cv->style
+#endif
+	)
 	{
-		gtk_widget_modify_base (view, GTK_STATE_NORMAL, &cv->style->base[GTK_STATE_NORMAL]);
-		gtk_widget_modify_text (view, GTK_STATE_NORMAL, &cv->style->text[GTK_STATE_NORMAL]);
-		gtk_widget_modify_font (view, cv->style->font_desc);
+#if HAVE_GTK3
+		gtkutil_apply_palette (view, &colors[COL_BG], &colors[COL_FG],
+		                       cv->font_desc);
+#else
+		gtkutil_apply_palette (view, &cv->style->base[GTK_STATE_NORMAL],
+		                       &cv->style->text[GTK_STATE_NORMAL],
+		                       cv->style->font_desc);
+#endif
 	}
 	/*gtk_widget_modify_base (view, GTK_STATE_NORMAL, &colors[COL_BG]);*/
 	gtk_widget_set_can_focus (view, FALSE);
@@ -160,6 +176,7 @@ cv_tree_init (chanview *cv)
 	gtk_cell_renderer_text_set_fixed_height_from_font (GTK_CELL_RENDERER_TEXT (renderer), 1);
 	gtk_tree_view_column_pack_start(col, renderer, TRUE);
 	gtk_tree_view_column_set_attributes (col, renderer, "text", COL_NAME, "attributes", COL_ATTR, NULL);
+	gtk_tree_view_column_set_expand (col, TRUE);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(view), col);									
 
 	g_signal_connect (G_OBJECT (gtk_tree_view_get_selection (GTK_TREE_VIEW (view))),

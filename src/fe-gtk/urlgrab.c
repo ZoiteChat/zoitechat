@@ -33,6 +33,17 @@
 #include "maingui.h"
 #include "urlgrab.h"
 
+#if HAVE_GTK3
+#define ICON_URLGRAB_CLEAR "edit-clear"
+#define ICON_URLGRAB_COPY "edit-copy"
+#define ICON_URLGRAB_SAVE_AS "document-save-as"
+#endif
+#if !HAVE_GTK3
+#define ICON_URLGRAB_CLEAR GTK_STOCK_CLEAR
+#define ICON_URLGRAB_COPY GTK_STOCK_COPY
+#define ICON_URLGRAB_SAVE_AS GTK_STOCK_SAVE_AS
+#endif
+
 /* model for the URL treeview */
 enum
 {
@@ -87,13 +98,16 @@ static GtkWidget *
 url_treeview_new (GtkWidget *box)
 {
 	GtkListStore *store;
-	GtkWidget *view;
+	GtkWidget *scroll, *view;
 
 	store = gtk_list_store_new (N_COLUMNS, G_TYPE_STRING);
 	g_return_val_if_fail (store != NULL, NULL);
 
 	view = gtkutil_treeview_new (box, GTK_TREE_MODEL (store), NULL,
 	                             URL_COLUMN, _("URL"), -1);
+	scroll = gtk_widget_get_parent (view);
+	gtk_widget_set_hexpand (scroll, TRUE);
+	gtk_widget_set_vexpand (scroll, TRUE);
 	g_signal_connect (G_OBJECT (view), "button_press_event",
 	                  G_CALLBACK (url_treeview_url_clicked_cb), NULL);
 	/* don't want column headers */
@@ -204,17 +218,22 @@ url_opengui ()
 	g_object_set_data (G_OBJECT (urlgrabberwindow), "model",
 	                   gtk_tree_view_get_model (GTK_TREE_VIEW (view)));
 
+#if HAVE_GTK3
+	hbox = gtk_button_box_new (GTK_ORIENTATION_HORIZONTAL);
+	gtk_button_box_set_layout (GTK_BUTTON_BOX (hbox), GTK_BUTTONBOX_SPREAD);
+#elif !HAVE_GTK3
 	hbox = gtk_hbutton_box_new ();
 	gtk_button_box_set_layout (GTK_BUTTON_BOX (hbox), GTK_BUTTONBOX_SPREAD);
+#endif
 	gtk_container_set_border_width (GTK_CONTAINER (hbox), 5);
 	gtk_box_pack_end (GTK_BOX (vbox), hbox, 0, 0, 0);
 	gtk_widget_show (hbox);
 
-	gtkutil_button (hbox, GTK_STOCK_CLEAR,
+	gtkutil_button (hbox, ICON_URLGRAB_CLEAR,
 						 _("Clear list"), url_button_clear, 0, _("Clear"));
-	gtkutil_button (hbox, GTK_STOCK_COPY,
+	gtkutil_button (hbox, ICON_URLGRAB_COPY,
 						 _("Copy selected URL"), url_button_copy, view, _("Copy"));
-	gtkutil_button (hbox, GTK_STOCK_SAVE_AS,
+	gtkutil_button (hbox, ICON_URLGRAB_SAVE_AS,
 						 _("Save list to a file"), url_button_save, 0, _("Save As..."));
 
 	gtk_widget_show (urlgrabberwindow);

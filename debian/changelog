@@ -1,3 +1,23 @@
+zoitechat (2.18.0~pre1-1) unstable; urgency=medium
+
+  * New upstream pre-release 2.18.0~pre1.
+  * Debian packaging updates in this branch:
+    - switch package builds to GTK 3 and pass -Dgtk3=true to Meson.
+    - add/install split-package manifests for generated binary packages.
+    - include manpage and MIME package XML in package installs.
+    - adjust CI artifact staging/upload paths for actions/upload-artifact@v4.
+
+ -- ZoiteChat Maintainers <zoitechat@users.noreply.github.com>  Sun, 16 Feb 2026 00:00:00 +0000
+
+zoitechat (2.17.0-1) unstable; urgency=medium
+
+  * Switch Debian build to GTK 3 packaging:
+    - replace libgtk2.0-dev with libgtk-3-dev in Build-Depends.
+    - pass -Dgtk3=true to Meson during package builds.
+    - update package description to explicitly reference GTK 3.
+
+ -- ZoiteChat Maintainers <zoitechat@users.noreply.github.com>  Sun, 16 Feb 2026 00:00:00 +0000
+
 zoitechat (2.17.0-0) stable; urgency=medium
 
   * Initial ZoiteChat packaging (forked from HexChat's Debian packaging).

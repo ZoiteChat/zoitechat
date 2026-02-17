@@ -42,6 +42,19 @@
 #include "maingui.h"
 #include "editlist.h"
 
+#if HAVE_GTK3
+#define ICON_EDITLIST_NEW "document-new"
+#define ICON_EDITLIST_DELETE "edit-delete"
+#define ICON_EDITLIST_CANCEL "dialog-cancel"
+#define ICON_EDITLIST_SAVE "document-save"
+#endif
+#if !HAVE_GTK3
+#define ICON_EDITLIST_NEW GTK_STOCK_NEW
+#define ICON_EDITLIST_DELETE GTK_STOCK_DELETE
+#define ICON_EDITLIST_CANCEL GTK_STOCK_CANCEL
+#define ICON_EDITLIST_SAVE GTK_STOCK_SAVE
+#endif
+
 enum
 {
 	NAME_COLUMN,
@@ -316,7 +329,7 @@ editlist_treeview_new (GtkWidget *box, char *title1, char *title2)
 	gtk_tree_view_column_set_min_width (col, 100);
 
 	gtk_container_add (GTK_CONTAINER (scroll), view);
-	gtk_container_add (GTK_CONTAINER (box), scroll);
+	gtk_box_pack_start (GTK_BOX (box), scroll, TRUE, TRUE, 0);
 	gtk_widget_show_all (box);
 
 	return view;
@@ -348,19 +361,24 @@ editlist_gui_open (char *title1, char *title2, GSList *list, char *title, char *
 	if (help)
 		gtk_widget_set_tooltip_text (view, help);
 
+#if HAVE_GTK3
+	box = gtk_button_box_new (GTK_ORIENTATION_HORIZONTAL);
+	gtk_button_box_set_layout (GTK_BUTTON_BOX (box), GTK_BUTTONBOX_SPREAD);
+#elif !HAVE_GTK3
 	box = gtk_hbutton_box_new ();
 	gtk_button_box_set_layout (GTK_BUTTON_BOX (box), GTK_BUTTONBOX_SPREAD);
+#endif
 	gtk_box_pack_start (GTK_BOX (vbox), box, FALSE, FALSE, 2);
 	gtk_container_set_border_width (GTK_CONTAINER (box), 5);
 	gtk_widget_show (box);
 
-	gtkutil_button (box, GTK_STOCK_NEW, 0, editlist_add,
+	gtkutil_button (box, ICON_EDITLIST_NEW, 0, editlist_add,
 					NULL, _("Add"));
-	gtkutil_button (box, GTK_STOCK_DELETE, 0, editlist_delete,
+	gtkutil_button (box, ICON_EDITLIST_DELETE, 0, editlist_delete,
 					NULL, _("Delete"));
-	gtkutil_button (box, GTK_STOCK_CANCEL, 0, editlist_close,
+	gtkutil_button (box, ICON_EDITLIST_CANCEL, 0, editlist_close,
 					NULL, _("Cancel"));
-	gtkutil_button (box, GTK_STOCK_SAVE, 0, editlist_save,
+	gtkutil_button (box, ICON_EDITLIST_SAVE, 0, editlist_save,
 					file, _("Save"));
 
 	store = GTK_LIST_STORE (gtk_tree_view_get_model (GTK_TREE_VIEW (view)));

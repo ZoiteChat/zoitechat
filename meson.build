@@ -1,6 +1,6 @@
 project('zoitechat', 'c',
-  version: '2.17.4',
-  meson_version: '>= 0.47.0',
+  version: '2.18.0-pre1',
+  meson_version: '>= 0.55.0',
   default_options: [
     'c_std=c17',
     'buildtype=debugoptimized',
@@ -145,7 +145,7 @@ if not (host_machine.system() == 'windows' and get_option('debug'))
  test_ldflags += '-Wl,--dynamicbase'
 endif
 foreach ldflag : test_ldflags
-  if meson.version().version_compare('>= 0.46.0')
+  if meson.version().version_compare('>= 0.55.0')
     has_arg = cc.has_link_argument(ldflag)
   else
     has_arg = cc.has_argument(ldflag)
@@ -168,7 +168,7 @@ if cc.get_id() != 'msvc'
   meson.add_install_script('meson_post_install.py')
 endif
 
-if meson.version().version_compare('>= 0.53.0')
+if meson.version().version_compare('>= 0.55.0')
   summary({
     'prefix': get_option('prefix'),
     'bindir': get_option('bindir'),

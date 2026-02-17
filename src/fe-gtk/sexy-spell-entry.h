@@ -18,11 +18,14 @@
 #ifndef _SEXY_SPELL_ENTRY_H_
 #define _SEXY_SPELL_ENTRY_H_
 
+#include <gtk/gtk.h>
+
+G_BEGIN_DECLS
+
 typedef struct _SexySpellEntry      SexySpellEntry;
 typedef struct _SexySpellEntryClass SexySpellEntryClass;
-typedef struct _SexySpellEntryPriv  SexySpellEntryPriv;
 
-#include <gtk/gtk.h>
+GType      sexy_spell_entry_get_type(void);
 
 #define SEXY_TYPE_SPELL_ENTRY            (sexy_spell_entry_get_type())
 #define SEXY_SPELL_ENTRY(obj)            (G_TYPE_CHECK_INSTANCE_CAST((obj), SEXY_TYPE_SPELL_ENTRY, SexySpellEntry))
@@ -30,6 +33,8 @@ typedef struct _SexySpellEntryPriv  SexySpellEntryPriv;
 #define SEXY_IS_SPELL_ENTRY(obj)         (G_TYPE_CHECK_INSTANCE_TYPE((obj), SEXY_TYPE_SPELL_ENTRY))
 #define SEXY_IS_SPELL_ENTRY_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE((klass), SEXY_TYPE_SPELL_ENTRY))
 #define SEXY_SPELL_ENTRY_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS((obj), SEXY_TYPE_SPELL_ENTRY, SexySpellEntryClass))
+
+typedef struct _SexySpellEntryPriv  SexySpellEntryPriv;
 
 #define SEXY_SPELL_ERROR                 (sexy_spell_error_quark())
 
@@ -39,7 +44,11 @@ typedef enum {
 
 struct _SexySpellEntry
 {
+#if HAVE_GTK3
+	GtkEntry parent_instance;
+#else
 	GtkEntry parent_object;
+#endif
 
 	SexySpellEntryPriv *priv;
 
@@ -62,9 +71,6 @@ struct _SexySpellEntryClass
 	void (*gtk_reserved4)(void);
 };
 
-G_BEGIN_DECLS
-
-GType      sexy_spell_entry_get_type(void);
 GtkWidget *sexy_spell_entry_new(void);
 GQuark     sexy_spell_error_quark(void);
 

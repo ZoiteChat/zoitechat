@@ -1,0 +1,4 @@
+usr/lib/*/zoitechat/plugins/python.so
+usr/lib/*/zoitechat/python/_zoitechat.py
+usr/lib/*/zoitechat/python/xchat.py
+usr/lib/*/zoitechat/python/zoitechat.py

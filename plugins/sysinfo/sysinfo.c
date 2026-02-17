@@ -41,7 +41,7 @@ static zoitechat_plugin *ph;
 static char name[] = "Sysinfo";
 static char desc[] = "Display info about your hardware and OS";
 static char version[] = "1.0";
-static char sysinfo_help[] = "SysInfo Usage:\n  /SYSINFO [-e|-o] [CLIENT|OS|CPU|RAM|DISK|VGA|SOUND|ETHERNET|UPTIME], print various details about your system or print a summary without arguments\n  /SYSINFO SET <variable>\n";
+static char sysinfo_help[] = "SysInfo Usage:\n  /SYSINFO [-e|-o] [CLIENT|UI|OS|CPU|RAM|DISK|VGA|SOUND|ETHERNET|UPTIME], print various details about your system or print a summary without arguments\n  /SYSINFO SET <variable>\n";
 
 typedef struct
 {
@@ -54,11 +54,22 @@ typedef struct
 static char *
 get_client (void)
 {
-	return g_strdup_printf ("ZoiteChat %s", zoitechat_get_info(ph, "version"));
+	char *ui = sysinfo_backend_get_ui();
+	const char *ver = zoitechat_get_info(ph, "version");
+	char *out;
+
+	if (ui != NULL && *ui != '\0')
+		out = g_strdup_printf ("ZoiteChat %s (%s)", ver, ui);
+	else
+		out = g_strdup_printf ("ZoiteChat %s", ver);
+
+	g_free (ui);
+	return out;
 }
 
 static hwinfo hwinfos[] = {
 	{"client", "Client", get_client},
+	{"ui", "UI", sysinfo_backend_get_ui},
 	{"os", "OS", sysinfo_backend_get_os},
 	{"cpu", "CPU", sysinfo_backend_get_cpu},
 	{"memory", "Memory", sysinfo_backend_get_memory},
@@ -235,7 +246,8 @@ zoitechat_plugin_init (zoitechat_plugin *plugin_handle, char **plugin_name, char
 
 	zoitechat_hook_command (ph, "SYSINFO", ZOITECHAT_PRI_NORM, sysinfo_cb, sysinfo_help, NULL);
 
-	zoitechat_command (ph, "MENU ADD \"Window/Send System Info\" \"SYSINFO\"");
+	/* Match the classic label from HexChat so people can actually find it. */
+	zoitechat_command (ph, "MENU ADD \"Window/Display System Info\" \"SYSINFO\"");
 	zoitechat_printf (ph, _("%s plugin loaded\n"), name);
 	return 1;
 }
@@ -243,6 +255,8 @@ zoitechat_plugin_init (zoitechat_plugin *plugin_handle, char **plugin_name, char
 int
 zoitechat_plugin_deinit (void)
 {
+	/* Keep both in case older builds used a different label. */
+	zoitechat_command (ph, "MENU DEL \"Window/Send System Info\"");
 	zoitechat_command (ph, "MENU DEL \"Window/Display System Info\"");
 	zoitechat_printf (ph, _("%s plugin unloaded\n"), name);
 	return 1;

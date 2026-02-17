@@ -22,8 +22,11 @@
 
 #include "fe-gtk.h"
 
-#ifdef WIN32
+#ifdef GDK_WINDOWING_WIN32
 #include <gdk/gdkwin32.h>
+#endif
+
+#ifdef WIN32
 #include <windows.h>
 #else
 #include <unistd.h>
@@ -112,6 +115,27 @@ create_msg_dialog (gchar *title, gchar *message)
 	gtk_dialog_run (GTK_DIALOG (dialog));
 	gtk_widget_destroy (dialog);
 }
+
+static void
+win32_set_gsettings_schema_dir (void)
+{
+	char *base_path;
+	char *schema_path;
+
+	if (g_getenv ("GSETTINGS_SCHEMA_DIR") != NULL)
+		return;
+
+	base_path = g_win32_get_package_installation_directory_of_module (NULL);
+	if (base_path == NULL)
+		return;
+
+	schema_path = g_build_filename (base_path, "share", "glib-2.0", "schemas", NULL);
+	if (g_file_test (schema_path, G_FILE_TEST_IS_DIR))
+		g_setenv ("GSETTINGS_SCHEMA_DIR", schema_path, FALSE);
+
+	g_free (schema_path);
+	g_free (base_path);
+}
 #endif
 
 int
@@ -120,6 +144,7 @@ fe_args (int argc, char *argv[])
 	GError *error = NULL;
 	GOptionContext *context;
 	char *buffer;
+	const char *desktop_id = "net.zoite.Zoitechat";
 
 #ifdef ENABLE_NLS
 	bindtextdomain (GETTEXT_PACKAGE, LOCALEDIR);
@@ -220,6 +245,8 @@ fe_args (int argc, char *argv[])
 	}
 
 #ifdef WIN32
+	win32_set_gsettings_schema_dir ();
+
 	/* this is mainly for irc:// URL handling. When windows calls us from */
 	/* I.E, it doesn't give an option of "Start in" directory, like short */
 	/* cuts can. So we have to set the current dir manually, to the path  */
@@ -238,6 +265,10 @@ fe_args (int argc, char *argv[])
 	}
 #endif
 
+	g_set_prgname (desktop_id);
+#ifndef WIN32
+	gdk_set_program_class (desktop_id);
+#endif
 	gtk_init (&argc, &argv);
 
 #ifdef HAVE_GTK_MAC
@@ -394,13 +425,32 @@ fe_dark_mode_is_enabled (void)
 	return fe_dark_mode_is_enabled_for (prefs.hex_gui_dark_mode);
 }
 
-GtkStyle *
-create_input_style (GtkStyle *style)
+InputStyle *
+create_input_style (InputStyle *style)
 {
 	char buf[256];
 	static int done_rc = FALSE;
+#if HAVE_GTK3
+	static GtkCssProvider *input_css_provider = NULL;
+	static char *last_theme_name = NULL;
+	static gboolean last_dark_mode = FALSE;
+	static gboolean last_input_style = FALSE;
+	static gboolean last_colors_set = FALSE;
+	static guint16 last_fg_red;
+	static guint16 last_fg_green;
+	static guint16 last_fg_blue;
+	static guint16 last_bg_red;
+	static guint16 last_bg_green;
+	static guint16 last_bg_blue;
+#endif
 
-	pango_font_description_free (style->font_desc);
+#if HAVE_GTK3
+	if (!style)
+		style = g_new0 (InputStyle, 1);
+#endif
+
+	if (style->font_desc)
+		pango_font_description_free (style->font_desc);
 	style->font_desc = pango_font_description_from_string (prefs.hex_text_font);
 
 	/* fall back */
@@ -412,27 +462,159 @@ create_input_style (GtkStyle *style)
 		style->font_desc = pango_font_description_from_string ("sans 11");
 	}
 
-	if (prefs.hex_gui_input_style && !done_rc)
+	if (prefs.hex_gui_input_style)
 	{
+#if !HAVE_GTK3
+		if (!done_rc)
+		{
+			GtkSettings *settings = gtk_settings_get_default ();
+			char *theme_name;
+
+			/* gnome-themes-standard 3.20+ relies on images to do theming
+			 * so we have to override that. */
+			g_object_get (settings, "gtk-theme-name", &theme_name, NULL);
+			if (g_str_has_prefix (theme_name, "Adwaita") || g_str_has_prefix (theme_name, "Yaru"))
+				gtk_rc_parse_string (adwaita_workaround_rc);
+			g_free (theme_name);
+
+			{
+				guint16 red;
+				guint16 green;
+				guint16 blue;
+
+				palette_color_get_rgb16 (&colors[COL_FG], &red, &green, &blue);
+				sprintf (buf, cursor_color_rc, (red >> 8), (green >> 8), (blue >> 8));
+			}
+			gtk_rc_parse_string (buf);
+			done_rc = TRUE;
+		}
+#else
 		GtkSettings *settings = gtk_settings_get_default ();
+		GdkScreen *screen = gdk_screen_get_default ();
 		char *theme_name;
+		char cursor_rc[sizeof (cursor_color_rc)];
+		char cursor_color[8];
+		const char *cursor_color_start = NULL;
+		guint16 fg_red;
+		guint16 fg_green;
+		guint16 fg_blue;
+		guint16 bg_red;
+		guint16 bg_green;
+		guint16 bg_blue;
+		gboolean dark_mode = fe_dark_mode_is_enabled ();
+		gboolean needs_reload;
 
-		/* gnome-themes-standard 3.20+ relies on images to do theming
-		 * so we have to override that. */
 		g_object_get (settings, "gtk-theme-name", &theme_name, NULL);
-		if (g_str_has_prefix (theme_name, "Adwaita") || g_str_has_prefix (theme_name, "Yaru"))
-			gtk_rc_parse_string (adwaita_workaround_rc);
+
+		palette_color_get_rgb16 (&colors[COL_FG], &fg_red, &fg_green, &fg_blue);
+		palette_color_get_rgb16 (&colors[COL_BG], &bg_red, &bg_green, &bg_blue);
+		needs_reload = !done_rc
+			|| !last_input_style
+			|| last_dark_mode != dark_mode
+			|| g_strcmp0 (last_theme_name, theme_name) != 0
+			|| !last_colors_set
+			|| last_fg_red != fg_red
+			|| last_fg_green != fg_green
+			|| last_fg_blue != fg_blue
+			|| last_bg_red != bg_red
+			|| last_bg_green != bg_green
+			|| last_bg_blue != bg_blue;
+
+		if (needs_reload)
+		{
+			if (!input_css_provider)
+				input_css_provider = gtk_css_provider_new ();
+
+			g_snprintf (buf, sizeof (buf), "#%02x%02x%02x",
+				(fg_red >> 8), (fg_green >> 8), (fg_blue >> 8));
+			g_snprintf (cursor_rc, sizeof (cursor_rc), cursor_color_rc,
+				(fg_red >> 8), (fg_green >> 8), (fg_blue >> 8));
+			cursor_color_start = g_strstr_len (cursor_rc, -1, "cursor-color=\"");
+			if (cursor_color_start)
+			{
+				cursor_color_start += strlen ("cursor-color=\"");
+				g_strlcpy (cursor_color, cursor_color_start, sizeof (cursor_color));
+				cursor_color[7] = '\0';
+			}
+			else
+			{
+				g_strlcpy (cursor_color, buf, sizeof (cursor_color));
+			}
+			{
+				GString *css = g_string_new ("#zoitechat-inputbox {");
+
+				/* GTK3 equivalents for adwaita_workaround_rc/cursor_color_rc. */
+				if (adwaita_workaround_rc[0] != '\0'
+					&& (g_str_has_prefix (theme_name, "Adwaita")
+						|| g_str_has_prefix (theme_name, "Yaru")))
+					g_string_append (css, "background-image: none;");
+
+				g_string_append_printf (
+					css,
+					"background-color: #%02x%02x%02x;"
+					"color: #%02x%02x%02x;"
+					"caret-color: %s;"
+					"}"
+					"#zoitechat-inputbox text {"
+					"color: #%02x%02x%02x;"
+					"caret-color: %s;"
+					"}",
+					(bg_red >> 8), (bg_green >> 8), (bg_blue >> 8),
+					(fg_red >> 8), (fg_green >> 8), (fg_blue >> 8),
+					cursor_color,
+					(fg_red >> 8), (fg_green >> 8), (fg_blue >> 8),
+					cursor_color);
+				gtk_css_provider_load_from_data (input_css_provider, css->str, -1, NULL);
+				g_string_free (css, TRUE);
+			}
+
+			if (screen)
+				gtk_style_context_add_provider_for_screen (
+					screen,
+					GTK_STYLE_PROVIDER (input_css_provider),
+					GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+
+			done_rc = TRUE;
+			last_input_style = TRUE;
+			last_dark_mode = dark_mode;
+			last_colors_set = TRUE;
+			last_fg_red = fg_red;
+			last_fg_green = fg_green;
+			last_fg_blue = fg_blue;
+			last_bg_red = bg_red;
+			last_bg_green = bg_green;
+			last_bg_blue = bg_blue;
+			g_free (last_theme_name);
+			last_theme_name = g_strdup (theme_name);
+		}
+
 		g_free (theme_name);
-
-		done_rc = TRUE;
-		sprintf (buf, cursor_color_rc, (colors[COL_FG].red >> 8),
-			(colors[COL_FG].green >> 8), (colors[COL_FG].blue >> 8));
-		gtk_rc_parse_string (buf);
+#endif
 	}
+#if HAVE_GTK3
+	else
+	{
+		GdkScreen *screen = gdk_screen_get_default ();
 
+		if (input_css_provider && screen)
+		{
+			gtk_style_context_remove_provider_for_screen (
+				screen,
+				GTK_STYLE_PROVIDER (input_css_provider));
+		}
+		g_clear_object (&input_css_provider);
+		g_clear_pointer (&last_theme_name, g_free);
+		done_rc = FALSE;
+		last_input_style = FALSE;
+		last_colors_set = FALSE;
+	}
+#endif
+
+#if !HAVE_GTK3
 	style->bg[GTK_STATE_NORMAL] = colors[COL_FG];
 	style->base[GTK_STATE_NORMAL] = colors[COL_BG];
 	style->text[GTK_STATE_NORMAL] = colors[COL_FG];
+#endif
 
 	return style;
 }
@@ -451,7 +633,11 @@ fe_init (void)
 	gtkosx_application_set_dock_icon_pixbuf (osx_app, pix_zoitechat);
 #endif
 	channelwin_pix = pixmap_load_from_file (prefs.hex_text_background);
+#if HAVE_GTK3
+	input_style = create_input_style (input_style);
+#else
 	input_style = create_input_style (gtk_style_new ());
+#endif
 
 	settings = gtk_settings_get_default ();
 	if (settings)
@@ -1074,8 +1260,8 @@ fe_gui_info_ptr (session *sess, int info_type)
 	switch (info_type)
 	{
 	case 0:	/* native window pointer (for plugins) */
-#ifdef WIN32
-		return gdk_win32_window_get_impl_hwnd (gtk_widget_get_window (sess->gui->window));
+#ifdef GDK_WINDOWING_WIN32
+		return gdk_win32_window_get_handle (gtk_widget_get_window (sess->gui->window));
 #else
 		return sess->gui->window;
 #endif

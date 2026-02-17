@@ -37,6 +37,19 @@
 #include "palette.h"
 #include "maingui.h"
 
+#if HAVE_GTK3
+#define ICON_DCC_CANCEL "dialog-cancel"
+#define ICON_DCC_ACCEPT "dialog-apply"
+#define ICON_DCC_RESUME "view-refresh"
+#define ICON_DCC_CLEAR "edit-clear"
+#endif
+#if !HAVE_GTK3
+#define ICON_DCC_CANCEL GTK_STOCK_CANCEL
+#define ICON_DCC_ACCEPT GTK_STOCK_APPLY
+#define ICON_DCC_RESUME GTK_STOCK_REFRESH
+#define ICON_DCC_CLEAR GTK_STOCK_CLEAR
+#endif
+
 
 enum	/* DCC SEND/RECV */
 {
@@ -50,7 +63,7 @@ enum	/* DCC SEND/RECV */
 	COL_ETA,
 	COL_NICK,
 	COL_DCC, /* struct DCC * */
-	COL_COLOR,	/* GdkColor */
+	COL_COLOR,	/* PaletteColor */
 	N_COLUMNS
 };
 
@@ -62,7 +75,7 @@ enum	/* DCC CHAT */
 	CCOL_SENT,
 	CCOL_START,
 	CCOL_DCC,	/* struct DCC * */
-	CCOL_COLOR,	/* GdkColor * */
+	CCOL_COLOR,	/* PaletteColor * */
 	CN_COLUMNS
 };
 
@@ -102,6 +115,26 @@ static short view_mode;	/* 1=download 2=upload 3=both */
 #define VIEW_DOWNLOAD 1
 #define VIEW_UPLOAD 2
 #define VIEW_BOTH 3
+
+#if HAVE_GTK3
+static GdkPixbuf *
+dcc_load_icon (const char *stock_name)
+{
+	GtkIconTheme *theme = gtk_icon_theme_get_default ();
+	const char *icon_name = gtkutil_icon_name_from_stock (stock_name);
+	int width = 16;
+	int height = 16;
+
+	if (g_strcmp0 (stock_name, "gtk-go-up") == 0)
+		icon_name = "go-up";
+	else if (g_strcmp0 (stock_name, "gtk-go-down") == 0)
+		icon_name = "go-down";
+
+	gtk_icon_size_lookup (GTK_ICON_SIZE_MENU, &width, &height);
+
+	return gtk_icon_theme_load_icon (theme, icon_name, width, 0, NULL);
+}
+#endif
 
 
 static void
@@ -152,6 +185,29 @@ fe_dcc_send_filereq (struct session *sess, char *nick, int maxcps, int passive)
 }
 
 static void
+dcc_store_color (GtkListStore *store, GtkTreeIter *iter, int column, int color_index)
+{
+	const PaletteColor *color = NULL;
+
+	if (color_index != 1)
+		color = &colors[color_index];
+
+#if HAVE_GTK3
+	if (color)
+	{
+		GdkRGBA rgba = *color;
+		gtk_list_store_set (store, iter, column, &rgba, -1);
+	}
+	else
+	{
+		gtk_list_store_set (store, iter, column, NULL, -1);
+	}
+#else
+	gtk_list_store_set (store, iter, column, color, -1);
+#endif
+}
+
+static void
 dcc_prepare_row_chat (struct DCC *dcc, GtkListStore *store, GtkTreeIter *iter,
 							 gboolean update_only)
 {
@@ -171,11 +227,8 @@ dcc_prepare_row_chat (struct DCC *dcc, GtkListStore *store, GtkTreeIter *iter,
 							  CCOL_SENT, size,
 							  CCOL_START, date,
 							  CCOL_DCC, dcc,
-							  CCOL_COLOR,
-							  dccstat[dcc->dccstat].color == 1 ?
-								NULL :
-								colors + dccstat[dcc->dccstat].color,
 							  -1);
+	dcc_store_color (store, iter, CCOL_COLOR, dccstat[dcc->dccstat].color);
 }
 
 static void
@@ -187,8 +240,12 @@ dcc_prepare_row_send (struct DCC *dcc, GtkListStore *store, GtkTreeIter *iter,
 	float per;
 
 	if (!pix_up)
+#if HAVE_GTK3
+		pix_up = dcc_load_icon ("gtk-go-up");
+#elif !HAVE_GTK3
 		pix_up = gtk_widget_render_icon (dccfwin.window, "gtk-go-up",
 													GTK_ICON_SIZE_MENU, NULL);
+#endif
 
 	/* percentage ack'ed */
 	per = (float) ((dcc->ack * 100.00) / dcc->size);
@@ -211,10 +268,6 @@ dcc_prepare_row_send (struct DCC *dcc, GtkListStore *store, GtkTreeIter *iter,
 								  COL_PERC, perc,
 								  COL_SPEED, kbs,
 								  COL_ETA, eta,
-								  COL_COLOR,
-								  dccstat[dcc->dccstat].color == 1 ?
-									NULL :
-									colors + dccstat[dcc->dccstat].color,
 									-1);
 	else
 		gtk_list_store_set (store, iter,
@@ -228,11 +281,8 @@ dcc_prepare_row_send (struct DCC *dcc, GtkListStore *store, GtkTreeIter *iter,
 								  COL_ETA, eta,
 								  COL_NICK, dcc->nick,
 								  COL_DCC, dcc,
-								  COL_COLOR,
-								  dccstat[dcc->dccstat].color == 1 ?
-									NULL :
-									colors + dccstat[dcc->dccstat].color,
 									-1);
+	dcc_store_color (store, iter, COL_COLOR, dccstat[dcc->dccstat].color);
 }
 
 static void
@@ -244,8 +294,12 @@ dcc_prepare_row_recv (struct DCC *dcc, GtkListStore *store, GtkTreeIter *iter,
 	int to_go;
 
 	if (!pix_dn)
+#if HAVE_GTK3
+		pix_dn = dcc_load_icon ("gtk-go-down");
+#elif !HAVE_GTK3
 		pix_dn = gtk_widget_render_icon (dccfwin.window, "gtk-go-down",
 													GTK_ICON_SIZE_MENU, NULL);
+#endif
 
 	proper_unit (dcc->size, size, sizeof (size));
 	if (dcc->dccstat == STAT_QUEUED)
@@ -271,10 +325,6 @@ dcc_prepare_row_recv (struct DCC *dcc, GtkListStore *store, GtkTreeIter *iter,
 								  COL_PERC, perc,
 								  COL_SPEED, kbs,
 								  COL_ETA, eta,
-								  COL_COLOR,
-								  dccstat[dcc->dccstat].color == 1 ?
-									NULL :
-									colors + dccstat[dcc->dccstat].color,
 									-1);
 	else
 		gtk_list_store_set (store, iter,
@@ -288,11 +338,8 @@ dcc_prepare_row_recv (struct DCC *dcc, GtkListStore *store, GtkTreeIter *iter,
 								  COL_ETA, eta,
 								  COL_NICK, dcc->nick,
 								  COL_DCC, dcc,
-								  COL_COLOR,
-								  dccstat[dcc->dccstat].color == 1 ?
-									NULL :
-									colors + dccstat[dcc->dccstat].color,
 									-1);
+	dcc_store_color (store, iter, COL_COLOR, dccstat[dcc->dccstat].color);
 }
 
 static gboolean
@@ -730,7 +777,7 @@ dcc_add_column (GtkWidget *tree, int textcol, int colorcol, char *title, gboolea
 	if (right_justified)
 		g_object_set (G_OBJECT (renderer), "xalign", (float) 1.0, NULL);
 	gtk_tree_view_insert_column_with_attributes (GTK_TREE_VIEW (tree), -1, title, renderer,
-																"text", textcol, "foreground-gdk", colorcol,
+																"text", textcol, PALETTE_FOREGROUND_PROPERTY, colorcol,
 																NULL);
 	gtk_cell_renderer_text_set_fixed_height_from_font (GTK_CELL_RENDERER_TEXT (renderer), 1);
 }
@@ -744,13 +791,31 @@ dcc_detail_label (char *text, GtkWidget *box, int num)
 	label = gtk_label_new (NULL);
 	g_snprintf (buf, sizeof (buf), "<b>%s</b>", text);
 	gtk_label_set_markup (GTK_LABEL (label), buf);
+#if HAVE_GTK3
+	gtk_widget_set_hexpand (label, FALSE);
+	gtk_widget_set_vexpand (label, FALSE);
+	gtk_widget_set_halign (label, GTK_ALIGN_START);
+	gtk_widget_set_valign (label, GTK_ALIGN_START);
+	gtk_grid_attach (GTK_GRID (box), label, 0, 0 + num, 1, 1);
+#elif !HAVE_GTK3
 	gtk_misc_set_alignment (GTK_MISC (label), 0, 0);
-	gtk_table_attach (GTK_TABLE (box), label, 0, 1, 0 + num, 1 + num, GTK_FILL, GTK_FILL, 0, 0);
+	gtk_table_attach (GTK_TABLE (box), label, 0, 1, 0 + num, 1 + num,
+					  GTK_FILL, GTK_FILL, 0, 0);
+#endif
 
 	label = gtk_label_new (NULL);
 	gtk_label_set_selectable (GTK_LABEL (label), TRUE);
+#if HAVE_GTK3
+	gtk_widget_set_hexpand (label, FALSE);
+	gtk_widget_set_vexpand (label, FALSE);
+	gtk_widget_set_halign (label, GTK_ALIGN_START);
+	gtk_widget_set_valign (label, GTK_ALIGN_START);
+	gtk_grid_attach (GTK_GRID (box), label, 1, 0 + num, 1, 1);
+#elif !HAVE_GTK3
 	gtk_misc_set_alignment (GTK_MISC (label), 0, 0);
-	gtk_table_attach (GTK_TABLE (box), label, 1, 2, 0 + num, 1 + num, GTK_FILL, GTK_FILL, 0, 0);
+	gtk_table_attach (GTK_TABLE (box), label, 1, 2, 0 + num, 1 + num,
+					  GTK_FILL, GTK_FILL, 0, 0);
+#endif
 
 	return label;
 }
@@ -789,7 +854,7 @@ dcc_configure_cb (GtkWindow *win, GdkEventConfigure *event, gpointer data)
 int
 fe_dcc_open_recv_win (int passive)
 {
-	GtkWidget *radio, *table, *vbox, *bbox, *view, *exp, *detailbox;
+	GtkWidget *radio, *table, *vbox, *bbox, *view, *view_scrolled, *exp, *detailbox;
 	GtkListStore *store;
 	GSList *group;
 	char buf[128];
@@ -810,8 +875,13 @@ fe_dcc_open_recv_win (int passive)
 	store = gtk_list_store_new (N_COLUMNS, GDK_TYPE_PIXBUF, G_TYPE_STRING,
 										 G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING,
 										 G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING,
-										 G_TYPE_STRING, G_TYPE_POINTER, GDK_TYPE_COLOR);
+										 G_TYPE_STRING, G_TYPE_POINTER, PALETTE_GDK_TYPE);
 	view = gtkutil_treeview_new (vbox, GTK_TREE_MODEL (store), NULL, -1);
+	view_scrolled = gtk_widget_get_parent (view);
+	gtk_widget_set_hexpand (view_scrolled, TRUE);
+	gtk_widget_set_vexpand (view_scrolled, TRUE);
+	gtk_widget_set_hexpand (view, TRUE);
+	gtk_widget_set_vexpand (view, TRUE);
 	gtk_tree_view_set_rules_hint (GTK_TREE_VIEW (view), TRUE);
 	/* Up/Down Icon column */
 	gtk_tree_view_insert_column_with_attributes (GTK_TREE_VIEW (view), -1, NULL,
@@ -844,49 +914,106 @@ fe_dcc_open_recv_win (int passive)
 	g_signal_connect (G_OBJECT (view), "row-activated",
 							G_CALLBACK (dcc_dclick_cb), NULL);
 
+#if HAVE_GTK3
+	table = gtk_grid_new ();
+	gtk_grid_set_column_spacing (GTK_GRID (table), 16);
+#else
 	table = gtk_table_new (1, 3, FALSE);
 	gtk_table_set_col_spacings (GTK_TABLE (table), 16);
+#endif
 	gtk_box_pack_start (GTK_BOX (vbox), table, 0, 0, 0);
 
 	radio = gtk_radio_button_new_with_mnemonic (NULL, _("Both"));
 	g_signal_connect (G_OBJECT (radio), "toggled",
 							G_CALLBACK (dcc_toggle), GINT_TO_POINTER (VIEW_BOTH));
+#if HAVE_GTK3
+	gtk_widget_set_hexpand (radio, FALSE);
+	gtk_widget_set_vexpand (radio, FALSE);
+	gtk_widget_set_halign (radio, GTK_ALIGN_FILL);
+	gtk_widget_set_valign (radio, GTK_ALIGN_FILL);
+	gtk_grid_attach (GTK_GRID (table), radio, 3, 0, 1, 1);
+#else
 	gtk_table_attach (GTK_TABLE (table), radio, 3, 4, 0, 1, GTK_FILL, GTK_FILL, 0, 0);
+#endif
 	group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (radio));
 
 	radio = gtk_radio_button_new_with_mnemonic (group, _("Uploads"));
 	g_signal_connect (G_OBJECT (radio), "toggled",
 							G_CALLBACK (dcc_toggle), GINT_TO_POINTER (VIEW_UPLOAD));
+#if HAVE_GTK3
+	gtk_widget_set_hexpand (radio, FALSE);
+	gtk_widget_set_vexpand (radio, FALSE);
+	gtk_widget_set_halign (radio, GTK_ALIGN_FILL);
+	gtk_widget_set_valign (radio, GTK_ALIGN_FILL);
+	gtk_grid_attach (GTK_GRID (table), radio, 1, 0, 1, 1);
+#else
 	gtk_table_attach (GTK_TABLE (table), radio, 1, 2, 0, 1, GTK_FILL, GTK_FILL, 0, 0);
+#endif
 	group = gtk_radio_button_get_group (GTK_RADIO_BUTTON (radio));
 
 	radio = gtk_radio_button_new_with_mnemonic (group, _("Downloads"));
 	g_signal_connect (G_OBJECT (radio), "toggled",
 							G_CALLBACK (dcc_toggle), GINT_TO_POINTER (VIEW_DOWNLOAD));
+#if HAVE_GTK3
+	gtk_widget_set_hexpand (radio, FALSE);
+	gtk_widget_set_vexpand (radio, FALSE);
+	gtk_widget_set_halign (radio, GTK_ALIGN_FILL);
+	gtk_widget_set_valign (radio, GTK_ALIGN_FILL);
+	gtk_grid_attach (GTK_GRID (table), radio, 2, 0, 1, 1);
+#else
 	gtk_table_attach (GTK_TABLE (table), radio, 2, 3, 0, 1, GTK_FILL, GTK_FILL, 0, 0);
+#endif
 
 	exp = gtk_expander_new (_("Details"));
+#if HAVE_GTK3
+	gtk_widget_set_hexpand (exp, TRUE);
+	gtk_widget_set_vexpand (exp, FALSE);
+	gtk_widget_set_halign (exp, GTK_ALIGN_FILL);
+	gtk_widget_set_valign (exp, GTK_ALIGN_FILL);
+	gtk_grid_attach (GTK_GRID (table), exp, 0, 0, 1, 1);
+#else
 	gtk_table_attach (GTK_TABLE (table), exp, 0, 1, 0, 1, GTK_EXPAND | GTK_FILL, GTK_FILL, 0, 0);
+#endif
 
+#if HAVE_GTK3
+	detailbox = gtk_grid_new ();
+	gtk_grid_set_column_spacing (GTK_GRID (detailbox), 6);
+	gtk_grid_set_row_spacing (GTK_GRID (detailbox), 2);
+	gtk_container_set_border_width (GTK_CONTAINER (detailbox), 6);
+#else
 	detailbox = gtk_table_new (3, 3, FALSE);
 	gtk_table_set_col_spacings (GTK_TABLE (detailbox), 6);
 	gtk_table_set_row_spacings (GTK_TABLE (detailbox), 2);
 	gtk_container_set_border_width (GTK_CONTAINER (detailbox), 6);
+#endif
 	g_signal_connect (G_OBJECT (exp), "activate",
 							G_CALLBACK (dcc_exp_cb), detailbox);
+#if HAVE_GTK3
+	gtk_widget_set_hexpand (detailbox, TRUE);
+	gtk_widget_set_vexpand (detailbox, FALSE);
+	gtk_widget_set_halign (detailbox, GTK_ALIGN_FILL);
+	gtk_widget_set_valign (detailbox, GTK_ALIGN_FILL);
+	gtk_grid_attach (GTK_GRID (table), detailbox, 0, 1, 4, 1);
+#else
 	gtk_table_attach (GTK_TABLE (table), detailbox, 0, 4, 1, 2, GTK_EXPAND | GTK_FILL, GTK_FILL, 0, 0);
+#endif
 
 	dccfwin.file_label = dcc_detail_label (_("File:"), detailbox, 0);
 	dccfwin.address_label = dcc_detail_label (_("Address:"), detailbox, 1);
 
+#if HAVE_GTK3
+	bbox = gtk_button_box_new (GTK_ORIENTATION_HORIZONTAL);
+	gtk_button_box_set_layout (GTK_BUTTON_BOX (bbox), GTK_BUTTONBOX_SPREAD);
+#elif !HAVE_GTK3
 	bbox = gtk_hbutton_box_new ();
 	gtk_button_box_set_layout (GTK_BUTTON_BOX (bbox), GTK_BUTTONBOX_SPREAD);
+#endif
 	gtk_box_pack_end (GTK_BOX (vbox), bbox, FALSE, FALSE, 2);
 
-	dccfwin.abort_button = gtkutil_button (bbox, GTK_STOCK_CANCEL, 0, abort_clicked, 0, _("Abort"));
-	dccfwin.accept_button = gtkutil_button (bbox, GTK_STOCK_APPLY, 0, accept_clicked, 0, _("Accept"));
-	dccfwin.resume_button = gtkutil_button (bbox, GTK_STOCK_REFRESH, 0, resume_clicked, 0, _("Resume"));
-	dccfwin.clear_button = gtkutil_button (bbox, GTK_STOCK_CLEAR, 0, clear_completed, 0, _("Clear"));
+	dccfwin.abort_button = gtkutil_button (bbox, ICON_DCC_CANCEL, 0, abort_clicked, 0, _("Abort"));
+	dccfwin.accept_button = gtkutil_button (bbox, ICON_DCC_ACCEPT, 0, accept_clicked, 0, _("Accept"));
+	dccfwin.resume_button = gtkutil_button (bbox, ICON_DCC_RESUME, 0, resume_clicked, 0, _("Resume"));
+	dccfwin.clear_button = gtkutil_button (bbox, ICON_DCC_CLEAR, 0, clear_completed, 0, _("Clear"));
 	dccfwin.open_button = gtkutil_button (bbox, 0, 0, browse_dcc_folder, 0, _("Open Folder..."));
 	gtk_widget_set_sensitive (dccfwin.accept_button, FALSE);
 	gtk_widget_set_sensitive (dccfwin.resume_button, FALSE);
@@ -1036,7 +1163,7 @@ dcc_chat_dclick_cb (GtkTreeView *view, GtkTreePath *path,
 int
 fe_dcc_open_chat_win (int passive)
 {
-	GtkWidget *view, *vbox, *bbox;
+	GtkWidget *view, *vbox, *bbox, *scroll;
 	GtkListStore *store;
 	char buf[128];
 
@@ -1056,9 +1183,11 @@ fe_dcc_open_chat_win (int passive)
 	gtk_box_set_spacing (GTK_BOX (vbox), 3);
 
 	store = gtk_list_store_new (CN_COLUMNS, G_TYPE_STRING, G_TYPE_STRING,
-										 G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING,
-										 G_TYPE_POINTER, GDK_TYPE_COLOR);
+									 G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING,
+									 G_TYPE_POINTER, PALETTE_GDK_TYPE);
 	view = gtkutil_treeview_new (vbox, GTK_TREE_MODEL (store), NULL, -1);
+	scroll = gtk_widget_get_parent (view);
+	gtk_box_set_child_packing (GTK_BOX (vbox), scroll, TRUE, TRUE, 0, GTK_PACK_START);
 
 	dcc_add_column (view, CCOL_STATUS, CCOL_COLOR, _("Status"), FALSE);
 	dcc_add_column (view, CCOL_NICK,   CCOL_COLOR, _("Nick"), FALSE);
@@ -1080,12 +1209,17 @@ fe_dcc_open_chat_win (int passive)
 	g_signal_connect (G_OBJECT (view), "row-activated",
 							G_CALLBACK (dcc_chat_dclick_cb), NULL);
 
+#if HAVE_GTK3
+	bbox = gtk_button_box_new (GTK_ORIENTATION_HORIZONTAL);
+	gtk_button_box_set_layout (GTK_BUTTON_BOX (bbox), GTK_BUTTONBOX_SPREAD);
+#elif !HAVE_GTK3
 	bbox = gtk_hbutton_box_new ();
 	gtk_button_box_set_layout (GTK_BUTTON_BOX (bbox), GTK_BUTTONBOX_SPREAD);
+#endif
 	gtk_box_pack_end (GTK_BOX (vbox), bbox, FALSE, FALSE, 2);
 
-	dcccwin.abort_button = gtkutil_button (bbox, GTK_STOCK_CANCEL, 0, abort_chat_clicked, 0, _("Abort"));
-	dcccwin.accept_button = gtkutil_button (bbox, GTK_STOCK_APPLY, 0, accept_chat_clicked, 0, _("Accept"));
+	dcccwin.abort_button = gtkutil_button (bbox, ICON_DCC_CANCEL, 0, abort_chat_clicked, 0, _("Abort"));
+	dcccwin.accept_button = gtkutil_button (bbox, ICON_DCC_ACCEPT, 0, accept_chat_clicked, 0, _("Accept"));
 	gtk_widget_set_sensitive (dcccwin.accept_button, FALSE);
 	gtk_widget_set_sensitive (dcccwin.abort_button, FALSE);
 

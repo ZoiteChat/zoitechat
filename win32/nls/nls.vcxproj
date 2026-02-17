@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup Label="Configuration">
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <ConfigurationType>Application</ConfigurationType>
   </PropertyGroup>
   <ItemGroup Label="ProjectConfigurations">
@@ -28,7 +28,7 @@
   <ItemDefinitionGroup>
     <PreBuildEvent>
       <Command>cd ..\..\po
-rmdir /q /s "$(OutDir)\locale"
+if exist "$(OutDir)\locale" rmdir /q /s "$(OutDir)\locale"
 mkdir "$(OutDir)\locale"
 for %%A in (*.po) do (
 mkdir "$(OutDir)\locale\%%~nA\LC_MESSAGES"
@@ -40,3 +40,4 @@ mkdir "$(OutDir)\locale\%%~nA\LC_MESSAGES"
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>
+

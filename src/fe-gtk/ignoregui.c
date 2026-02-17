@@ -31,6 +31,17 @@
 #include "gtkutil.h"
 #include "maingui.h"
 
+#if HAVE_GTK3
+#define ICON_IGNORE_NEW "document-new"
+#define ICON_IGNORE_DELETE "edit-delete"
+#define ICON_IGNORE_CLEAR "edit-clear"
+#endif
+#if !HAVE_GTK3
+#define ICON_IGNORE_NEW GTK_STOCK_NEW
+#define ICON_IGNORE_DELETE GTK_STOCK_DELETE
+#define ICON_IGNORE_CLEAR GTK_STOCK_CLEAR
+#endif
+
 enum
 {
 	MASK_COLUMN,
@@ -360,7 +371,11 @@ ignore_gui_open ()
 	frame = gtk_frame_new (_("Ignore Stats:"));
 	gtk_widget_show (frame);
 
+#if HAVE_GTK3
+	stat_box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 2);
+#elif !HAVE_GTK3
 	stat_box = gtk_hbox_new (0, 2);
+#endif
 	gtk_container_set_border_width (GTK_CONTAINER (stat_box), 6);
 	gtk_container_add (GTK_CONTAINER (frame), stat_box);
 	gtk_widget_show (stat_box);
@@ -373,17 +388,22 @@ ignore_gui_open ()
 
 	gtk_box_pack_start (GTK_BOX (vbox), frame, 0, 0, 5);
 
+#if HAVE_GTK3
+	box = gtk_button_box_new (GTK_ORIENTATION_HORIZONTAL);
+	gtk_button_box_set_layout (GTK_BUTTON_BOX (box), GTK_BUTTONBOX_SPREAD);
+#elif !HAVE_GTK3
 	box = gtk_hbutton_box_new ();
 	gtk_button_box_set_layout (GTK_BUTTON_BOX (box), GTK_BUTTONBOX_SPREAD);
+#endif
 	gtk_box_pack_start (GTK_BOX (vbox), box, FALSE, FALSE, 2);
 	gtk_container_set_border_width (GTK_CONTAINER (box), 5);
 	gtk_widget_show (box);
 
-	gtkutil_button (box, GTK_STOCK_NEW, 0, ignore_new_entry_clicked, 0,
+	gtkutil_button (box, ICON_IGNORE_NEW, 0, ignore_new_entry_clicked, 0,
 						 _("Add..."));
-	gtkutil_button (box, GTK_STOCK_DELETE, 0, ignore_delete_entry_clicked,
+	gtkutil_button (box, ICON_IGNORE_DELETE, 0, ignore_delete_entry_clicked,
 						 0, _("Delete"));
-	gtkutil_button (box, GTK_STOCK_CLEAR, 0, ignore_clear_entry_clicked,
+	gtkutil_button (box, ICON_IGNORE_CLEAR, 0, ignore_clear_entry_clicked,
 						 0, _("Clear"));
 
 	store = GTK_LIST_STORE (gtk_tree_view_get_model (GTK_TREE_VIEW (view)));

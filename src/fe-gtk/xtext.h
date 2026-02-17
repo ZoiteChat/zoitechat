@@ -21,8 +21,14 @@
 #define ZOITECHAT_XTEXT_H
 
 #include <gtk/gtk.h>
+#if !defined(GTK_MAJOR_VERSION) || GTK_MAJOR_VERSION < 3
+#include <gtk/gtkobject.h>
+#endif
 #include <cairo.h>
 #include "xtext-color.h"
+
+typedef struct _GtkXText GtkXText;
+typedef struct _GtkXTextClass GtkXTextClass;
 
 #define GTK_TYPE_XTEXT              (gtk_xtext_get_type ())
 #define GTK_XTEXT(object)           (G_TYPE_CHECK_INSTANCE_CAST ((object), GTK_TYPE_XTEXT, GtkXText))
@@ -30,6 +36,8 @@
 #define GTK_IS_XTEXT(object)        (G_TYPE_CHECK_INSTANCE_TYPE ((object), GTK_TYPE_XTEXT))
 #define GTK_IS_XTEXT_CLASS(klass)   (G_TYPE_CHECK_CLASS_TYPE ((klass), GTK_TYPE_XTEXT))
 #define GTK_XTEXT_GET_CLASS(obj)    (G_TYPE_INSTANCE_GET_CLASS ((obj), GTK_TYPE_XTEXT, GtkXTextClass))
+
+GType gtk_xtext_get_type (void);
 
 #define ATTR_BOLD				'\002'
 #define ATTR_COLOR			'\003'
@@ -52,9 +60,6 @@
 #define XTEXT_BG 35
 #define XTEXT_MARKER 36		/* for marker line */
 #define XTEXT_MAX_COLOR 41
-
-typedef struct _GtkXText GtkXText;
-typedef struct _GtkXTextClass GtkXTextClass;
 typedef struct textentry textentry;
 
 /*
@@ -125,7 +130,11 @@ typedef struct {
 
 struct _GtkXText
 {
-	GtkWidget widget;
+#if HAVE_GTK3
+	GtkWidget parent_instance;
+#else
+	GtkWidget parent;
+#endif
 
 	xtext_buffer *buffer;
 	xtext_buffer *orig_buffer;
@@ -135,6 +144,7 @@ struct _GtkXText
 	cairo_surface_t *background_surface;	/* 0 = use palette[19] */
 	GdkWindow *draw_window;			/* points to ->window */
 	cairo_surface_t *draw_surface;	/* temporary surface for offscreen draws */
+	cairo_t *draw_cr;					/* GTK3 draw context */
 	GdkCursor *hand_cursor;
 	GdkCursor *resize_cursor;
 
@@ -293,6 +303,5 @@ xtext_buffer *gtk_xtext_buffer_new (GtkXText *xtext);
 void gtk_xtext_buffer_free (xtext_buffer *buf);
 void gtk_xtext_buffer_show (GtkXText *xtext, xtext_buffer *buf, int render);
 void gtk_xtext_copy_selection (GtkXText *xtext);
-GType gtk_xtext_get_type (void);
 
 #endif

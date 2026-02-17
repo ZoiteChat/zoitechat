@@ -25,6 +25,18 @@
     <id>zoitechat.desktop</id>
   </provides>
 <releases>
+  <release date="2026-02-16" version="2.18.0-pre1">
+    <description>
+      <p>Packaging and GTK3 improvements:</p>
+      <ul>
+        <li>Switched Debian package builds to GTK 3.</li>
+        <li>Added split-package install manifests for Debian outputs.</li>
+        <li>Fixed unassigned Debian package files (man page and MIME XML).</li>
+        <li>Updated Debian CI artifact upload handling for GitHub Actions v4.</li>
+        <li>Improved GTK3 channel/user list font consistency when applying theme updates.</li>
+      </ul>
+    </description>
+  </release>
   <release date="2026-02-03" version="2.17.4">
     <description>
       <p>Fixes and minor features:</p>

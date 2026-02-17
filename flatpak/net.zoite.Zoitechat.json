@@ -7,7 +7,7 @@
   "command": "zoitechat",
   "finish-args": [
     "--share=ipc",
-    "--socket=x11",
+    "--socket=wayland",
     "--share=network",
     "--socket=pulseaudio",
     "--filesystem=xdg-download",
@@ -28,11 +28,10 @@
     }
   },
   "modules": [
-    "shared-modules/gtk2/gtk2.json",
-    "shared-modules/gtk2/gtk2-common-themes.json",
     "shared-modules/dbus-glib/dbus-glib.json",
     "shared-modules/lua5.3/lua-5.3.5.json",
     "shared-modules/libcanberra/libcanberra.json",
+    "shared-modules/libayatana-appindicator/libayatana-appindicator-gtk3.json",
     "python3-cffi.json",
     {
       "name": "lgi",
@@ -43,13 +42,14 @@
           "url": "https://github.com/pavouk/lgi.git",
           "commit": "95418635aa8151a516d43166227ea2b9d4c4403f"
         }
-       ]
+      ]
     },
     {
       "name": "zoitechat",
       "buildsystem": "meson",
       "config-opts": [
         "--buildtype=release",
+        "-Dgtk3=true",
         "-Ddbus-service-use-appid=true",
         "-Dwith-perl=false",
         "-Dwith-python=false",

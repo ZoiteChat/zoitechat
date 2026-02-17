@@ -53,6 +53,19 @@
 #include "textgui.h"
 #include "fkeys.h"
 
+#if HAVE_GTK3
+#define ICON_FKEYS_NEW "document-new"
+#define ICON_FKEYS_DELETE "edit-delete"
+#define ICON_FKEYS_CANCEL "dialog-cancel"
+#define ICON_FKEYS_SAVE "document-save"
+#endif
+#if !HAVE_GTK3
+#define ICON_FKEYS_NEW GTK_STOCK_NEW
+#define ICON_FKEYS_DELETE GTK_STOCK_DELETE
+#define ICON_FKEYS_CANCEL GTK_STOCK_CANCEL
+#define ICON_FKEYS_SAVE GTK_STOCK_SAVE
+#endif
+
 static void replace_handle (GtkWidget * wid);
 void key_check_replace_on_change (GtkEditable *editable, gpointer data);
 void key_action_tab_clean (void);
@@ -137,14 +150,77 @@ static int key_action_put_history (GtkWidget * wid, GdkEventKey * evt,
 
 static GSList *keybind_list = NULL;
 
+static gsize
+key_action_decode_escapes (const char *input, char *output)
+{
+	gsize ii;
+	gsize oi = 0;
+	gsize len = strlen (input);
+
+	for (ii = 0; ii < len; ii++)
+	{
+		if (input[ii] != '\\')
+		{
+			output[oi++] = input[ii];
+			continue;
+		}
+
+		if (ii + 1 >= len)
+		{
+			output[oi++] = '\\';
+			break;
+		}
+
+		ii++;
+
+		switch (input[ii])
+		{
+		case 'n':
+			output[oi++] = '\n';
+			break;
+		case 'r':
+			output[oi++] = '\r';
+			break;
+		case 't':
+			output[oi++] = '\t';
+			break;
+		case '\\':
+			output[oi++] = '\\';
+			break;
+		case 'x':
+			if (ii + 2 < len && g_ascii_isxdigit (input[ii + 1]) &&
+				 g_ascii_isxdigit (input[ii + 2]))
+			{
+				output[oi++] =
+					(g_ascii_xdigit_value (input[ii + 1]) << 4) |
+					 g_ascii_xdigit_value (input[ii + 2]);
+				ii += 2;
+			}
+			else
+			{
+				output[oi++] = '\\';
+				output[oi++] = 'x';
+			}
+			break;
+		default:
+			output[oi++] = '\\';
+			output[oi++] = input[ii];
+			break;
+		}
+	}
+
+	output[oi] = 0;
+	return oi;
+}
+
 static const struct key_action key_actions[KEY_MAX_ACTIONS + 1] = {
 
 	{key_action_handle_command, "Run Command",
-	 N_("The \002Run Command\002 action runs the data in Data 1 as if it had been typed into the entry box where you pressed the key sequence. Thus it can contain text (which will be sent to the channel/person), commands or user commands. When run all \002\\n\002 characters in Data 1 are used to deliminate separate commands so it is possible to run more than one command. If you want a \002\\\002 in the actual text run then enter \002\\\\\002")},
+	 N_("The \002Run Command\002 action runs the data in Data 1 as if it had been typed into the entry box where you pressed the key sequence. Thus it can contain text (which will be sent to the channel/person), commands or user commands. Escapes in Data 1 are interpreted (for example \002\\n\002, \002\\r\002, \002\\t\002, \002\\xNN\002 and \002\\\\\002), so it is possible to run more than one command by using newlines.")},
 	{key_action_page_switch, "Change Page",
 	 N_("The \002Change Page\002 command switches between pages in the notebook. Set Data 1 to the page you want to switch to. If Data 2 is set to anything then the switch will be relative to the current position. Set Data 1 to auto to switch to the page with the most recent and important activity (queries first, then channels with hilight, channels with dialogue, channels with other data)")},
 	{key_action_insert, "Insert in Buffer",
-	 N_("The \002Insert in Buffer\002 command will insert the contents of Data 1 into the entry where the key sequence was pressed at the current cursor position")},
+	 N_("The \002Insert in Buffer\002 command will insert the contents of Data 1 into the entry where the key sequence was pressed at the current cursor position. Escapes in Data 1 are interpreted (for example \002\\n\002, \002\\r\002, \002\\t\002, \002\\xNN\002 and \002\\\\\002).")},
 	{key_action_scroll_page, "Scroll Page",
 	 N_("The \002Scroll Page\002 command scrolls the text widget up or down one page or one line. Set Data 1 to either Top, Bottom, Up, Down, +1 or -1.")},
 	{key_action_set_buffer, "Set Buffer",
@@ -189,6 +265,7 @@ static const struct key_action key_actions[KEY_MAX_ACTIONS + 1] = {
 	"ACCEL=<Primary>k\nInsert in Buffer\nD1:\003\nD2!\n\n"\
 	"ACCEL=<Primary>i\nInsert in Buffer\nD1:\035\nD2!\n\n"\
 	"ACCEL=<Primary>u\nInsert in Buffer\nD1:\037\nD2!\n\n"\
+	"ACCEL=<Primary><Alt>s\nInsert in Buffer\nD1:\036\nD2!\n\n"\
 	"ACCEL=<Primary>r\nInsert in Buffer\nD1:\026\nD2!\n\n"\
 	"ACCEL=<Shift>Page_Down\nChange Selected Nick\nD1!\nD2!\n\n"\
 	"ACCEL=<Shift>Page_Up\nChange Selected Nick\nD1:Up\nD2!\n\n"\
@@ -676,7 +753,30 @@ key_dialog_treeview_new (GtkWidget *box)
 	g_signal_connect (G_OBJECT (gtk_tree_view_get_selection (GTK_TREE_VIEW(view))),
 					"changed", G_CALLBACK (key_dialog_selection_changed), NULL);
 
+#if HAVE_GTK3
+	gtk_widget_set_name (view, "fkeys-treeview");
+	{
+		GtkCssProvider *provider = gtk_css_provider_new ();
+		GtkStyleContext *context = gtk_widget_get_style_context (view);
+
+		gtk_css_provider_load_from_data (
+			provider,
+			"treeview#fkeys-treeview row:nth-child(odd) {"
+			" background-color: @theme_base_color;"
+			"}"
+			"treeview#fkeys-treeview row:nth-child(even) {"
+			" background-color: shade(@theme_base_color, 0.96);"
+			"}",
+			-1,
+			NULL);
+		gtk_style_context_add_provider (context, GTK_STYLE_PROVIDER (provider),
+										GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+		g_object_unref (provider);
+	}
+#endif
+#if !HAVE_GTK3
 	gtk_tree_view_set_rules_hint (GTK_TREE_VIEW (view), TRUE);
+#endif
 
 	render = gtk_cell_renderer_accel_new ();
 	g_object_set (render, "editable", TRUE,
@@ -762,7 +862,7 @@ key_dialog_treeview_new (GtkWidget *box)
 	gtk_tree_view_column_set_resizable (col, TRUE);
 
 	gtk_container_add (GTK_CONTAINER (scroll), view);
-	gtk_container_add (GTK_CONTAINER (box), scroll);
+	gtk_box_pack_start (GTK_BOX (box), scroll, TRUE, TRUE, 0);
 
 	return view;
 }
@@ -825,18 +925,23 @@ key_dialog_show ()
 	g_object_set_data (G_OBJECT (key_dialog), "view", view);
 	g_object_set_data (G_OBJECT (key_dialog), "xtext", xtext);
 
+#if HAVE_GTK3
+	box = gtk_button_box_new (GTK_ORIENTATION_HORIZONTAL);
+	gtk_button_box_set_layout (GTK_BUTTON_BOX (box), GTK_BUTTONBOX_SPREAD);
+#elif !HAVE_GTK3
 	box = gtk_hbutton_box_new ();
 	gtk_button_box_set_layout (GTK_BUTTON_BOX (box), GTK_BUTTONBOX_SPREAD);
+#endif
 	gtk_box_pack_start (GTK_BOX (vbox), box, FALSE, FALSE, 2);
 	gtk_container_set_border_width (GTK_CONTAINER (box), 5);
 
-	gtkutil_button (box, GTK_STOCK_NEW, NULL, key_dialog_add,
+	gtkutil_button (box, ICON_FKEYS_NEW, NULL, key_dialog_add,
 					NULL, _("Add"));
-	gtkutil_button (box, GTK_STOCK_DELETE, NULL, key_dialog_delete,
+	gtkutil_button (box, ICON_FKEYS_DELETE, NULL, key_dialog_delete,
 					NULL, _("Delete"));
-	gtkutil_button (box, GTK_STOCK_CANCEL, NULL, key_dialog_close,
+	gtkutil_button (box, ICON_FKEYS_CANCEL, NULL, key_dialog_close,
 					NULL, _("Cancel"));
-	gtkutil_button (box, GTK_STOCK_SAVE, NULL, key_dialog_save,
+	gtkutil_button (box, ICON_FKEYS_SAVE, NULL, key_dialog_save,
 					NULL, _("Save"));
 
 	store = GTK_LIST_STORE (gtk_tree_view_get_model (GTK_TREE_VIEW (view)));
@@ -1121,38 +1226,16 @@ static int
 key_action_handle_command (GtkWidget * wid, GdkEventKey * evt, char *d1,
 									char *d2, struct session *sess)
 {
-	int ii, oi, len;
-	char out[2048], d = 0;
+	char *out;
 
 	if (!d1)
 		return 0;
 
-	len = strlen (d1);
-
-	/* Replace each "\n" substring with '\n' */
-	for (ii = oi = 0; ii < len; ii++)
-	{
-		d = d1[ii];
-		if (d == '\\')
-		{
-			ii++;
-			d = d1[ii];
-			if (d == 'n')
-				out[oi++] = '\n';
-			else if (d == '\\')
-				out[oi++] = '\\';
-			else
-			{
-				out[oi++] = '\\';
-				out[oi++] = d;
-			}
-			continue;
-		}
-		out[oi++] = d;
-	}
-	out[oi] = 0;
+	out = g_malloc (strlen (d1) + 1);
+	key_action_decode_escapes (d1, out);
 
 	handle_multiline (sess, out, 0, 0);
+	g_free (out);
 	return 0;
 }
 
@@ -1234,13 +1317,19 @@ key_action_insert (GtkWidget * wid, GdkEventKey * evt, char *d1, char *d2,
 						 struct session *sess)
 {
 	int tmp_pos;
+	char *decoded;
+	gsize decoded_len;
 
 	if (!d1)
 		return 1;
 
+	decoded = g_malloc (strlen (d1) + 1);
+	decoded_len = key_action_decode_escapes (d1, decoded);
+
 	tmp_pos = SPELL_ENTRY_GET_POS (wid);
-	SPELL_ENTRY_INSERT (wid, d1, strlen (d1), &tmp_pos);
+	SPELL_ENTRY_INSERT (wid, decoded, decoded_len, &tmp_pos);
 	SPELL_ENTRY_SET_POS (wid, tmp_pos);
+	g_free (decoded);
 	return 2;
 }
 

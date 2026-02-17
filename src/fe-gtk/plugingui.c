@@ -48,6 +48,54 @@ enum
 
 static GtkWidget *plugin_window = NULL;
 
+static const char *
+plugingui_safe_string (const char *value)
+{
+	return value ? value : "";
+}
+
+static session *
+plugingui_get_target_session (void)
+{
+	if (is_session (current_sess))
+		return current_sess;
+
+	fe_message (_("No active session available for addon command."), FE_MSG_ERROR);
+	return NULL;
+}
+
+#if HAVE_GTK3
+#define ICON_PLUGIN_LOAD "document-open"
+#define ICON_PLUGIN_UNLOAD "edit-delete"
+#define ICON_PLUGIN_RELOAD "view-refresh"
+#endif
+#if !HAVE_GTK3
+#define ICON_PLUGIN_LOAD GTK_STOCK_REVERT_TO_SAVED
+#define ICON_PLUGIN_UNLOAD GTK_STOCK_DELETE
+#define ICON_PLUGIN_RELOAD GTK_STOCK_REFRESH
+#endif
+
+#if HAVE_GTK3
+static GtkWidget *
+plugingui_icon_button (GtkWidget *box, const char *label,
+							  const char *icon_name, GCallback callback,
+							  gpointer userdata)
+{
+	GtkWidget *button;
+	GtkWidget *image;
+
+	button = gtk_button_new_with_mnemonic (label);
+	image = gtk_image_new_from_icon_name (icon_name, GTK_ICON_SIZE_MENU);
+	gtk_button_set_image (GTK_BUTTON (button), image);
+	gtk_button_set_use_underline (GTK_BUTTON (button), TRUE);
+	gtk_container_add (GTK_CONTAINER (box), button);
+	g_signal_connect (G_OBJECT (button), "clicked", callback, userdata);
+	gtk_widget_show (button);
+
+	return button;
+}
+#endif
+
 
 static GtkWidget *
 plugingui_treeview_new (GtkWidget *box)
@@ -120,21 +168,27 @@ fe_pluginlist_update (void)
 		return;
 
 	view = g_object_get_data (G_OBJECT (plugin_window), "view");
+	if (!GTK_IS_TREE_VIEW (view))
+		return;
+
 	store = GTK_LIST_STORE (gtk_tree_view_get_model (view));
+	if (!GTK_IS_LIST_STORE (store))
+		return;
+
 	gtk_list_store_clear (store);
 
 	list = plugin_list;
 	while (list)
 	{
 		pl = list->data;
-		if (pl->version[0] != 0)
+		if (pl && pl->version && pl->version[0] != 0)
 		{
 			gtk_list_store_append (store, &iter);
-			gtk_list_store_set (store, &iter, NAME_COLUMN, pl->name,
-			                    VERSION_COLUMN, pl->version,
-			                    FILE_COLUMN, file_part (pl->filename),
-			                    DESC_COLUMN, pl->desc,
-			                    FILEPATH_COLUMN, pl->filename, -1);
+			gtk_list_store_set (store, &iter, NAME_COLUMN, plugingui_safe_string (pl->name),
+			                    VERSION_COLUMN, plugingui_safe_string (pl->version),
+			                    FILE_COLUMN, pl->filename ? file_part (pl->filename) : "",
+			                    DESC_COLUMN, plugingui_safe_string (pl->desc),
+			                    FILEPATH_COLUMN, plugingui_safe_string (pl->filename), -1);
 		}
 		list = list->next;
 	}
@@ -143,15 +197,36 @@ fe_pluginlist_update (void)
 static void
 plugingui_load_cb (session *sess, char *file)
 {
+	session *target_sess;
+
 	if (file)
 	{
 		char *buf;
+		char *load_target;
 
-		if (strchr (file, ' '))
-			buf = g_strdup_printf ("LOAD \"%s\"", file);
+		target_sess = is_session (sess) ? sess : current_sess;
+		if (!is_session (target_sess))
+		{
+			fe_message (_("No active session available for loading addons."), FE_MSG_ERROR);
+			return;
+		}
+
+		load_target = g_strdup (file);
+
+#ifdef WIN32
+		/*
+		 * The command parser is more reliable with forward slashes on Windows
+		 * paths (especially when quoted), so normalize before issuing LOAD.
+		 */
+		g_strdelimit (load_target, "\\", '/');
+#endif
+
+		if (strchr (load_target, ' '))
+			buf = g_strdup_printf ("LOAD \"%s\"", load_target);
 		else
-			buf = g_strdup_printf ("LOAD %s", file);
-		handle_command (sess, buf, FALSE);
+			buf = g_strdup_printf ("LOAD %s", load_target);
+		handle_command (target_sess, buf, FALSE);
+		g_free (load_target);
 		g_free (buf);
 	}
 }
@@ -159,12 +234,15 @@ plugingui_load_cb (session *sess, char *file)
 void
 plugingui_load (void)
 {
-	char *sub_dir = g_build_filename (get_xdir(), "addons", NULL);
+	const char *xdir = get_xdir ();
+	char *sub_dir = NULL;
 
-	gtkutil_file_req (NULL, _("Select a Plugin or Script to load"), plugingui_load_cb, current_sess,
-							sub_dir, "*."PLUGIN_SUFFIX";*.lua;*.pl;*.py;*.tcl;*.js", FRF_FILTERISINITIAL|FRF_EXTENSIONS);
+	if (xdir && xdir[0] != '\0')
+		sub_dir = g_build_filename (xdir, "addons", NULL);
 
-	g_free (sub_dir);
+	gtkutil_file_req (NULL, _("Select a Plugin or Script to load"), plugingui_load_cb, NULL,
+						sub_dir, "*."PLUGIN_SUFFIX";*.lua;*.pl;*.py;*.tcl;*.js", FRF_FILTERISINITIAL|FRF_EXTENSIONS);
+		g_free (sub_dir);
 }
 
 static void
@@ -177,6 +255,7 @@ static void
 plugingui_unload (GtkWidget * wid, gpointer unused)
 {
 	char *modname, *file;
+	session *target_sess;
 	GtkTreeView *view;
 	GtkTreeIter iter;
 	
@@ -184,6 +263,18 @@ plugingui_unload (GtkWidget * wid, gpointer unused)
 	if (!gtkutil_treeview_get_selected (view, &iter, NAME_COLUMN, &modname,
 	                                    FILEPATH_COLUMN, &file, -1))
 		return;
+	if (!modname || !*modname)
+	{
+		g_free (modname);
+		g_free (file);
+		return;
+	}
+	if (!file || !*file)
+	{
+		g_free (modname);
+		g_free (file);
+		return;
+	}
 
 	if (g_str_has_suffix (file, "."PLUGIN_SUFFIX))
 	{
@@ -194,11 +285,19 @@ plugingui_unload (GtkWidget * wid, gpointer unused)
 	{
 		char *buf;
 		/* let python.so or perl.so handle it */
+		target_sess = plugingui_get_target_session ();
+		if (!target_sess)
+		{
+			g_free (modname);
+			g_free (file);
+			return;
+		}
+
 		if (strchr (file, ' '))
 			buf = g_strdup_printf ("UNLOAD \"%s\"", file);
 		else
 			buf = g_strdup_printf ("UNLOAD %s", file);
-		handle_command (current_sess, buf, FALSE);
+		handle_command (target_sess, buf, FALSE);
 		g_free (buf);
 	}
 
@@ -210,16 +309,24 @@ static void
 plugingui_reloadbutton_cb (GtkWidget *wid, GtkTreeView *view)
 {
 	char *file = plugingui_getfilename(view);
+	session *target_sess;
 
 	if (file)
 	{
 		char *buf;
 
+		target_sess = plugingui_get_target_session ();
+		if (!target_sess)
+		{
+			g_free (file);
+			return;
+		}
+
 		if (strchr (file, ' '))
 			buf = g_strdup_printf ("RELOAD \"%s\"", file);
 		else
 			buf = g_strdup_printf ("RELOAD %s", file);
-		handle_command (current_sess, buf, FALSE);
+		handle_command (target_sess, buf, FALSE);
 		g_free (buf);
 		g_free (file);
 	}
@@ -229,6 +336,7 @@ void
 plugingui_open (void)
 {
 	GtkWidget *view;
+	GtkWidget *view_scroll;
 	GtkWidget *vbox, *hbox;
 	char buf[128];
 
@@ -244,22 +352,46 @@ plugingui_open (void)
 	gtkutil_destroy_on_esc (plugin_window);
 
 	view = plugingui_treeview_new (vbox);
+	view_scroll = gtk_widget_get_parent (view);
+	if (view_scroll)
+	{
+		gtk_box_set_child_packing (GTK_BOX (vbox), view_scroll, TRUE, TRUE, 0, GTK_PACK_START);
+		gtk_widget_set_hexpand (view_scroll, TRUE);
+		gtk_widget_set_vexpand (view_scroll, TRUE);
+	}
 	g_object_set_data (G_OBJECT (plugin_window), "view", view);
 
 
+#if HAVE_GTK3
+	hbox = gtk_button_box_new (GTK_ORIENTATION_HORIZONTAL);
+	gtk_button_box_set_layout (GTK_BUTTON_BOX (hbox), GTK_BUTTONBOX_SPREAD);
+#elif !HAVE_GTK3
 	hbox = gtk_hbutton_box_new ();
 	gtk_button_box_set_layout (GTK_BUTTON_BOX (hbox), GTK_BUTTONBOX_SPREAD);
+#endif
 	gtk_container_set_border_width (GTK_CONTAINER (hbox), 5);
 	gtk_box_pack_end (GTK_BOX (vbox), hbox, 0, 0, 0);
 
-	gtkutil_button (hbox, GTK_STOCK_REVERT_TO_SAVED, NULL,
+#if HAVE_GTK3
+	{
+		plugingui_icon_button (hbox, _("_Load..."), ICON_PLUGIN_LOAD,
+									  G_CALLBACK (plugingui_loadbutton_cb), NULL);
+		plugingui_icon_button (hbox, _("_Unload"), ICON_PLUGIN_UNLOAD,
+									  G_CALLBACK (plugingui_unload), NULL);
+		plugingui_icon_button (hbox, _("_Reload"), ICON_PLUGIN_RELOAD,
+									  G_CALLBACK (plugingui_reloadbutton_cb), view);
+	}
+#endif
+#if !HAVE_GTK3
+	gtkutil_button (hbox, ICON_PLUGIN_LOAD, NULL,
 	                plugingui_loadbutton_cb, NULL, _("_Load..."));
 
-	gtkutil_button (hbox, GTK_STOCK_DELETE, NULL,
+	gtkutil_button (hbox, ICON_PLUGIN_UNLOAD, NULL,
 	                plugingui_unload, NULL, _("_Unload"));
 
-	gtkutil_button (hbox, GTK_STOCK_REFRESH, NULL,
+	gtkutil_button (hbox, ICON_PLUGIN_RELOAD, NULL,
 	                plugingui_reloadbutton_cb, view, _("_Reload"));
+#endif
 
 	fe_pluginlist_update ();
 

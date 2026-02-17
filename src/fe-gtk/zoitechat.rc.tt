@@ -1,7 +1,7 @@
 #include <winver.h>
 #include "config.h"
 
-#define COMMA_VERSION <#= [string]::Join(',', $versionParts) #>,0
+#define COMMA_VERSION <#= [string]::Join(',', ($versionParts | %{ ($_ -split '[^0-9]')[0] })) #>,0
 
 XC_ICON ICON "<#= $env:SOLUTIONDIR -replace '\\', '/' #>data/icons/zoitechat.ico"
 
