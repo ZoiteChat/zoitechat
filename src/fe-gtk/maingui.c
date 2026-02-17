@@ -3944,6 +3944,7 @@ mg_create_topwindow (session *sess)
         mg_place_userlist_and_chanview (sess->gui);
 
 	gtk_widget_show (win);
+	fe_apply_theme_to_toplevel (win);
 
 #ifdef G_OS_WIN32
 	parent_win = gtk_widget_get_window (win);
@@ -4118,6 +4119,7 @@ mg_create_tabwindow (session *sess)
         mg_place_userlist_and_chanview (sess->gui);
 
         gtk_widget_show (win);
+        fe_apply_theme_to_toplevel (win);
 
 #ifdef G_OS_WIN32
 	parent_win = gtk_widget_get_window (win);
@@ -4141,6 +4143,8 @@ mg_apply_setup (void)
                 ((xtext_buffer *)sess->res->buffer)->needs_recalc = TRUE;
                 if (!sess->gui->is_tab || !done_main)
                         mg_place_userlist_and_chanview (sess->gui);
+                if (sess->gui->window)
+                        fe_apply_theme_to_toplevel (sess->gui->window);
                 if (sess->gui->is_tab)
                         done_main = TRUE;
                 list = list->next;

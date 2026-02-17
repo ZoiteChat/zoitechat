@@ -3059,7 +3059,9 @@ setup_apply (struct zoitechatprefs *pr)
 	 * the preference flips but the palette stays the same (aka: "nothing happens").
 	 */
 	{
-		gboolean pal_changed = palette_apply_dark_mode (fe_dark_mode_is_enabled_for (prefs.hex_gui_dark_mode));
+		gboolean pal_changed = FALSE;
+
+		fe_apply_theme_for_mode (prefs.hex_gui_dark_mode, &pal_changed);
 		if (prefs.hex_gui_dark_mode != old_dark_mode || pal_changed)
 			color_change = TRUE;
 	}

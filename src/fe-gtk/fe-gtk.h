@@ -211,6 +211,8 @@ gboolean fe_dark_mode_is_enabled (void);
 gboolean fe_dark_mode_is_enabled_for (unsigned int mode);
 void fe_set_auto_dark_mode_state (gboolean enabled);
 void fe_refresh_auto_dark_mode (void);
+gboolean fe_apply_theme_for_mode (unsigned int mode, gboolean *palette_changed);
+void fe_apply_theme_to_toplevel (GtkWidget *window);
 
 #define SPELL_ENTRY_GET_TEXT(e) ((char *)(gtk_entry_get_text (GTK_ENTRY(e))))
 #define SPELL_ENTRY_SET_TEXT(e,txt) gtk_entry_set_text(GTK_ENTRY(e),txt)
