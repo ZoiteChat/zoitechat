@@ -145,6 +145,7 @@ notify_treeview_new (GtkWidget *box)
 {
 	GtkListStore *store;
 	GtkWidget *view;
+	GtkWidget *scroll;
 	GtkTreeViewColumn *col;
 	int col_id;
 
@@ -164,6 +165,8 @@ notify_treeview_new (GtkWidget *box)
 	                             STATUS_COLUMN, _("Status"),
 	                             SERVER_COLUMN, _("Network"),
 	                             SEEN_COLUMN, _("Last Seen"), -1);
+	scroll = gtk_widget_get_parent (view);
+	gtk_box_set_child_packing (GTK_BOX (box), scroll, TRUE, TRUE, 0, GTK_PACK_START);
 	gtk_tree_view_column_set_expand (gtk_tree_view_get_column (GTK_TREE_VIEW (view), 0), TRUE);
 
 	for (col_id=0; (col = gtk_tree_view_get_column (GTK_TREE_VIEW (view), col_id));

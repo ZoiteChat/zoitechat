@@ -98,13 +98,16 @@ static GtkWidget *
 url_treeview_new (GtkWidget *box)
 {
 	GtkListStore *store;
-	GtkWidget *view;
+	GtkWidget *scroll, *view;
 
 	store = gtk_list_store_new (N_COLUMNS, G_TYPE_STRING);
 	g_return_val_if_fail (store != NULL, NULL);
 
 	view = gtkutil_treeview_new (box, GTK_TREE_MODEL (store), NULL,
 	                             URL_COLUMN, _("URL"), -1);
+	scroll = gtk_widget_get_parent (view);
+	gtk_widget_set_hexpand (scroll, TRUE);
+	gtk_widget_set_vexpand (scroll, TRUE);
 	g_signal_connect (G_OBJECT (view), "button_press_event",
 	                  G_CALLBACK (url_treeview_url_clicked_cb), NULL);
 	/* don't want column headers */

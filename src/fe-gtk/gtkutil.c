@@ -1153,8 +1153,15 @@ gtkutil_treeview_new (GtkWidget *box, GtkTreeModel *model,
 
 	win = gtk_scrolled_window_new (0, 0);
 	gtk_container_add (GTK_CONTAINER (box), win);
+	if (GTK_IS_BOX (box))
+	{
+		gtk_box_set_child_packing (GTK_BOX (box), win, TRUE, TRUE, 0,
+		                           GTK_PACK_START);
+	}
 	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (win),
-											  GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+									  GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+	gtk_widget_set_vexpand (win, TRUE);
+	gtk_widget_set_hexpand (win, TRUE);
 	gtk_widget_show (win);
 
 	view = gtk_tree_view_new_with_model (model);

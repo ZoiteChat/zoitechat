@@ -854,7 +854,7 @@ dcc_configure_cb (GtkWindow *win, GdkEventConfigure *event, gpointer data)
 int
 fe_dcc_open_recv_win (int passive)
 {
-	GtkWidget *radio, *table, *vbox, *bbox, *view, *exp, *detailbox;
+	GtkWidget *radio, *table, *vbox, *bbox, *view, *view_scrolled, *exp, *detailbox;
 	GtkListStore *store;
 	GSList *group;
 	char buf[128];
@@ -877,6 +877,11 @@ fe_dcc_open_recv_win (int passive)
 										 G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING,
 										 G_TYPE_STRING, G_TYPE_POINTER, PALETTE_GDK_TYPE);
 	view = gtkutil_treeview_new (vbox, GTK_TREE_MODEL (store), NULL, -1);
+	view_scrolled = gtk_widget_get_parent (view);
+	gtk_widget_set_hexpand (view_scrolled, TRUE);
+	gtk_widget_set_vexpand (view_scrolled, TRUE);
+	gtk_widget_set_hexpand (view, TRUE);
+	gtk_widget_set_vexpand (view, TRUE);
 	gtk_tree_view_set_rules_hint (GTK_TREE_VIEW (view), TRUE);
 	/* Up/Down Icon column */
 	gtk_tree_view_insert_column_with_attributes (GTK_TREE_VIEW (view), -1, NULL,
@@ -1158,7 +1163,7 @@ dcc_chat_dclick_cb (GtkTreeView *view, GtkTreePath *path,
 int
 fe_dcc_open_chat_win (int passive)
 {
-	GtkWidget *view, *vbox, *bbox;
+	GtkWidget *view, *vbox, *bbox, *scroll;
 	GtkListStore *store;
 	char buf[128];
 
@@ -1178,9 +1183,11 @@ fe_dcc_open_chat_win (int passive)
 	gtk_box_set_spacing (GTK_BOX (vbox), 3);
 
 	store = gtk_list_store_new (CN_COLUMNS, G_TYPE_STRING, G_TYPE_STRING,
-										 G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING,
-										 G_TYPE_POINTER, PALETTE_GDK_TYPE);
+									 G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING,
+									 G_TYPE_POINTER, PALETTE_GDK_TYPE);
 	view = gtkutil_treeview_new (vbox, GTK_TREE_MODEL (store), NULL, -1);
+	scroll = gtk_widget_get_parent (view);
+	gtk_box_set_child_packing (GTK_BOX (vbox), scroll, TRUE, TRUE, 0, GTK_PACK_START);
 
 	dcc_add_column (view, CCOL_STATUS, CCOL_COLOR, _("Status"), FALSE);
 	dcc_add_column (view, CCOL_NICK,   CCOL_COLOR, _("Nick"), FALSE);

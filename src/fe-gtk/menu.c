@@ -919,11 +919,18 @@ menu_setting_foreach (void (*callback) (session *), int id, guint state)
 			if (sess->gui->is_tab)
 				maindone = TRUE;
 			if (id != -1)
+			{
+				GtkWidget *menu_item = sess->gui->menu_item[id];
+
+				if (menu_item != NULL)
+				{
 #if HAVE_GTK3
-				gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (sess->gui->menu_item[id]), state);
+					gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (menu_item), state);
 #else
-				GTK_CHECK_MENU_ITEM (sess->gui->menu_item[id])->active = state;
+					GTK_CHECK_MENU_ITEM (menu_item)->active = state;
 #endif
+				}
+			}
 			if (callback)
 				callback (sess);
 		}
@@ -1958,7 +1965,7 @@ menu_about (GtkWidget *wid, gpointer sess)
 #define ICON_SAVE "document-save"
 #define ICON_SEARCH "edit-find"
 #define ICON_FIND "edit-find"
-#define ICON_HELP "help-browser"
+#define ICON_HELP "help-contents"
 #define ICON_ABOUT "help-about"
 #endif
 #if !HAVE_GTK3

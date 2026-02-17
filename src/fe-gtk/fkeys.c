@@ -798,7 +798,7 @@ key_dialog_treeview_new (GtkWidget *box)
 	gtk_tree_view_column_set_resizable (col, TRUE);
 
 	gtk_container_add (GTK_CONTAINER (scroll), view);
-	gtk_container_add (GTK_CONTAINER (box), scroll);
+	gtk_box_pack_start (GTK_BOX (box), scroll, TRUE, TRUE, 0);
 
 	return view;
 }
