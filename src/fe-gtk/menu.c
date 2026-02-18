@@ -2135,6 +2135,7 @@ create_icon_menu (char *labeltext, void *stock_name, int is_stock)
 	const char *theme_variant = "light";
 	char *resource_path;
 	const char *custom_fallback_icon = NULL;
+	GdkPixbuf *custom_pixbuf = NULL;
 #endif
 #if !HAVE_GTK3
 	GtkWidget *img;
@@ -2161,7 +2162,14 @@ create_icon_menu (char *labeltext, void *stock_name, int is_stock)
 
 			resource_path = g_strdup_printf ("/icons/menu/%s/%s.svg", theme_variant, custom_icon);
 			if (g_resources_get_info (resource_path, G_RESOURCE_LOOKUP_FLAGS_NONE, NULL, NULL, NULL))
-				image = gtk_image_new_from_resource (resource_path);
+			{
+				custom_pixbuf = gdk_pixbuf_new_from_resource (resource_path, NULL);
+				if (custom_pixbuf)
+				{
+					image = gtk_image_new_from_pixbuf (custom_pixbuf);
+					g_object_unref (custom_pixbuf);
+				}
+			}
 			g_free (resource_path);
 			g_free (theme_name_lower);
 			g_free (theme_name);
@@ -2213,7 +2221,14 @@ create_icon_menu (char *labeltext, void *stock_name, int is_stock)
 				char *icon_path = g_build_filename (icons_menu_path, filename, NULL);
 
 				if (g_file_test (icon_path, G_FILE_TEST_EXISTS))
-					image = gtk_image_new_from_file (icon_path);
+				{
+					custom_pixbuf = gdk_pixbuf_new_from_file (icon_path, NULL);
+					if (custom_pixbuf)
+					{
+						image = gtk_image_new_from_pixbuf (custom_pixbuf);
+						g_object_unref (custom_pixbuf);
+					}
+				}
 
 				g_free (icon_path);
 				g_free (filename);
@@ -2224,7 +2239,14 @@ create_icon_menu (char *labeltext, void *stock_name, int is_stock)
 					icon_path = g_build_filename (icons_menu_path, filename, NULL);
 
 					if (g_file_test (icon_path, G_FILE_TEST_EXISTS))
-						image = gtk_image_new_from_file (icon_path);
+					{
+						custom_pixbuf = gdk_pixbuf_new_from_file (icon_path, NULL);
+						if (custom_pixbuf)
+						{
+							image = gtk_image_new_from_pixbuf (custom_pixbuf);
+							g_object_unref (custom_pixbuf);
+						}
+					}
 
 					g_free (icon_path);
 					g_free (filename);
