@@ -86,6 +86,7 @@
       <FontConfig Include="$(DepsRoot)\etc\fonts\*" />
       <Share Include="share\**\*" />
       <DepsRootDocs Include="$(DepsRoot)\share\doc\**\*" />
+      <DepsRootIcons Include="$(DepsRoot)\share\icons\**\*" />
       <Locale Include="$(ZoiteChatBin)locale\**\*;$(DepsRoot)\share\locale\**\*" />
       <MSWindowsTheme Include="$(DepsRoot)\share\themes\MS-Windows\**\*" />
     </ItemGroup>
@@ -96,6 +97,7 @@
     <Copy SourceFiles="@(Gtk3PrintBackends)" DestinationFiles="@(Gtk3PrintBackends->'$(ZoiteChatRel)\lib\gtk-3.0\3.0.0\printbackends\%(RecursiveDir)%(Filename)%(Extension)')" />
     <Copy SourceFiles="@(GSettingsSchemas)" DestinationFiles="@(GSettingsSchemas->'$(ZoiteChatRel)\share\glib-2.0\schemas\%(Filename)%(Extension)')" />
     <Copy SourceFiles="@(Share)" DestinationFiles="@(Share->'$(ZoiteChatRel)\share\%(RecursiveDir)%(Filename)%(Extension)')" />
+    <Copy SourceFiles="@(DepsRootIcons)" DestinationFiles="@(DepsRootIcons->'$(ZoiteChatRel)\share\icons\%(RecursiveDir)%(Filename)%(Extension)')" />
     <Copy SourceFiles="..\..\COPYING" DestinationFolder="$(ZoiteChatRel)\share\doc\zoitechat" />
     <Copy SourceFiles="$(WinSparklePath)\COPYING" DestinationFolder="$(ZoiteChatRel)\share\doc\WinSparkle" />
     <Copy SourceFiles="@(EnchantProviders)" DestinationFolder="$(ZoiteChatRel)\lib\enchant" />
@@ -113,5 +115,4 @@
     <Copy SourceFiles="@(DepsRootDocs)" DestinationFiles="@(DepsRootDocs->'$(ZoiteChatRel)\share\doc\%(RecursiveDir)%(Filename)%(Extension)')" />
   </Target>
 </Project>
-
 
