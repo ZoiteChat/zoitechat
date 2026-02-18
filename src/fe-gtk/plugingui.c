@@ -64,16 +64,9 @@ plugingui_get_target_session (void)
 	return NULL;
 }
 
-#if HAVE_GTK3
 #define ICON_PLUGIN_LOAD "zc-menu-load-plugin"
 #define ICON_PLUGIN_UNLOAD "zc-menu-delete"
 #define ICON_PLUGIN_RELOAD "zc-menu-refresh"
-#endif
-#if !HAVE_GTK3
-#define ICON_PLUGIN_LOAD GTK_STOCK_REVERT_TO_SAVED
-#define ICON_PLUGIN_UNLOAD GTK_STOCK_DELETE
-#define ICON_PLUGIN_RELOAD GTK_STOCK_REFRESH
-#endif
 
 #if HAVE_GTK3
 static GtkWidget *

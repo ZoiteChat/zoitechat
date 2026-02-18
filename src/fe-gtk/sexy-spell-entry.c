@@ -59,16 +59,9 @@
 #endif
 #endif
 
-#if HAVE_GTK3
 #define ICON_ADD "zc-menu-add"
 #define ICON_REMOVE "zc-menu-remove"
 #define ICON_SPELL_CHECK "zc-menu-spell-check"
-#endif
-#if !HAVE_GTK3
-#define ICON_ADD GTK_STOCK_ADD
-#define ICON_REMOVE GTK_STOCK_REMOVE
-#define ICON_SPELL_CHECK GTK_STOCK_SPELL_CHECK
-#endif
 
 /*
  * Bunch of poop to make enchant into a runtime dependency rather than a

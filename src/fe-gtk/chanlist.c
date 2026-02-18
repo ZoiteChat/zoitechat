@@ -45,20 +45,11 @@
 
 #include "custom-list.h"
 
-#if HAVE_GTK3
 #define ICON_CHANLIST_JOIN "zc-menu-join"
 #define ICON_CHANLIST_COPY "zc-menu-copy"
 #define ICON_CHANLIST_FIND "zc-menu-find"
 #define ICON_CHANLIST_REFRESH "zc-menu-refresh"
 #define ICON_CHANLIST_SAVE "zc-menu-save"
-#endif
-#if !HAVE_GTK3
-#define ICON_CHANLIST_JOIN GTK_STOCK_JUMP_TO
-#define ICON_CHANLIST_COPY GTK_STOCK_COPY
-#define ICON_CHANLIST_FIND GTK_STOCK_FIND
-#define ICON_CHANLIST_REFRESH GTK_STOCK_REFRESH
-#define ICON_CHANLIST_SAVE GTK_STOCK_SAVE_AS
-#endif
 
 enum
 {
