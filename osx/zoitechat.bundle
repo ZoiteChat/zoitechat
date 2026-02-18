@@ -9,7 +9,7 @@
     <prefix name="enchant">/usr/local/opt/enchant-applespell</prefix>
     <destination overwrite="yes">${project}</destination>
 
-    <run-install-name-tool></run-install-name-tool>
+    <run-install-name-tool>yes</run-install-name-tool>
     <launcher-script>${project}/launcher.sh</launcher-script>
     <gtk>gtk+-3.0</gtk>
   </meta>
