@@ -65,6 +65,60 @@
 
 static GSList *submenu_list;
 
+static gboolean
+menu_icon_exists_in_resource (const char *icon_name)
+{
+	char *resource_path;
+	gboolean found;
+
+	if (!icon_name || !g_str_has_prefix (icon_name, "zc-menu-"))
+		return FALSE;
+
+	resource_path = g_strdup_printf ("/icons/menu/light/%s.svg", icon_name + strlen ("zc-menu-"));
+	found = g_resources_get_info (resource_path, G_RESOURCE_LOOKUP_FLAGS_NONE, NULL, NULL, NULL);
+	g_free (resource_path);
+
+	return found;
+}
+
+static GtkWidget *
+menu_icon_widget_new (const char *icon)
+{
+	GtkWidget *img = NULL;
+	char *path;
+
+	if (!icon)
+		return NULL;
+
+	if (access (icon, R_OK) == 0)
+		return gtk_image_new_from_file (icon);
+
+	path = g_build_filename (get_xdir (), icon, NULL);
+	if (access (path, R_OK) == 0)
+	{
+		img = gtk_image_new_from_file (path);
+	}
+	else if (g_str_has_prefix (icon, "zc-menu-") || g_str_has_prefix (icon, "gtk-"))
+	{
+		img = gtkutil_image_new_from_stock (icon, GTK_ICON_SIZE_MENU);
+	}
+	else
+	{
+		char *menu_icon_name = g_strdup_printf ("zc-menu-%s", icon);
+
+		if (menu_icon_exists_in_resource (menu_icon_name))
+			img = gtkutil_image_new_from_stock (menu_icon_name, GTK_ICON_SIZE_MENU);
+		else
+			img = gtkutil_image_new_from_stock (icon, GTK_ICON_SIZE_MENU);
+
+		g_free (menu_icon_name);
+	}
+
+	g_free (path);
+
+	return img;
+}
+
 static GtkWidget *
 menu_new (void)
 {
@@ -278,7 +332,6 @@ menu_quick_item (char *cmd, char *label, GtkWidget * menu, int flags,
 					  gpointer userdata, char *icon)
 {
 	GtkWidget *img, *item;
-	char *path;
 #if HAVE_GTK3
 	GtkWidget *box;
 	GtkWidget *image = NULL;
@@ -294,19 +347,7 @@ menu_quick_item (char *cmd, char *label, GtkWidget * menu, int flags,
 			/*if (flags & XCMENU_MARKUP)
 				item = gtk_image_menu_item_new_with_markup (label);
 			else*/
-			img = NULL;
-			if (access (icon, R_OK) == 0)	/* try fullpath */
-				img = gtk_image_new_from_file (icon);
-			else
-			{
-				/* try relative to <xdir> */
-				path = g_build_filename (get_xdir (), icon, NULL);
-				if (access (path, R_OK) == 0)
-					img = gtk_image_new_from_file (path);
-				else
-					img = gtkutil_image_new_from_stock (icon, GTK_ICON_SIZE_MENU);
-				g_free (path);
-			}
+			img = menu_icon_widget_new (icon);
 
 #if HAVE_GTK3
 			item = gtk_menu_item_new ();
