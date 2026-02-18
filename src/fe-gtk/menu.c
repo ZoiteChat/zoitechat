@@ -2135,6 +2135,10 @@ create_icon_menu (char *labeltext, void *stock_name, int is_stock)
 	const char *theme_variant = "light";
 	char *resource_path;
 	const char *custom_fallback_icon = NULL;
+<<<<<<< ours
+=======
+	const char *custom_alt_fallback_icon = NULL;
+>>>>>>> theirs
 	GdkPixbuf *custom_pixbuf = NULL;
 #endif
 #if !HAVE_GTK3
@@ -2188,15 +2192,27 @@ create_icon_menu (char *labeltext, void *stock_name, int is_stock)
 			else if (g_str_equal (custom_icon, "quit"))
 				custom_fallback_icon = "application-exit";
 			else if (g_str_equal (custom_icon, "disconnect"))
-				custom_fallback_icon = "network-offline";
+			{
+				custom_fallback_icon = "network-disconnect";
+				custom_alt_fallback_icon = "network-offline";
+			}
 			else if (g_str_equal (custom_icon, "connect"))
-				custom_fallback_icon = "network-transmit-receive";
+			{
+				custom_fallback_icon = "network-connect";
+				custom_alt_fallback_icon = "network-transmit-receive";
+			}
 			else if (g_str_equal (custom_icon, "join"))
+			{
 				custom_fallback_icon = "list-add";
+				custom_alt_fallback_icon = "go-jump";
+			}
 			else if (g_str_equal (custom_icon, "chanlist"))
 				custom_fallback_icon = "view-list";
 			else if (g_str_equal (custom_icon, "preferences"))
+			{
 				custom_fallback_icon = "preferences-system";
+				custom_alt_fallback_icon = "preferences-desktop";
+			}
 			else if (g_str_equal (custom_icon, "clear"))
 				custom_fallback_icon = "edit-clear";
 			else if (g_str_equal (custom_icon, "save"))
@@ -2260,9 +2276,18 @@ create_icon_menu (char *labeltext, void *stock_name, int is_stock)
 
 		if (!image)
 		{
+			GtkIconTheme *icon_theme = gtk_icon_theme_get_default ();
+
 			icon_name = custom_fallback_icon ? custom_fallback_icon : gtkutil_icon_name_from_stock (stock_name);
 			if (!icon_name)
 				icon_name = gtkutil_icon_name_from_stock (stock_name);
+
+			if (icon_theme && custom_alt_fallback_icon && icon_name && !gtk_icon_theme_has_icon (icon_theme, icon_name)
+				&& gtk_icon_theme_has_icon (icon_theme, custom_alt_fallback_icon))
+			{
+				icon_name = custom_alt_fallback_icon;
+			}
+
 			if (!icon_name)
 				icon_name = stock_name;
 			if (icon_name)
