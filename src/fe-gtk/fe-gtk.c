@@ -180,7 +180,6 @@ win32_configure_icon_theme (void)
 	GtkIconTheme *theme;
 	char *base_path;
 	char *icons_path;
-	char *adwaita_path;
 
 	theme = gtk_icon_theme_get_default ();
 	if (!theme)
@@ -191,17 +190,10 @@ win32_configure_icon_theme (void)
 		return;
 
 	icons_path = g_build_filename (base_path, "share", "icons", NULL);
-	adwaita_path = g_build_filename (icons_path, "Adwaita", NULL);
 
 	if (g_file_test (icons_path, G_FILE_TEST_IS_DIR))
 		gtk_icon_theme_append_search_path (theme, icons_path);
 
-	/* GtkEntry's emoji chooser uses symbolic category/menu icons only present in
-	 * Adwaita in our Windows bundle. Force it when available. */
-	if (g_file_test (adwaita_path, G_FILE_TEST_IS_DIR))
-		gtk_icon_theme_set_custom_theme (theme, "Adwaita");
-
-	g_free (adwaita_path);
 	g_free (icons_path);
 	g_free (base_path);
 }
