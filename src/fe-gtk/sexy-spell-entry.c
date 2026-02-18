@@ -60,9 +60,9 @@
 #endif
 
 #if HAVE_GTK3
-#define ICON_ADD "list-add"
-#define ICON_REMOVE "list-remove"
-#define ICON_SPELL_CHECK "tools-check-spelling"
+#define ICON_ADD "zc-menu-add"
+#define ICON_REMOVE "zc-menu-remove"
+#define ICON_SPELL_CHECK "zc-menu-spell-check"
 #endif
 #if !HAVE_GTK3
 #define ICON_ADD GTK_STOCK_ADD
@@ -737,7 +737,7 @@ sexy_spell_entry_icon_menu_item (const char *label, const char *stock_name)
 	item = gtk_menu_item_new ();
 	box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 6);
 	if (icon_name)
-		image = gtk_image_new_from_icon_name (icon_name, GTK_ICON_SIZE_MENU);
+		image = gtkutil_image_new_from_stock (icon_name, GTK_ICON_SIZE_MENU);
 	label_widget = gtk_label_new_with_mnemonic (label);
 	if (image)
 		gtk_box_pack_start (GTK_BOX (box), image, FALSE, FALSE, 0);

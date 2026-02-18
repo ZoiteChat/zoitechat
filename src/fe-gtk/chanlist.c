@@ -47,9 +47,9 @@
 
 #if HAVE_GTK3
 #define ICON_CHANLIST_JOIN "zc-menu-join"
-#define ICON_CHANLIST_COPY "edit-copy"
+#define ICON_CHANLIST_COPY "zc-menu-copy"
 #define ICON_CHANLIST_FIND "zc-menu-find"
-#define ICON_CHANLIST_REFRESH "view-refresh"
+#define ICON_CHANLIST_REFRESH "zc-menu-refresh"
 #define ICON_CHANLIST_SAVE "zc-menu-save"
 #endif
 #if !HAVE_GTK3
@@ -132,7 +132,7 @@ chanlist_icon_button (const char *label, const char *icon_name,
 
 	button = gtk_button_new_with_mnemonic (label);
 #if HAVE_GTK3
-	image = gtk_image_new_from_icon_name (icon_name, GTK_ICON_SIZE_MENU);
+	image = gtkutil_image_new_from_stock (icon_name, GTK_ICON_SIZE_MENU);
 #elif !HAVE_GTK3
 	image = gtk_image_new_from_stock (icon_name, GTK_ICON_SIZE_MENU);
 #endif
@@ -160,7 +160,7 @@ chanlist_icon_menu_item (const char *label, const char *icon_name,
 	icon_name_gtk3 = gtkutil_icon_name_from_stock (icon_name);
 	if (!icon_name_gtk3)
 		icon_name_gtk3 = icon_name;
-	image = icon_name_gtk3 ? gtk_image_new_from_icon_name (icon_name_gtk3, GTK_ICON_SIZE_MENU) : NULL;
+	image = icon_name_gtk3 ? gtkutil_image_new_from_stock (icon_name_gtk3, GTK_ICON_SIZE_MENU) : NULL;
 	label_widget = gtk_label_new_with_mnemonic (label);
 	if (image)
 		gtk_box_pack_start (GTK_BOX (box), image, FALSE, FALSE, 0);

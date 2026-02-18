@@ -35,7 +35,7 @@
 
 #if HAVE_GTK3
 #define ICON_URLGRAB_CLEAR "zc-menu-clear"
-#define ICON_URLGRAB_COPY "edit-copy"
+#define ICON_URLGRAB_COPY "zc-menu-copy"
 #define ICON_URLGRAB_SAVE_AS "zc-menu-save"
 #endif
 #if !HAVE_GTK3

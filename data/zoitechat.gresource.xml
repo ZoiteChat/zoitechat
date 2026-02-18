@@ -33,7 +33,13 @@
 		<file alias="menu/light/chanlist.svg">icons/menu/light/chanlist.svg</file>
 		<file alias="menu/light/preferences.svg">icons/menu/light/preferences.svg</file>
 		<file alias="menu/light/clear.svg">icons/menu/light/clear.svg</file>
+		<file alias="menu/light/copy.svg">icons/menu/light/copy.svg</file>
+		<file alias="menu/light/delete.svg">icons/menu/light/delete.svg</file>
+		<file alias="menu/light/add.svg">icons/menu/light/add.svg</file>
+		<file alias="menu/light/remove.svg">icons/menu/light/remove.svg</file>
+		<file alias="menu/light/spell-check.svg">icons/menu/light/spell-check.svg</file>
 		<file alias="menu/light/save.svg">icons/menu/light/save.svg</file>
+		<file alias="menu/light/refresh.svg">icons/menu/light/refresh.svg</file>
 		<file alias="menu/light/search.svg">icons/menu/light/search.svg</file>
 		<file alias="menu/light/find.svg">icons/menu/light/find.svg</file>
 		<file alias="menu/light/help.svg">icons/menu/light/help.svg</file>
@@ -51,7 +57,13 @@
 		<file alias="menu/dark/chanlist.svg">icons/menu/dark/chanlist.svg</file>
 		<file alias="menu/dark/preferences.svg">icons/menu/dark/preferences.svg</file>
 		<file alias="menu/dark/clear.svg">icons/menu/dark/clear.svg</file>
+		<file alias="menu/dark/copy.svg">icons/menu/dark/copy.svg</file>
+		<file alias="menu/dark/delete.svg">icons/menu/dark/delete.svg</file>
+		<file alias="menu/dark/add.svg">icons/menu/dark/add.svg</file>
+		<file alias="menu/dark/remove.svg">icons/menu/dark/remove.svg</file>
+		<file alias="menu/dark/spell-check.svg">icons/menu/dark/spell-check.svg</file>
 		<file alias="menu/dark/save.svg">icons/menu/dark/save.svg</file>
+		<file alias="menu/dark/refresh.svg">icons/menu/dark/refresh.svg</file>
 		<file alias="menu/dark/search.svg">icons/menu/dark/search.svg</file>
 		<file alias="menu/dark/find.svg">icons/menu/dark/find.svg</file>
 		<file alias="menu/dark/help.svg">icons/menu/dark/help.svg</file>
