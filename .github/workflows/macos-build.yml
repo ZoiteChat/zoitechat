@@ -65,6 +65,7 @@ jobs:
           VERSION="$(git describe --tags --always)"
           PREFIX="$(brew --prefix)"
           ENCHANT_PREFIX="$(brew --prefix enchant)"
+          export PREFIX ENCHANT_PREFIX
 
           sed "s/@VERSION@/${VERSION}/g" osx/Info.plist.in > osx/Info.plist
 
