@@ -273,6 +273,11 @@ menu_toggle_item (char *label, GtkWidget *menu, void *callback, void *userdata,
 	return item;
 }
 
+#if HAVE_GTK3
+static const char *menu_icon_theme_variant (void);
+static GtkWidget *menu_icon_image_from_data_icons (const char *icon_name, const char *theme_variant);
+#endif
+
 GtkWidget *
 menu_quick_item (char *cmd, char *label, GtkWidget * menu, int flags,
 					  gpointer userdata, char *icon)
@@ -281,6 +286,7 @@ menu_quick_item (char *cmd, char *label, GtkWidget * menu, int flags,
 	char *path;
 #if HAVE_GTK3
 	const char *icon_name = NULL;
+	const char *custom_icon = NULL;
 	GtkWidget *box;
 	GtkWidget *image = NULL;
 	GtkWidget *label_widget;
@@ -310,6 +316,8 @@ menu_quick_item (char *cmd, char *label, GtkWidget * menu, int flags,
 					icon_name = gtkutil_icon_name_from_stock (icon);
 					if (!icon_name)
 						icon_name = icon;
+					if (g_str_has_prefix (icon_name, "zc-menu-"))
+						custom_icon = icon_name + strlen ("zc-menu-");
 #endif
 #if !HAVE_GTK3
 					img = gtk_image_new_from_stock (icon, GTK_ICON_SIZE_MENU);
@@ -321,7 +329,9 @@ menu_quick_item (char *cmd, char *label, GtkWidget * menu, int flags,
 #if HAVE_GTK3
 			item = gtk_menu_item_new ();
 			box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 6);
-			if (icon_name)
+			if (custom_icon)
+				image = menu_icon_image_from_data_icons (custom_icon, menu_icon_theme_variant ());
+			if (!image && icon_name)
 				image = gtk_image_new_from_icon_name (icon_name, GTK_ICON_SIZE_MENU);
 			else if (img)
 				image = img;
