@@ -103,7 +103,7 @@ zoitechat_common_dep = declare_dependency(
   link_with: zoitechat_common,
   include_directories: common_includes,
   compile_args: common_cflags,
-  dependencies: libgio_dep,
+  dependencies: common_deps,
 )
 
 zoitechat_plugin_dep = declare_dependency(
