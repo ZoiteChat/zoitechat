@@ -10,7 +10,7 @@ on:
       solus_image:
         description: "Solus container image"
         required: false
-        default: "ghcr.io/getsolus/solus:latest"
+        default: "docker.io/silkeh/solus:latest"
   push:
     branches:
       - main
@@ -24,7 +24,7 @@ jobs:
   build-eopkg:
     runs-on: ubuntu-latest
     env:
-      SOLUS_IMAGE: ${{ inputs.solus_image || 'ghcr.io/getsolus/solus:latest' }}
+      SOLUS_IMAGE: ${{ inputs.solus_image || 'docker.io/silkeh/solus:latest' }}
       PACKAGE_YML: ${{ inputs.package_yml || 'packaging/solus/package.yml' }}
     steps:
       - name: Checkout
@@ -48,7 +48,11 @@ jobs:
             exit 1
           fi
 
-          docker pull "$SOLUS_IMAGE"
+          if ! docker pull "$SOLUS_IMAGE"; then
+            echo "Failed to pull SOLUS_IMAGE=$SOLUS_IMAGE" >&2
+            echo "Set workflow input 'solus_image' to a valid image that provides eopkg/ypkg." >&2
+            exit 1
+          fi
 
           docker run --rm \
             -v "$PWD":/workspace \
