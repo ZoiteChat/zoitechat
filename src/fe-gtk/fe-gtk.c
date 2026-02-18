@@ -174,6 +174,53 @@ win32_set_gsettings_schema_dir (void)
 	g_free (base_path);
 }
 
+
+static void
+win32_configure_pixbuf_loaders (void)
+{
+	char *base_path;
+	char *pixbuf_root;
+	GDir *versions;
+	const gchar *entry;
+
+	base_path = g_win32_get_package_installation_directory_of_module (NULL);
+	if (!base_path)
+		return;
+
+	pixbuf_root = g_build_filename (base_path, "lib", "gdk-pixbuf-2.0", NULL);
+	if (!g_file_test (pixbuf_root, G_FILE_TEST_IS_DIR))
+	{
+		g_free (pixbuf_root);
+		g_free (base_path);
+		return;
+	}
+
+	versions = g_dir_open (pixbuf_root, 0, NULL);
+	if (versions)
+	{
+		while ((entry = g_dir_read_name (versions)) != NULL)
+		{
+			char *module_dir = g_build_filename (pixbuf_root, entry, "loaders", NULL);
+			char *module_file = g_build_filename (pixbuf_root, entry, "loaders.cache", NULL);
+
+			if (g_file_test (module_dir, G_FILE_TEST_IS_DIR))
+				g_setenv ("GDK_PIXBUF_MODULEDIR", module_dir, TRUE);
+			if (g_file_test (module_file, G_FILE_TEST_EXISTS))
+				g_setenv ("GDK_PIXBUF_MODULE_FILE", module_file, TRUE);
+
+			g_free (module_file);
+			g_free (module_dir);
+
+			if (g_getenv ("GDK_PIXBUF_MODULEDIR") != NULL)
+				break;
+		}
+		g_dir_close (versions);
+	}
+
+	g_free (pixbuf_root);
+	g_free (base_path);
+}
+
 static void
 win32_configure_icon_theme (void)
 {
@@ -307,6 +354,7 @@ fe_args (int argc, char *argv[])
 
 #ifdef WIN32
 	win32_set_gsettings_schema_dir ();
+	win32_configure_pixbuf_loaders ();
 
 	/* this is mainly for irc:// URL handling. When windows calls us from */
 	/* I.E, it doesn't give an option of "Start in" directory, like short */

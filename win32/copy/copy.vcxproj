@@ -67,6 +67,7 @@
       <None Include="$(DepsRoot)\bin\*pangocairo-1.0-0.dll" />
       <None Include="$(DepsRoot)\bin\*pangoft2-1.0-0.dll" />
       <None Include="$(DepsRoot)\bin\*pangowin32-1.0-0.dll" />
+      <None Include="$(DepsRoot)\bin\*rsvg*.dll" />
       <None Include="$(DepsRoot)\bin\*zlib*.dll" />
       <None Include="$(DepsRoot)\bin\luajit*.dll" />
       <None Include="$(DepsRoot)\bin\*girepository*.dll" />
@@ -82,6 +83,8 @@
       <Gtk3Immodules Include="$(DepsRoot)\lib\gtk-3.0\3.0.0\immodules\**\*" />
       <Gtk3PrintBackends Include="$(DepsRoot)\lib\gtk-3.0\3.0.0\printbackends\**\*" />
       <GSettingsSchemas Include="$(DepsRoot)\share\glib-2.0\schemas\*" />
+      <GdkPixbufLoaders Include="$(DepsRoot)\lib\gdk-pixbuf-2.0\**\loaders\**\*" />
+      <GdkPixbufLoaderCache Include="$(DepsRoot)\lib\gdk-pixbuf-2.0\**\loaders.cache" />
 
       <FontConfig Include="$(DepsRoot)\etc\fonts\*" />
       <Share Include="share\**\*" />
@@ -95,6 +98,8 @@
     <Copy SourceFiles="@(FontConfig)" DestinationFolder="$(ZoiteChatRel)\etc\fonts" />
     <Copy SourceFiles="@(Gtk3Immodules)" DestinationFiles="@(Gtk3Immodules->'$(ZoiteChatRel)\lib\gtk-3.0\3.0.0\immodules\%(RecursiveDir)%(Filename)%(Extension)')" />
     <Copy SourceFiles="@(Gtk3PrintBackends)" DestinationFiles="@(Gtk3PrintBackends->'$(ZoiteChatRel)\lib\gtk-3.0\3.0.0\printbackends\%(RecursiveDir)%(Filename)%(Extension)')" />
+    <Copy SourceFiles="@(GdkPixbufLoaders)" DestinationFiles="@(GdkPixbufLoaders->'$(ZoiteChatRel)\lib\gdk-pixbuf-2.0\%(RecursiveDir)%(Filename)%(Extension)')" />
+    <Copy SourceFiles="@(GdkPixbufLoaderCache)" DestinationFiles="@(GdkPixbufLoaderCache->'$(ZoiteChatRel)\lib\gdk-pixbuf-2.0\%(RecursiveDir)%(Filename)%(Extension)')" />
     <Copy SourceFiles="@(GSettingsSchemas)" DestinationFiles="@(GSettingsSchemas->'$(ZoiteChatRel)\share\glib-2.0\schemas\%(Filename)%(Extension)')" />
     <Copy SourceFiles="@(Share)" DestinationFiles="@(Share->'$(ZoiteChatRel)\share\%(RecursiveDir)%(Filename)%(Extension)')" />
     <Copy SourceFiles="@(DepsRootIcons)" DestinationFiles="@(DepsRootIcons->'$(ZoiteChatRel)\share\icons\%(RecursiveDir)%(Filename)%(Extension)')" />
