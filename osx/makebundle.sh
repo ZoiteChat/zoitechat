@@ -30,6 +30,27 @@ fi
 rm -rf "$APP_NAME"
 rm -f ./*.app.zip
 
+# Enchant packaging changed between releases/package managers:
+# - some installs provide share/enchant
+# - others provide share/enchant-2
+# - some have no share-level config dir at all
+# Keep the bundle definition in sync with what's actually available so
+# gtk-mac-bundler doesn't fail on a missing source path.
+ENCHANT_PREFIX_PATH="${ENCHANT_PREFIX:-}"
+if [ -z "$ENCHANT_PREFIX_PATH" ] && command -v brew >/dev/null 2>&1; then
+    ENCHANT_PREFIX_PATH="$(brew --prefix enchant 2>/dev/null || true)"
+fi
+
+if [ -n "$ENCHANT_PREFIX_PATH" ]; then
+    if [ -d "$ENCHANT_PREFIX_PATH/share/enchant" ]; then
+        perl -0pi -e 's|(<data>\s*)\$\{prefix:enchant\}/share/enchant(?:-2)?(\s*</data>)|$1\$\{prefix:enchant\}/share/enchant$2|s' "$BUNDLE_DEF"
+    elif [ -d "$ENCHANT_PREFIX_PATH/share/enchant-2" ]; then
+        perl -0pi -e 's|(<data>\s*)\$\{prefix:enchant\}/share/enchant(?:-2)?(\s*</data>)|$1\$\{prefix:enchant\}/share/enchant-2$2|s' "$BUNDLE_DEF"
+    else
+        perl -0pi -e 's|\n\s*<data>\s*\$\{prefix:enchant\}/share/enchant(?:-2)?\s*</data>\n|\n|s' "$BUNDLE_DEF"
+    fi
+fi
+
 
 # Keep Info.plist generation deterministic by always rendering from template
 # using a single, explicit version source.
