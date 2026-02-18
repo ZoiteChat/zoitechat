@@ -61,8 +61,8 @@
 #endif
 
 #if HAVE_GTK3
-#define ICON_TAB_DETACH "edit-redo"
-#define ICON_TAB_CLOSE "window-close"
+#define ICON_TAB_DETACH "zc-menu-detach"
+#define ICON_TAB_CLOSE "zc-menu-close"
 #define ICON_TAB_PREVIOUS "go-previous"
 #define ICON_TAB_NEXT "go-next"
 #define ICON_ENTRY_ERROR "dialog-error"
