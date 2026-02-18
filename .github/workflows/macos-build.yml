@@ -27,6 +27,14 @@ jobs:
             hicolor-icon-theme glib dbus \
             enchant gtk-mac-integration
 
+          if ! command -v gtk-mac-bundler >/dev/null 2>&1 && ! python3 -c 'import gtk_mac_bundler' >/dev/null 2>&1; then
+            curl -fsSL https://codeload.github.com/jralls/gtk-mac-bundler/tar.gz/refs/heads/master -o /tmp/gtk-mac-bundler.tar.gz
+            rm -rf /tmp/gtk-mac-bundler
+            mkdir -p /tmp/gtk-mac-bundler
+            tar -xzf /tmp/gtk-mac-bundler.tar.gz -C /tmp/gtk-mac-bundler --strip-components=1
+            (cd /tmp/gtk-mac-bundler && make install)
+          fi
+
       - name: Configure
         run: |
           set -eux
