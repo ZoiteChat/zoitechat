@@ -2,6 +2,9 @@
 
 set -eu
 
+SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+cd "$SCRIPT_DIR"
+
 BUNDLE_DEF="zoitechat.bundle"
 APP_NAME="ZoiteChat.app"
 
@@ -26,6 +29,19 @@ fi
 
 rm -rf "$APP_NAME"
 rm -f ./*.app.zip
+
+
+# Keep Info.plist generation deterministic by always rendering from template
+# using a single, explicit version source.
+VERSION_STRING="${VERSION:-$(sed -n "s/^  version: '\([^']*\)',$/\1/p" ../meson.build | head -n1)}"
+if [ -z "$VERSION_STRING" ]; then
+    echo "error: unable to determine VERSION_STRING for Info.plist" >&2
+    exit 1
+fi
+
+TMP_PLIST="Info.plist.tmp"
+LC_ALL=C sed "s/@VERSION@/$VERSION_STRING/g" Info.plist.in > "$TMP_PLIST"
+mv -f "$TMP_PLIST" Info.plist
 
 # shellcheck disable=SC2086
 $BUNDLER_CMD "$BUNDLE_DEF"

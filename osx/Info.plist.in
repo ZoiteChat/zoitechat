@@ -11,7 +11,7 @@
     <key>CFBundleIconFile</key>
     <string>zoitechat.icns</string>
     <key>CFBundleIdentifier</key>
-    <string>org.zoitechat</string>
+    <string>net.zoite.Zoitechat</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>CFBundlePackageType</key>
@@ -41,6 +41,6 @@
     <key>NSHumanReadableCopyright</key>
     <string></string>
     <key>LSMinimumSystemVersion</key>
-    <string>10.4</string>
+    <string>11.0</string>
 </dict>
 </plist>
