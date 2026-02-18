@@ -45,20 +45,11 @@
 
 #include "custom-list.h"
 
-#if HAVE_GTK3
-#define ICON_CHANLIST_JOIN "go-jump"
-#define ICON_CHANLIST_COPY "edit-copy"
-#define ICON_CHANLIST_FIND "edit-find"
-#define ICON_CHANLIST_REFRESH "view-refresh"
-#define ICON_CHANLIST_SAVE "document-save-as"
-#endif
-#if !HAVE_GTK3
-#define ICON_CHANLIST_JOIN GTK_STOCK_JUMP_TO
-#define ICON_CHANLIST_COPY GTK_STOCK_COPY
-#define ICON_CHANLIST_FIND GTK_STOCK_FIND
-#define ICON_CHANLIST_REFRESH GTK_STOCK_REFRESH
-#define ICON_CHANLIST_SAVE GTK_STOCK_SAVE_AS
-#endif
+#define ICON_CHANLIST_JOIN "zc-menu-join"
+#define ICON_CHANLIST_COPY "zc-menu-copy"
+#define ICON_CHANLIST_FIND "zc-menu-find"
+#define ICON_CHANLIST_REFRESH "zc-menu-refresh"
+#define ICON_CHANLIST_SAVE "zc-menu-save"
 
 enum
 {
@@ -131,11 +122,7 @@ chanlist_icon_button (const char *label, const char *icon_name,
 	GtkWidget *image;
 
 	button = gtk_button_new_with_mnemonic (label);
-#if HAVE_GTK3
-	image = gtk_image_new_from_icon_name (icon_name, GTK_ICON_SIZE_MENU);
-#elif !HAVE_GTK3
-	image = gtk_image_new_from_stock (icon_name, GTK_ICON_SIZE_MENU);
-#endif
+	image = gtkutil_image_new_from_stock (icon_name, GTK_ICON_SIZE_MENU);
 	gtk_button_set_image (GTK_BUTTON (button), image);
 	gtk_button_set_use_underline (GTK_BUTTON (button), TRUE);
 	g_signal_connect (G_OBJECT (button), "clicked", callback, userdata);
@@ -153,14 +140,10 @@ chanlist_icon_menu_item (const char *label, const char *icon_name,
 	GtkWidget *box;
 	GtkWidget *image = NULL;
 	GtkWidget *label_widget;
-	const char *icon_name_gtk3;
 
 	item = gtk_menu_item_new ();
 	box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 6);
-	icon_name_gtk3 = gtkutil_icon_name_from_stock (icon_name);
-	if (!icon_name_gtk3)
-		icon_name_gtk3 = icon_name;
-	image = icon_name_gtk3 ? gtk_image_new_from_icon_name (icon_name_gtk3, GTK_ICON_SIZE_MENU) : NULL;
+	image = icon_name ? gtkutil_image_new_from_stock (icon_name, GTK_ICON_SIZE_MENU) : NULL;
 	label_widget = gtk_label_new_with_mnemonic (label);
 	if (image)
 		gtk_box_pack_start (GTK_BOX (box), image, FALSE, FALSE, 0);
@@ -170,7 +153,7 @@ chanlist_icon_menu_item (const char *label, const char *icon_name,
 	GtkWidget *image;
 
 	item = gtk_image_menu_item_new_with_mnemonic (label);
-	image = gtk_image_new_from_stock (icon_name, GTK_ICON_SIZE_MENU);
+	image = gtkutil_image_new_from_stock (icon_name, GTK_ICON_SIZE_MENU);
 	gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (item), image);
 #endif
 	g_signal_connect (G_OBJECT (item), "activate", callback, userdata);

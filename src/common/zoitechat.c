@@ -1332,11 +1332,11 @@ xchat_init (void)
 			"NAME ENDSUB\n"			"CMD \n\n"\
 		"NAME ENDSUB\n"				"CMD \n\n",
 
-		_("_Open Dialog Window"), "gtk-go-up",
-		_("_Send a File" ELLIPSIS), "gtk-floppy",
-		_("_User Info (WhoIs)"), "gtk-info",
-		_("_Add to Friends List" ELLIPSIS), "gtk-add",
-		_("_Ignore"), "gtk-stop",
+		_("_Open Dialog Window"), "zc-menu-new",
+		_("_Send a File" ELLIPSIS), "zc-menu-save",
+		_("_User Info (WhoIs)"), "zc-menu-about",
+		_("_Add to Friends List" ELLIPSIS), "zc-menu-add",
+		_("_Ignore"), "zc-menu-remove",
 		_("O_perator Actions"),
 
 		_("Give Ops"),

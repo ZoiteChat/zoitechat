@@ -1,0 +1,7 @@
+Adwaita Icons Attribution
+=========================
+
+This package includes icons from Adwaita.
+Artwork attribution: GNOME Project.
+
+Website: http://www.gnome.org

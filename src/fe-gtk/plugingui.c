@@ -64,16 +64,9 @@ plugingui_get_target_session (void)
 	return NULL;
 }
 
-#if HAVE_GTK3
-#define ICON_PLUGIN_LOAD "document-open"
-#define ICON_PLUGIN_UNLOAD "edit-delete"
-#define ICON_PLUGIN_RELOAD "view-refresh"
-#endif
-#if !HAVE_GTK3
-#define ICON_PLUGIN_LOAD GTK_STOCK_REVERT_TO_SAVED
-#define ICON_PLUGIN_UNLOAD GTK_STOCK_DELETE
-#define ICON_PLUGIN_RELOAD GTK_STOCK_REFRESH
-#endif
+#define ICON_PLUGIN_LOAD "zc-menu-load-plugin"
+#define ICON_PLUGIN_UNLOAD "zc-menu-delete"
+#define ICON_PLUGIN_RELOAD "zc-menu-refresh"
 
 #if HAVE_GTK3
 static GtkWidget *
@@ -85,7 +78,7 @@ plugingui_icon_button (GtkWidget *box, const char *label,
 	GtkWidget *image;
 
 	button = gtk_button_new_with_mnemonic (label);
-	image = gtk_image_new_from_icon_name (icon_name, GTK_ICON_SIZE_MENU);
+	image = gtkutil_image_new_from_stock (icon_name, GTK_ICON_SIZE_MENU);
 	gtk_button_set_image (GTK_BUTTON (button), image);
 	gtk_button_set_use_underline (GTK_BUTTON (button), TRUE);
 	gtk_container_add (GTK_CONTAINER (box), button);

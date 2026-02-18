@@ -43,12 +43,10 @@ typedef struct _GtkStatusIcon GtkStatusIcon;
 #include <libappindicator/app-indicator.h>
 #endif
 #endif
-#define ICON_TRAY_PREFERENCES "preferences-system"
-#define ICON_TRAY_QUIT "application-exit"
-#else
-#define ICON_TRAY_PREFERENCES GTK_STOCK_PREFERENCES
-#define ICON_TRAY_QUIT GTK_STOCK_QUIT
 #endif
+
+#define ICON_TRAY_PREFERENCES "zc-menu-preferences"
+#define ICON_TRAY_QUIT "zc-menu-quit"
 
 #ifndef WIN32
 #include <unistd.h>

@@ -63,6 +63,183 @@ struct file_req
 };
 
 #if HAVE_GTK3
+static const char *
+gtkutil_menu_custom_icon_from_stock (const char *stock_name)
+{
+	static const struct
+	{
+		const char *stock;
+		const char *custom_icon;
+	} icon_map[] = {
+		{ "gtk-new", "zc-menu-new" },
+		{ "gtk-index", "zc-menu-network-list" },
+		{ "gtk-revert-to-saved", "zc-menu-load-plugin" },
+		{ "gtk-redo", "zc-menu-detach" },
+		{ "gtk-close", "zc-menu-close" },
+		{ "gtk-quit", "zc-menu-quit" },
+		{ "gtk-disconnect", "zc-menu-disconnect" },
+		{ "gtk-connect", "zc-menu-connect" },
+		{ "gtk-jump-to", "zc-menu-join" },
+		{ "gtk-preferences", "zc-menu-preferences" },
+		{ "gtk-clear", "zc-menu-clear" },
+		{ "gtk-copy", "zc-menu-copy" },
+		{ "gtk-delete", "zc-menu-delete" },
+		{ "gtk-add", "zc-menu-add" },
+		{ "gtk-remove", "zc-menu-remove" },
+		{ "gtk-spell-check", "zc-menu-spell-check" },
+		{ "gtk-save", "zc-menu-save" },
+		{ "gtk-save-as", "zc-menu-save-as" },
+		{ "gtk-refresh", "zc-menu-refresh" },
+		{ "gtk-justify-left", "zc-menu-search" },
+		{ "gtk-find", "zc-menu-find" },
+		{ "gtk-go-back", "zc-menu-previous" },
+		{ "gtk-go-forward", "zc-menu-next" },
+		{ "gtk-help", "zc-menu-help" },
+		{ "gtk-about", "zc-menu-about" },
+		{ "gtk-convert", "zc-menu-emoji" },
+	};
+	size_t i;
+
+	if (!stock_name)
+		return NULL;
+
+	for (i = 0; i < G_N_ELEMENTS (icon_map); i++)
+	{
+		if (strcmp (stock_name, icon_map[i].stock) == 0)
+			return icon_map[i].custom_icon;
+	}
+
+	return NULL;
+}
+
+static const char *
+gtkutil_menu_custom_icon_from_icon_name (const char *icon_name)
+{
+	static const struct
+	{
+		const char *icon;
+		const char *custom_icon;
+	} icon_map[] = {
+		{ "document-new", "zc-menu-new" },
+		{ "view-list", "zc-menu-network-list" },
+		{ "document-open", "zc-menu-load-plugin" },
+		{ "edit-redo", "zc-menu-detach" },
+		{ "window-close", "zc-menu-close" },
+		{ "application-exit", "zc-menu-quit" },
+		{ "network-disconnect", "zc-menu-disconnect" },
+		{ "network-connect", "zc-menu-connect" },
+		{ "go-jump", "zc-menu-join" },
+		{ "preferences-system", "zc-menu-preferences" },
+		{ "edit-clear", "zc-menu-clear" },
+		{ "edit-copy", "zc-menu-copy" },
+		{ "edit-delete", "zc-menu-delete" },
+		{ "list-add", "zc-menu-add" },
+		{ "list-remove", "zc-menu-remove" },
+		{ "tools-check-spelling", "zc-menu-spell-check" },
+		{ "document-save", "zc-menu-save" },
+		{ "document-save-as", "zc-menu-save-as" },
+		{ "view-refresh", "zc-menu-refresh" },
+		{ "edit-find", "zc-menu-find" },
+		{ "go-previous", "zc-menu-previous" },
+		{ "go-next", "zc-menu-next" },
+		{ "help-browser", "zc-menu-help" },
+		{ "help-about", "zc-menu-about" },
+		{ "face-smile", "zc-menu-emoji" },
+		{ "insert-emoticon", "zc-menu-emoji" },
+		{ "software-update-available", "zc-menu-update" },
+		{ "network-workgroup", "zc-menu-chanlist" },
+	};
+	size_t i;
+
+	if (!icon_name)
+		return NULL;
+
+	for (i = 0; i < G_N_ELEMENTS (icon_map); i++)
+	{
+		if (strcmp (icon_name, icon_map[i].icon) == 0)
+			return icon_map[i].custom_icon;
+	}
+
+	return NULL;
+}
+#endif
+
+#if !HAVE_GTK3
+static const char *
+gtkutil_stock_from_menu_custom_icon (const char *custom_icon)
+{
+	static const struct
+	{
+		const char *custom_icon;
+		const char *stock;
+	} icon_map[] = {
+		{ "zc-menu-new", GTK_STOCK_NEW },
+		{ "zc-menu-network-list", GTK_STOCK_INDEX },
+		{ "zc-menu-load-plugin", GTK_STOCK_REVERT_TO_SAVED },
+		{ "zc-menu-detach", GTK_STOCK_REDO },
+		{ "zc-menu-close", GTK_STOCK_CLOSE },
+		{ "zc-menu-quit", GTK_STOCK_QUIT },
+		{ "zc-menu-disconnect", GTK_STOCK_DISCONNECT },
+		{ "zc-menu-connect", GTK_STOCK_CONNECT },
+		{ "zc-menu-join", GTK_STOCK_JUMP_TO },
+		{ "zc-menu-chanlist", GTK_STOCK_INDEX },
+		{ "zc-menu-preferences", GTK_STOCK_PREFERENCES },
+		{ "zc-menu-clear", GTK_STOCK_CLEAR },
+		{ "zc-menu-copy", GTK_STOCK_COPY },
+		{ "zc-menu-delete", GTK_STOCK_DELETE },
+		{ "zc-menu-add", GTK_STOCK_ADD },
+		{ "zc-menu-remove", GTK_STOCK_REMOVE },
+		{ "zc-menu-spell-check", GTK_STOCK_SPELL_CHECK },
+		{ "zc-menu-save", GTK_STOCK_SAVE },
+		{ "zc-menu-save-as", GTK_STOCK_SAVE_AS },
+		{ "zc-menu-refresh", GTK_STOCK_REFRESH },
+		{ "zc-menu-search", GTK_STOCK_JUSTIFY_LEFT },
+		{ "zc-menu-find", GTK_STOCK_FIND },
+		{ "zc-menu-previous", GTK_STOCK_GO_BACK },
+		{ "zc-menu-next", GTK_STOCK_GO_FORWARD },
+		{ "zc-menu-help", GTK_STOCK_HELP },
+		{ "zc-menu-about", GTK_STOCK_ABOUT },
+		{ "zc-menu-emoji", GTK_STOCK_CONVERT },
+		{ "zc-menu-update", GTK_STOCK_REFRESH },
+	};
+	size_t i;
+
+	if (!custom_icon)
+		return NULL;
+
+	for (i = 0; i < G_N_ELEMENTS (icon_map); i++)
+	{
+		if (strcmp (custom_icon, icon_map[i].custom_icon) == 0)
+			return icon_map[i].stock;
+	}
+
+	return custom_icon;
+}
+#endif
+
+static GdkPixbuf *
+gtkutil_menu_icon_pixbuf_new (const char *icon_name)
+{
+	GdkPixbuf *pixbuf = NULL;
+	char *resource_path;
+
+	if (!icon_name || !g_str_has_prefix (icon_name, "zc-menu-"))
+		return NULL;
+
+	resource_path = g_strdup_printf ("/icons/menu/light/%s.png", icon_name + strlen ("zc-menu-"));
+	pixbuf = gdk_pixbuf_new_from_resource (resource_path, NULL);
+	if (!pixbuf)
+	{
+		g_free (resource_path);
+		resource_path = g_strdup_printf ("/icons/menu/light/%s.svg", icon_name + strlen ("zc-menu-"));
+		pixbuf = gdk_pixbuf_new_from_resource (resource_path, NULL);
+	}
+	g_free (resource_path);
+
+	return pixbuf;
+}
+
+#if HAVE_GTK3
 const char *
 gtkutil_icon_name_from_stock (const char *stock_name)
 {
@@ -121,14 +298,129 @@ gtkutil_icon_name_from_stock (const char *stock_name)
 }
 #endif
 
+#if HAVE_GTK3
+static const char *
+gtkutil_menu_icon_theme_variant (void)
+{
+	GtkSettings *settings;
+	gboolean prefer_dark = FALSE;
+	char *theme_name = NULL;
+	char *theme_name_lower = NULL;
+	const char *theme_variant = "light";
+
+	settings = gtk_settings_get_default ();
+	if (settings)
+	{
+		g_object_get (G_OBJECT (settings), "gtk-application-prefer-dark-theme", &prefer_dark, NULL);
+		g_object_get (G_OBJECT (settings), "gtk-theme-name", &theme_name, NULL);
+	}
+
+	if (theme_name)
+		theme_name_lower = g_ascii_strdown (theme_name, -1);
+	if (prefer_dark || (theme_name_lower && g_strrstr (theme_name_lower, "dark")))
+		theme_variant = "dark";
+
+	g_free (theme_name_lower);
+	g_free (theme_name);
+
+	return theme_variant;
+}
+
+static GtkWidget *
+gtkutil_menu_icon_image_new (const char *icon_name, GtkIconSize size)
+{
+	GtkWidget *image = NULL;
+	GdkPixbuf *pixbuf = NULL;
+	char *resource_path;
+	const char *variant;
+
+	if (!icon_name || !g_str_has_prefix (icon_name, "zc-menu-"))
+		return NULL;
+
+	variant = gtkutil_menu_icon_theme_variant ();
+	resource_path = g_strdup_printf ("/icons/menu/%s/%s.png", variant, icon_name + strlen ("zc-menu-"));
+	if (!g_resources_get_info (resource_path, G_RESOURCE_LOOKUP_FLAGS_NONE, NULL, NULL, NULL))
+	{
+		g_free (resource_path);
+		resource_path = g_strdup_printf ("/icons/menu/light/%s.png", icon_name + strlen ("zc-menu-"));
+	}
+
+	pixbuf = gdk_pixbuf_new_from_resource (resource_path, NULL);
+	if (!pixbuf)
+	{
+		g_free (resource_path);
+		resource_path = g_strdup_printf ("/icons/menu/%s/%s.svg", variant, icon_name + strlen ("zc-menu-"));
+		if (!g_resources_get_info (resource_path, G_RESOURCE_LOOKUP_FLAGS_NONE, NULL, NULL, NULL))
+		{
+			g_free (resource_path);
+			resource_path = g_strdup_printf ("/icons/menu/light/%s.svg", icon_name + strlen ("zc-menu-"));
+		}
+		pixbuf = gdk_pixbuf_new_from_resource (resource_path, NULL);
+	}
+	if (pixbuf)
+	{
+		image = gtk_image_new_from_pixbuf (pixbuf);
+		g_object_unref (pixbuf);
+	}
+
+	g_free (resource_path);
+
+	if (image)
+	{
+		GtkIconSize tmp_size;
+		gint width;
+		gint height;
+
+		tmp_size = size;
+		if (gtk_icon_size_lookup (tmp_size, &width, &height))
+			gtk_image_set_pixel_size (GTK_IMAGE (image), MAX (width, height));
+	}
+
+	return image;
+}
+#endif
+
 GtkWidget *
 gtkutil_image_new_from_stock (const char *stock, GtkIconSize size)
 {
 #if HAVE_GTK3
-	const char *icon_name = gtkutil_icon_name_from_stock (stock);
+	GtkWidget *image;
+	const char *icon_name;
+
+	icon_name = gtkutil_icon_name_from_stock (stock);
+	if (!icon_name && stock && g_str_has_prefix (stock, "zc-menu-"))
+		icon_name = stock;
+	if (size == GTK_ICON_SIZE_MENU)
+	{
+		const char *menu_icon_name = gtkutil_menu_custom_icon_from_stock (stock);
+
+		if (!menu_icon_name)
+			menu_icon_name = gtkutil_menu_custom_icon_from_icon_name (icon_name);
+
+		if (menu_icon_name)
+			icon_name = menu_icon_name;
+	}
+
+	image = gtkutil_menu_icon_image_new (icon_name, size);
+	if (image)
+		return image;
 
 	return gtk_image_new_from_icon_name (icon_name, size);
 #elif !HAVE_GTK3
+	if (stock && g_str_has_prefix (stock, "zc-menu-"))
+	{
+		GdkPixbuf *pixbuf = gtkutil_menu_icon_pixbuf_new (stock);
+
+		if (pixbuf)
+		{
+			GtkWidget *image = gtk_image_new_from_pixbuf (pixbuf);
+			g_object_unref (pixbuf);
+			return image;
+		}
+	}
+
+	if (stock && g_str_has_prefix (stock, "zc-menu-"))
+		stock = gtkutil_stock_from_menu_custom_icon (stock);
 	return gtk_image_new_from_stock (stock, size);
 #endif
 }

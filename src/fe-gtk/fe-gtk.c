@@ -117,25 +117,176 @@ create_msg_dialog (gchar *title, gchar *message)
 	gtk_widget_destroy (dialog);
 }
 
+static char *win32_argv0_dir;
+
 static void
 win32_set_gsettings_schema_dir (void)
 {
 	char *base_path;
+	char *share_path;
 	char *schema_path;
-
-	if (g_getenv ("GSETTINGS_SCHEMA_DIR") != NULL)
-		return;
+	char *xdg_data_dirs;
+	char **xdg_parts;
+	gboolean have_share_path = FALSE;
+	gint i;
 
 	base_path = g_win32_get_package_installation_directory_of_module (NULL);
 	if (base_path == NULL)
 		return;
 
+	share_path = g_build_filename (base_path, "share", NULL);
+
+	/* Ensure GTK can discover bundled icon themes and other shared data. */
+	xdg_data_dirs = g_strdup (g_getenv ("XDG_DATA_DIRS"));
+	if (xdg_data_dirs && *xdg_data_dirs)
+	{
+		xdg_parts = g_strsplit (xdg_data_dirs, G_SEARCHPATH_SEPARATOR_S, -1);
+		for (i = 0; xdg_parts[i] != NULL; i++)
+		{
+			if (g_ascii_strcasecmp (xdg_parts[i], share_path) == 0)
+			{
+				have_share_path = TRUE;
+				break;
+			}
+		}
+		g_strfreev (xdg_parts);
+
+		if (!have_share_path)
+		{
+			char *updated = g_strdup_printf ("%s%c%s", share_path,
+								 G_SEARCHPATH_SEPARATOR,
+								 xdg_data_dirs);
+			g_setenv ("XDG_DATA_DIRS", updated, TRUE);
+			g_free (updated);
+		}
+	}
+	else
+	{
+		g_setenv ("XDG_DATA_DIRS", share_path, TRUE);
+	}
+
 	schema_path = g_build_filename (base_path, "share", "glib-2.0", "schemas", NULL);
-	if (g_file_test (schema_path, G_FILE_TEST_IS_DIR))
+	if (g_getenv ("GSETTINGS_SCHEMA_DIR") == NULL
+		&& g_file_test (schema_path, G_FILE_TEST_IS_DIR))
 		g_setenv ("GSETTINGS_SCHEMA_DIR", schema_path, FALSE);
 
+	g_free (xdg_data_dirs);
+	g_free (share_path);
 	g_free (schema_path);
 	g_free (base_path);
+}
+
+
+static void
+win32_configure_pixbuf_loaders (void)
+{
+	char *base_path;
+	char *pixbuf_root;
+	GDir *versions;
+	const gchar *entry;
+
+	base_path = g_win32_get_package_installation_directory_of_module (NULL);
+	if (!base_path)
+		return;
+
+	pixbuf_root = g_build_filename (base_path, "lib", "gdk-pixbuf-2.0", NULL);
+	if (!g_file_test (pixbuf_root, G_FILE_TEST_IS_DIR))
+	{
+		g_free (pixbuf_root);
+		g_free (base_path);
+		return;
+	}
+
+	versions = g_dir_open (pixbuf_root, 0, NULL);
+	if (versions)
+	{
+		while ((entry = g_dir_read_name (versions)) != NULL)
+		{
+			char *module_dir = g_build_filename (pixbuf_root, entry, "loaders", NULL);
+			char *module_file = g_build_filename (pixbuf_root, entry, "loaders.cache", NULL);
+
+			if (g_file_test (module_dir, G_FILE_TEST_IS_DIR))
+				g_setenv ("GDK_PIXBUF_MODULEDIR", module_dir, TRUE);
+			if (g_file_test (module_file, G_FILE_TEST_EXISTS))
+				g_setenv ("GDK_PIXBUF_MODULE_FILE", module_file, TRUE);
+
+			g_free (module_file);
+			g_free (module_dir);
+
+			if (g_getenv ("GDK_PIXBUF_MODULEDIR") != NULL)
+				break;
+		}
+		g_dir_close (versions);
+	}
+
+	g_free (pixbuf_root);
+	g_free (base_path);
+}
+
+static void
+win32_configure_icon_theme (void)
+{
+	GtkIconTheme *theme;
+	const char *env_icons_path;
+	char *base_path;
+	char *icons_path;
+	char *cwd_dir;
+	char *cwd_path;
+	char *argv0_icons_path;
+	const char *selected_source = NULL;
+	char *selected_path = NULL;
+
+	#define WIN32_SET_ICON_PATH(source_name, path_value) \
+		G_STMT_START { \
+			if ((path_value) != NULL && g_file_test ((path_value), G_FILE_TEST_IS_DIR)) \
+			{ \
+				gtk_icon_theme_append_search_path (theme, (path_value)); \
+				if (selected_path == NULL) \
+				{ \
+					selected_source = (source_name); \
+					selected_path = g_strdup (path_value); \
+				} \
+			} \
+		} G_STMT_END
+
+	theme = gtk_icon_theme_get_default ();
+	if (!theme)
+		return;
+
+	env_icons_path = g_getenv ("ZOITECHAT_ICON_PATH");
+	if (env_icons_path && *env_icons_path)
+		WIN32_SET_ICON_PATH ("ZOITECHAT_ICON_PATH", env_icons_path);
+
+	base_path = g_win32_get_package_installation_directory_of_module (NULL);
+	if (base_path)
+	{
+		icons_path = g_build_filename (base_path, "share", "icons", NULL);
+		WIN32_SET_ICON_PATH ("module base", icons_path);
+		g_free (icons_path);
+	}
+
+	cwd_dir = g_get_current_dir ();
+	cwd_path = g_build_filename (cwd_dir, "share", "icons", NULL);
+	WIN32_SET_ICON_PATH ("current working directory", cwd_path);
+	g_free (cwd_path);
+	g_free (cwd_dir);
+
+	if (win32_argv0_dir)
+	{
+		argv0_icons_path = g_build_filename (win32_argv0_dir, "share", "icons", NULL);
+		WIN32_SET_ICON_PATH ("argv[0] directory", argv0_icons_path);
+		g_free (argv0_icons_path);
+	}
+
+	if (selected_path)
+		g_message ("win32_configure_icon_theme: selected icon path (%s): %s", selected_source, selected_path);
+	else
+		g_message ("win32_configure_icon_theme: no usable icon path found (checked ZOITECHAT_ICON_PATH, module base/share/icons, cwd/share/icons, argv[0]/share/icons)");
+
+	g_free (selected_path);
+	g_free (base_path);
+
+	#undef WIN32_SET_ICON_PATH
 }
 #endif
 
@@ -247,22 +398,17 @@ fe_args (int argc, char *argv[])
 
 #ifdef WIN32
 	win32_set_gsettings_schema_dir ();
+	win32_configure_pixbuf_loaders ();
 
 	/* this is mainly for irc:// URL handling. When windows calls us from */
 	/* I.E, it doesn't give an option of "Start in" directory, like short */
 	/* cuts can. So we have to set the current dir manually, to the path  */
 	/* of the exe. */
 	{
-		char *tmp = g_strdup (argv[0]);
-		char *sl;
-
-		sl = strrchr (tmp, G_DIR_SEPARATOR);
-		if (sl)
-		{
-			*sl = 0;
-			chdir (tmp);
-		}
-		g_free (tmp);
+		g_free (win32_argv0_dir);
+		win32_argv0_dir = g_path_get_dirname (argv[0]);
+		if (win32_argv0_dir)
+			chdir (win32_argv0_dir);
 	}
 #endif
 
@@ -271,6 +417,10 @@ fe_args (int argc, char *argv[])
 	gdk_set_program_class (desktop_id);
 #endif
 	gtk_init (&argc, &argv);
+
+#ifdef WIN32
+	win32_configure_icon_theme ();
+#endif
 
 #ifdef HAVE_GTK_MAC
 	osx_app = g_object_new(GTKOSX_TYPE_APPLICATION, NULL);

@@ -65,6 +65,78 @@
 
 static GSList *submenu_list;
 
+static gboolean
+menu_icon_exists_in_resource (const char *icon_name)
+{
+	char *resource_path;
+	gboolean found;
+
+	if (!icon_name || !g_str_has_prefix (icon_name, "zc-menu-"))
+		return FALSE;
+
+	resource_path = g_strdup_printf ("/icons/menu/light/%s.png", icon_name + strlen ("zc-menu-"));
+	found = g_resources_get_info (resource_path, G_RESOURCE_LOOKUP_FLAGS_NONE, NULL, NULL, NULL);
+	if (!found)
+	{
+		g_free (resource_path);
+		resource_path = g_strdup_printf ("/icons/menu/light/%s.svg", icon_name + strlen ("zc-menu-"));
+		found = g_resources_get_info (resource_path, G_RESOURCE_LOOKUP_FLAGS_NONE, NULL, NULL, NULL);
+	}
+	g_free (resource_path);
+
+	return found;
+}
+
+static GtkWidget *
+menu_icon_widget_new (const char *icon)
+{
+	GtkWidget *img = NULL;
+	char *path;
+
+	if (!icon)
+		return NULL;
+
+	if (access (icon, R_OK) == 0)
+		return gtk_image_new_from_file (icon);
+
+	path = g_build_filename (get_xdir (), icon, NULL);
+	if (access (path, R_OK) == 0)
+	{
+		img = gtk_image_new_from_file (path);
+	}
+	else if (g_str_has_prefix (icon, "zc-menu-") || g_str_has_prefix (icon, "gtk-"))
+	{
+		img = gtkutil_image_new_from_stock (icon, GTK_ICON_SIZE_MENU);
+	}
+	else
+	{
+		char *menu_icon_name = g_strdup_printf ("zc-menu-%s", icon);
+
+		if (menu_icon_exists_in_resource (menu_icon_name))
+			img = gtkutil_image_new_from_stock (menu_icon_name, GTK_ICON_SIZE_MENU);
+		else
+			img = gtkutil_image_new_from_stock (icon, GTK_ICON_SIZE_MENU);
+
+		g_free (menu_icon_name);
+	}
+
+	g_free (path);
+
+	return img;
+}
+
+static GtkWidget *
+menu_new (void)
+{
+	GtkWidget *menu = gtk_menu_new ();
+
+#if HAVE_GTK3
+	gtk_menu_set_reserve_toggle_size (GTK_MENU (menu), FALSE);
+#endif
+
+	return menu;
+}
+
 enum
 {
 	M_MENUITEM,
@@ -266,9 +338,7 @@ menu_quick_item (char *cmd, char *label, GtkWidget * menu, int flags,
 					  gpointer userdata, char *icon)
 {
 	GtkWidget *img, *item;
-	char *path;
 #if HAVE_GTK3
-	const char *icon_name = NULL;
 	GtkWidget *box;
 	GtkWidget *image = NULL;
 	GtkWidget *label_widget;
@@ -283,35 +353,12 @@ menu_quick_item (char *cmd, char *label, GtkWidget * menu, int flags,
 			/*if (flags & XCMENU_MARKUP)
 				item = gtk_image_menu_item_new_with_markup (label);
 			else*/
-			img = NULL;
-			if (access (icon, R_OK) == 0)	/* try fullpath */
-				img = gtk_image_new_from_file (icon);
-			else
-			{
-				/* try relative to <xdir> */
-				path = g_build_filename (get_xdir (), icon, NULL);
-				if (access (path, R_OK) == 0)
-					img = gtk_image_new_from_file (path);
-				else
-				{
-#if HAVE_GTK3
-					icon_name = gtkutil_icon_name_from_stock (icon);
-					if (!icon_name)
-						icon_name = icon;
-#endif
-#if !HAVE_GTK3
-					img = gtk_image_new_from_stock (icon, GTK_ICON_SIZE_MENU);
-#endif
-				}
-				g_free (path);
-			}
+			img = menu_icon_widget_new (icon);
 
 #if HAVE_GTK3
 			item = gtk_menu_item_new ();
 			box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 6);
-			if (icon_name)
-				image = gtk_image_new_from_icon_name (icon_name, GTK_ICON_SIZE_MENU);
-			else if (img)
+			if (img)
 				image = img;
 			label_widget = gtk_label_new_with_mnemonic (label);
 			if (image)
@@ -388,7 +435,7 @@ menu_quick_sub (char *name, GtkWidget *menu, GtkWidget **sub_item_ret, int flags
 		return menu;
 
 	/* Code to add a submenu */
-	sub_menu = gtk_menu_new ();
+	sub_menu = menu_new ();
 	if (flags & XCMENU_MARKUP)
 	{
 		sub_item = gtk_menu_item_new_with_label ("");
@@ -805,7 +852,7 @@ menu_nickmenu (session *sess, GdkEventButton *event, char *nick, int num_sel)
 {
 	char buf[512];
 	struct User *user;
-	GtkWidget *submenu, *menu = gtk_menu_new ();
+	GtkWidget *submenu, *menu = menu_new ();
 
 	g_free (str_copy);
 	str_copy = g_strdup (nick);
@@ -1040,7 +1087,7 @@ menu_urlmenu (GdkEventButton *event, char *url)
 	g_free (str_copy);
 	str_copy = g_strdup (url);
 
-	menu = gtk_menu_new ();
+	menu = menu_new ();
 	/* more than 51 chars? Chop it */
 	if (g_utf8_strlen (str_copy, -1) >= 52)
 	{
@@ -1132,7 +1179,7 @@ menu_chanmenu (struct session *sess, GdkEventButton * event, char *chan)
 	g_free (str_copy);
 	str_copy = g_strdup (chan);
 
-	menu = gtk_menu_new ();
+	menu = menu_new ();
 
 	menu_quick_item (0, chan, menu, XCMENU_SHADED, str_copy, 0);
 	menu_quick_item (0, 0, menu, XCMENU_SHADED, str_copy, 0);
@@ -1950,46 +1997,28 @@ menu_about (GtkWidget *wid, gpointer sess)
 	gtk_widget_show_all (GTK_WIDGET(dialog));
 }
 
-#if HAVE_GTK3
-#define ICON_NEW "document-new"
-#define ICON_LOAD_PLUGIN "document-open"
-#define ICON_DETACH "edit-redo"
-#define ICON_CLOSE "window-close"
-#define ICON_QUIT "application-exit"
-#define ICON_DISCONNECT "network-disconnect"
-#define ICON_CONNECT "network-connect"
-#define ICON_JOIN "go-jump"
-#define ICON_CHANLIST "view-list"
-#define ICON_PREFERENCES "preferences-system"
-#define ICON_CLEAR "edit-clear"
-#define ICON_SAVE "document-save"
-#define ICON_SEARCH "edit-find"
-#define ICON_FIND "edit-find"
-#define ICON_HELP "help-contents"
-#define ICON_ABOUT "help-about"
-#endif
-#if !HAVE_GTK3
-#define ICON_NEW GTK_STOCK_NEW
-#define ICON_LOAD_PLUGIN GTK_STOCK_REVERT_TO_SAVED
-#define ICON_DETACH GTK_STOCK_REDO
-#define ICON_CLOSE GTK_STOCK_CLOSE
-#define ICON_QUIT GTK_STOCK_QUIT
-#define ICON_DISCONNECT GTK_STOCK_DISCONNECT
-#define ICON_CONNECT GTK_STOCK_CONNECT
-#define ICON_JOIN GTK_STOCK_JUMP_TO
-#define ICON_CHANLIST GTK_STOCK_INDEX
-#define ICON_PREFERENCES GTK_STOCK_PREFERENCES
-#define ICON_CLEAR GTK_STOCK_CLEAR
-#define ICON_SAVE GTK_STOCK_SAVE
-#define ICON_SEARCH GTK_STOCK_JUSTIFY_LEFT
-#define ICON_FIND GTK_STOCK_FIND
-#define ICON_HELP GTK_STOCK_HELP
-#define ICON_ABOUT GTK_STOCK_ABOUT
-#endif
+#define ICON_NEW "zc-menu-new"
+#define ICON_NETWORK_LIST "zc-menu-network-list"
+#define ICON_LOAD_PLUGIN "zc-menu-load-plugin"
+#define ICON_DETACH "zc-menu-detach"
+#define ICON_CLOSE "zc-menu-close"
+#define ICON_QUIT "zc-menu-quit"
+#define ICON_DISCONNECT "zc-menu-disconnect"
+#define ICON_CONNECT "zc-menu-connect"
+#define ICON_JOIN "zc-menu-join"
+#define ICON_CHANLIST "zc-menu-chanlist"
+#define ICON_PREFERENCES "zc-menu-preferences"
+#define ICON_CLEAR "zc-menu-clear"
+#define ICON_SAVE "zc-menu-save"
+#define ICON_SEARCH "zc-menu-search"
+#define ICON_FIND "zc-menu-find"
+#define ICON_HELP "zc-menu-help"
+#define ICON_ABOUT "zc-menu-about"
+#define ICON_UPDATE "zc-menu-update"
 
 static struct mymenu mymenu[] = {
 	{N_("_ZoiteChat"), 0, 0, M_NEWMENU, MENU_ID_ZOITECHAT, 0, 1},
-	{N_("Network Li_st"), menu_open_server_list, (char *)&pix_book, M_MENUPIX, 0, 0, 1, GDK_KEY_s},
+	{N_("Network Li_st"), menu_open_server_list, ICON_NETWORK_LIST, M_MENUSTOCK, 0, 0, 1, GDK_KEY_s},
 	{0, 0, 0, M_SEP, 0, 0, 0},
 
 	{N_("_New"), 0, ICON_NEW, M_MENUSUB, 0, 0, 1},
@@ -2036,7 +2065,7 @@ static struct mymenu mymenu[] = {
 	{N_("_Disconnect"), menu_disconnect, ICON_DISCONNECT, M_MENUSTOCK, MENU_ID_DISCONNECT, 0, 1},
 	{N_("_Reconnect"), menu_reconnect, ICON_CONNECT, M_MENUSTOCK, MENU_ID_RECONNECT, 0, 1},
 	{N_("_Join a Channel" ELLIPSIS), menu_join, ICON_JOIN, M_MENUSTOCK, MENU_ID_JOIN, 0, 1},
-	{N_("Channel _List"), menu_chanlist, ICON_CHANLIST, M_MENUITEM, 0, 0, 1},
+	{N_("Channel _List"), menu_chanlist, ICON_CHANLIST, M_MENUSTOCK, 0, 0, 1},
 	{0, 0, 0, M_SEP, 0, 0, 0},
 #define AWAY_OFFSET (41)
 	{N_("Marked _Away"), menu_away, 0, M_MENUTOG, MENU_ID_AWAY, 0, 1, GDK_KEY_a},
@@ -2081,6 +2110,7 @@ static struct mymenu mymenu[] = {
 
 	{N_("_Help"), 0, 0, M_NEWMENU, 0, 0, 1},	/* 74 */
 	{N_("_Contents"), menu_docs, ICON_HELP, M_MENUSTOCK, 0, 0, 1, GDK_KEY_F1},
+	{N_("_Update"), menu_docs, ICON_UPDATE, M_MENUSTOCK, 0, 0, 1},
 	{N_("_About"), menu_about, ICON_ABOUT, M_MENUSTOCK, 0, 0, 1},
 
 	{0, 0, 0, M_END, 0, 0, 0},
@@ -2110,48 +2140,30 @@ GtkWidget *
 create_icon_menu (char *labeltext, void *stock_name, int is_stock)
 {
 	GtkWidget *item;
+	GtkWidget *img = NULL;
 #if HAVE_GTK3
 	GtkWidget *box;
 	GtkWidget *label_widget;
-	GtkWidget *image = NULL;
-	const char *icon_name;
-#endif
-#if !HAVE_GTK3
-	GtkWidget *img;
 #endif
 
 	if (is_stock)
 	{
-#if HAVE_GTK3
-		icon_name = gtkutil_icon_name_from_stock (stock_name);
-		if (!icon_name)
-			icon_name = stock_name;
-		if (icon_name)
-			image = gtk_image_new_from_icon_name (icon_name, GTK_ICON_SIZE_MENU);
-#endif
-#if !HAVE_GTK3
-		img = gtk_image_new_from_stock (stock_name, GTK_ICON_SIZE_MENU);
-#endif
+		img = gtkutil_image_new_from_stock (stock_name, GTK_ICON_SIZE_MENU);
 	}
 	else
 	{
-#if HAVE_GTK3
-		image = gtk_image_new_from_pixbuf (*((GdkPixbuf **)stock_name));
-#endif
-#if !HAVE_GTK3
 		img = gtk_image_new_from_pixbuf (*((GdkPixbuf **)stock_name));
-#endif
 	}
 #if HAVE_GTK3
 	item = gtk_menu_item_new ();
 	box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 6);
 	label_widget = gtk_label_new_with_mnemonic (labeltext);
-	if (image)
-		gtk_box_pack_start (GTK_BOX (box), image, FALSE, FALSE, 0);
+	if (img)
+		gtk_box_pack_start (GTK_BOX (box), img, FALSE, FALSE, 0);
 	gtk_box_pack_start (GTK_BOX (box), label_widget, FALSE, FALSE, 0);
 	gtk_container_add (GTK_CONTAINER (item), box);
-	if (image)
-		gtk_widget_show (image);
+	if (img)
+		gtk_widget_show (img);
 	gtk_widget_show (label_widget);
 	gtk_widget_show (box);
 #else
@@ -2623,7 +2635,7 @@ menu_create_main (void *accel_group, int bar, int away, int toplevel,
 #endif
 	}
 	else
-		menu_bar = gtk_menu_new ();
+		menu_bar = menu_new ();
 
 	/* /MENU needs to know this later */
 	g_object_set_data (G_OBJECT (menu_bar), "accel", accel_group);
@@ -2719,7 +2731,7 @@ menu_create_main (void *accel_group, int bar, int away, int toplevel,
 		case M_NEWMENU:
 			if (menu)
 				gtk_menu_item_set_submenu (GTK_MENU_ITEM (menu_item), menu);
-			item = menu = gtk_menu_new ();
+			item = menu = menu_new ();
 			if (mymenu[i].id == MENU_ID_USERMENU)
 				usermenu = menu;
 			menu_item = gtk_menu_item_new_with_mnemonic (_(mymenu[i].text));
@@ -2805,7 +2817,7 @@ togitem:
 
 		case M_MENUSUB:
 			group = NULL;
-			submenu = gtk_menu_new ();
+			submenu = menu_new ();
 			item = create_icon_menu (_(mymenu[i].text), mymenu[i].image, TRUE);
 			/* record the English name for /menu */
 			g_object_set_data (G_OBJECT (item), "name", mymenu[i].text);

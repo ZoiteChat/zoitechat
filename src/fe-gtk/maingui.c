@@ -61,10 +61,10 @@
 #endif
 
 #if HAVE_GTK3
-#define ICON_TAB_DETACH "edit-redo"
-#define ICON_TAB_CLOSE "window-close"
-#define ICON_TAB_PREVIOUS "go-previous"
-#define ICON_TAB_NEXT "go-next"
+#define ICON_TAB_DETACH "zc-menu-detach"
+#define ICON_TAB_CLOSE "zc-menu-close"
+#define ICON_TAB_PREVIOUS "zc-menu-previous"
+#define ICON_TAB_NEXT "zc-menu-next"
 #define ICON_ENTRY_ERROR "dialog-error"
 #endif
 #if !HAVE_GTK3
@@ -95,10 +95,6 @@ enum
 #define TAG_UTIL 1      /* dcc, notify, chanlist */
 
 static void mg_apply_emoji_fallback_widget (GtkWidget *widget);
-static void mg_apply_emoji_primary_widget (GtkWidget *widget);
-static void mg_emoji_button_cb (GtkWidget *widget, session_gui *gui);
-static GtkWidget *mg_create_emoji_menu (session_gui *gui);
-static void mg_emoji_insert_cb (GtkMenuItem *item, session_gui *gui);
 
 static inline void
 mg_set_source_color (cairo_t *cr, const XTextColor *color)
@@ -3202,6 +3198,25 @@ static const char *mg_emoji_family_fallback =
         "Noto Color Emoji, Segoe UI Emoji, Apple Color Emoji, Twemoji Mozilla, EmojiOne Color";
 #endif
 
+static const char *
+mg_find_available_icon_name (const char *const *icon_names)
+{
+        GtkIconTheme *theme;
+        int i;
+
+        theme = gtk_icon_theme_get_default ();
+        if (!theme || !icon_names)
+                return NULL;
+
+        for (i = 0; icon_names[i] != NULL; i++)
+        {
+                if (gtk_icon_theme_has_icon (theme, icon_names[i]))
+                        return icon_names[i];
+        }
+
+        return NULL;
+}
+
 static gboolean
 mg_family_already_has_emoji (const gchar *family)
 {
@@ -3292,148 +3307,6 @@ mg_apply_emoji_fallback_widget (GtkWidget *widget)
         gtk_widget_modify_font (widget, desc);
 #endif
         pango_font_description_free (desc);
-}
-
-static void
-mg_apply_emoji_primary_widget (GtkWidget *widget)
-{
-        PangoFontDescription *desc;
-#if HAVE_GTK3
-        GtkStyleContext *context;
-        const PangoFontDescription *base_desc;
-#else
-        GtkStyle *style;
-#endif
-
-        if (!widget)
-                return;
-
-#if HAVE_GTK3
-        context = gtk_widget_get_style_context (widget);
-        if (!context)
-                return;
-
-        base_desc = gtk_style_context_get_font (context, GTK_STATE_FLAG_NORMAL);
-        if (!base_desc)
-                return;
-
-        desc = mg_fontdesc_with_fallback (base_desc, TRUE);
-#else
-        style = gtk_widget_get_style (widget);
-        if (!style || !style->font_desc)
-                return;
-
-        desc = mg_fontdesc_with_fallback (style->font_desc, TRUE);
-#endif
-        if (!desc)
-                return;
-
-#if HAVE_GTK3
-		mg_apply_font_css (widget, desc, "zoitechat-emoji-font",
-		                   "zoitechat-emoji-font-provider");
-#else
-        gtk_widget_modify_font (widget, desc);
-#endif
-        pango_font_description_free (desc);
-}
-
-static void
-mg_apply_emoji_primary_widget_with_child (GtkWidget *widget)
-{
-        GtkWidget *child;
-
-        if (!widget)
-                return;
-
-        mg_apply_emoji_primary_widget (widget);
-        if (!GTK_IS_BIN (widget))
-                return;
-
-        child = gtk_bin_get_child (GTK_BIN (widget));
-        if (child)
-                mg_apply_emoji_primary_widget (child);
-}
-
-/* ------------------------------------------------------------------------- *
- * Emoji picker (optional UI sugar)
- * ------------------------------------------------------------------------- */
-
-static void
-mg_emoji_insert_cb (GtkMenuItem *item, session_gui *gui)
-{
-        const char *emoji = g_object_get_data (G_OBJECT (item), "emoji");
-        gint pos;
-
-        if (!emoji || !gui || !gui->input_box)
-                return;
-
-        pos = SPELL_ENTRY_GET_POS (gui->input_box);
-        gtk_editable_insert_text (GTK_EDITABLE (gui->input_box), emoji, -1, &pos);
-        gtk_editable_set_position (GTK_EDITABLE (gui->input_box), pos);
-        gtk_widget_grab_focus (gui->input_box);
-}
-
-static GtkWidget *
-mg_create_emoji_menu (session_gui *gui)
-{
-        /* VS16 (emoji presentation). No, it does not need a space. */
-#define VS16 "\xEF\xB8\x8F"
-        static const char *emoji_list[] = {
-                "😀","😃","😄","😁","😆","😂","🤣","😊","😇","😉","😍",
-                "🥰","😘","😜","🤪","😎","🤩","🤔","🤨","😐","😶","🙄",
-                "😏","😣","😥","😮","😯","😪","😴","😌","😔","😢",
-                "😭","😤","😠","😡","🤬","🥺","😳","🤗","🤭","🤫",
-                "🤐","😷","🤒","🤕","🤢","🤮","🥵","🥶","🥴","🤯",
-                "👍"VS16,"👎"VS16,"👏"VS16,"🙌"VS16,"🙏"VS16,"💪"VS16,
-                "👀"VS16,"💯"VS16,"✅"VS16,"❌"VS16,"🎉"VS16,"🔥"VS16,
-                "❤","💔","💖","💙","💚","💛","💜","🧡","🤍","🖤",
-                "⭐"VS16,"🌟","✨","⚡"VS16,"☀","🌈","☕"VS16,"🍕",
-                "🍔","🍟","🍣","🍩","🎂","🍺","🍷","🎁","🎈","🎯",
-                "🎵","🎶","🎮","🚀","✈","🚗","🚕","🚲","🏡","🌍",
-                NULL
-        };
-#undef VS16
-
-        GtkWidget *menu;
-        const int columns = 8;
-        int i;
-
-        menu = gtk_menu_new ();
-
-        for (i = 0; emoji_list[i]; i++)
-        {
-                GtkWidget *item = gtk_menu_item_new_with_label (emoji_list[i]);
-                int row = i / columns;
-                int col = i % columns;
-
-                g_object_set_data_full (G_OBJECT (item), "emoji", g_strdup (emoji_list[i]), g_free);
-                g_signal_connect (G_OBJECT (item), "activate", G_CALLBACK (mg_emoji_insert_cb), gui);
-
-                /* Prefer emoji fonts for the label itself */
-                mg_apply_emoji_primary_widget_with_child (item);
-
-                gtk_menu_attach (GTK_MENU (menu), item, col, col + 1, row, row + 1);
-                gtk_widget_show (item);
-        }
-
-        g_signal_connect (G_OBJECT (menu), "selection-done", G_CALLBACK (gtk_widget_destroy), NULL);
-        return menu;
-}
-
-static void
-mg_emoji_button_cb (GtkWidget *widget, session_gui *gui)
-{
-        GtkWidget *menu;
-
-        menu = mg_create_emoji_menu (gui);
-#if HAVE_GTK3
-        gtk_menu_popup_at_widget (GTK_MENU (menu), widget,
-                                  GDK_GRAVITY_SOUTH_WEST,
-                                  GDK_GRAVITY_NORTH_WEST,
-                                  NULL);
-#else
-        gtk_menu_popup (GTK_MENU (menu), NULL, NULL, NULL, NULL, 0, gtk_get_current_event_time ());
-#endif
 }
 
 /* Search bar adapted from Conspire's by William Pitcock */
@@ -3591,7 +3464,7 @@ mg_create_search(session *sess, GtkWidget *box)
 
         close = gtk_button_new ();
 #if HAVE_GTK3
-        gtk_button_set_image (GTK_BUTTON (close), gtk_image_new_from_icon_name (ICON_TAB_CLOSE, GTK_ICON_SIZE_MENU));
+        gtk_button_set_image (GTK_BUTTON (close), gtkutil_image_new_from_stock (ICON_TAB_CLOSE, GTK_ICON_SIZE_MENU));
 #endif
 #if !HAVE_GTK3
         gtk_button_set_image (GTK_BUTTON (close), gtk_image_new_from_stock (GTK_STOCK_CLOSE, GTK_ICON_SIZE_MENU));
@@ -3616,7 +3489,7 @@ mg_create_search(session *sess, GtkWidget *box)
 
         previous = gtk_button_new ();
 #if HAVE_GTK3
-        gtk_button_set_image (GTK_BUTTON (previous), gtk_image_new_from_icon_name (ICON_TAB_PREVIOUS, GTK_ICON_SIZE_MENU));
+        gtk_button_set_image (GTK_BUTTON (previous), gtkutil_image_new_from_stock (ICON_TAB_PREVIOUS, GTK_ICON_SIZE_MENU));
 #endif
 #if !HAVE_GTK3
         gtk_button_set_image (GTK_BUTTON (previous), gtk_image_new_from_stock (GTK_STOCK_GO_BACK, GTK_ICON_SIZE_MENU));
@@ -3628,7 +3501,7 @@ mg_create_search(session *sess, GtkWidget *box)
 
         next = gtk_button_new ();
 #if HAVE_GTK3
-        gtk_button_set_image (GTK_BUTTON (next), gtk_image_new_from_icon_name (ICON_TAB_NEXT, GTK_ICON_SIZE_MENU));
+        gtk_button_set_image (GTK_BUTTON (next), gtkutil_image_new_from_stock (ICON_TAB_NEXT, GTK_ICON_SIZE_MENU));
 #endif
 #if !HAVE_GTK3
         gtk_button_set_image (GTK_BUTTON (next), gtk_image_new_from_stock (GTK_STOCK_GO_FORWARD, GTK_ICON_SIZE_MENU));
@@ -3664,8 +3537,19 @@ mg_create_search(session *sess, GtkWidget *box)
 static void
 mg_create_entry (session *sess, GtkWidget *box)
 {
-        GtkWidget *hbox, *but, *entry, *emoji_button;
+        GtkWidget *hbox, *but, *entry;
         session_gui *gui = sess->gui;
+#if HAVE_GTK3
+        const char *emoji_fallback_icon_names[] = {
+                "face-smile-symbolic",
+                "face-smile",
+                "insert-emoticon-symbolic",
+                "insert-emoticon",
+                "zc-menu-emoji",
+                NULL
+        };
+        const char *emoji_fallback_icon_name;
+#endif
 
         hbox = mg_box_new (GTK_ORIENTATION_HORIZONTAL, FALSE, 0);
         gtk_box_pack_start (GTK_BOX (box), hbox, 0, 0, 0);
@@ -3705,14 +3589,16 @@ mg_create_entry (session *sess, GtkWidget *box)
         if (prefs.hex_gui_input_style)
                 mg_apply_entry_style (entry);
 
-        /* Optional emoji button (kept since you already added it) */
-        emoji_button = gtk_button_new_with_label ("😊");
-        gtk_button_set_relief (GTK_BUTTON (emoji_button), GTK_RELIEF_NONE);
-        gtk_widget_set_can_focus (emoji_button, FALSE);
-        gtk_widget_set_tooltip_text (emoji_button, _("Insert emoji"));
-        mg_apply_emoji_primary_widget_with_child (emoji_button);
-        g_signal_connect (G_OBJECT (emoji_button), "clicked", G_CALLBACK (mg_emoji_button_cb), gui);
-        gtk_box_pack_start (GTK_BOX (hbox), emoji_button, FALSE, FALSE, 4);
+#if HAVE_GTK3
+        g_object_set (G_OBJECT (entry), "show-emoji-icon", TRUE, NULL);
+
+        if (gtk_entry_get_icon_storage_type (GTK_ENTRY (entry), GTK_ENTRY_ICON_SECONDARY) == GTK_IMAGE_EMPTY)
+        {
+                emoji_fallback_icon_name = mg_find_available_icon_name (emoji_fallback_icon_names);
+                if (emoji_fallback_icon_name)
+                        gtk_entry_set_icon_from_icon_name (GTK_ENTRY (entry), GTK_ENTRY_ICON_SECONDARY, emoji_fallback_icon_name);
+        }
+#endif
 }
 
 static void

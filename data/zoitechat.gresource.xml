@@ -20,5 +20,63 @@
 		<file alias="tree_dialog.png" preprocess="to-pixdata">icons/tree_dialog.png</file>
 		<file alias="tree_server.png" preprocess="to-pixdata">icons/tree_server.png</file>
 		<file alias="tree_util.png" preprocess="to-pixdata">icons/tree_util.png</file>
+
+		<file alias="menu/light/new.png" preprocess="to-pixdata">icons/menu/light/new.png</file>
+		<file alias="menu/light/network-list.png" preprocess="to-pixdata">icons/menu/light/network-list.png</file>
+		<file alias="menu/light/load-plugin.png" preprocess="to-pixdata">icons/menu/light/load-plugin.png</file>
+		<file alias="menu/light/detach.png" preprocess="to-pixdata">icons/menu/light/detach.png</file>
+		<file alias="menu/light/close.png" preprocess="to-pixdata">icons/menu/light/close.png</file>
+		<file alias="menu/light/quit.png" preprocess="to-pixdata">icons/menu/light/quit.png</file>
+		<file alias="menu/light/disconnect.png" preprocess="to-pixdata">icons/menu/light/disconnect.png</file>
+		<file alias="menu/light/connect.png" preprocess="to-pixdata">icons/menu/light/connect.png</file>
+		<file alias="menu/light/join.png" preprocess="to-pixdata">icons/menu/light/join.png</file>
+		<file alias="menu/light/chanlist.png" preprocess="to-pixdata">icons/menu/light/chanlist.png</file>
+		<file alias="menu/light/preferences.png" preprocess="to-pixdata">icons/menu/light/preferences.png</file>
+		<file alias="menu/light/clear.png" preprocess="to-pixdata">icons/menu/light/clear.png</file>
+		<file alias="menu/light/copy.png" preprocess="to-pixdata">icons/menu/light/copy.png</file>
+		<file alias="menu/light/delete.png" preprocess="to-pixdata">icons/menu/light/delete.png</file>
+		<file alias="menu/light/add.png" preprocess="to-pixdata">icons/menu/light/add.png</file>
+		<file alias="menu/light/remove.png" preprocess="to-pixdata">icons/menu/light/remove.png</file>
+		<file alias="menu/light/spell-check.png" preprocess="to-pixdata">icons/menu/light/spell-check.png</file>
+		<file alias="menu/light/save.png" preprocess="to-pixdata">icons/menu/light/save.png</file>
+		<file alias="menu/light/save-as.png" preprocess="to-pixdata">icons/menu/light/save-as.png</file>
+		<file alias="menu/light/refresh.png" preprocess="to-pixdata">icons/menu/light/refresh.png</file>
+		<file alias="menu/light/search.png" preprocess="to-pixdata">icons/menu/light/search.png</file>
+		<file alias="menu/light/find.png" preprocess="to-pixdata">icons/menu/light/find.png</file>
+		<file alias="menu/light/previous.png" preprocess="to-pixdata">icons/menu/light/previous.png</file>
+		<file alias="menu/light/next.png" preprocess="to-pixdata">icons/menu/light/next.png</file>
+		<file alias="menu/light/help.png" preprocess="to-pixdata">icons/menu/light/help.png</file>
+		<file alias="menu/light/about.png" preprocess="to-pixdata">icons/menu/light/about.png</file>
+		<file alias="menu/light/update.png" preprocess="to-pixdata">icons/menu/light/update.png</file>
+		<file alias="menu/light/emoji.png" preprocess="to-pixdata">icons/menu/light/emoji.png</file>
+
+		<file alias="menu/dark/new.png" preprocess="to-pixdata">icons/menu/dark/new.png</file>
+		<file alias="menu/dark/network-list.png" preprocess="to-pixdata">icons/menu/dark/network-list.png</file>
+		<file alias="menu/dark/load-plugin.png" preprocess="to-pixdata">icons/menu/dark/load-plugin.png</file>
+		<file alias="menu/dark/detach.png" preprocess="to-pixdata">icons/menu/dark/detach.png</file>
+		<file alias="menu/dark/close.png" preprocess="to-pixdata">icons/menu/dark/close.png</file>
+		<file alias="menu/dark/quit.png" preprocess="to-pixdata">icons/menu/dark/quit.png</file>
+		<file alias="menu/dark/disconnect.png" preprocess="to-pixdata">icons/menu/dark/disconnect.png</file>
+		<file alias="menu/dark/connect.png" preprocess="to-pixdata">icons/menu/dark/connect.png</file>
+		<file alias="menu/dark/join.png" preprocess="to-pixdata">icons/menu/dark/join.png</file>
+		<file alias="menu/dark/chanlist.png" preprocess="to-pixdata">icons/menu/dark/chanlist.png</file>
+		<file alias="menu/dark/preferences.png" preprocess="to-pixdata">icons/menu/dark/preferences.png</file>
+		<file alias="menu/dark/clear.png" preprocess="to-pixdata">icons/menu/dark/clear.png</file>
+		<file alias="menu/dark/copy.png" preprocess="to-pixdata">icons/menu/dark/copy.png</file>
+		<file alias="menu/dark/delete.png" preprocess="to-pixdata">icons/menu/dark/delete.png</file>
+		<file alias="menu/dark/add.png" preprocess="to-pixdata">icons/menu/dark/add.png</file>
+		<file alias="menu/dark/remove.png" preprocess="to-pixdata">icons/menu/dark/remove.png</file>
+		<file alias="menu/dark/spell-check.png" preprocess="to-pixdata">icons/menu/dark/spell-check.png</file>
+		<file alias="menu/dark/save.png" preprocess="to-pixdata">icons/menu/dark/save.png</file>
+		<file alias="menu/dark/save-as.png" preprocess="to-pixdata">icons/menu/dark/save-as.png</file>
+		<file alias="menu/dark/refresh.png" preprocess="to-pixdata">icons/menu/dark/refresh.png</file>
+		<file alias="menu/dark/search.png" preprocess="to-pixdata">icons/menu/dark/search.png</file>
+		<file alias="menu/dark/find.png" preprocess="to-pixdata">icons/menu/dark/find.png</file>
+		<file alias="menu/dark/previous.png" preprocess="to-pixdata">icons/menu/dark/previous.png</file>
+		<file alias="menu/dark/next.png" preprocess="to-pixdata">icons/menu/dark/next.png</file>
+		<file alias="menu/dark/help.png" preprocess="to-pixdata">icons/menu/dark/help.png</file>
+		<file alias="menu/dark/about.png" preprocess="to-pixdata">icons/menu/dark/about.png</file>
+		<file alias="menu/dark/update.png" preprocess="to-pixdata">icons/menu/dark/update.png</file>
+		<file alias="menu/dark/emoji.png" preprocess="to-pixdata">icons/menu/dark/emoji.png</file>
 	</gresource>
 </gresources>
