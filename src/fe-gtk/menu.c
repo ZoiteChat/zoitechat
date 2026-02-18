@@ -2134,6 +2134,7 @@ create_icon_menu (char *labeltext, void *stock_name, int is_stock)
 	char *theme_name_lower = NULL;
 	const char *theme_variant = "light";
 	char *resource_path;
+	const char *custom_fallback_icon = NULL;
 #endif
 #if !HAVE_GTK3
 	GtkWidget *img;
@@ -2166,9 +2167,45 @@ create_icon_menu (char *labeltext, void *stock_name, int is_stock)
 			g_free (theme_name);
 		}
 
+		if (custom_icon)
+		{
+			if (g_str_equal (custom_icon, "new"))
+				custom_fallback_icon = "document-new";
+			else if (g_str_equal (custom_icon, "load-plugin"))
+				custom_fallback_icon = "document-open";
+			else if (g_str_equal (custom_icon, "detach"))
+				custom_fallback_icon = "view-restore";
+			else if (g_str_equal (custom_icon, "close"))
+				custom_fallback_icon = "window-close";
+			else if (g_str_equal (custom_icon, "quit"))
+				custom_fallback_icon = "application-exit";
+			else if (g_str_equal (custom_icon, "disconnect"))
+				custom_fallback_icon = "network-offline";
+			else if (g_str_equal (custom_icon, "connect"))
+				custom_fallback_icon = "network-transmit-receive";
+			else if (g_str_equal (custom_icon, "join"))
+				custom_fallback_icon = "list-add";
+			else if (g_str_equal (custom_icon, "chanlist"))
+				custom_fallback_icon = "view-list";
+			else if (g_str_equal (custom_icon, "preferences"))
+				custom_fallback_icon = "preferences-system";
+			else if (g_str_equal (custom_icon, "clear"))
+				custom_fallback_icon = "edit-clear";
+			else if (g_str_equal (custom_icon, "save"))
+				custom_fallback_icon = "document-save";
+			else if (g_str_equal (custom_icon, "search") || g_str_equal (custom_icon, "find"))
+				custom_fallback_icon = "edit-find";
+			else if (g_str_equal (custom_icon, "help"))
+				custom_fallback_icon = "help-browser";
+			else if (g_str_equal (custom_icon, "about"))
+				custom_fallback_icon = "help-about";
+		}
+
 		if (!image)
 		{
 			icon_name = gtkutil_icon_name_from_stock (stock_name);
+			if (!icon_name && custom_fallback_icon)
+				icon_name = custom_fallback_icon;
 			if (!icon_name)
 				icon_name = stock_name;
 			if (icon_name)
