@@ -62,6 +62,11 @@ jobs:
             sh -lc '
               set -euo pipefail
               eopkg update-repo -y
+              # Some Solus base images still include openssl-11, which now
+              # conflicts with openssl during dependency upgrades.
+              if eopkg li | grep -q "^openssl-11\b"; then
+                eopkg rm -y openssl-11
+              fi
               eopkg install -y ypkg git
               ypkg build "$PACKAGE_YML"
               mkdir -p /workspace/artifacts
