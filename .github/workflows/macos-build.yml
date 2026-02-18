@@ -25,7 +25,7 @@ jobs:
             meson ninja pkg-config gettext perl \
             gtk+3 gdk-pixbuf pango adwaita-icon-theme \
             hicolor-icon-theme glib dbus \
-            enchant gtk-mac-bundler
+            enchant gtk-mac-integration
 
       - name: Configure
         run: |
