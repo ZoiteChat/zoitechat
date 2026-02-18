@@ -3198,6 +3198,25 @@ static const char *mg_emoji_family_fallback =
         "Noto Color Emoji, Segoe UI Emoji, Apple Color Emoji, Twemoji Mozilla, EmojiOne Color";
 #endif
 
+static const char *
+mg_find_available_icon_name (const char *const *icon_names)
+{
+        GtkIconTheme *theme;
+        int i;
+
+        theme = gtk_icon_theme_get_default ();
+        if (!theme || !icon_names)
+                return NULL;
+
+        for (i = 0; icon_names[i] != NULL; i++)
+        {
+                if (gtk_icon_theme_has_icon (theme, icon_names[i]))
+                        return icon_names[i];
+        }
+
+        return NULL;
+}
+
 static gboolean
 mg_family_already_has_emoji (const gchar *family)
 {
@@ -3520,6 +3539,16 @@ mg_create_entry (session *sess, GtkWidget *box)
 {
         GtkWidget *hbox, *but, *entry;
         session_gui *gui = sess->gui;
+#if HAVE_GTK3
+        const char *emoji_fallback_icon_names[] = {
+                "face-smile-symbolic",
+                "face-smile",
+                "insert-emoticon-symbolic",
+                "insert-emoticon",
+                NULL
+        };
+        const char *emoji_fallback_icon_name;
+#endif
 
         hbox = mg_box_new (GTK_ORIENTATION_HORIZONTAL, FALSE, 0);
         gtk_box_pack_start (GTK_BOX (box), hbox, 0, 0, 0);
@@ -3561,6 +3590,13 @@ mg_create_entry (session *sess, GtkWidget *box)
 
 #if HAVE_GTK3
         g_object_set (G_OBJECT (entry), "show-emoji-icon", TRUE, NULL);
+
+        if (gtk_entry_get_icon_storage_type (GTK_ENTRY (entry), GTK_ENTRY_ICON_SECONDARY) == GTK_IMAGE_EMPTY)
+        {
+                emoji_fallback_icon_name = mg_find_available_icon_name (emoji_fallback_icon_names);
+                if (emoji_fallback_icon_name)
+                        gtk_entry_set_icon_from_icon_name (GTK_ENTRY (entry), GTK_ENTRY_ICON_SECONDARY, emoji_fallback_icon_name);
+        }
 #endif
 }
 
