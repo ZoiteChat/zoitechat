@@ -24,15 +24,19 @@
     ${prefix}/lib/zoitechat/plugins/*.so
   </binary>
 
+  <!-- Enchant 2 runtime layout (Homebrew/MacPorts):
+       - core dylib in lib/
+       - provider modules in lib/enchant-2/ loaded via dlopen()
+       - config files in share/enchant/ -->
   <binary>
-    ${prefix:enchant}/lib/libenchant*.dylib
+    ${prefix:enchant}/lib/libenchant-2*.dylib
   </binary>
   <binary>
-    ${prefix:enchant}/lib/enchant/libenchant_*.dylib
+    ${prefix:enchant}/lib/enchant-2
   </binary>
-  <binary>
-    ${prefix:enchant}/lib/enchant-2/libenchant_*.dylib
-  </binary>
+  <data>
+    ${prefix:enchant}/share/enchant
+  </data>
 
   <!-- GTK3 runtime modules: ${prefix}/lib/${gtkdir} -->
   <binary>
