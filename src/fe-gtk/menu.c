@@ -1999,6 +1999,91 @@ menu_about (GtkWidget *wid, gpointer sess)
 #define ICON_ABOUT GTK_STOCK_ABOUT
 #endif
 
+#if HAVE_GTK3
+static const char *
+menu_icon_theme_variant (void)
+{
+	GtkSettings *settings;
+	gboolean prefer_dark = FALSE;
+	char *theme_name = NULL;
+	char *theme_name_lower = NULL;
+	const char *theme_variant = "light";
+
+	settings = gtk_settings_get_default ();
+	if (settings)
+	{
+		g_object_get (G_OBJECT (settings), "gtk-application-prefer-dark-theme", &prefer_dark, NULL);
+		g_object_get (G_OBJECT (settings), "gtk-theme-name", &theme_name, NULL);
+	}
+
+	if (theme_name)
+		theme_name_lower = g_ascii_strdown (theme_name, -1);
+	if (prefer_dark || (theme_name_lower && g_strrstr (theme_name_lower, "dark")))
+		theme_variant = "dark";
+
+	g_free (theme_name_lower);
+	g_free (theme_name);
+
+	return theme_variant;
+}
+
+#ifdef WIN32
+static GtkWidget *
+menu_icon_image_from_data_icons (const char *icon_name, const char *theme_variant)
+{
+	GtkWidget *image = NULL;
+	GdkPixbuf *custom_pixbuf = NULL;
+	char *base_path = g_win32_get_package_installation_directory_of_module (NULL);
+
+	if (base_path)
+	{
+		char *icons_menu_path = g_build_filename (base_path, "share", "icons", "menu", theme_variant, NULL);
+		char *filename = g_strconcat (icon_name, ".svg", NULL);
+		char *icon_path = g_build_filename (icons_menu_path, filename, NULL);
+
+		if (g_file_test (icon_path, G_FILE_TEST_EXISTS))
+		{
+			custom_pixbuf = gdk_pixbuf_new_from_file (icon_path, NULL);
+			if (custom_pixbuf)
+			{
+				image = gtk_image_new_from_pixbuf (custom_pixbuf);
+				g_object_unref (custom_pixbuf);
+			}
+		}
+
+		g_free (icon_path);
+		g_free (filename);
+		g_free (icons_menu_path);
+		g_free (base_path);
+	}
+
+	return image;
+}
+#else
+static GtkWidget *
+menu_icon_image_from_data_icons (const char *icon_name, const char *theme_variant)
+{
+	GtkWidget *image = NULL;
+	GdkPixbuf *custom_pixbuf;
+	char *resource_path = g_strdup_printf ("/icons/menu/%s/%s.svg", theme_variant, icon_name);
+
+	if (g_resources_get_info (resource_path, G_RESOURCE_LOOKUP_FLAGS_NONE, NULL, NULL, NULL))
+	{
+		custom_pixbuf = gdk_pixbuf_new_from_resource (resource_path, NULL);
+		if (custom_pixbuf)
+		{
+			image = gtk_image_new_from_pixbuf (custom_pixbuf);
+			g_object_unref (custom_pixbuf);
+		}
+	}
+
+	g_free (resource_path);
+
+	return image;
+}
+#endif
+#endif
+
 static struct mymenu mymenu[] = {
 	{N_("_ZoiteChat"), 0, 0, M_NEWMENU, MENU_ID_ZOITECHAT, 0, 1},
 	{N_("Network Li_st"), menu_open_server_list, (char *)&pix_book, M_MENUPIX, 0, 0, 1, GDK_KEY_s},
@@ -2128,15 +2213,7 @@ create_icon_menu (char *labeltext, void *stock_name, int is_stock)
 	GtkWidget *image = NULL;
 	const char *icon_name;
 	const char *custom_icon = NULL;
-	GtkSettings *settings;
-	gboolean prefer_dark = FALSE;
-	char *theme_name = NULL;
-	char *theme_name_lower = NULL;
 	const char *theme_variant = "light";
-	char *resource_path;
-	const char *custom_fallback_icon = NULL;
-	const char *custom_alt_fallback_icon = NULL;
-	GdkPixbuf *custom_pixbuf = NULL;
 #endif
 #if !HAVE_GTK3
 	GtkWidget *img;
@@ -2149,145 +2226,18 @@ create_icon_menu (char *labeltext, void *stock_name, int is_stock)
 		if (g_str_has_prefix (icon_name, "zc-menu-"))
 		{
 			custom_icon = icon_name + strlen ("zc-menu-");
-			settings = gtk_settings_get_default ();
-			if (settings)
-			{
-				g_object_get (G_OBJECT (settings), "gtk-application-prefer-dark-theme", &prefer_dark, NULL);
-				g_object_get (G_OBJECT (settings), "gtk-theme-name", &theme_name, NULL);
-			}
-
-			if (theme_name)
-				theme_name_lower = g_ascii_strdown (theme_name, -1);
-			if (prefer_dark || (theme_name_lower && g_strrstr (theme_name_lower, "dark")))
-				theme_variant = "dark";
-
-			resource_path = g_strdup_printf ("/icons/menu/%s/%s.svg", theme_variant, custom_icon);
-			if (g_resources_get_info (resource_path, G_RESOURCE_LOOKUP_FLAGS_NONE, NULL, NULL, NULL))
-			{
-				custom_pixbuf = gdk_pixbuf_new_from_resource (resource_path, NULL);
-				if (custom_pixbuf)
-				{
-					image = gtk_image_new_from_pixbuf (custom_pixbuf);
-					g_object_unref (custom_pixbuf);
-				}
-			}
-			g_free (resource_path);
-			g_free (theme_name_lower);
-			g_free (theme_name);
-		}
-
-		if (custom_icon)
-		{
-			if (g_str_equal (custom_icon, "new"))
-				custom_fallback_icon = "document-new";
-			else if (g_str_equal (custom_icon, "load-plugin"))
-				custom_fallback_icon = "document-open";
-			else if (g_str_equal (custom_icon, "detach"))
-				custom_fallback_icon = "view-restore";
-			else if (g_str_equal (custom_icon, "close"))
-				custom_fallback_icon = "window-close";
-			else if (g_str_equal (custom_icon, "quit"))
-				custom_fallback_icon = "application-exit";
-			else if (g_str_equal (custom_icon, "disconnect"))
-			{
-				custom_fallback_icon = "network-disconnect";
-				custom_alt_fallback_icon = "network-offline";
-			}
-			else if (g_str_equal (custom_icon, "connect"))
-			{
-				custom_fallback_icon = "network-connect";
-				custom_alt_fallback_icon = "network-transmit-receive";
-			}
-			else if (g_str_equal (custom_icon, "join"))
-			{
-				custom_fallback_icon = "list-add";
-				custom_alt_fallback_icon = "go-jump";
-			}
-			else if (g_str_equal (custom_icon, "chanlist"))
-				custom_fallback_icon = "view-list";
-			else if (g_str_equal (custom_icon, "preferences"))
-			{
-				custom_fallback_icon = "preferences-system";
-				custom_alt_fallback_icon = "preferences-desktop";
-			}
-			else if (g_str_equal (custom_icon, "clear"))
-				custom_fallback_icon = "edit-clear";
-			else if (g_str_equal (custom_icon, "save"))
-				custom_fallback_icon = "document-save";
-			else if (g_str_equal (custom_icon, "search") || g_str_equal (custom_icon, "find"))
-				custom_fallback_icon = "edit-find";
-			else if (g_str_equal (custom_icon, "help"))
-				custom_fallback_icon = "help-browser";
-			else if (g_str_equal (custom_icon, "about"))
-				custom_fallback_icon = "help-about";
-		}
-
-		if (!image && custom_icon)
-		{
-#ifdef WIN32
-			char *base_path = g_win32_get_package_installation_directory_of_module (NULL);
-
-			if (base_path)
-			{
-				char *icons_menu_path = g_build_filename (base_path, "share", "icons", "menu", theme_variant, NULL);
-				char *filename = g_strconcat (custom_icon, ".svg", NULL);
-				char *icon_path = g_build_filename (icons_menu_path, filename, NULL);
-
-				if (g_file_test (icon_path, G_FILE_TEST_EXISTS))
-				{
-					custom_pixbuf = gdk_pixbuf_new_from_file (icon_path, NULL);
-					if (custom_pixbuf)
-					{
-						image = gtk_image_new_from_pixbuf (custom_pixbuf);
-						g_object_unref (custom_pixbuf);
-					}
-				}
-
-				g_free (icon_path);
-				g_free (filename);
-
-				if (!image)
-				{
-					filename = g_strconcat (custom_icon, ".png", NULL);
-					icon_path = g_build_filename (icons_menu_path, filename, NULL);
-
-					if (g_file_test (icon_path, G_FILE_TEST_EXISTS))
-					{
-						custom_pixbuf = gdk_pixbuf_new_from_file (icon_path, NULL);
-						if (custom_pixbuf)
-						{
-							image = gtk_image_new_from_pixbuf (custom_pixbuf);
-							g_object_unref (custom_pixbuf);
-						}
-					}
-
-					g_free (icon_path);
-					g_free (filename);
-				}
-
-				g_free (icons_menu_path);
-				g_free (base_path);
-			}
-#endif
+			theme_variant = menu_icon_theme_variant ();
+			image = menu_icon_image_from_data_icons (custom_icon, theme_variant);
+			if (!image)
+				image = menu_icon_image_from_data_icons (custom_icon, "light");
 		}
 
 		if (!image)
 		{
-			GtkIconTheme *icon_theme = gtk_icon_theme_get_default ();
-
-			icon_name = custom_fallback_icon ? custom_fallback_icon : gtkutil_icon_name_from_stock (stock_name);
-			if (!icon_name)
-				icon_name = gtkutil_icon_name_from_stock (stock_name);
-
-			if (icon_theme && custom_alt_fallback_icon && icon_name && !gtk_icon_theme_has_icon (icon_theme, icon_name)
-				&& gtk_icon_theme_has_icon (icon_theme, custom_alt_fallback_icon))
-			{
-				icon_name = custom_alt_fallback_icon;
-			}
-
+			icon_name = gtkutil_icon_name_from_stock (stock_name);
 			if (!icon_name)
 				icon_name = stock_name;
-			if (icon_name)
+			if (icon_name && !custom_icon)
 				image = gtk_image_new_from_icon_name (icon_name, GTK_ICON_SIZE_MENU);
 		}
 #endif
