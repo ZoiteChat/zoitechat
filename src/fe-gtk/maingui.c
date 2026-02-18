@@ -3545,6 +3545,7 @@ mg_create_entry (session *sess, GtkWidget *box)
                 "face-smile",
                 "insert-emoticon-symbolic",
                 "insert-emoticon",
+                "zc-menu-emoji",
                 NULL
         };
         const char *emoji_fallback_icon_name;

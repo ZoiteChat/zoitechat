@@ -40,7 +40,7 @@
 #define SERVLIST_Y_PADDING 0			/* vertical padding in the network editor */
 
 #if HAVE_GTK3
-#define ICON_SERVLIST_CONNECT "network-connect"
+#define ICON_SERVLIST_CONNECT "zc-menu-connect"
 #define ICON_SERVLIST_ADD "list-add"
 #define ICON_SERVLIST_REMOVE "list-remove"
 #define ICON_SERVLIST_CLOSE "window-close"

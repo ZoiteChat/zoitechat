@@ -47,6 +47,8 @@
 		<file alias="menu/light/next.png" preprocess="to-pixdata">icons/menu/light/next.png</file>
 		<file alias="menu/light/help.png" preprocess="to-pixdata">icons/menu/light/help.png</file>
 		<file alias="menu/light/about.png" preprocess="to-pixdata">icons/menu/light/about.png</file>
+		<file alias="menu/light/update.png" preprocess="to-pixdata">icons/menu/light/update.png</file>
+		<file alias="menu/light/emoji.png" preprocess="to-pixdata">icons/menu/light/emoji.png</file>
 
 		<file alias="menu/dark/new.png" preprocess="to-pixdata">icons/menu/dark/new.png</file>
 		<file alias="menu/dark/network-list.png" preprocess="to-pixdata">icons/menu/dark/network-list.png</file>
@@ -74,5 +76,7 @@
 		<file alias="menu/dark/next.png" preprocess="to-pixdata">icons/menu/dark/next.png</file>
 		<file alias="menu/dark/help.png" preprocess="to-pixdata">icons/menu/dark/help.png</file>
 		<file alias="menu/dark/about.png" preprocess="to-pixdata">icons/menu/dark/about.png</file>
+		<file alias="menu/dark/update.png" preprocess="to-pixdata">icons/menu/dark/update.png</file>
+		<file alias="menu/dark/emoji.png" preprocess="to-pixdata">icons/menu/dark/emoji.png</file>
 	</gresource>
 </gresources>

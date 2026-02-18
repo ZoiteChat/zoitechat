@@ -2014,6 +2014,7 @@ menu_about (GtkWidget *wid, gpointer sess)
 #define ICON_FIND "zc-menu-find"
 #define ICON_HELP "zc-menu-help"
 #define ICON_ABOUT "zc-menu-about"
+#define ICON_UPDATE "zc-menu-update"
 
 static struct mymenu mymenu[] = {
 	{N_("_ZoiteChat"), 0, 0, M_NEWMENU, MENU_ID_ZOITECHAT, 0, 1},
@@ -2109,6 +2110,7 @@ static struct mymenu mymenu[] = {
 
 	{N_("_Help"), 0, 0, M_NEWMENU, 0, 0, 1},	/* 74 */
 	{N_("_Contents"), menu_docs, ICON_HELP, M_MENUSTOCK, 0, 0, 1, GDK_KEY_F1},
+	{N_("_Update"), menu_docs, ICON_UPDATE, M_MENUSTOCK, 0, 0, 1},
 	{N_("_About"), menu_about, ICON_ABOUT, M_MENUSTOCK, 0, 0, 1},
 
 	{0, 0, 0, M_END, 0, 0, 0},

@@ -96,6 +96,7 @@ gtkutil_menu_custom_icon_from_stock (const char *stock_name)
 		{ "gtk-go-forward", "zc-menu-next" },
 		{ "gtk-help", "zc-menu-help" },
 		{ "gtk-about", "zc-menu-about" },
+		{ "gtk-convert", "zc-menu-emoji" },
 	};
 	size_t i;
 
@@ -143,6 +144,9 @@ gtkutil_menu_custom_icon_from_icon_name (const char *icon_name)
 		{ "go-next", "zc-menu-next" },
 		{ "help-browser", "zc-menu-help" },
 		{ "help-about", "zc-menu-about" },
+		{ "face-smile", "zc-menu-emoji" },
+		{ "insert-emoticon", "zc-menu-emoji" },
+		{ "software-update-available", "zc-menu-update" },
 		{ "network-workgroup", "zc-menu-chanlist" },
 	};
 	size_t i;
@@ -195,6 +199,8 @@ gtkutil_stock_from_menu_custom_icon (const char *custom_icon)
 		{ "zc-menu-next", GTK_STOCK_GO_FORWARD },
 		{ "zc-menu-help", GTK_STOCK_HELP },
 		{ "zc-menu-about", GTK_STOCK_ABOUT },
+		{ "zc-menu-emoji", GTK_STOCK_CONVERT },
+		{ "zc-menu-update", GTK_STOCK_REFRESH },
 	};
 	size_t i;
 
