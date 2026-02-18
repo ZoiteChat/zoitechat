@@ -2,13 +2,16 @@
 <app-bundle>
 
   <meta>
+    <!-- Expected prefixes:
+         Homebrew: /opt/homebrew (Apple Silicon) or /usr/local (Intel)
+         MacPorts: /opt/local -->
     <prefix name="default">/usr/local</prefix>
     <prefix name="enchant">/usr/local/opt/enchant-applespell</prefix>
     <destination overwrite="yes">${project}</destination>
 
     <run-install-name-tool/>
-    <launcher-script>${project}/launcher.sh</launcher-script >
-    <gtk>gtk+-2.0</gtk>
+    <launcher-script>${project}/launcher.sh</launcher-script>
+    <gtk>gtk+-3.0</gtk>
   </meta>
 
   <plist>${project}/Info.plist</plist>
@@ -28,38 +31,27 @@
     ${prefix:enchant}/lib/enchant/libenchant_applespell.so
   </binary>
 
+  <!-- GTK3 runtime modules: ${prefix}/lib/${gtkdir} -->
   <binary>
-    ${prefix}/lib/${gtkdir}/modules/*.so
-  </binary>
-  <binary>
-    ${prefix}/lib/${gtkdir}/${pkg:${gtk}:gtk_binary_version}/engines/libquartz.so
-  </binary>
-  <binary>
-    ${prefix}/lib/${gtkdir}/${pkg:${gtk}:gtk_binary_version}/engines/libxamarin.so
+    ${prefix}/lib/${gtkdir}/${pkg:${gtk}:gtk_binary_version}/immodules/*.so
   </binary>
   <binary>
     ${prefix}/lib/${gtkdir}/${pkg:${gtk}:gtk_binary_version}/printbackends/*.so
   </binary>
-  <binary>
-    ${prefix}/lib/gdk-pixbuf-2.0/${pkg:${gtk}:gtk_binary_version}/loaders/*.so
-  </binary>
-  <binary>
-    ${prefix}/lib/pango/${pkg:pango:pango_module_version}/modules/
-  </binary>
-  <data>
-    ${prefix}/share/themes/Mac/gtk-2.0-key/gtkrc
-  </data>
 
-  <translations name="gtk20">
+  <binary>
+    ${prefix}/lib/gdk-pixbuf-2.0/${pkg:gdk-pixbuf-2.0:gdk_pixbuf_binary_version}/loaders/*.so
+  </binary>
+  <binary>
+    ${prefix}/lib/pango/${pkg:pango:pango_module_version}/modules/*.so
+  </binary>
+
+  <translations name="gtk30">
     ${prefix}/share/locale
   </translations>
   <translations name="zoitechat">
     ${prefix}/share/locale
   </translations>
-
-  <data dest="${bundle}/Contents/Resources/etc/${gtkdir}/gtkrc">
-    ${project}/gtkrc
-  </data>
 
   <data dest="${bundle}/Contents/Resources">
     ${project}/zoitechat.icns

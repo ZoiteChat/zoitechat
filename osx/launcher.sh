@@ -23,18 +23,28 @@ bundle_data="$bundle_res"/share
 bundle_etc="$bundle_res"/etc
 
 export PREFIX="$bundle_res"
-export DYLD_LIBRARY_PATH="$bundle_lib"
+
+# launcher-script: runtime environment for bundled GTK3 on macOS.
+# Expected package prefixes when building the app bundle:
+#   Homebrew: /opt/homebrew (Apple Silicon) or /usr/local (Intel)
+#   MacPorts: /opt/local
+# Required libraries include GTK3, Pango, GDK-Pixbuf and enchant.
+
+# Keep DYLD path hacks to a minimum; install_name_tool should resolve most libs.
+if test -n "${DYLD_LIBRARY_PATH:-}"; then
+    export DYLD_LIBRARY_PATH="$bundle_lib:$DYLD_LIBRARY_PATH"
+fi
+
 export XDG_CONFIG_DIRS="$bundle_etc"/xdg
 export XDG_DATA_DIRS="$bundle_data"
 export GTK_DATA_PREFIX="$bundle_res"
 export GTK_EXE_PREFIX="$bundle_res"
-export GTK_PATH="$bundle_res"
 
-export GTK2_RC_FILES="$bundle_etc/gtk-2.0/gtkrc"
-export GTK_IM_MODULE_FILE="$bundle_etc/gtk-2.0/gtk.immodules"
-export GDK_PIXBUF_MODULE_FILE="$bundle_etc/gtk-2.0/gdk-pixbuf.loaders"
+export GTK_IM_MODULE_FILE="$bundle_etc/gtk-3.0/gtk.immodules"
+export GDK_PIXBUF_MODULE_FILE="$bundle_etc/gtk-3.0/gdk-pixbuf.loaders"
 export PANGO_LIBDIR="$bundle_lib"
 export PANGO_SYSCONFDIR="$bundle_etc"
+export GSETTINGS_SCHEMA_DIR="$bundle_data/glib-2.0/schemas"
 
 export OPENSSL_CONF="/System/Library/OpenSSL/openssl.cnf"
 
