@@ -1,0 +1,156 @@
+name: macOS Build
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  macos_build_unsigned:
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Install build dependencies
+        run: |
+          set -eux
+          brew update
+          brew install \
+            meson ninja pkg-config gettext perl \
+            gtk+3 gdk-pixbuf pango adwaita-icon-theme \
+            hicolor-icon-theme glib dbus \
+            enchant-applespell gtk-mac-bundler
+
+      - name: Configure
+        run: |
+          set -eux
+          PREFIX="$(brew --prefix)"
+          rm -rf build
+          meson setup build \
+            --prefix="$PREFIX" \
+            -Dgtk3=true \
+            -Dtext-frontend=true \
+            -Dwith-perl=perl \
+            -Dwith-python=python3 \
+            -Dauto_features=enabled
+
+      - name: Build
+        run: |
+          set -eux
+          meson compile -C build
+
+      - name: Install for bundling
+        run: |
+          set -eux
+          sudo meson install -C build
+
+      - name: Package unsigned .app
+        run: |
+          set -eux
+          VERSION="$(git describe --tags --always)"
+          PREFIX="$(brew --prefix)"
+          ENCHANT_PREFIX="$(brew --prefix enchant-applespell)"
+
+          sed "s/@VERSION@/${VERSION}/g" osx/Info.plist.in > osx/Info.plist
+
+          perl -0pi -e 's|<prefix name="default">.*?</prefix>|<prefix name="default">$ENV{PREFIX}</prefix>|s' osx/zoitechat.bundle
+          perl -0pi -e 's|<prefix name="enchant">.*?</prefix>|<prefix name="enchant">$ENV{ENCHANT_PREFIX}</prefix>|s' osx/zoitechat.bundle
+
+          (cd osx && ./makebundle.sh)
+          mv osx/ZoiteChat-*.app.zip ./
+
+      - name: Upload unsigned macOS app artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: zoitechat-macos-unsigned
+          path: ZoiteChat-*.app.zip
+          if-no-files-found: error
+          retention-days: 14
+
+  macos_release_signed:
+    needs: macos_build_unsigned
+    runs-on: macos-latest
+    if: >-
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/master' &&
+      secrets.APPLE_DEVELOPER_ID_APPLICATION != '' &&
+      secrets.APPLE_DEVELOPER_ID_CERT_P12 != '' &&
+      secrets.APPLE_DEVELOPER_ID_CERT_P12_PASSWORD != '' &&
+      secrets.APPLE_NOTARY_API_KEY != '' &&
+      secrets.APPLE_NOTARY_API_KEY_ID != '' &&
+      secrets.APPLE_NOTARY_ISSUER_ID != ''
+
+    steps:
+      - name: Download unsigned app artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: zoitechat-macos-unsigned
+          path: dist
+
+      - name: Import Developer ID certificate
+        env:
+          CERT_P12_BASE64: ${{ secrets.APPLE_DEVELOPER_ID_CERT_P12 }}
+          CERT_PASSWORD: ${{ secrets.APPLE_DEVELOPER_ID_CERT_P12_PASSWORD }}
+        run: |
+          set -eux
+          echo "$CERT_P12_BASE64" | base64 --decode > certificate.p12
+
+          security create-keychain -p "" build.keychain
+          security set-keychain-settings -lut 21600 build.keychain
+          security unlock-keychain -p "" build.keychain
+          security import certificate.p12 -k build.keychain -P "$CERT_PASSWORD" -A -T /usr/bin/codesign
+          security list-keychains -d user -s build.keychain $(security list-keychains -d user | tr -d '"')
+          security set-key-partition-list -S apple-tool:,apple: -s -k "" build.keychain
+
+      - name: Codesign app bundle
+        env:
+          CODESIGN_IDENTITY: ${{ secrets.APPLE_DEVELOPER_ID_APPLICATION }}
+        run: |
+          set -eux
+          unzip -q dist/ZoiteChat-*.app.zip -d dist
+          APP_PATH="$(find dist -maxdepth 1 -name 'ZoiteChat.app' -type d | head -n 1)"
+
+          codesign --force --deep --options runtime --timestamp \
+            --sign "$CODESIGN_IDENTITY" "$APP_PATH"
+
+          codesign --verify --deep --strict --verbose=2 "$APP_PATH"
+          spctl --assess --type execute --verbose "$APP_PATH"
+
+      - name: Notarize and staple
+        env:
+          NOTARY_API_KEY_BASE64: ${{ secrets.APPLE_NOTARY_API_KEY }}
+          NOTARY_KEY_ID: ${{ secrets.APPLE_NOTARY_API_KEY_ID }}
+          NOTARY_ISSUER_ID: ${{ secrets.APPLE_NOTARY_ISSUER_ID }}
+        run: |
+          set -eux
+          APP_PATH="$(find dist -maxdepth 1 -name 'ZoiteChat.app' -type d | head -n 1)"
+          NOTARY_ZIP="dist/ZoiteChat-notarize.zip"
+          SIGNED_ZIP="dist/ZoiteChat-signed.app.zip"
+
+          echo "$NOTARY_API_KEY_BASE64" | base64 --decode > AuthKey_${NOTARY_KEY_ID}.p8
+          ditto -c -k --keepParent "$APP_PATH" "$NOTARY_ZIP"
+
+          xcrun notarytool submit "$NOTARY_ZIP" \
+            --key "AuthKey_${NOTARY_KEY_ID}.p8" \
+            --key-id "$NOTARY_KEY_ID" \
+            --issuer "$NOTARY_ISSUER_ID" \
+            --wait
+
+          xcrun stapler staple "$APP_PATH"
+          xcrun stapler validate "$APP_PATH"
+
+          ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "$SIGNED_ZIP"
+
+      - name: Upload signed macOS app artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: zoitechat-macos-signed
+          path: dist/ZoiteChat-signed.app.zip
+          if-no-files-found: error
+          retention-days: 30
