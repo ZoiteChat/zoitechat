@@ -1951,22 +1951,22 @@ menu_about (GtkWidget *wid, gpointer sess)
 }
 
 #if HAVE_GTK3
-#define ICON_NEW "document-new"
-#define ICON_LOAD_PLUGIN "document-open"
-#define ICON_DETACH "edit-redo"
-#define ICON_CLOSE "window-close"
-#define ICON_QUIT "application-exit"
-#define ICON_DISCONNECT "network-disconnect"
-#define ICON_CONNECT "network-connect"
-#define ICON_JOIN "go-jump"
-#define ICON_CHANLIST "view-list"
-#define ICON_PREFERENCES "preferences-system"
-#define ICON_CLEAR "edit-clear"
-#define ICON_SAVE "document-save"
-#define ICON_SEARCH "edit-find"
-#define ICON_FIND "edit-find"
-#define ICON_HELP "help-contents"
-#define ICON_ABOUT "help-about"
+#define ICON_NEW "zc-menu-new"
+#define ICON_LOAD_PLUGIN "zc-menu-load-plugin"
+#define ICON_DETACH "zc-menu-detach"
+#define ICON_CLOSE "zc-menu-close"
+#define ICON_QUIT "zc-menu-quit"
+#define ICON_DISCONNECT "zc-menu-disconnect"
+#define ICON_CONNECT "zc-menu-connect"
+#define ICON_JOIN "zc-menu-join"
+#define ICON_CHANLIST "zc-menu-chanlist"
+#define ICON_PREFERENCES "zc-menu-preferences"
+#define ICON_CLEAR "zc-menu-clear"
+#define ICON_SAVE "zc-menu-save"
+#define ICON_SEARCH "zc-menu-search"
+#define ICON_FIND "zc-menu-find"
+#define ICON_HELP "zc-menu-help"
+#define ICON_ABOUT "zc-menu-about"
 #endif
 #if !HAVE_GTK3
 #define ICON_NEW GTK_STOCK_NEW
@@ -2036,7 +2036,7 @@ static struct mymenu mymenu[] = {
 	{N_("_Disconnect"), menu_disconnect, ICON_DISCONNECT, M_MENUSTOCK, MENU_ID_DISCONNECT, 0, 1},
 	{N_("_Reconnect"), menu_reconnect, ICON_CONNECT, M_MENUSTOCK, MENU_ID_RECONNECT, 0, 1},
 	{N_("_Join a Channel" ELLIPSIS), menu_join, ICON_JOIN, M_MENUSTOCK, MENU_ID_JOIN, 0, 1},
-	{N_("Channel _List"), menu_chanlist, ICON_CHANLIST, M_MENUITEM, 0, 0, 1},
+	{N_("Channel _List"), menu_chanlist, ICON_CHANLIST, M_MENUSTOCK, 0, 0, 1},
 	{0, 0, 0, M_SEP, 0, 0, 0},
 #define AWAY_OFFSET (41)
 	{N_("Marked _Away"), menu_away, 0, M_MENUTOG, MENU_ID_AWAY, 0, 1, GDK_KEY_a},
@@ -2115,6 +2115,13 @@ create_icon_menu (char *labeltext, void *stock_name, int is_stock)
 	GtkWidget *label_widget;
 	GtkWidget *image = NULL;
 	const char *icon_name;
+	const char *custom_icon = NULL;
+	GtkSettings *settings;
+	gboolean prefer_dark = FALSE;
+	char *theme_name = NULL;
+	char *theme_name_lower = NULL;
+	const char *theme_variant = "light";
+	char *resource_path;
 #endif
 #if !HAVE_GTK3
 	GtkWidget *img;
@@ -2123,11 +2130,38 @@ create_icon_menu (char *labeltext, void *stock_name, int is_stock)
 	if (is_stock)
 	{
 #if HAVE_GTK3
-		icon_name = gtkutil_icon_name_from_stock (stock_name);
-		if (!icon_name)
-			icon_name = stock_name;
-		if (icon_name)
-			image = gtk_image_new_from_icon_name (icon_name, GTK_ICON_SIZE_MENU);
+		icon_name = stock_name;
+		if (g_str_has_prefix (icon_name, "zc-menu-"))
+		{
+			custom_icon = icon_name + strlen ("zc-menu-");
+			settings = gtk_settings_get_default ();
+			if (settings)
+			{
+				g_object_get (G_OBJECT (settings), "gtk-application-prefer-dark-theme", &prefer_dark, NULL);
+				g_object_get (G_OBJECT (settings), "gtk-theme-name", &theme_name, NULL);
+			}
+
+			if (theme_name)
+				theme_name_lower = g_ascii_strdown (theme_name, -1);
+			if (prefer_dark || (theme_name_lower && g_strrstr (theme_name_lower, "dark")))
+				theme_variant = "dark";
+
+			resource_path = g_strdup_printf ("/icons/menu/%s/%s.svg", theme_variant, custom_icon);
+			if (g_resources_get_info (resource_path, G_RESOURCE_LOOKUP_FLAGS_NONE, NULL, NULL, NULL))
+				image = gtk_image_new_from_resource (resource_path);
+			g_free (resource_path);
+			g_free (theme_name_lower);
+			g_free (theme_name);
+		}
+
+		if (!image)
+		{
+			icon_name = gtkutil_icon_name_from_stock (stock_name);
+			if (!icon_name)
+				icon_name = stock_name;
+			if (icon_name)
+				image = gtk_image_new_from_icon_name (icon_name, GTK_ICON_SIZE_MENU);
+		}
 #endif
 #if !HAVE_GTK3
 		img = gtk_image_new_from_stock (stock_name, GTK_ICON_SIZE_MENU);

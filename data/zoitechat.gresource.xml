@@ -20,5 +20,39 @@
 		<file alias="tree_dialog.png" preprocess="to-pixdata">icons/tree_dialog.png</file>
 		<file alias="tree_server.png" preprocess="to-pixdata">icons/tree_server.png</file>
 		<file alias="tree_util.png" preprocess="to-pixdata">icons/tree_util.png</file>
+
+		<file alias="menu/light/new.svg">icons/menu/light/new.svg</file>
+		<file alias="menu/light/load-plugin.svg">icons/menu/light/load-plugin.svg</file>
+		<file alias="menu/light/detach.svg">icons/menu/light/detach.svg</file>
+		<file alias="menu/light/close.svg">icons/menu/light/close.svg</file>
+		<file alias="menu/light/quit.svg">icons/menu/light/quit.svg</file>
+		<file alias="menu/light/disconnect.svg">icons/menu/light/disconnect.svg</file>
+		<file alias="menu/light/connect.svg">icons/menu/light/connect.svg</file>
+		<file alias="menu/light/join.svg">icons/menu/light/join.svg</file>
+		<file alias="menu/light/chanlist.svg">icons/menu/light/chanlist.svg</file>
+		<file alias="menu/light/preferences.svg">icons/menu/light/preferences.svg</file>
+		<file alias="menu/light/clear.svg">icons/menu/light/clear.svg</file>
+		<file alias="menu/light/save.svg">icons/menu/light/save.svg</file>
+		<file alias="menu/light/search.svg">icons/menu/light/search.svg</file>
+		<file alias="menu/light/find.svg">icons/menu/light/find.svg</file>
+		<file alias="menu/light/help.svg">icons/menu/light/help.svg</file>
+		<file alias="menu/light/about.svg">icons/menu/light/about.svg</file>
+
+		<file alias="menu/dark/new.svg">icons/menu/dark/new.svg</file>
+		<file alias="menu/dark/load-plugin.svg">icons/menu/dark/load-plugin.svg</file>
+		<file alias="menu/dark/detach.svg">icons/menu/dark/detach.svg</file>
+		<file alias="menu/dark/close.svg">icons/menu/dark/close.svg</file>
+		<file alias="menu/dark/quit.svg">icons/menu/dark/quit.svg</file>
+		<file alias="menu/dark/disconnect.svg">icons/menu/dark/disconnect.svg</file>
+		<file alias="menu/dark/connect.svg">icons/menu/dark/connect.svg</file>
+		<file alias="menu/dark/join.svg">icons/menu/dark/join.svg</file>
+		<file alias="menu/dark/chanlist.svg">icons/menu/dark/chanlist.svg</file>
+		<file alias="menu/dark/preferences.svg">icons/menu/dark/preferences.svg</file>
+		<file alias="menu/dark/clear.svg">icons/menu/dark/clear.svg</file>
+		<file alias="menu/dark/save.svg">icons/menu/dark/save.svg</file>
+		<file alias="menu/dark/search.svg">icons/menu/dark/search.svg</file>
+		<file alias="menu/dark/find.svg">icons/menu/dark/find.svg</file>
+		<file alias="menu/dark/help.svg">icons/menu/dark/help.svg</file>
+		<file alias="menu/dark/about.svg">icons/menu/dark/about.svg</file>
 	</gresource>
 </gresources>
