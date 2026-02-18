@@ -74,7 +74,7 @@ jobs:
               # Install the essential build tools up front to avoid
               # `/tmp/ypkg-setup*: meson: command not found` failures.
               eopkg install -y --ignore-file-conflicts \
-                ypkg git meson ninja pkgconfig gcc gettext
+                ypkg git meson ninja pkgconf gcc gettext
               ypkg build "$PACKAGE_YML"
               mkdir -p /workspace/artifacts
               find . -maxdepth 3 -name "*.eopkg" -type f -exec cp -v {} /workspace/artifacts/ \;
