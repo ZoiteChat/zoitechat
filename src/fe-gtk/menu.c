@@ -65,6 +65,18 @@
 
 static GSList *submenu_list;
 
+static GtkWidget *
+menu_new (void)
+{
+	GtkWidget *menu = gtk_menu_new ();
+
+#if HAVE_GTK3
+	gtk_menu_set_reserve_toggle_size (GTK_MENU (menu), FALSE);
+#endif
+
+	return menu;
+}
+
 enum
 {
 	M_MENUITEM,
@@ -388,7 +400,7 @@ menu_quick_sub (char *name, GtkWidget *menu, GtkWidget **sub_item_ret, int flags
 		return menu;
 
 	/* Code to add a submenu */
-	sub_menu = gtk_menu_new ();
+	sub_menu = menu_new ();
 	if (flags & XCMENU_MARKUP)
 	{
 		sub_item = gtk_menu_item_new_with_label ("");
@@ -805,7 +817,7 @@ menu_nickmenu (session *sess, GdkEventButton *event, char *nick, int num_sel)
 {
 	char buf[512];
 	struct User *user;
-	GtkWidget *submenu, *menu = gtk_menu_new ();
+	GtkWidget *submenu, *menu = menu_new ();
 
 	g_free (str_copy);
 	str_copy = g_strdup (nick);
@@ -1040,7 +1052,7 @@ menu_urlmenu (GdkEventButton *event, char *url)
 	g_free (str_copy);
 	str_copy = g_strdup (url);
 
-	menu = gtk_menu_new ();
+	menu = menu_new ();
 	/* more than 51 chars? Chop it */
 	if (g_utf8_strlen (str_copy, -1) >= 52)
 	{
@@ -1132,7 +1144,7 @@ menu_chanmenu (struct session *sess, GdkEventButton * event, char *chan)
 	g_free (str_copy);
 	str_copy = g_strdup (chan);
 
-	menu = gtk_menu_new ();
+	menu = menu_new ();
 
 	menu_quick_item (0, chan, menu, XCMENU_SHADED, str_copy, 0);
 	menu_quick_item (0, 0, menu, XCMENU_SHADED, str_copy, 0);
@@ -2657,7 +2669,7 @@ menu_create_main (void *accel_group, int bar, int away, int toplevel,
 #endif
 	}
 	else
-		menu_bar = gtk_menu_new ();
+		menu_bar = menu_new ();
 
 	/* /MENU needs to know this later */
 	g_object_set_data (G_OBJECT (menu_bar), "accel", accel_group);
@@ -2753,7 +2765,7 @@ menu_create_main (void *accel_group, int bar, int away, int toplevel,
 		case M_NEWMENU:
 			if (menu)
 				gtk_menu_item_set_submenu (GTK_MENU_ITEM (menu_item), menu);
-			item = menu = gtk_menu_new ();
+			item = menu = menu_new ();
 			if (mymenu[i].id == MENU_ID_USERMENU)
 				usermenu = menu;
 			menu_item = gtk_menu_item_new_with_mnemonic (_(mymenu[i].text));
@@ -2839,7 +2851,7 @@ togitem:
 
 		case M_MENUSUB:
 			group = NULL;
-			submenu = gtk_menu_new ();
+			submenu = menu_new ();
 			item = create_icon_menu (_(mymenu[i].text), mymenu[i].image, TRUE);
 			/* record the English name for /menu */
 			g_object_set_data (G_OBJECT (item), "name", mymenu[i].text);
