@@ -163,6 +163,22 @@ gtkutil_stock_from_menu_custom_icon (const char *custom_icon)
 }
 #endif
 
+static GdkPixbuf *
+gtkutil_menu_icon_pixbuf_new (const char *icon_name)
+{
+	GdkPixbuf *pixbuf = NULL;
+	char *resource_path;
+
+	if (!icon_name || !g_str_has_prefix (icon_name, "zc-menu-"))
+		return NULL;
+
+	resource_path = g_strdup_printf ("/icons/menu/light/%s.svg", icon_name + strlen ("zc-menu-"));
+	pixbuf = gdk_pixbuf_new_from_resource_at_scale (resource_path, -1, -1, TRUE, NULL);
+	g_free (resource_path);
+
+	return pixbuf;
+}
+
 #if HAVE_GTK3
 const char *
 gtkutil_icon_name_from_stock (const char *stock_name)
@@ -317,6 +333,18 @@ gtkutil_image_new_from_stock (const char *stock, GtkIconSize size)
 
 	return gtk_image_new_from_icon_name (icon_name, size);
 #elif !HAVE_GTK3
+	if (stock && g_str_has_prefix (stock, "zc-menu-"))
+	{
+		GdkPixbuf *pixbuf = gtkutil_menu_icon_pixbuf_new (stock);
+
+		if (pixbuf)
+		{
+			GtkWidget *image = gtk_image_new_from_pixbuf (pixbuf);
+			g_object_unref (pixbuf);
+			return image;
+		}
+	}
+
 	if (stock && g_str_has_prefix (stock, "zc-menu-"))
 		stock = gtkutil_stock_from_menu_custom_icon (stock);
 	return gtk_image_new_from_stock (stock, size);
