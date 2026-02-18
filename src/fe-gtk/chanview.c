@@ -35,6 +35,7 @@
 #define COL_CHAN 1		/* (chan *) */
 #define COL_ATTR 2		/* (PangoAttrList *) */
 #define COL_PIXBUF 3		/* (GdkPixbuf *) */
+#define COL_UNDERLINE 4		/* (PangoUnderline) */
 
 struct _chanview
 {
@@ -310,8 +311,8 @@ chanview_new (int type, int trunc_len, gboolean sort, gboolean use_icons,
 	chanview *cv;
 
 	cv = g_new0 (chanview, 1);
-	cv->store = gtk_tree_store_new (4, G_TYPE_STRING, G_TYPE_POINTER,
-											  PANGO_TYPE_ATTR_LIST, GDK_TYPE_PIXBUF);
+	cv->store = gtk_tree_store_new (5, G_TYPE_STRING, G_TYPE_POINTER,
+							  PANGO_TYPE_ATTR_LIST, GDK_TYPE_PIXBUF, G_TYPE_INT);
 #if HAVE_GTK3
 	cv->font_desc = font_desc;
 #else
@@ -429,7 +430,9 @@ chanview_add_real (chanview *cv, char *name, void *family, void *userdata,
 	memcpy (&(ch->iter), &iter, sizeof (iter));
 
 	gtk_tree_store_set (cv->store, &iter, COL_NAME, name, COL_CHAN, ch,
-							  COL_PIXBUF, icon, -1);
+							  COL_PIXBUF, icon,
+							  COL_UNDERLINE, PANGO_UNDERLINE_NONE,
+							  -1);
 
 	cv->size++;
 	if (!has_parent)

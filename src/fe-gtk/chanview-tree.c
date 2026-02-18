@@ -41,12 +41,27 @@ static void		/* row selected callback */
 cv_tree_sel_cb (GtkTreeSelection *sel, chanview *cv)
 {
 	GtkTreeModel *model;
+	GtkTreeIter prev_iter;
 	GtkTreeIter iter;
 	chan *ch;
+	chan *prev_ch;
+	gboolean has_prev;
+
+	has_prev = cv->focused && gtk_tree_store_iter_is_valid (cv->store, &cv->focused->iter);
+	if (has_prev)
+		prev_iter = cv->focused->iter;
 
 	if (gtk_tree_selection_get_selected (sel, &model, &iter))
 	{
 		gtk_tree_model_get (model, &iter, COL_CHAN, &ch, -1);
+
+		if (has_prev)
+		{
+			gtk_tree_model_get (model, &prev_iter, COL_CHAN, &prev_ch, -1);
+			if (prev_ch != ch)
+				gtk_tree_store_set (cv->store, &prev_iter, COL_UNDERLINE, PANGO_UNDERLINE_NONE, -1);
+		}
+		gtk_tree_store_set (cv->store, &iter, COL_UNDERLINE, PANGO_UNDERLINE_SINGLE, -1);
 
 		cv->focused = ch;
 		cv->cb_focus (cv, ch, ch->tag, ch->userdata);
@@ -175,7 +190,11 @@ cv_tree_init (chanview *cv)
 		g_object_set (G_OBJECT (renderer), "ypad", 0, NULL);
 	gtk_cell_renderer_text_set_fixed_height_from_font (GTK_CELL_RENDERER_TEXT (renderer), 1);
 	gtk_tree_view_column_pack_start(col, renderer, TRUE);
-	gtk_tree_view_column_set_attributes (col, renderer, "text", COL_NAME, "attributes", COL_ATTR, NULL);
+	gtk_tree_view_column_set_attributes (col, renderer,
+								  "text", COL_NAME,
+								  "attributes", COL_ATTR,
+								  "underline", COL_UNDERLINE,
+								  NULL);
 	gtk_tree_view_column_set_expand (col, TRUE);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(view), col);									
 
