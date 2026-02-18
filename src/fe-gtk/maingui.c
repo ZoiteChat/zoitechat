@@ -3892,7 +3892,17 @@ mg_win32_filter (GdkXEvent *xevent, GdkEvent *event, gpointer data)
 
 			if (command)
 			{
-				handle_command (current_sess, command, FALSE);
+				if (strcmp (command, "__WIN32_TASKBAR_TOGGLE__") == 0)
+				{
+					if (gtk_widget_get_visible (current_sess->gui->window))
+						fe_ctrl_gui (current_sess, FE_GUI_ICONIFY, 0);
+					else
+						fe_ctrl_gui (current_sess, FE_GUI_SHOW, 0);
+				}
+				else
+				{
+					handle_command (current_sess, command, FALSE);
+				}
 				g_free (command);
 				return GDK_FILTER_REMOVE;
 			}

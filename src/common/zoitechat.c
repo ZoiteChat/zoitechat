@@ -229,6 +229,10 @@ zoitechat_remote_win32 (void)
 	{
 		sent = zoitechat_send_command_to_existing (hwnd, arg_command) || sent;
 	}
+	else if (arg_existing)
+	{
+		sent = zoitechat_send_command_to_existing (hwnd, "__WIN32_TASKBAR_TOGGLE__") || sent;
+	}
 
 	if (arg_urls)
 	{
