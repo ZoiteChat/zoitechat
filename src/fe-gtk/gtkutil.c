@@ -110,6 +110,54 @@ gtkutil_menu_custom_icon_from_stock (const char *stock_name)
 
 	return NULL;
 }
+
+static const char *
+gtkutil_menu_custom_icon_from_icon_name (const char *icon_name)
+{
+	static const struct
+	{
+		const char *icon;
+		const char *custom_icon;
+	} icon_map[] = {
+		{ "document-new", "zc-menu-new" },
+		{ "view-list", "zc-menu-network-list" },
+		{ "document-open", "zc-menu-load-plugin" },
+		{ "edit-redo", "zc-menu-detach" },
+		{ "window-close", "zc-menu-close" },
+		{ "application-exit", "zc-menu-quit" },
+		{ "network-disconnect", "zc-menu-disconnect" },
+		{ "network-connect", "zc-menu-connect" },
+		{ "go-jump", "zc-menu-join" },
+		{ "preferences-system", "zc-menu-preferences" },
+		{ "edit-clear", "zc-menu-clear" },
+		{ "edit-copy", "zc-menu-copy" },
+		{ "edit-delete", "zc-menu-delete" },
+		{ "list-add", "zc-menu-add" },
+		{ "list-remove", "zc-menu-remove" },
+		{ "tools-check-spelling", "zc-menu-spell-check" },
+		{ "document-save", "zc-menu-save" },
+		{ "document-save-as", "zc-menu-save-as" },
+		{ "view-refresh", "zc-menu-refresh" },
+		{ "edit-find", "zc-menu-find" },
+		{ "go-previous", "zc-menu-previous" },
+		{ "go-next", "zc-menu-next" },
+		{ "help-browser", "zc-menu-help" },
+		{ "help-about", "zc-menu-about" },
+		{ "network-workgroup", "zc-menu-chanlist" },
+	};
+	size_t i;
+
+	if (!icon_name)
+		return NULL;
+
+	for (i = 0; i < G_N_ELEMENTS (icon_map); i++)
+	{
+		if (strcmp (icon_name, icon_map[i].icon) == 0)
+			return icon_map[i].custom_icon;
+	}
+
+	return NULL;
+}
 #endif
 
 #if !HAVE_GTK3
@@ -322,6 +370,9 @@ gtkutil_image_new_from_stock (const char *stock, GtkIconSize size)
 	if (size == GTK_ICON_SIZE_MENU)
 	{
 		const char *menu_icon_name = gtkutil_menu_custom_icon_from_stock (stock);
+
+		if (!menu_icon_name)
+			menu_icon_name = gtkutil_menu_custom_icon_from_icon_name (icon_name);
 
 		if (menu_icon_name)
 			icon_name = menu_icon_name;
