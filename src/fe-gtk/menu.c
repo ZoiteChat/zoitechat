@@ -74,8 +74,14 @@ menu_icon_exists_in_resource (const char *icon_name)
 	if (!icon_name || !g_str_has_prefix (icon_name, "zc-menu-"))
 		return FALSE;
 
-	resource_path = g_strdup_printf ("/icons/menu/light/%s.svg", icon_name + strlen ("zc-menu-"));
+	resource_path = g_strdup_printf ("/icons/menu/light/%s.png", icon_name + strlen ("zc-menu-"));
 	found = g_resources_get_info (resource_path, G_RESOURCE_LOOKUP_FLAGS_NONE, NULL, NULL, NULL);
+	if (!found)
+	{
+		g_free (resource_path);
+		resource_path = g_strdup_printf ("/icons/menu/light/%s.svg", icon_name + strlen ("zc-menu-"));
+		found = g_resources_get_info (resource_path, G_RESOURCE_LOOKUP_FLAGS_NONE, NULL, NULL, NULL);
+	}
 	g_free (resource_path);
 
 	return found;

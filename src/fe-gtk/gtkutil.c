@@ -220,8 +220,14 @@ gtkutil_menu_icon_pixbuf_new (const char *icon_name)
 	if (!icon_name || !g_str_has_prefix (icon_name, "zc-menu-"))
 		return NULL;
 
-	resource_path = g_strdup_printf ("/icons/menu/light/%s.svg", icon_name + strlen ("zc-menu-"));
-	pixbuf = gdk_pixbuf_new_from_resource_at_scale (resource_path, -1, -1, TRUE, NULL);
+	resource_path = g_strdup_printf ("/icons/menu/light/%s.png", icon_name + strlen ("zc-menu-"));
+	pixbuf = gdk_pixbuf_new_from_resource (resource_path, NULL);
+	if (!pixbuf)
+	{
+		g_free (resource_path);
+		resource_path = g_strdup_printf ("/icons/menu/light/%s.svg", icon_name + strlen ("zc-menu-"));
+		pixbuf = gdk_pixbuf_new_from_resource (resource_path, NULL);
+	}
 	g_free (resource_path);
 
 	return pixbuf;
@@ -326,14 +332,25 @@ gtkutil_menu_icon_image_new (const char *icon_name, GtkIconSize size)
 		return NULL;
 
 	variant = gtkutil_menu_icon_theme_variant ();
-	resource_path = g_strdup_printf ("/icons/menu/%s/%s.svg", variant, icon_name + strlen ("zc-menu-"));
+	resource_path = g_strdup_printf ("/icons/menu/%s/%s.png", variant, icon_name + strlen ("zc-menu-"));
 	if (!g_resources_get_info (resource_path, G_RESOURCE_LOOKUP_FLAGS_NONE, NULL, NULL, NULL))
 	{
 		g_free (resource_path);
-		resource_path = g_strdup_printf ("/icons/menu/light/%s.svg", icon_name + strlen ("zc-menu-"));
+		resource_path = g_strdup_printf ("/icons/menu/light/%s.png", icon_name + strlen ("zc-menu-"));
 	}
 
-	pixbuf = gdk_pixbuf_new_from_resource_at_scale (resource_path, -1, -1, TRUE, NULL);
+	pixbuf = gdk_pixbuf_new_from_resource (resource_path, NULL);
+	if (!pixbuf)
+	{
+		g_free (resource_path);
+		resource_path = g_strdup_printf ("/icons/menu/%s/%s.svg", variant, icon_name + strlen ("zc-menu-"));
+		if (!g_resources_get_info (resource_path, G_RESOURCE_LOOKUP_FLAGS_NONE, NULL, NULL, NULL))
+		{
+			g_free (resource_path);
+			resource_path = g_strdup_printf ("/icons/menu/light/%s.svg", icon_name + strlen ("zc-menu-"));
+		}
+		pixbuf = gdk_pixbuf_new_from_resource (resource_path, NULL);
+	}
 	if (pixbuf)
 	{
 		image = gtk_image_new_from_pixbuf (pixbuf);
