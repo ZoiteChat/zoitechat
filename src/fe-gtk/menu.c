@@ -304,14 +304,7 @@ menu_quick_item (char *cmd, char *label, GtkWidget * menu, int flags,
 				if (access (path, R_OK) == 0)
 					img = gtk_image_new_from_file (path);
 				else
-				{
-#if HAVE_GTK3
 					img = gtkutil_image_new_from_stock (icon, GTK_ICON_SIZE_MENU);
-#endif
-#if !HAVE_GTK3
-					img = gtk_image_new_from_stock (icon, GTK_ICON_SIZE_MENU);
-#endif
-				}
 				g_free (path);
 			}
 
@@ -1957,7 +1950,6 @@ menu_about (GtkWidget *wid, gpointer sess)
 	gtk_widget_show_all (GTK_WIDGET(dialog));
 }
 
-#if HAVE_GTK3
 #define ICON_NEW "zc-menu-new"
 #define ICON_NETWORK_LIST "zc-menu-network-list"
 #define ICON_LOAD_PLUGIN "zc-menu-load-plugin"
@@ -1975,26 +1967,6 @@ menu_about (GtkWidget *wid, gpointer sess)
 #define ICON_FIND "zc-menu-find"
 #define ICON_HELP "zc-menu-help"
 #define ICON_ABOUT "zc-menu-about"
-#endif
-#if !HAVE_GTK3
-#define ICON_NEW GTK_STOCK_NEW
-#define ICON_NETWORK_LIST GTK_STOCK_INDEX
-#define ICON_LOAD_PLUGIN GTK_STOCK_REVERT_TO_SAVED
-#define ICON_DETACH GTK_STOCK_REDO
-#define ICON_CLOSE GTK_STOCK_CLOSE
-#define ICON_QUIT GTK_STOCK_QUIT
-#define ICON_DISCONNECT GTK_STOCK_DISCONNECT
-#define ICON_CONNECT GTK_STOCK_CONNECT
-#define ICON_JOIN GTK_STOCK_JUMP_TO
-#define ICON_CHANLIST GTK_STOCK_INDEX
-#define ICON_PREFERENCES GTK_STOCK_PREFERENCES
-#define ICON_CLEAR GTK_STOCK_CLEAR
-#define ICON_SAVE GTK_STOCK_SAVE
-#define ICON_SEARCH GTK_STOCK_JUSTIFY_LEFT
-#define ICON_FIND GTK_STOCK_FIND
-#define ICON_HELP GTK_STOCK_HELP
-#define ICON_ABOUT GTK_STOCK_ABOUT
-#endif
 
 static struct mymenu mymenu[] = {
 	{N_("_ZoiteChat"), 0, 0, M_NEWMENU, MENU_ID_ZOITECHAT, 0, 1},
@@ -2119,43 +2091,30 @@ GtkWidget *
 create_icon_menu (char *labeltext, void *stock_name, int is_stock)
 {
 	GtkWidget *item;
+	GtkWidget *img = NULL;
 #if HAVE_GTK3
 	GtkWidget *box;
 	GtkWidget *label_widget;
-	GtkWidget *image = NULL;
-#endif
-#if !HAVE_GTK3
-	GtkWidget *img;
 #endif
 
 	if (is_stock)
 	{
-#if HAVE_GTK3
-		image = gtkutil_image_new_from_stock (stock_name, GTK_ICON_SIZE_MENU);
-#endif
-#if !HAVE_GTK3
-		img = gtk_image_new_from_stock (stock_name, GTK_ICON_SIZE_MENU);
-#endif
+		img = gtkutil_image_new_from_stock (stock_name, GTK_ICON_SIZE_MENU);
 	}
 	else
 	{
-#if HAVE_GTK3
-		image = gtk_image_new_from_pixbuf (*((GdkPixbuf **)stock_name));
-#endif
-#if !HAVE_GTK3
 		img = gtk_image_new_from_pixbuf (*((GdkPixbuf **)stock_name));
-#endif
 	}
 #if HAVE_GTK3
 	item = gtk_menu_item_new ();
 	box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 6);
 	label_widget = gtk_label_new_with_mnemonic (labeltext);
-	if (image)
-		gtk_box_pack_start (GTK_BOX (box), image, FALSE, FALSE, 0);
+	if (img)
+		gtk_box_pack_start (GTK_BOX (box), img, FALSE, FALSE, 0);
 	gtk_box_pack_start (GTK_BOX (box), label_widget, FALSE, FALSE, 0);
 	gtk_container_add (GTK_CONTAINER (item), box);
-	if (image)
-		gtk_widget_show (image);
+	if (img)
+		gtk_widget_show (img);
 	gtk_widget_show (label_widget);
 	gtk_widget_show (box);
 #else

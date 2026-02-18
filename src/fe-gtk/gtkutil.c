@@ -109,6 +109,54 @@ gtkutil_menu_custom_icon_from_stock (const char *stock_name)
 }
 #endif
 
+#if !HAVE_GTK3
+static const char *
+gtkutil_stock_from_menu_custom_icon (const char *custom_icon)
+{
+	static const struct
+	{
+		const char *custom_icon;
+		const char *stock;
+	} icon_map[] = {
+		{ "zc-menu-new", GTK_STOCK_NEW },
+		{ "zc-menu-network-list", GTK_STOCK_INDEX },
+		{ "zc-menu-load-plugin", GTK_STOCK_REVERT_TO_SAVED },
+		{ "zc-menu-detach", GTK_STOCK_REDO },
+		{ "zc-menu-close", GTK_STOCK_CLOSE },
+		{ "zc-menu-quit", GTK_STOCK_QUIT },
+		{ "zc-menu-disconnect", GTK_STOCK_DISCONNECT },
+		{ "zc-menu-connect", GTK_STOCK_CONNECT },
+		{ "zc-menu-join", GTK_STOCK_JUMP_TO },
+		{ "zc-menu-chanlist", GTK_STOCK_INDEX },
+		{ "zc-menu-preferences", GTK_STOCK_PREFERENCES },
+		{ "zc-menu-clear", GTK_STOCK_CLEAR },
+		{ "zc-menu-copy", GTK_STOCK_COPY },
+		{ "zc-menu-delete", GTK_STOCK_DELETE },
+		{ "zc-menu-add", GTK_STOCK_ADD },
+		{ "zc-menu-remove", GTK_STOCK_REMOVE },
+		{ "zc-menu-spell-check", GTK_STOCK_SPELL_CHECK },
+		{ "zc-menu-save", GTK_STOCK_SAVE },
+		{ "zc-menu-refresh", GTK_STOCK_REFRESH },
+		{ "zc-menu-search", GTK_STOCK_JUSTIFY_LEFT },
+		{ "zc-menu-find", GTK_STOCK_FIND },
+		{ "zc-menu-help", GTK_STOCK_HELP },
+		{ "zc-menu-about", GTK_STOCK_ABOUT },
+	};
+	size_t i;
+
+	if (!custom_icon)
+		return NULL;
+
+	for (i = 0; i < G_N_ELEMENTS (icon_map); i++)
+	{
+		if (strcmp (custom_icon, icon_map[i].custom_icon) == 0)
+			return icon_map[i].stock;
+	}
+
+	return custom_icon;
+}
+#endif
+
 #if HAVE_GTK3
 const char *
 gtkutil_icon_name_from_stock (const char *stock_name)
@@ -263,6 +311,8 @@ gtkutil_image_new_from_stock (const char *stock, GtkIconSize size)
 
 	return gtk_image_new_from_icon_name (icon_name, size);
 #elif !HAVE_GTK3
+	if (stock && g_str_has_prefix (stock, "zc-menu-"))
+		stock = gtkutil_stock_from_menu_custom_icon (stock);
 	return gtk_image_new_from_stock (stock, size);
 #endif
 }
