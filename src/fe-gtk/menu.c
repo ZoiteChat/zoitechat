@@ -2201,11 +2201,46 @@ create_icon_menu (char *labeltext, void *stock_name, int is_stock)
 				custom_fallback_icon = "help-about";
 		}
 
+		if (!image && custom_icon)
+		{
+#ifdef WIN32
+			char *base_path = g_win32_get_package_installation_directory_of_module (NULL);
+
+			if (base_path)
+			{
+				char *icons_menu_path = g_build_filename (base_path, "share", "icons", "menu", theme_variant, NULL);
+				char *filename = g_strconcat (custom_icon, ".svg", NULL);
+				char *icon_path = g_build_filename (icons_menu_path, filename, NULL);
+
+				if (g_file_test (icon_path, G_FILE_TEST_EXISTS))
+					image = gtk_image_new_from_file (icon_path);
+
+				g_free (icon_path);
+				g_free (filename);
+
+				if (!image)
+				{
+					filename = g_strconcat (custom_icon, ".png", NULL);
+					icon_path = g_build_filename (icons_menu_path, filename, NULL);
+
+					if (g_file_test (icon_path, G_FILE_TEST_EXISTS))
+						image = gtk_image_new_from_file (icon_path);
+
+					g_free (icon_path);
+					g_free (filename);
+				}
+
+				g_free (icons_menu_path);
+				g_free (base_path);
+			}
+#endif
+		}
+
 		if (!image)
 		{
-			icon_name = gtkutil_icon_name_from_stock (stock_name);
-			if (!icon_name && custom_fallback_icon)
-				icon_name = custom_fallback_icon;
+			icon_name = custom_fallback_icon ? custom_fallback_icon : gtkutil_icon_name_from_stock (stock_name);
+			if (!icon_name)
+				icon_name = gtkutil_icon_name_from_stock (stock_name);
 			if (!icon_name)
 				icon_name = stock_name;
 			if (icon_name)
