@@ -25,7 +25,7 @@ jobs:
             meson ninja pkg-config gettext perl \
             gtk+3 gdk-pixbuf pango adwaita-icon-theme \
             hicolor-icon-theme glib dbus \
-            enchant-applespell gtk-mac-bundler
+            enchant gtk-mac-bundler
 
       - name: Configure
         run: |
@@ -55,7 +55,7 @@ jobs:
           set -eux
           VERSION="$(git describe --tags --always)"
           PREFIX="$(brew --prefix)"
-          ENCHANT_PREFIX="$(brew --prefix enchant-applespell)"
+          ENCHANT_PREFIX="$(brew --prefix enchant)"
 
           sed "s/@VERSION@/${VERSION}/g" osx/Info.plist.in > osx/Info.plist
 
