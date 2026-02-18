@@ -2135,10 +2135,7 @@ create_icon_menu (char *labeltext, void *stock_name, int is_stock)
 	const char *theme_variant = "light";
 	char *resource_path;
 	const char *custom_fallback_icon = NULL;
-<<<<<<< ours
-=======
 	const char *custom_alt_fallback_icon = NULL;
->>>>>>> theirs
 	GdkPixbuf *custom_pixbuf = NULL;
 #endif
 #if !HAVE_GTK3
