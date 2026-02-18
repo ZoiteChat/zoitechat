@@ -121,20 +121,88 @@ static void
 win32_set_gsettings_schema_dir (void)
 {
 	char *base_path;
+	char *share_path;
 	char *schema_path;
-
-	if (g_getenv ("GSETTINGS_SCHEMA_DIR") != NULL)
-		return;
+	char *xdg_data_dirs;
+	char **xdg_parts;
+	gboolean have_share_path = FALSE;
+	gint i;
 
 	base_path = g_win32_get_package_installation_directory_of_module (NULL);
 	if (base_path == NULL)
 		return;
 
+	share_path = g_build_filename (base_path, "share", NULL);
+
+	/* Ensure GTK can discover bundled icon themes and other shared data. */
+	xdg_data_dirs = g_strdup (g_getenv ("XDG_DATA_DIRS"));
+	if (xdg_data_dirs && *xdg_data_dirs)
+	{
+		xdg_parts = g_strsplit (xdg_data_dirs, G_SEARCHPATH_SEPARATOR_S, -1);
+		for (i = 0; xdg_parts[i] != NULL; i++)
+		{
+			if (g_ascii_strcasecmp (xdg_parts[i], share_path) == 0)
+			{
+				have_share_path = TRUE;
+				break;
+			}
+		}
+		g_strfreev (xdg_parts);
+
+		if (!have_share_path)
+		{
+			char *updated = g_strdup_printf ("%s%c%s", share_path,
+								 G_SEARCHPATH_SEPARATOR,
+								 xdg_data_dirs);
+			g_setenv ("XDG_DATA_DIRS", updated, TRUE);
+			g_free (updated);
+		}
+	}
+	else
+	{
+		g_setenv ("XDG_DATA_DIRS", share_path, TRUE);
+	}
+
 	schema_path = g_build_filename (base_path, "share", "glib-2.0", "schemas", NULL);
-	if (g_file_test (schema_path, G_FILE_TEST_IS_DIR))
+	if (g_getenv ("GSETTINGS_SCHEMA_DIR") == NULL
+		&& g_file_test (schema_path, G_FILE_TEST_IS_DIR))
 		g_setenv ("GSETTINGS_SCHEMA_DIR", schema_path, FALSE);
 
+	g_free (xdg_data_dirs);
+	g_free (share_path);
 	g_free (schema_path);
+	g_free (base_path);
+}
+
+static void
+win32_configure_icon_theme (void)
+{
+	GtkIconTheme *theme;
+	char *base_path;
+	char *icons_path;
+	char *adwaita_path;
+
+	theme = gtk_icon_theme_get_default ();
+	if (!theme)
+		return;
+
+	base_path = g_win32_get_package_installation_directory_of_module (NULL);
+	if (!base_path)
+		return;
+
+	icons_path = g_build_filename (base_path, "share", "icons", NULL);
+	adwaita_path = g_build_filename (icons_path, "Adwaita", NULL);
+
+	if (g_file_test (icons_path, G_FILE_TEST_IS_DIR))
+		gtk_icon_theme_append_search_path (theme, icons_path);
+
+	/* GtkEntry's emoji chooser uses symbolic category/menu icons only present in
+	 * Adwaita in our Windows bundle. Force it when available. */
+	if (g_file_test (adwaita_path, G_FILE_TEST_IS_DIR))
+		gtk_icon_theme_set_custom_theme (theme, "Adwaita");
+
+	g_free (adwaita_path);
+	g_free (icons_path);
 	g_free (base_path);
 }
 #endif
@@ -271,6 +339,10 @@ fe_args (int argc, char *argv[])
 	gdk_set_program_class (desktop_id);
 #endif
 	gtk_init (&argc, &argv);
+
+#ifdef WIN32
+	win32_configure_icon_theme ();
+#endif
 
 #ifdef HAVE_GTK_MAC
 	osx_app = g_object_new(GTKOSX_TYPE_APPLICATION, NULL);
