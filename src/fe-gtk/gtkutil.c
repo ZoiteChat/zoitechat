@@ -247,6 +247,8 @@ gtkutil_image_new_from_stock (const char *stock, GtkIconSize size)
 	const char *icon_name;
 
 	icon_name = gtkutil_icon_name_from_stock (stock);
+	if (!icon_name && stock && g_str_has_prefix (stock, "zc-menu-"))
+		icon_name = stock;
 	if (size == GTK_ICON_SIZE_MENU)
 	{
 		const char *menu_icon_name = gtkutil_menu_custom_icon_from_stock (stock);

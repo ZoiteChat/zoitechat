@@ -153,14 +153,10 @@ chanlist_icon_menu_item (const char *label, const char *icon_name,
 	GtkWidget *box;
 	GtkWidget *image = NULL;
 	GtkWidget *label_widget;
-	const char *icon_name_gtk3;
 
 	item = gtk_menu_item_new ();
 	box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 6);
-	icon_name_gtk3 = gtkutil_icon_name_from_stock (icon_name);
-	if (!icon_name_gtk3)
-		icon_name_gtk3 = icon_name;
-	image = icon_name_gtk3 ? gtkutil_image_new_from_stock (icon_name_gtk3, GTK_ICON_SIZE_MENU) : NULL;
+	image = icon_name ? gtkutil_image_new_from_stock (icon_name, GTK_ICON_SIZE_MENU) : NULL;
 	label_widget = gtk_label_new_with_mnemonic (label);
 	if (image)
 		gtk_box_pack_start (GTK_BOX (box), image, FALSE, FALSE, 0);
