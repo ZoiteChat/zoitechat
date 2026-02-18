@@ -62,11 +62,9 @@ jobs:
             sh -lc '
               set -euo pipefail
               eopkg update-repo -y
-              # Some container images still ship openssl-11, which conflicts
-              # with current openssl files during dependency installation.
-              if eopkg list-installed | awk "{print \$1}" | grep -qx "openssl-11"; then
-                eopkg remove -y openssl-11
-              fi
+              # Do not remove openssl-11 here: it can trigger a very large
+              # dependency cascade (including python3/eopkg itself), which
+              # breaks the build environment before package build starts.
               eopkg install -y ypkg git
               ypkg build "$PACKAGE_YML"
               mkdir -p /workspace/artifacts
