@@ -90,6 +90,7 @@
       <Share Include="share\**\*" />
       <DepsRootDocs Include="$(DepsRoot)\share\doc\**\*" />
       <DepsRootIcons Include="$(DepsRoot)\share\icons\**\*" />
+      <ZoiteChatMenuIcons Include="..\..\data\icons\menu\**\*" />
       <Locale Include="$(ZoiteChatBin)locale\**\*;$(DepsRoot)\share\locale\**\*" />
       <MSWindowsTheme Include="$(DepsRoot)\share\themes\MS-Windows\**\*" />
     </ItemGroup>
@@ -103,6 +104,7 @@
     <Copy SourceFiles="@(GSettingsSchemas)" DestinationFiles="@(GSettingsSchemas->'$(ZoiteChatRel)\share\glib-2.0\schemas\%(Filename)%(Extension)')" />
     <Copy SourceFiles="@(Share)" DestinationFiles="@(Share->'$(ZoiteChatRel)\share\%(RecursiveDir)%(Filename)%(Extension)')" />
     <Copy SourceFiles="@(DepsRootIcons)" DestinationFiles="@(DepsRootIcons->'$(ZoiteChatRel)\share\icons\%(RecursiveDir)%(Filename)%(Extension)')" />
+    <Copy SourceFiles="@(ZoiteChatMenuIcons)" DestinationFiles="@(ZoiteChatMenuIcons->'$(ZoiteChatRel)\share\icons\menu\%(RecursiveDir)%(Filename)%(Extension)')" />
     <Copy SourceFiles="..\..\COPYING" DestinationFolder="$(ZoiteChatRel)\share\doc\zoitechat" />
     <Copy SourceFiles="$(WinSparklePath)\COPYING" DestinationFolder="$(ZoiteChatRel)\share\doc\WinSparkle" />
     <Copy SourceFiles="@(EnchantProviders)" DestinationFolder="$(ZoiteChatRel)\lib\enchant" />
@@ -120,4 +122,3 @@
     <Copy SourceFiles="@(DepsRootDocs)" DestinationFiles="@(DepsRootDocs->'$(ZoiteChatRel)\share\doc\%(RecursiveDir)%(Filename)%(Extension)')" />
   </Target>
 </Project>
-
