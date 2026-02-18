@@ -740,7 +740,7 @@ sexy_spell_entry_icon_menu_item (const char *label, const char *stock_name)
 	GtkWidget *image;
 
 	item = gtk_image_menu_item_new_with_label (label);
-	image = gtk_image_new_from_stock (stock_name, GTK_ICON_SIZE_MENU);
+	image = gtkutil_image_new_from_stock (stock_name, GTK_ICON_SIZE_MENU);
 	gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (item), image);
 #endif
 
