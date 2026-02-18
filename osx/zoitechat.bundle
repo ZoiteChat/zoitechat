@@ -28,7 +28,7 @@
     ${prefix:enchant}/lib/libenchant*.dylib
   </binary>
   <binary>
-    ${prefix:enchant}/lib/enchant/libenchant_applespell.so
+    ${prefix:enchant}/lib/enchant*/libenchant_*.so
   </binary>
 
   <!-- GTK3 runtime modules: ${prefix}/lib/${gtkdir} -->
