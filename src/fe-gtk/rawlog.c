@@ -44,7 +44,7 @@
 
 #if HAVE_GTK3
 #define ICON_RAWLOG_CLEAR "zc-menu-clear"
-#define ICON_RAWLOG_SAVE_AS "zc-menu-save"
+#define ICON_RAWLOG_SAVE_AS "zc-menu-save-as"
 #endif
 #if !HAVE_GTK3
 #define ICON_RAWLOG_CLEAR GTK_STOCK_CLEAR

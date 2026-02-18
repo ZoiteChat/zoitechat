@@ -39,9 +39,12 @@
 		<file alias="menu/light/remove.svg">icons/menu/light/remove.svg</file>
 		<file alias="menu/light/spell-check.svg">icons/menu/light/spell-check.svg</file>
 		<file alias="menu/light/save.svg">icons/menu/light/save.svg</file>
+		<file alias="menu/light/save-as.svg">icons/menu/light/save-as.svg</file>
 		<file alias="menu/light/refresh.svg">icons/menu/light/refresh.svg</file>
 		<file alias="menu/light/search.svg">icons/menu/light/search.svg</file>
 		<file alias="menu/light/find.svg">icons/menu/light/find.svg</file>
+		<file alias="menu/light/previous.svg">icons/menu/light/previous.svg</file>
+		<file alias="menu/light/next.svg">icons/menu/light/next.svg</file>
 		<file alias="menu/light/help.svg">icons/menu/light/help.svg</file>
 		<file alias="menu/light/about.svg">icons/menu/light/about.svg</file>
 
@@ -63,9 +66,12 @@
 		<file alias="menu/dark/remove.svg">icons/menu/dark/remove.svg</file>
 		<file alias="menu/dark/spell-check.svg">icons/menu/dark/spell-check.svg</file>
 		<file alias="menu/dark/save.svg">icons/menu/dark/save.svg</file>
+		<file alias="menu/dark/save-as.svg">icons/menu/dark/save-as.svg</file>
 		<file alias="menu/dark/refresh.svg">icons/menu/dark/refresh.svg</file>
 		<file alias="menu/dark/search.svg">icons/menu/dark/search.svg</file>
 		<file alias="menu/dark/find.svg">icons/menu/dark/find.svg</file>
+		<file alias="menu/dark/previous.svg">icons/menu/dark/previous.svg</file>
+		<file alias="menu/dark/next.svg">icons/menu/dark/next.svg</file>
 		<file alias="menu/dark/help.svg">icons/menu/dark/help.svg</file>
 		<file alias="menu/dark/about.svg">icons/menu/dark/about.svg</file>
 	</gresource>

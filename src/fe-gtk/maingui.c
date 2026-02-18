@@ -63,8 +63,8 @@
 #if HAVE_GTK3
 #define ICON_TAB_DETACH "zc-menu-detach"
 #define ICON_TAB_CLOSE "zc-menu-close"
-#define ICON_TAB_PREVIOUS "go-previous"
-#define ICON_TAB_NEXT "go-next"
+#define ICON_TAB_PREVIOUS "zc-menu-previous"
+#define ICON_TAB_NEXT "zc-menu-next"
 #define ICON_ENTRY_ERROR "dialog-error"
 #endif
 #if !HAVE_GTK3
@@ -3464,7 +3464,7 @@ mg_create_search(session *sess, GtkWidget *box)
 
         close = gtk_button_new ();
 #if HAVE_GTK3
-        gtk_button_set_image (GTK_BUTTON (close), gtk_image_new_from_icon_name (ICON_TAB_CLOSE, GTK_ICON_SIZE_MENU));
+        gtk_button_set_image (GTK_BUTTON (close), gtkutil_image_new_from_stock (ICON_TAB_CLOSE, GTK_ICON_SIZE_MENU));
 #endif
 #if !HAVE_GTK3
         gtk_button_set_image (GTK_BUTTON (close), gtk_image_new_from_stock (GTK_STOCK_CLOSE, GTK_ICON_SIZE_MENU));
@@ -3489,7 +3489,7 @@ mg_create_search(session *sess, GtkWidget *box)
 
         previous = gtk_button_new ();
 #if HAVE_GTK3
-        gtk_button_set_image (GTK_BUTTON (previous), gtk_image_new_from_icon_name (ICON_TAB_PREVIOUS, GTK_ICON_SIZE_MENU));
+        gtk_button_set_image (GTK_BUTTON (previous), gtkutil_image_new_from_stock (ICON_TAB_PREVIOUS, GTK_ICON_SIZE_MENU));
 #endif
 #if !HAVE_GTK3
         gtk_button_set_image (GTK_BUTTON (previous), gtk_image_new_from_stock (GTK_STOCK_GO_BACK, GTK_ICON_SIZE_MENU));
@@ -3501,7 +3501,7 @@ mg_create_search(session *sess, GtkWidget *box)
 
         next = gtk_button_new ();
 #if HAVE_GTK3
-        gtk_button_set_image (GTK_BUTTON (next), gtk_image_new_from_icon_name (ICON_TAB_NEXT, GTK_ICON_SIZE_MENU));
+        gtk_button_set_image (GTK_BUTTON (next), gtkutil_image_new_from_stock (ICON_TAB_NEXT, GTK_ICON_SIZE_MENU));
 #endif
 #if !HAVE_GTK3
         gtk_button_set_image (GTK_BUTTON (next), gtk_image_new_from_stock (GTK_STOCK_GO_FORWARD, GTK_ICON_SIZE_MENU));
