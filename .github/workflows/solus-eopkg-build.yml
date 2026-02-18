@@ -65,7 +65,11 @@ jobs:
               # Do not remove openssl-11 here: it can trigger a very large
               # dependency cascade (including python3/eopkg itself), which
               # breaks the build environment before package build starts.
-              eopkg install -y ypkg git
+              # Some Solus base images still contain openssl-11 files that
+              # conflict with openssl 3.x when the package set is refreshed.
+              # Allowing file-conflict resolution keeps the CI image usable
+              # long enough to install ypkg and complete the package build.
+              eopkg install -y --ignore-file-conflicts ypkg git
               ypkg build "$PACKAGE_YML"
               mkdir -p /workspace/artifacts
               find . -maxdepth 3 -name "*.eopkg" -type f -exec cp -v {} /workspace/artifacts/ \;
