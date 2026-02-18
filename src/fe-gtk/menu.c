@@ -1974,6 +1974,7 @@ menu_about (GtkWidget *wid, gpointer sess)
 
 #if HAVE_GTK3
 #define ICON_NEW "zc-menu-new"
+#define ICON_NETWORK_LIST "zc-menu-network-list"
 #define ICON_LOAD_PLUGIN "zc-menu-load-plugin"
 #define ICON_DETACH "zc-menu-detach"
 #define ICON_CLOSE "zc-menu-close"
@@ -1992,6 +1993,7 @@ menu_about (GtkWidget *wid, gpointer sess)
 #endif
 #if !HAVE_GTK3
 #define ICON_NEW GTK_STOCK_NEW
+#define ICON_NETWORK_LIST GTK_STOCK_INDEX
 #define ICON_LOAD_PLUGIN GTK_STOCK_REVERT_TO_SAVED
 #define ICON_DETACH GTK_STOCK_REDO
 #define ICON_CLOSE GTK_STOCK_CLOSE
@@ -2096,7 +2098,7 @@ menu_icon_image_from_data_icons (const char *icon_name, const char *theme_varian
 
 static struct mymenu mymenu[] = {
 	{N_("_ZoiteChat"), 0, 0, M_NEWMENU, MENU_ID_ZOITECHAT, 0, 1},
-	{N_("Network Li_st"), menu_open_server_list, (char *)&pix_book, M_MENUPIX, 0, 0, 1, GDK_KEY_s},
+	{N_("Network Li_st"), menu_open_server_list, ICON_NETWORK_LIST, M_MENUSTOCK, 0, 0, 1, GDK_KEY_s},
 	{0, 0, 0, M_SEP, 0, 0, 0},
 
 	{N_("_New"), 0, ICON_NEW, M_MENUSUB, 0, 0, 1},

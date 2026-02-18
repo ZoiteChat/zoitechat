@@ -22,6 +22,7 @@
 		<file alias="tree_util.png" preprocess="to-pixdata">icons/tree_util.png</file>
 
 		<file alias="menu/light/new.svg">icons/menu/light/new.svg</file>
+		<file alias="menu/light/network-list.svg">icons/menu/light/network-list.svg</file>
 		<file alias="menu/light/load-plugin.svg">icons/menu/light/load-plugin.svg</file>
 		<file alias="menu/light/detach.svg">icons/menu/light/detach.svg</file>
 		<file alias="menu/light/close.svg">icons/menu/light/close.svg</file>
@@ -39,6 +40,7 @@
 		<file alias="menu/light/about.svg">icons/menu/light/about.svg</file>
 
 		<file alias="menu/dark/new.svg">icons/menu/dark/new.svg</file>
+		<file alias="menu/dark/network-list.svg">icons/menu/dark/network-list.svg</file>
 		<file alias="menu/dark/load-plugin.svg">icons/menu/dark/load-plugin.svg</file>
 		<file alias="menu/dark/detach.svg">icons/menu/dark/detach.svg</file>
 		<file alias="menu/dark/close.svg">icons/menu/dark/close.svg</file>
