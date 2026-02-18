@@ -89,15 +89,9 @@ elif host_machine.system() == 'darwin'
   zoitechat_gtk_sources += 'notifications/notification-osx.m'
   add_languages('objc')
 
-  gtk_mac_dep = dependency('gtk-mac-integration', required: false)
-  if not gtk_mac_dep.found()
-    gtk_mac_dep = dependency('gtkosxapplication', required: false)
-  endif
-
-  if gtk_mac_dep.found()
-    zoitechat_gtk_deps += gtk_mac_dep
-    zoitechat_gtk_cflags += '-DHAVE_GTK_MAC'
-  endif
+  gtk_mac_dep = dependency('gtk-mac-integration', required: true)
+  zoitechat_gtk_deps += gtk_mac_dep
+  zoitechat_gtk_cflags += '-DHAVE_GTK_MAC'
 
 else
   zoitechat_gtk_sources += 'notifications/notification-freedesktop.c'
