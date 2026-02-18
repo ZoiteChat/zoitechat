@@ -65,7 +65,7 @@ plugingui_get_target_session (void)
 }
 
 #if HAVE_GTK3
-#define ICON_PLUGIN_LOAD "document-open"
+#define ICON_PLUGIN_LOAD "zc-menu-load-plugin"
 #define ICON_PLUGIN_UNLOAD "edit-delete"
 #define ICON_PLUGIN_RELOAD "view-refresh"
 #endif

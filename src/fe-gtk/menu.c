@@ -330,7 +330,11 @@ menu_quick_item (char *cmd, char *label, GtkWidget * menu, int flags,
 			item = gtk_menu_item_new ();
 			box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 6);
 			if (custom_icon)
+			{
 				image = menu_icon_image_from_data_icons (custom_icon, menu_icon_theme_variant ());
+				if (!image)
+					image = menu_icon_image_from_data_icons (custom_icon, "light");
+			}
 			if (!image && icon_name)
 				image = gtk_image_new_from_icon_name (icon_name, GTK_ICON_SIZE_MENU);
 			else if (img)

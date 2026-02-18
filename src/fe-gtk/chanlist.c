@@ -46,11 +46,11 @@
 #include "custom-list.h"
 
 #if HAVE_GTK3
-#define ICON_CHANLIST_JOIN "go-jump"
+#define ICON_CHANLIST_JOIN "zc-menu-join"
 #define ICON_CHANLIST_COPY "edit-copy"
-#define ICON_CHANLIST_FIND "edit-find"
+#define ICON_CHANLIST_FIND "zc-menu-find"
 #define ICON_CHANLIST_REFRESH "view-refresh"
-#define ICON_CHANLIST_SAVE "document-save-as"
+#define ICON_CHANLIST_SAVE "zc-menu-save"
 #endif
 #if !HAVE_GTK3
 #define ICON_CHANLIST_JOIN GTK_STOCK_JUMP_TO

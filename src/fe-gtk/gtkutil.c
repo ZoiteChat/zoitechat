@@ -121,11 +121,87 @@ gtkutil_icon_name_from_stock (const char *stock_name)
 }
 #endif
 
+#if HAVE_GTK3
+static const char *
+gtkutil_menu_icon_theme_variant (void)
+{
+	GtkSettings *settings;
+	gboolean prefer_dark = FALSE;
+	char *theme_name = NULL;
+	char *theme_name_lower = NULL;
+	const char *theme_variant = "light";
+
+	settings = gtk_settings_get_default ();
+	if (settings)
+	{
+		g_object_get (G_OBJECT (settings), "gtk-application-prefer-dark-theme", &prefer_dark, NULL);
+		g_object_get (G_OBJECT (settings), "gtk-theme-name", &theme_name, NULL);
+	}
+
+	if (theme_name)
+		theme_name_lower = g_ascii_strdown (theme_name, -1);
+	if (prefer_dark || (theme_name_lower && g_strrstr (theme_name_lower, "dark")))
+		theme_variant = "dark";
+
+	g_free (theme_name_lower);
+	g_free (theme_name);
+
+	return theme_variant;
+}
+
+static GtkWidget *
+gtkutil_menu_icon_image_new (const char *icon_name, GtkIconSize size)
+{
+	GtkWidget *image = NULL;
+	GdkPixbuf *pixbuf = NULL;
+	char *resource_path;
+	const char *variant;
+
+	if (!icon_name || !g_str_has_prefix (icon_name, "zc-menu-"))
+		return NULL;
+
+	variant = gtkutil_menu_icon_theme_variant ();
+	resource_path = g_strdup_printf ("/icons/menu/%s/%s.svg", variant, icon_name + strlen ("zc-menu-"));
+	if (!g_resources_get_info (resource_path, G_RESOURCE_LOOKUP_FLAGS_NONE, NULL, NULL, NULL))
+	{
+		g_free (resource_path);
+		resource_path = g_strdup_printf ("/icons/menu/light/%s.svg", icon_name + strlen ("zc-menu-"));
+	}
+
+	pixbuf = gdk_pixbuf_new_from_resource_at_scale (resource_path, -1, -1, TRUE, NULL);
+	if (pixbuf)
+	{
+		image = gtk_image_new_from_pixbuf (pixbuf);
+		g_object_unref (pixbuf);
+	}
+
+	g_free (resource_path);
+
+	if (image)
+	{
+		GtkIconSize tmp_size;
+		gint width;
+		gint height;
+
+		tmp_size = size;
+		if (gtk_icon_size_lookup (tmp_size, &width, &height))
+			gtk_image_set_pixel_size (GTK_IMAGE (image), MAX (width, height));
+	}
+
+	return image;
+}
+#endif
+
 GtkWidget *
 gtkutil_image_new_from_stock (const char *stock, GtkIconSize size)
 {
 #if HAVE_GTK3
+	GtkWidget *image;
 	const char *icon_name = gtkutil_icon_name_from_stock (stock);
+
+	image = gtkutil_menu_icon_image_new (icon_name, size);
+	if (image)
+		return image;
 
 	return gtk_image_new_from_icon_name (icon_name, size);
 #elif !HAVE_GTK3
