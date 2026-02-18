@@ -276,6 +276,74 @@ menu_toggle_item (char *label, GtkWidget *menu, void *callback, void *userdata,
 #if HAVE_GTK3
 static const char *menu_icon_theme_variant (void);
 static GtkWidget *menu_icon_image_from_data_icons (const char *icon_name, const char *theme_variant);
+
+static const char *
+menu_custom_icon_from_stock (const char *stock_name)
+{
+	static const struct
+	{
+		const char *stock;
+		const char *custom;
+	} icon_map[] = {
+		{ "zc-menu-new", "new" },
+		{ "zc-menu-network-list", "network-list" },
+		{ "zc-menu-load-plugin", "load-plugin" },
+		{ "zc-menu-detach", "detach" },
+		{ "zc-menu-close", "close" },
+		{ "zc-menu-quit", "quit" },
+		{ "zc-menu-disconnect", "disconnect" },
+		{ "zc-menu-connect", "connect" },
+		{ "zc-menu-join", "join" },
+		{ "zc-menu-chanlist", "chanlist" },
+		{ "zc-menu-preferences", "preferences" },
+		{ "zc-menu-clear", "clear" },
+		{ "zc-menu-copy", "copy" },
+		{ "zc-menu-delete", "delete" },
+		{ "zc-menu-add", "add" },
+		{ "zc-menu-remove", "remove" },
+		{ "zc-menu-spell-check", "spell-check" },
+		{ "zc-menu-save", "save" },
+		{ "zc-menu-refresh", "refresh" },
+		{ "zc-menu-search", "search" },
+		{ "zc-menu-find", "find" },
+		{ "zc-menu-help", "help" },
+		{ "zc-menu-about", "about" },
+		{ "gtk-new", "new" },
+		{ "gtk-index", "network-list" },
+		{ "gtk-revert-to-saved", "load-plugin" },
+		{ "gtk-redo", "detach" },
+		{ "gtk-close", "close" },
+		{ "gtk-quit", "quit" },
+		{ "gtk-disconnect", "disconnect" },
+		{ "gtk-connect", "connect" },
+		{ "gtk-jump-to", "join" },
+		{ "gtk-preferences", "preferences" },
+		{ "gtk-clear", "clear" },
+		{ "gtk-copy", "copy" },
+		{ "gtk-delete", "delete" },
+		{ "gtk-add", "add" },
+		{ "gtk-remove", "remove" },
+		{ "gtk-spell-check", "spell-check" },
+		{ "gtk-save", "save" },
+		{ "gtk-refresh", "refresh" },
+		{ "gtk-justify-left", "search" },
+		{ "gtk-find", "find" },
+		{ "gtk-help", "help" },
+		{ "gtk-about", "about" },
+	};
+	size_t i;
+
+	if (!stock_name)
+		return NULL;
+
+	for (i = 0; i < G_N_ELEMENTS (icon_map); i++)
+	{
+		if (strcmp (stock_name, icon_map[i].stock) == 0)
+			return icon_map[i].custom;
+	}
+
+	return NULL;
+}
 #endif
 
 GtkWidget *
@@ -316,7 +384,8 @@ menu_quick_item (char *cmd, char *label, GtkWidget * menu, int flags,
 					icon_name = gtkutil_icon_name_from_stock (icon);
 					if (!icon_name)
 						icon_name = icon;
-					if (g_str_has_prefix (icon_name, "zc-menu-"))
+					custom_icon = menu_custom_icon_from_stock (icon);
+					if (!custom_icon && g_str_has_prefix (icon_name, "zc-menu-"))
 						custom_icon = icon_name + strlen ("zc-menu-");
 #endif
 #if !HAVE_GTK3
@@ -2239,9 +2308,11 @@ create_icon_menu (char *labeltext, void *stock_name, int is_stock)
 	{
 #if HAVE_GTK3
 		icon_name = stock_name;
-		if (g_str_has_prefix (icon_name, "zc-menu-"))
-		{
+		custom_icon = menu_custom_icon_from_stock (stock_name);
+		if (!custom_icon && g_str_has_prefix (icon_name, "zc-menu-"))
 			custom_icon = icon_name + strlen ("zc-menu-");
+		if (custom_icon)
+		{
 			theme_variant = menu_icon_theme_variant ();
 			image = menu_icon_image_from_data_icons (custom_icon, theme_variant);
 			if (!image)
