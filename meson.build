@@ -19,7 +19,10 @@ libgmodule_dep = dependency('gmodule-2.0')
 libcanberra_dep = dependency('libcanberra', version: '>= 0.22',
                              required: get_option('libcanberra'))
 dbus_required = get_option('dbus')
-if host_machine.system() == 'darwin' and dbus_required.auto()
+if host_machine.system() == 'darwin'
+  if dbus_required.enabled()
+    warning('dbus-glib is not available on macOS; disabling DBus support')
+  endif
   dbus_required = false
 endif
 dbus_glib_dep = dependency('dbus-glib-1', required: dbus_required)
