@@ -36,6 +36,7 @@ jobs:
             --prefix="$PREFIX" \
             -Dgtk3=true \
             -Dtext-frontend=true \
+            -Dlibcanberra=disabled \
             -Dwith-perl=perl \
             -Dwith-python=python3 \
             -Dauto_features=enabled
