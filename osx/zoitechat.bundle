@@ -6,7 +6,7 @@
          Homebrew: /opt/homebrew (Apple Silicon) or /usr/local (Intel)
          MacPorts: /opt/local -->
     <prefix name="default">/usr/local</prefix>
-    <prefix name="enchant">/usr/local/opt/enchant-applespell</prefix>
+    <prefix name="enchant">/usr/local/opt/enchant</prefix>
     <destination overwrite="yes">${project}</destination>
 
     <run-install-name-tool>yes</run-install-name-tool>
@@ -25,7 +25,7 @@
   </binary>
 
   <binary>
-    ${prefix:enchant}/lib/libenchant.dylib
+    ${prefix:enchant}/lib/libenchant*.dylib
   </binary>
   <binary>
     ${prefix:enchant}/lib/enchant/libenchant_applespell.so
