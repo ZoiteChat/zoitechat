@@ -102,13 +102,13 @@ fi
 # (for example stripped-down CI artifacts). Remove bundle entries for
 # missing globs so gtk-mac-bundler does not abort.
 if ! find "$BUNDLE_PREFIX/lib/gtk-3.0" -type f -path "*/immodules/*.${GTK_MODULE_EXT}" -print -quit 2>/dev/null | grep -q .; then
-    perl -0pi -e 's|\n\s*<binary>\s*\$\{prefix\}/lib/\$\{gtkdir\}/\$\{pkg:\$\{gtk\}:gtk_binary_version\}/immodules/\*\.(?:so|dylib)\s*</binary>\n|\n|g' "$BUNDLE_DEF"
+    perl -0pi -e 's#\n\s*<binary>\s*\$\{prefix\}/lib/\$\{gtkdir\}/\$\{pkg:\$\{gtk\}:gtk_binary_version\}/immodules/\*\.(?:so|dylib)\s*</binary>\n#\n#g' "$BUNDLE_DEF"
 fi
 if ! find "$BUNDLE_PREFIX/lib/gtk-3.0" -type f -path "*/printbackends/*.${GTK_MODULE_EXT}" -print -quit 2>/dev/null | grep -q .; then
-    perl -0pi -e 's|\n\s*<binary>\s*\$\{prefix\}/lib/\$\{gtkdir\}/\$\{pkg:\$\{gtk\}:gtk_binary_version\}/printbackends/\*\.(?:so|dylib)\s*</binary>\n|\n|g' "$BUNDLE_DEF"
+    perl -0pi -e 's#\n\s*<binary>\s*\$\{prefix\}/lib/\$\{gtkdir\}/\$\{pkg:\$\{gtk\}:gtk_binary_version\}/printbackends/\*\.(?:so|dylib)\s*</binary>\n#\n#g' "$BUNDLE_DEF"
 fi
 if ! find "$BUNDLE_PREFIX/lib/gdk-pixbuf-2.0" -type f -path "*/loaders/*.${GTK_MODULE_EXT}" -print -quit 2>/dev/null | grep -q .; then
-    perl -0pi -e 's|\n\s*<binary>\s*\$\{prefix\}/lib/gdk-pixbuf-2\.0/\$\{pkg:gdk-pixbuf-2\.0:gdk_pixbuf_binary_version\}/loaders/\*\.(?:so|dylib)\s*</binary>\n|\n|g' "$BUNDLE_DEF"
+    perl -0pi -e 's#\n\s*<binary>\s*\$\{prefix\}/lib/gdk-pixbuf-2\.0/\$\{pkg:gdk-pixbuf-2\.0:gdk_pixbuf_binary_version\}/loaders/\*\.(?:so|dylib)\s*</binary>\n#\n#g' "$BUNDLE_DEF"
 fi
 
 
