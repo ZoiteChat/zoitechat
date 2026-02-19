@@ -123,4 +123,8 @@ if command -v file >/dev/null 2>&1; then
 fi
 
 echo "Compressing bundle"
-zip -9rXq "./ZoiteChat-$(git describe --tags).app.zip" "./$APP_NAME"
+ARCHIVE_VERSION="$(git describe --tags --always 2>/dev/null || true)"
+if [ -z "$ARCHIVE_VERSION" ]; then
+    ARCHIVE_VERSION="$VERSION_STRING"
+fi
+zip -9rXq "./ZoiteChat-$ARCHIVE_VERSION.app.zip" "./$APP_NAME"
