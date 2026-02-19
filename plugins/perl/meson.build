@@ -27,9 +27,10 @@ endif
 
 perl = find_program(get_option('with-perl'))
 
-ret = run_command([perl, '-MExtUtils::Embed', '-e', 'ccopts'])
+ret = run_command([perl, '-MExtUtils::Embed', '-e', 'ccopts'], check: false)
 if ret.returncode() != 0
-  error('perl: Failed to get cflags')
+  warning('Perl development files not found, disabling Perl plugin')
+  subdir_done()
 endif
 foreach flag : ret.stdout().strip().split(' ')
   if flag.startswith('-I') or flag.startswith('-D')
@@ -37,9 +38,10 @@ foreach flag : ret.stdout().strip().split(' ')
   endif
 endforeach
 
-ret = run_command([perl, '-MExtUtils::Embed', '-e', 'ldopts'])
+ret = run_command([perl, '-MExtUtils::Embed', '-e', 'ldopts'], check: false)
 if ret.returncode() != 0
-  error('perl: Failed to get ldflags')
+  warning('Perl development files not found, disabling Perl plugin')
+  subdir_done()
 endif
 perl_ldflags = []
 perl_rpath = ''
@@ -73,7 +75,8 @@ int main(void) {
   return 0;
 }
 ''', args: perl_cflags + perl_ldflags)
-  error('found perl not suitable for plugin')
+  warning('Found perl is not suitable for plugin, disabling Perl plugin')
+  subdir_done()
 endif
 
 perl_dep = declare_dependency(
