@@ -3963,6 +3963,7 @@ mg_win32_filter (GdkXEvent *xevent, GdkEvent *event, gpointer data)
 					{
 						GtkWidget *target_widget = GTK_WIDGET (target_win);
 						GdkWindow *target_gdk_window = gtk_widget_get_window (target_widget);
+						HWND target_hwnd = target_gdk_window ? gdk_win32_window_get_handle (target_gdk_window) : NULL;
 						GdkWindowState target_state = target_gdk_window ? gdk_window_get_state (target_gdk_window) : 0;
 						gboolean target_visible = gtk_widget_get_visible (target_widget);
 						gboolean target_iconified = (target_state & GDK_WINDOW_STATE_ICONIFIED) ? TRUE : FALSE;
@@ -3974,6 +3975,11 @@ mg_win32_filter (GdkXEvent *xevent, GdkEvent *event, gpointer data)
 
 						if (!target_showing)
 						{
+							if (target_hwnd && IsIconic (target_hwnd))
+								ShowWindow (target_hwnd, SW_RESTORE);
+							else if (target_hwnd && !IsWindowVisible (target_hwnd))
+								ShowWindow (target_hwnd, SW_SHOW);
+
 							gtk_widget_show (target_widget);
 							gtk_window_deiconify (target_win);
 							gtk_window_present (target_win);
@@ -3990,6 +3996,9 @@ mg_win32_filter (GdkXEvent *xevent, GdkEvent *event, gpointer data)
 							}
 							else
 							{
+								if (target_hwnd)
+									SendMessage (target_hwnd, WM_SYSCOMMAND, SC_MINIMIZE, 0);
+
 								gtk_window_iconify (target_win);
 								handled = TRUE;
 							}
