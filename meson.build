@@ -47,10 +47,14 @@ endif
 if host_machine.system() == 'darwin' and darwin_arch_sanity_check
   cflags_env = run_command('sh', '-c', 'printf %s "$CFLAGS"', check: false).stdout().strip()
   ldflags_env = run_command('sh', '-c', 'printf %s "$LDFLAGS"', check: false).stdout().strip()
+  c_args_opt = ' ' + ' '.join(get_option('c_args')) + ' '
+  c_link_args_opt = ' ' + ' '.join(get_option('c_link_args')) + ' '
+  all_cflags = cflags_env + ' ' + c_args_opt
+  all_ldflags = ldflags_env + ' ' + c_link_args_opt
   pkgconfig_glib = run_command('pkg-config', '--libs-only-L', 'glib-2.0', check: false)
 
-  targeting_x86_64 = cflags_env.contains('-arch x86_64') or ldflags_env.contains('-arch x86_64')
-  targeting_arm64 = cflags_env.contains('-arch arm64') or ldflags_env.contains('-arch arm64')
+  targeting_x86_64 = all_cflags.contains('-arch x86_64') or all_ldflags.contains('-arch x86_64')
+  targeting_arm64 = all_cflags.contains('-arch arm64') or all_ldflags.contains('-arch arm64')
   targeting_universal = targeting_x86_64 and targeting_arm64
   using_arm_homebrew = pkgconfig_glib.returncode() == 0 and pkgconfig_glib.stdout().contains('/opt/homebrew/')
 
