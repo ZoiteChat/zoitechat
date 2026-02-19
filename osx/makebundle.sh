@@ -9,7 +9,15 @@ BUNDLE_DEF="zoitechat.bundle"
 APP_NAME="ZoiteChat.app"
 
 HOST_ARCH="$(uname -m 2>/dev/null || echo unknown)"
-TARGET_ARCHES="${TARGET_ARCHES:-$HOST_ARCH}"
+if [ -z "${TARGET_ARCHES+x}" ]; then
+    TARGET_ARCHES="$HOST_ARCH"
+fi
+UNIVERSAL_BINARIES="${UNIVERSAL_BINARIES:-}"
+UNIVERSAL_BUILD_DIRS="${UNIVERSAL_BUILD_DIRS:-../build-macos-arm64 ../build-macos-x86_64}"
+
+if [ "${UNIVERSAL:-0}" = "1" ]; then
+    TARGET_ARCHES="arm64 x86_64"
+fi
 
 # Expected prefixes for macOS GTK dependencies:
 # - Homebrew: /opt/homebrew (Apple Silicon) or /usr/local (Intel)
@@ -96,6 +104,44 @@ if [ ! -d "$APP_NAME" ]; then
 fi
 
 BIN_PATH="$APP_NAME/Contents/MacOS/ZoiteChat-bin"
+
+if [ "${UNIVERSAL:-0}" = "1" ] && [ -z "$UNIVERSAL_BINARIES" ]; then
+    for build_dir in $UNIVERSAL_BUILD_DIRS; do
+        candidate="$build_dir/src/fe-gtk/zoitechat"
+        if [ -f "$candidate" ]; then
+            UNIVERSAL_BINARIES="${UNIVERSAL_BINARIES:+$UNIVERSAL_BINARIES }$candidate"
+        fi
+    done
+
+    if [ -z "$UNIVERSAL_BINARIES" ]; then
+        cat >&2 <<'MSG'
+error: UNIVERSAL=1 requested, but no source binaries were found.
+Set UNIVERSAL_BINARIES to one or more architecture-specific zoitechat binaries,
+or place builds at:
+  ../build-macos-arm64/src/fe-gtk/zoitechat
+  ../build-macos-x86_64/src/fe-gtk/zoitechat
+MSG
+        exit 1
+    fi
+fi
+
+if [ -n "$UNIVERSAL_BINARIES" ]; then
+    if ! command -v lipo >/dev/null 2>&1; then
+        echo "error: UNIVERSAL_BINARIES requires lipo, but lipo is unavailable" >&2
+        exit 1
+    fi
+
+    for binary in $UNIVERSAL_BINARIES; do
+        if [ ! -f "$binary" ]; then
+            echo "error: universal source binary not found: $binary" >&2
+            exit 1
+        fi
+    done
+
+    echo "Creating universal ZoiteChat-bin from: $UNIVERSAL_BINARIES"
+    # shellcheck disable=SC2086
+    lipo -create $UNIVERSAL_BINARIES -output "$BIN_PATH"
+fi
 
 if command -v lipo >/dev/null 2>&1; then
     BIN_ARCHS="$(lipo -archs "$BIN_PATH" 2>/dev/null || true)"

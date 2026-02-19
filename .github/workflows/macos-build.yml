@@ -35,12 +35,13 @@ jobs:
             (cd /tmp/gtk-mac-bundler && make install)
           fi
 
-      - name: Configure
+      - name: Configure (arm64 + x86_64)
         run: |
           set -eux
           PREFIX="$(brew --prefix)"
-          rm -rf build
-          meson setup build \
+          rm -rf build-macos-arm64 build-macos-x86_64
+
+          CFLAGS="-arch arm64" LDFLAGS="-arch arm64" meson setup build-macos-arm64 \
             --prefix="$PREFIX" \
             -Dgtk3=true \
             -Dtext-frontend=true \
@@ -49,30 +50,40 @@ jobs:
             -Dwith-python=python3 \
             -Dauto_features=enabled
 
-      - name: Build
+          CFLAGS="-arch x86_64" LDFLAGS="-arch x86_64" meson setup build-macos-x86_64 \
+            --prefix="$PREFIX" \
+            -Dgtk3=true \
+            -Dtext-frontend=true \
+            -Dlibcanberra=disabled \
+            -Dwith-perl=perl \
+            -Dwith-python=python3 \
+            -Dauto_features=enabled
+
+      - name: Build (arm64 + x86_64)
         run: |
           set -eux
-          meson compile -C build
+          CFLAGS="-arch arm64" LDFLAGS="-arch arm64" meson compile -C build-macos-arm64
+          CFLAGS="-arch x86_64" LDFLAGS="-arch x86_64" meson compile -C build-macos-x86_64
 
-      - name: Install for bundling
+      - name: Install for bundling (arm64 runtime)
         run: |
           set -eux
-          sudo meson install -C build
+          sudo meson install -C build-macos-arm64
 
-      - name: Package unsigned .app
+      - name: Package unsigned .app (universal binary)
         run: |
           set -eux
           VERSION="$(git describe --tags --always)"
           PREFIX="$(brew --prefix)"
           ENCHANT_PREFIX="$(brew --prefix enchant)"
-          export PREFIX ENCHANT_PREFIX
+          export VERSION PREFIX ENCHANT_PREFIX
 
-          sed "s/@VERSION@/${VERSION}/g" osx/Info.plist.in > osx/Info.plist
-
-          perl -0pi -e 's|<prefix name="default">.*?</prefix>|<prefix name="default">$ENV{PREFIX}</prefix>|s' osx/zoitechat.bundle
-          perl -0pi -e 's|<prefix name="enchant">.*?</prefix>|<prefix name="enchant">$ENV{ENCHANT_PREFIX}</prefix>|s' osx/zoitechat.bundle
-
-          (cd osx && ./makebundle.sh)
+          (
+            cd osx
+            UNIVERSAL=1 \
+            UNIVERSAL_BINARIES="../build-macos-arm64/src/fe-gtk/zoitechat ../build-macos-x86_64/src/fe-gtk/zoitechat" \
+            ./makebundle.sh
+          )
           mv osx/ZoiteChat-*.app.zip ./
 
       - name: Upload unsigned macOS app artifact

@@ -130,6 +130,25 @@ meson compile -C build-macos-intel
 
 If your dependency stack supports it, build universal (`arm64` + `x86_64`) and verify with `lipo -info`.
 
+Example with this repo's scripts:
+
+```bash
+PREFIX="$(brew --prefix)"
+
+CFLAGS="-arch arm64" LDFLAGS="-arch arm64" meson setup build-macos-arm64 --prefix="$PREFIX"
+CFLAGS="-arch x86_64" LDFLAGS="-arch x86_64" meson setup build-macos-x86_64 --prefix="$PREFIX"
+
+CFLAGS="-arch arm64" LDFLAGS="-arch arm64" meson compile -C build-macos-arm64
+CFLAGS="-arch x86_64" LDFLAGS="-arch x86_64" meson compile -C build-macos-x86_64
+
+sudo meson install -C build-macos-arm64
+
+cd osx
+UNIVERSAL=1 \
+UNIVERSAL_BINARIES="../build-macos-arm64/src/fe-gtk/zoitechat ../build-macos-x86_64/src/fe-gtk/zoitechat" \
+./makebundle.sh
+```
+
 ## 10) Recommended compatibility settings for macOS 11+
 
 - Keep `LSMinimumSystemVersion` at `11.0`.
