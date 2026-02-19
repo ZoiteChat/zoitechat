@@ -3959,28 +3959,28 @@ mg_win32_filter (GdkXEvent *xevent, GdkEvent *event, gpointer data)
 				{
 					gboolean handled = FALSE;
 
-					if (msg->hwnd)
+					if (target_win)
 					{
-						if (IsIconic (msg->hwnd))
+						GtkWidget *target_widget = GTK_WIDGET (target_win);
+						GdkWindow *target_gdk_window = gtk_widget_get_window (target_widget);
+						GdkWindowState target_state = target_gdk_window ? gdk_window_get_state (target_gdk_window) : 0;
+						gboolean target_visible = gtk_widget_get_visible (target_widget);
+						gboolean target_iconified = (target_state & GDK_WINDOW_STATE_ICONIFIED) ? TRUE : FALSE;
+						gboolean target_maximized = (target_state & GDK_WINDOW_STATE_MAXIMIZED) ? TRUE : FALSE;
+						gboolean target_showing = target_visible && !target_iconified;
+
+						if (target_maximized)
+							target_showing = TRUE;
+
+						if (!target_showing)
 						{
-							ShowWindow (msg->hwnd, SW_RESTORE);
-							SetForegroundWindow (msg->hwnd);
-							if (target_win)
-								gtk_window_present (target_win);
-							handled = TRUE;
-						}
-						else if (!IsWindowVisible (msg->hwnd))
-						{
-							ShowWindow (msg->hwnd, SW_SHOW);
-							SetForegroundWindow (msg->hwnd);
-							if (target_win)
-								gtk_window_present (target_win);
+							gtk_widget_show (target_widget);
+							gtk_window_deiconify (target_win);
+							gtk_window_present (target_win);
 							handled = TRUE;
 						}
 						else
 						{
-							gboolean minimized = FALSE;
-
 							if (prefs.hex_gui_tray_minimize && prefs.hex_gui_tray &&
 								target_sess && target_sess->gui && target_sess->gui->window &&
 								gtkutil_tray_icon_supported (GTK_WINDOW (target_sess->gui->window)))
@@ -3990,46 +3990,34 @@ mg_win32_filter (GdkXEvent *xevent, GdkEvent *event, gpointer data)
 							}
 							else
 							{
-								SendMessage (msg->hwnd, WM_SYSCOMMAND, SC_MINIMIZE, 0);
-								minimized = IsIconic (msg->hwnd) ? TRUE : FALSE;
-
-								if (!minimized && target_win)
-								{
-									GtkWidget *target_widget = GTK_WIDGET (target_win);
-									GdkWindow *target_gdk_window = gtk_widget_get_window (target_widget);
-									GdkWindowState target_state = target_gdk_window ? gdk_window_get_state (target_gdk_window) : 0;
-
-									if (!(target_state & GDK_WINDOW_STATE_ICONIFIED))
-										gtk_window_iconify (target_win);
-
-									target_gdk_window = gtk_widget_get_window (target_widget);
-									target_state = target_gdk_window ? gdk_window_get_state (target_gdk_window) : 0;
-									minimized = IsIconic (msg->hwnd) || (target_state & GDK_WINDOW_STATE_ICONIFIED);
-								}
-
-								handled = minimized;
+								gtk_window_iconify (target_win);
+								handled = TRUE;
 							}
 						}
 					}
-
-					if (!handled && target_win)
+					else if (msg->hwnd)
 					{
-						GtkWidget *target_widget = GTK_WIDGET (target_win);
-						GdkWindow *target_gdk_window = gtk_widget_get_window (target_widget);
-						GdkWindowState target_state = target_gdk_window ? gdk_window_get_state (target_gdk_window) : 0;
-						gboolean target_visible = gtk_widget_get_visible (target_widget);
-
-						if (!target_visible || (target_state & GDK_WINDOW_STATE_ICONIFIED))
+						if (IsIconic (msg->hwnd))
 						{
-							gtk_widget_show (target_widget);
-							gtk_window_deiconify (target_win);
-							gtk_window_present (target_win);
+							ShowWindow (msg->hwnd, SW_RESTORE);
+							SetForegroundWindow (msg->hwnd);
+							handled = TRUE;
+						}
+						else if (!IsWindowVisible (msg->hwnd))
+						{
+							ShowWindow (msg->hwnd, SW_SHOW);
+							SetForegroundWindow (msg->hwnd);
+							handled = TRUE;
 						}
 						else
 						{
-							gtk_window_iconify (target_win);
+							SendMessage (msg->hwnd, WM_SYSCOMMAND, SC_MINIMIZE, 0);
+							handled = TRUE;
 						}
 					}
+
+					g_free (command);
+					return handled ? GDK_FILTER_REMOVE : GDK_FILTER_CONTINUE;
 				}
 				else
 				{
