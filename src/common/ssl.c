@@ -154,6 +154,7 @@ _SSL_get_cert_info (struct cert_info *cert_info, SSL * ssl)
 	X509 *peer_cert;
 	X509_PUBKEY *key;
 	X509_ALGOR *algor = NULL;
+	const ASN1_OBJECT *algor_obj = NULL;
 	EVP_PKEY *peer_pkey;
 	char notBefore[64];
 	char notAfter[64];
@@ -175,11 +176,19 @@ _SSL_get_cert_info (struct cert_info *cert_info, SSL * ssl)
 	if (!X509_PUBKEY_get0_param(NULL, NULL, 0, &algor, key))
 		return 1;
 
-	alg = OBJ_obj2nid (algor->algorithm);
-#ifndef HAVE_X509_GET_SIGNATURE_NID
-	sign_alg = OBJ_obj2nid (peer_cert->sig_alg->algorithm);
-#else
+	X509_ALGOR_get0 (&algor_obj, NULL, NULL, algor);
+	alg = OBJ_obj2nid (algor_obj);
+#ifdef HAVE_X509_GET_SIGNATURE_NID
 	sign_alg = X509_get_signature_nid (peer_cert);
+#else
+	{
+		const X509_ALGOR *signature_algor = NULL;
+		const ASN1_OBJECT *signature_algor_obj = NULL;
+
+		X509_get0_signature (NULL, &signature_algor, peer_cert);
+		X509_ALGOR_get0 (&signature_algor_obj, NULL, NULL, signature_algor);
+		sign_alg = OBJ_obj2nid (signature_algor_obj);
+	}
 #endif
 	ASN1_TIME_snprintf (notBefore, sizeof (notBefore),
 							  X509_get_notBefore (peer_cert));
