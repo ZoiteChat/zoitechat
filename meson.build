@@ -35,6 +35,20 @@ else
                           required: get_option('tls'))
 endif
 
+if host_machine.system() == 'darwin'
+  cflags_env = run_command('sh', '-c', 'printf %s "$CFLAGS"', check: false).stdout().strip()
+  ldflags_env = run_command('sh', '-c', 'printf %s "$LDFLAGS"', check: false).stdout().strip()
+  pkgconfig_libs = run_command('pkg-config', '--libs', 'glib-2.0', check: false).stdout()
+
+  targeting_x86_64 = cflags_env.contains('-arch x86_64') or ldflags_env.contains('-arch x86_64')
+  using_arm_homebrew = pkgconfig_libs.contains('/opt/homebrew/')
+
+  if targeting_x86_64 and using_arm_homebrew
+    error('Detected x86_64 build flags (-arch x86_64) while pkg-config resolves glib from /opt/homebrew (arm64). ' +
+          'Use arm64 build flags with /opt/homebrew, or run an x86_64/Rosetta environment with an x86_64 dependency stack (typically /usr/local).')
+  endif
+endif
+
 config_h = configuration_data()
 config_h.set_quoted('PACKAGE_VERSION', meson.project_version())
 config_h.set_quoted('PACKAGE_NAME', meson.project_name())

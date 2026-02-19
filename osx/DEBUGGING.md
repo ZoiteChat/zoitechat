@@ -130,6 +130,48 @@ meson compile -C build-macos-intel
 
 If your dependency stack supports it, build universal (`arm64` + `x86_64`) and verify with `lipo -info`.
 
+### Linker says `found architecture 'arm64', required architecture 'x86_64'`
+
+If you see warnings like this during `meson compile`:
+
+```text
+ld: warning: ignoring file '/opt/homebrew/.../libgio-2.0.dylib': found architecture 'arm64', required architecture 'x86_64'
+Undefined symbols for architecture x86_64: ...
+```
+
+your compile target architecture and dependency architecture do not match.
+
+On Apple Silicon, this usually means you are trying to build `x86_64` while linking against ARM Homebrew libraries from `/opt/homebrew`.
+
+Quick checks:
+
+```bash
+echo "$CFLAGS" "$LDFLAGS"
+pkg-config --libs glib-2.0
+lipo -info "$(brew --prefix glib)/lib/libglib-2.0.dylib"
+```
+
+Use one of these consistent setups:
+
+- Native Apple Silicon build (`arm64`) with `/opt/homebrew` dependencies.
+- Intel build (`x86_64`) with an x86_64 dependency stack (typically Homebrew under `/usr/local` run under Rosetta).
+
+Example x86_64 setup on Apple Silicon:
+
+```bash
+# Open a Rosetta shell first (or prefix commands with `arch -x86_64`)
+arch -x86_64 /bin/bash -lc '
+  export PATH="/usr/local/bin:$PATH"
+  export PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/local/share/pkgconfig"
+  export CFLAGS="-arch x86_64"
+  export LDFLAGS="-arch x86_64"
+  meson setup build-macos-x86_64 --prefix="/usr/local"
+  meson compile -C build-macos-x86_64
+'
+```
+
+If you do not specifically need Intel compatibility, remove any forced `-arch x86_64` flags and build native `arm64`.
+
 Example with this repo's scripts:
 
 ```bash
