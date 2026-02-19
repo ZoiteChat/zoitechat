@@ -35,17 +35,18 @@ else
                           required: get_option('tls'))
 endif
 
-if host_machine.system() == 'darwin'
+if host_machine.system() == 'darwin' and get_option('darwin-arch-sanity-check')
   cflags_env = run_command('sh', '-c', 'printf %s "$CFLAGS"', check: false).stdout().strip()
   ldflags_env = run_command('sh', '-c', 'printf %s "$LDFLAGS"', check: false).stdout().strip()
-  pkgconfig_libs = run_command('pkg-config', '--libs', 'glib-2.0', check: false).stdout()
+  pkgconfig_glib = run_command('pkg-config', '--libs-only-L', 'glib-2.0', check: false)
 
   targeting_x86_64 = cflags_env.contains('-arch x86_64') or ldflags_env.contains('-arch x86_64')
-  using_arm_homebrew = pkgconfig_libs.contains('/opt/homebrew/')
+  using_arm_homebrew = pkgconfig_glib.returncode() == 0 and pkgconfig_glib.stdout().contains('/opt/homebrew/')
 
   if targeting_x86_64 and using_arm_homebrew
     error('Detected x86_64 build flags (-arch x86_64) while pkg-config resolves glib from /opt/homebrew (arm64). ' +
-          'Use arm64 build flags with /opt/homebrew, or run an x86_64/Rosetta environment with an x86_64 dependency stack (typically /usr/local).')
+          'Use arm64 build flags with /opt/homebrew, or run an x86_64/Rosetta environment with an x86_64 dependency stack (typically /usr/local). ' +
+          'To bypass this safety check, configure with -Ddarwin-arch-sanity-check=false.')
   endif
 endif
 

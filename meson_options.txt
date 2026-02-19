@@ -22,6 +22,9 @@ option('dbus', type: 'feature', value: 'auto',
 option('libcanberra', type: 'feature', value: 'auto',
   description: 'Support for sound alerts, Unix only'
 )
+option('darwin-arch-sanity-check', type: 'boolean', value: true,
+  description: 'Fail fast when macOS build flags and Homebrew dependency architectures are mixed'
+)
 
 # Install options
 option('dbus-service-use-appid', type: 'boolean', value: false,
