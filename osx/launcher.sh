@@ -1,13 +1,13 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 if test "x$GTK_DEBUG_LAUNCHER" != x; then
     set -x
 fi
 
 if test "x$GTK_DEBUG_GDB" != x; then
-    EXEC="gdb --args"
+    EXEC_PREFIX=(gdb --args)
 else
-    EXEC=exec
+    EXEC_PREFIX=()
 fi
 
 name=`basename "$0"`
@@ -50,7 +50,7 @@ export OPENSSL_CONF="/System/Library/OpenSSL/openssl.cnf"
 
 export ZOITECHAT_LIBDIR="$bundle_lib/zoitechat/plugins"
 
-APP=name
+APP=zoitechat
 I18NDIR="$bundle_data/locale"
 # Set the locale-related variables appropriately:
 unset LANG LC_MESSAGES LC_MONETARY LC_COLLATE
@@ -58,7 +58,7 @@ unset LANG LC_MESSAGES LC_MONETARY LC_COLLATE
 # Has a language ordering been set?
 # If so, set LC_MESSAGES and LANG accordingly; otherwise skip it.
 # First step uses sed to clean off the quotes and commas, to change - to _, and change the names for the chinese scripts from "Hans" to CN and "Hant" to TW.
-APPLELANGUAGES=`defaults read .GlobalPreferences AppleLanguages | sed -En   -e 's/\-/_/' -e 's/Hant/TW/' -e 's/Hans/CN/' -e 's/[[:space:]]*\"?([[:alnum:]_]+)\"?,?/\1/p' `
+APPLELANGUAGES=`defaults read .GlobalPreferences AppleLanguages 2>/dev/null | sed -En   -e 's/\-/_/' -e 's/Hant/TW/' -e 's/Hans/CN/' -e 's/[[:space:]]*\"?([[:alnum:]_]+)\"?,?/\1/p' `
 if test "$APPLELANGUAGES"; then
     # A language ordering exists.
     # Test, item per item, to see whether there is an corresponding locale.
@@ -89,26 +89,26 @@ fi
 unset APPLELANGUAGES L
 
 # If we didn't get a language from the language list, try the Collation preference, in case it's the only setting that exists.
-APPLECOLLATION=`defaults read .GlobalPreferences AppleCollationOrder`
-if test -z ${LANG} -a -n $APPLECOLLATION; then
+APPLECOLLATION=`defaults read .GlobalPreferences AppleCollationOrder 2>/dev/null || true`
+if test -z "${LANG:-}" -a -n "${APPLECOLLATION:-}"; then
     if test -f "$I18NDIR/${APPLECOLLATION:0:2}/LC_MESSAGES/$APP.mo"; then
 	export LANG=${APPLECOLLATION:0:2}
     fi
 fi
-if test ! -z $APPLECOLLATION; then
+if test -n "${APPLECOLLATION:-}"; then
     export LC_COLLATE=$APPLECOLLATION
 fi
 unset APPLECOLLATION
 
 # Continue by attempting to find the Locale preference.
-APPLELOCALE=`defaults read .GlobalPreferences AppleLocale`
+APPLELOCALE=`defaults read .GlobalPreferences AppleLocale 2>/dev/null || true`
 
 if test -f "$I18NDIR/${APPLELOCALE:0:5}/LC_MESSAGES/$APP.mo"; then
-    if test -z $LANG; then 
+    if test -z "${LANG:-}"; then 
         export LANG="${APPLELOCALE:0:5}"
     fi
 
-elif test -z $LANG -a -f "$I18NDIR/${APPLELOCALE:0:2}/LC_MESSAGES/$APP.mo"; then
+elif test -z "${LANG:-}" -a -f "$I18NDIR/${APPLELOCALE:0:2}/LC_MESSAGES/$APP.mo"; then
     export LANG="${APPLELOCALE:0:2}"
 fi
 
@@ -116,20 +116,20 @@ fi
 #5-character locale to avoid the "Locale not supported by C library"
 #warning from Gtk -- even though Gtk will translate with a
 #two-character code.
-if test -n $LANG; then 
+if test -n "${LANG:-}"; then 
 #If the language code matches the applelocale, then that's the message
 #locale; otherwise, if it's longer than two characters, then it's
 #probably a good message locale and we'll go with it.
-    if test $LANG == ${APPLELOCALE:0:5} -o $LANG != ${LANG:0:2}; then
+    if test "$LANG" = "${APPLELOCALE:0:5}" -o "$LANG" != "${LANG:0:2}"; then
 	export LC_MESSAGES=$LANG
 #Next try if the Applelocale is longer than 2 chars and the language
 #bit matches $LANG
-    elif test $LANG == ${APPLELOCALE:0:2} -a $APPLELOCALE > ${APPLELOCALE:0:2}; then
+    elif test "$LANG" = "${APPLELOCALE:0:2}" -a "$APPLELOCALE" \> "${APPLELOCALE:0:2}"; then
 	export LC_MESSAGES=${APPLELOCALE:0:5}
 #Fail. Get a list of the locales in $PREFIX/share/locale that match
 #our two letter language code and pick the first one, special casing
 #english to set en_US
-    elif test $LANG == "en"; then
+    elif test "$LANG" = "en"; then
 	export LC_MESSAGES="en_US"
     else
 	LOC=`find $PREFIX/share/locale -name $LANG???`
@@ -181,4 +181,18 @@ if /bin/expr "x$1" : '^x-psn_' > /dev/null; then
     shift 1
 fi
 
-$EXEC "$bundle_contents/MacOS/$name-bin" "$@" $EXTRA_ARGS
+BIN_PATH="$bundle_contents/MacOS/$name-bin"
+if test ${#EXEC_PREFIX[@]} -gt 0; then
+    "${EXEC_PREFIX[@]}" "$BIN_PATH" "$@" $EXTRA_ARGS
+else
+    "$BIN_PATH" "$@" $EXTRA_ARGS
+fi
+status=$?
+if test "$status" -eq 126; then
+    echo "error: $BIN_PATH could not execute on this Mac (possible architecture mismatch)." >&2
+    if command -v file >/dev/null 2>&1; then
+        file "$BIN_PATH" >&2 || true
+    fi
+    echo "hint: build ZoiteChat for this architecture (x86_64 on Intel, arm64 on Apple Silicon) or as a universal binary." >&2
+fi
+exit "$status"

@@ -52,3 +52,7 @@ provide binary packages linked to the OpenSSL libraries, provided that
 all other requirements of the GPL are met.
 See file COPYING for details.
 </sub>
+
+## macOS debugging
+
+If you are troubleshooting local macOS build/run/debug issues (including Xcode setup), see `osx/DEBUGGING.md`.

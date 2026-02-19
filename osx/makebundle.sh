@@ -36,9 +36,29 @@ rm -f ./*.app.zip
 # - some have no share-level config dir at all
 # Keep the bundle definition in sync with what's actually available so
 # gtk-mac-bundler doesn't fail on a missing source path.
-ENCHANT_PREFIX_PATH="${ENCHANT_PREFIX:-}"
-if [ -z "$ENCHANT_PREFIX_PATH" ] && command -v brew >/dev/null 2>&1; then
-    ENCHANT_PREFIX_PATH="$(brew --prefix enchant 2>/dev/null || true)"
+
+# Resolve package-manager prefix dynamically so Intel (/usr/local) and
+# Apple Silicon (/opt/homebrew) hosts both bundle correctly.
+BUNDLE_PREFIX="${BUNDLE_PREFIX:-}"
+if [ -z "$BUNDLE_PREFIX" ] && command -v brew >/dev/null 2>&1; then
+    BUNDLE_PREFIX="$(brew --prefix 2>/dev/null || true)"
+fi
+if [ -z "$BUNDLE_PREFIX" ]; then
+    BUNDLE_PREFIX="/usr/local"
+fi
+
+ENCHANT_PREFIX_DEFAULT="${BUNDLE_PREFIX}/opt/enchant"
+ENCHANT_PREFIX_PATH="${ENCHANT_PREFIX:-$ENCHANT_PREFIX_DEFAULT}"
+
+perl -0pi -e 's|(<prefix\s+name="default">)[^<]+(</prefix>)|$1'"$BUNDLE_PREFIX"'$2|s' "$BUNDLE_DEF"
+perl -0pi -e 's|(<prefix\s+name="enchant">)[^<]+(</prefix>)|$1'"$ENCHANT_PREFIX_PATH"'$2|s' "$BUNDLE_DEF"
+
+if command -v brew >/dev/null 2>&1; then
+    BREW_ENCHANT_PREFIX="$(brew --prefix enchant 2>/dev/null || true)"
+    if [ -n "$BREW_ENCHANT_PREFIX" ]; then
+        ENCHANT_PREFIX_PATH="$BREW_ENCHANT_PREFIX"
+        perl -0pi -e 's|(<prefix\s+name="enchant">)[^<]+(</prefix>)|$1'"$ENCHANT_PREFIX_PATH"'$2|s' "$BUNDLE_DEF"
+    fi
 fi
 
 if [ -n "$ENCHANT_PREFIX_PATH" ]; then
@@ -70,6 +90,11 @@ $BUNDLER_CMD "$BUNDLE_DEF"
 if [ ! -d "$APP_NAME" ]; then
     echo "error: bundler finished but $APP_NAME was not created" >&2
     exit 1
+fi
+
+if command -v file >/dev/null 2>&1; then
+    echo "Bundled binary architecture:"
+    file "$APP_NAME/Contents/MacOS/ZoiteChat-bin" || true
 fi
 
 echo "Compressing bundle"
