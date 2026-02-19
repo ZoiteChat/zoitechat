@@ -58,10 +58,11 @@ if [ -z "$BUNDLE_PREFIX" ]; then
     BUNDLE_PREFIX="/usr/local"
 fi
 
-# gtk-mac-bundler rebases translation paths using string concatenation on
-# ${prefix}. Keep a trailing slash in the bundle metadata to avoid malformed
-# paths like ".../x86_64locale/..." when copying locale catalogs.
-BUNDLE_PREFIX_XML="${BUNDLE_PREFIX%/}/"
+# gtk-mac-bundler translation rebasing can produce off-by-one path slicing
+# with a trailing slash in <prefix>, yielding broken paths like
+# ".../x86_64/ocale/...". Keep the XML prefix slashless and let bundle entries
+# contribute their own separators.
+BUNDLE_PREFIX_XML="${BUNDLE_PREFIX%/}"
 
 ENCHANT_PREFIX_DEFAULT="${BUNDLE_PREFIX}/opt/enchant"
 ENCHANT_PREFIX_PATH="${ENCHANT_PREFIX:-$ENCHANT_PREFIX_DEFAULT}"
