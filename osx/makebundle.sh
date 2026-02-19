@@ -58,10 +58,15 @@ if [ -z "$BUNDLE_PREFIX" ]; then
     BUNDLE_PREFIX="/usr/local"
 fi
 
+# gtk-mac-bundler rebases translation paths using string concatenation on
+# ${prefix}. Keep a trailing slash in the bundle metadata to avoid malformed
+# paths like ".../x86_64locale/..." when copying locale catalogs.
+BUNDLE_PREFIX_XML="${BUNDLE_PREFIX%/}/"
+
 ENCHANT_PREFIX_DEFAULT="${BUNDLE_PREFIX}/opt/enchant"
 ENCHANT_PREFIX_PATH="${ENCHANT_PREFIX:-$ENCHANT_PREFIX_DEFAULT}"
 
-perl -0pi -e 's|(<prefix\s+name="default">)[^<]+(</prefix>)|$1'"$BUNDLE_PREFIX"'$2|s' "$BUNDLE_DEF"
+perl -0pi -e 's|(<prefix\s+name="default">)[^<]+(</prefix>)|$1'"$BUNDLE_PREFIX_XML"'$2|s' "$BUNDLE_DEF"
 perl -0pi -e 's|(<prefix\s+name="enchant">)[^<]+(</prefix>)|$1'"$ENCHANT_PREFIX_PATH"'$2|s' "$BUNDLE_DEF"
 
 if command -v brew >/dev/null 2>&1; then
