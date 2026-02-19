@@ -3866,9 +3866,11 @@ mg_tabwindow_de_cb (GtkWidget *widget, GdkEvent *event, gpointer user_data)
 
 #ifdef G_OS_WIN32
 static GtkWindow *
-mg_win32_resolve_target_window (HWND target_hwnd)
+mg_win32_resolve_target_window (HWND target_hwnd, session **target_sess)
 {
 	GtkWidget *target_widget = NULL;
+	GSList *list;
+	session *resolved_sess = NULL;
 
 #ifdef GDK_WINDOWING_WIN32
 	if (target_hwnd)
@@ -3889,8 +3891,31 @@ mg_win32_resolve_target_window (HWND target_hwnd)
 	}
 #endif
 
+	if (target_widget)
+	{
+		for (list = sess_list; list; list = list->next)
+		{
+			session *sess = list->data;
+
+			if (sess && sess->gui && sess->gui->window == target_widget)
+			{
+				resolved_sess = sess;
+				break;
+			}
+		}
+	}
+
 	if (!target_widget && current_sess && current_sess->gui && current_sess->gui->window)
+	{
 		target_widget = current_sess->gui->window;
+		resolved_sess = current_sess;
+	}
+
+	if (!resolved_sess)
+		resolved_sess = current_sess;
+
+	if (target_sess)
+		*target_sess = resolved_sess;
 
 	if (target_widget && GTK_IS_WINDOW (target_widget))
 		return GTK_WINDOW (target_widget);
@@ -3925,7 +3950,8 @@ mg_win32_filter (GdkXEvent *xevent, GdkEvent *event, gpointer data)
 		if (copy_data && copy_data->lpData && copy_data->cbData > 0 && current_sess)
 		{
 			char *command = g_strndup ((const char *)copy_data->lpData, copy_data->cbData);
-			GtkWindow *target_win = mg_win32_resolve_target_window (msg->hwnd);
+			session *target_sess = NULL;
+			GtkWindow *target_win = mg_win32_resolve_target_window (msg->hwnd, &target_sess);
 
 			if (command)
 			{
@@ -3954,8 +3980,8 @@ mg_win32_filter (GdkXEvent *xevent, GdkEvent *event, gpointer data)
 						else
 						{
 							if (prefs.hex_gui_tray_minimize && prefs.hex_gui_tray &&
-								current_sess && current_sess->gui && current_sess->gui->window &&
-								gtkutil_tray_icon_supported (GTK_WINDOW (current_sess->gui->window)))
+								target_sess && target_sess->gui && target_sess->gui->window &&
+								gtkutil_tray_icon_supported (GTK_WINDOW (target_sess->gui->window)))
 							{
 								tray_toggle_visibility (TRUE);
 							}
