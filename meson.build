@@ -49,11 +49,13 @@ if host_machine.system() == 'darwin' and darwin_arch_sanity_check
   pkgconfig_glib = run_command('pkg-config', '--libs-only-L', 'glib-2.0', check: false)
 
   targeting_x86_64 = cflags_env.contains('-arch x86_64') or ldflags_env.contains('-arch x86_64')
+  targeting_arm64 = cflags_env.contains('-arch arm64') or ldflags_env.contains('-arch arm64')
+  targeting_universal = targeting_x86_64 and targeting_arm64
   using_arm_homebrew = pkgconfig_glib.returncode() == 0 and pkgconfig_glib.stdout().contains('/opt/homebrew/')
 
-  if targeting_x86_64 and using_arm_homebrew
+  if targeting_x86_64 and not targeting_universal and using_arm_homebrew
     error('Detected x86_64 build flags (-arch x86_64) while pkg-config resolves glib from /opt/homebrew (arm64). ' +
-          'Use arm64 build flags with /opt/homebrew, or run an x86_64/Rosetta environment with an x86_64 dependency stack (typically /usr/local). ' +
+          'Use arm64 build flags with /opt/homebrew, use a universal build (-arch arm64 -arch x86_64) with universal dependencies, or run an x86_64/Rosetta environment with an x86_64 dependency stack (typically /usr/local). ' +
           'To bypass this safety check, configure with -Ddarwin-arch-sanity-check=false or set ZOITECHAT_DARWIN_ARCH_SANITY_CHECK=0.')
   endif
 endif
