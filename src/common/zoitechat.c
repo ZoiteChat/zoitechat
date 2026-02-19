@@ -29,6 +29,7 @@
 
 #ifdef WIN32
 #include <windows.h>
+#include <tlhelp32.h>
 #else
 #include <sys/wait.h>
 #include <signal.h>
@@ -172,17 +173,167 @@ zoitechat_has_theme_argument (void)
 	return FALSE;
 }
 
+typedef struct
+{
+	char process_name[MAX_PATH];
+	HWND best_hwnd;
+	int best_score;
+	HWND fallback_hwnd;
+} zoitechat_window_search;
+
+static gboolean
+zoitechat_get_process_name_from_pid (DWORD pid, char *name, gsize name_size)
+{
+	HANDLE snapshot;
+	PROCESSENTRY32 entry;
+
+	if (!name || name_size == 0)
+		return FALSE;
+
+	name[0] = '\0';
+
+	snapshot = CreateToolhelp32Snapshot (TH32CS_SNAPPROCESS, 0);
+	if (snapshot == INVALID_HANDLE_VALUE)
+		return FALSE;
+
+	entry.dwSize = sizeof (entry);
+	if (!Process32First (snapshot, &entry))
+	{
+		CloseHandle (snapshot);
+		return FALSE;
+	}
+
+	do
+	{
+		if (entry.th32ProcessID == pid)
+		{
+			g_strlcpy (name, entry.szExeFile, name_size);
+			CloseHandle (snapshot);
+			return TRUE;
+		}
+	}
+	while (Process32Next (snapshot, &entry));
+
+	CloseHandle (snapshot);
+	return FALSE;
+}
+
+static gboolean
+zoitechat_window_has_hints (HWND hwnd)
+{
+	char class_name[128] = { 0 };
+	char window_title[256] = { 0 };
+
+	GetClassNameA (hwnd, class_name, sizeof (class_name));
+	GetWindowTextA (hwnd, window_title, sizeof (window_title));
+
+	return g_ascii_strcasecmp (class_name, "ZoiteChat") == 0 ||
+	       g_ascii_strcasecmp (class_name, "zoitechat") == 0 ||
+	       g_ascii_strcasecmp (window_title, "ZoiteChat") == 0;
+}
+
+static gboolean
+zoitechat_window_matches_process (HWND hwnd, const char *process_name)
+{
+	DWORD pid = 0;
+	char hwnd_process_name[MAX_PATH];
+
+	if (!process_name || !*process_name)
+		return FALSE;
+
+	GetWindowThreadProcessId (hwnd, &pid);
+	if (!pid)
+		return FALSE;
+
+	if (!zoitechat_get_process_name_from_pid (pid, hwnd_process_name, sizeof (hwnd_process_name)))
+		return FALSE;
+
+	return g_ascii_strcasecmp (process_name, hwnd_process_name) == 0;
+}
+
+static int
+zoitechat_score_window (HWND hwnd)
+{
+	LONG style = GetWindowLongA (hwnd, GWL_STYLE);
+	LONG ex_style = GetWindowLongA (hwnd, GWL_EXSTYLE);
+	char class_name[128] = { 0 };
+	int score = 0;
+
+	if (IsWindowVisible (hwnd))
+		score += 40;
+	if (!(style & WS_CHILD))
+		score += 30;
+	if (GetWindow (hwnd, GW_OWNER) == NULL)
+		score += 25;
+	if (!(ex_style & WS_EX_NOACTIVATE))
+		score += 20;
+	if (style & WS_OVERLAPPEDWINDOW)
+		score += 15;
+	if (style & WS_CAPTION)
+		score += 10;
+
+	GetClassNameA (hwnd, class_name, sizeof (class_name));
+	if (strcmp (class_name, "#32770") == 0)
+		score -= 30;
+
+	return score;
+}
+
+static BOOL CALLBACK
+zoitechat_enum_running_window (HWND hwnd, LPARAM lparam)
+{
+	zoitechat_window_search *search = (zoitechat_window_search *)lparam;
+	LONG ex_style;
+	int score;
+
+	if (!search)
+		return TRUE;
+
+	if (!zoitechat_window_has_hints (hwnd))
+		return TRUE;
+
+	if (!search->fallback_hwnd)
+		search->fallback_hwnd = hwnd;
+
+	if (!zoitechat_window_matches_process (hwnd, search->process_name))
+		return TRUE;
+
+	ex_style = GetWindowLongA (hwnd, GWL_EXSTYLE);
+	if (!IsWindowVisible (hwnd) || (ex_style & WS_EX_TOOLWINDOW))
+		return TRUE;
+
+	score = zoitechat_score_window (hwnd);
+	if (score > search->best_score)
+	{
+		search->best_score = score;
+		search->best_hwnd = hwnd;
+	}
+
+	return TRUE;
+}
+
 static HWND
 zoitechat_find_running_window (void)
 {
-	HWND hwnd = FindWindowA ("ZoiteChat", NULL);
+	zoitechat_window_search search = { { 0 }, NULL, G_MININT, NULL };
+	char module_path[MAX_PATH];
+	char *basename;
 
-	if (!hwnd)
-		hwnd = FindWindowA ("zoitechat", NULL);
-	if (!hwnd)
-		hwnd = FindWindowA (NULL, "ZoiteChat");
+	if (GetModuleFileNameA (NULL, module_path, sizeof (module_path)) > 0)
+	{
+		basename = strrchr (module_path, '\\');
+		if (basename)
+			g_strlcpy (search.process_name, basename + 1, sizeof (search.process_name));
+		else
+			g_strlcpy (search.process_name, module_path, sizeof (search.process_name));
+	}
 
-	return hwnd;
+	EnumWindows (zoitechat_enum_running_window, (LPARAM)&search);
+
+	if (search.best_hwnd)
+		return search.best_hwnd;
+
+	return search.fallback_hwnd;
 }
 
 static gboolean
