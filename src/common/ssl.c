@@ -307,7 +307,10 @@ SSL *
 _SSL_socket (SSL_CTX *ctx, int sd)
 {
 	SSL *ssl;
+	
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
 	const SSL_METHOD *method;
+#endif
 
 	if (!(ssl = SSL_new (ctx)))
 		/* FATAL */
@@ -315,6 +318,12 @@ _SSL_socket (SSL_CTX *ctx, int sd)
 
 	SSL_set_fd (ssl, sd);
 
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+	if (SSL_is_server (ssl))
+		SSL_set_accept_state (ssl);
+	else
+		SSL_set_connect_state (ssl);
+#else
 #ifndef HAVE_SSL_CTX_GET_SSL_METHOD
 	method = ctx->method;
 #else
@@ -323,7 +332,8 @@ _SSL_socket (SSL_CTX *ctx, int sd)
 	if (method == SSLv23_client_method())
 		SSL_set_connect_state (ssl);
 	else
-	        SSL_set_accept_state(ssl);
+		SSL_set_accept_state (ssl);
+#endif
 
 	return (ssl);
 }
