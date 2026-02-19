@@ -3979,17 +3979,36 @@ mg_win32_filter (GdkXEvent *xevent, GdkEvent *event, gpointer data)
 						}
 						else
 						{
+							gboolean minimized = FALSE;
+
 							if (prefs.hex_gui_tray_minimize && prefs.hex_gui_tray &&
 								target_sess && target_sess->gui && target_sess->gui->window &&
 								gtkutil_tray_icon_supported (GTK_WINDOW (target_sess->gui->window)))
 							{
 								tray_toggle_visibility (TRUE);
+								handled = TRUE;
 							}
 							else
 							{
-								ShowWindow (msg->hwnd, SW_MINIMIZE);
+								SendMessage (msg->hwnd, WM_SYSCOMMAND, SC_MINIMIZE, 0);
+								minimized = IsIconic (msg->hwnd) ? TRUE : FALSE;
+
+								if (!minimized && target_win)
+								{
+									GtkWidget *target_widget = GTK_WIDGET (target_win);
+									GdkWindow *target_gdk_window = gtk_widget_get_window (target_widget);
+									GdkWindowState target_state = target_gdk_window ? gdk_window_get_state (target_gdk_window) : 0;
+
+									if (!(target_state & GDK_WINDOW_STATE_ICONIFIED))
+										gtk_window_iconify (target_win);
+
+									target_gdk_window = gtk_widget_get_window (target_widget);
+									target_state = target_gdk_window ? gdk_window_get_state (target_gdk_window) : 0;
+									minimized = IsIconic (msg->hwnd) || (target_state & GDK_WINDOW_STATE_ICONIFIED);
+								}
+
+								handled = minimized;
 							}
-							handled = TRUE;
 						}
 					}
 
