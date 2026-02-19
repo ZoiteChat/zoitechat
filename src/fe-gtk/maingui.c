@@ -3894,10 +3894,49 @@ mg_win32_filter (GdkXEvent *xevent, GdkEvent *event, gpointer data)
 			{
 				if (strcmp (command, "__WIN32_TASKBAR_TOGGLE__") == 0)
 				{
-					if (gtk_widget_get_visible (current_sess->gui->window))
-						fe_ctrl_gui (current_sess, FE_GUI_ICONIFY, 0);
-					else
-						fe_ctrl_gui (current_sess, FE_GUI_SHOW, 0);
+					gboolean handled = FALSE;
+
+					if (msg->hwnd)
+					{
+						if (IsIconic (msg->hwnd))
+						{
+							ShowWindow (msg->hwnd, SW_RESTORE);
+							SetForegroundWindow (msg->hwnd);
+							if (current_sess && current_sess->gui && current_sess->gui->window)
+								gtk_window_present (GTK_WINDOW (current_sess->gui->window));
+							handled = TRUE;
+						}
+						else if (!IsWindowVisible (msg->hwnd))
+						{
+							ShowWindow (msg->hwnd, SW_SHOW);
+							SetForegroundWindow (msg->hwnd);
+							if (current_sess && current_sess->gui && current_sess->gui->window)
+								gtk_window_present (GTK_WINDOW (current_sess->gui->window));
+							handled = TRUE;
+						}
+						else
+						{
+							if (prefs.hex_gui_tray_minimize && prefs.hex_gui_tray &&
+								current_sess && current_sess->gui && current_sess->gui->window &&
+								gtkutil_tray_icon_supported (GTK_WINDOW (current_sess->gui->window)))
+							{
+								tray_toggle_visibility (TRUE);
+							}
+							else
+							{
+								ShowWindow (msg->hwnd, SW_MINIMIZE);
+							}
+							handled = TRUE;
+						}
+					}
+
+					if (!handled && current_sess && current_sess->gui && current_sess->gui->window)
+					{
+						if (gtk_widget_get_visible (current_sess->gui->window))
+							fe_ctrl_gui (current_sess, FE_GUI_ICONIFY, 0);
+						else
+							fe_ctrl_gui (current_sess, FE_GUI_SHOW, 0);
+					}
 				}
 				else
 				{
