@@ -9,8 +9,8 @@ on:
       - master
 
 jobs:
-  macos_build_unsigned:
-    runs-on: macos-latest
+  macos_build_arm64:
+    runs-on: macos-15-arm64
 
     steps:
       - uses: actions/checkout@v4
@@ -35,14 +35,13 @@ jobs:
             (cd /tmp/gtk-mac-bundler && make install)
           fi
 
-      - name: Configure (arm64 + x86_64)
+      - name: Configure and build (arm64)
         run: |
           set -eux
-          PREFIX="$(brew --prefix)"
-          rm -rf build-macos-arm64 build-macos-x86_64
+          rm -rf build-macos-arm64 stage/arm64
 
           CFLAGS="-arch arm64" LDFLAGS="-arch arm64" meson setup build-macos-arm64 \
-            --prefix="$PREFIX" \
+            --prefix="$PWD/stage/arm64" \
             -Dgtk3=true \
             -Dtext-frontend=true \
             -Dlibcanberra=disabled \
@@ -50,8 +49,82 @@ jobs:
             -Dwith-python=python3 \
             -Dauto_features=enabled
 
+          CFLAGS="-arch arm64" LDFLAGS="-arch arm64" meson compile -C build-macos-arm64
+          meson install -C build-macos-arm64
+
+      - name: Stage runtime dependencies for bundling (arm64)
+        run: |
+          set -eux
+          STAGE_PREFIX="$PWD/stage/arm64"
+          BREW_PREFIX="$(brew --prefix)"
+          ENCHANT_PREFIX="$(brew --prefix enchant)"
+
+          mkdir -p "$STAGE_PREFIX/lib" "$STAGE_PREFIX/share"
+          rsync -a "$BREW_PREFIX/lib/gtk-3.0" "$STAGE_PREFIX/lib/"
+          rsync -a "$BREW_PREFIX/lib/gdk-pixbuf-2.0" "$STAGE_PREFIX/lib/"
+          rsync -a "$BREW_PREFIX/share/locale" "$STAGE_PREFIX/share/"
+
+          mkdir -p "$STAGE_PREFIX/opt"
+          rm -rf "$STAGE_PREFIX/opt/enchant"
+          cp -a "$ENCHANT_PREFIX" "$STAGE_PREFIX/opt/enchant"
+
+      - name: Package unsigned .app (arm64)
+        run: |
+          set -eux
+          VERSION="$(git describe --tags --always)"
+          export VERSION
+
+          (
+            cd osx
+            BUNDLE_PREFIX="$PWD/../stage/arm64" \
+            ENCHANT_PREFIX="$PWD/../stage/arm64/opt/enchant" \
+            TARGET_ARCHES="arm64" \
+            ./makebundle.sh
+          )
+
+          mv osx/ZoiteChat-*.app.zip ./ZoiteChat-arm64.app.zip
+
+      - name: Upload arm64 macOS app artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: zoitechat-macos-arm64
+          path: ZoiteChat-arm64.app.zip
+          if-no-files-found: error
+          retention-days: 14
+
+  macos_build_x86_64:
+    runs-on: macos-13
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Install build dependencies
+        run: |
+          set -eux
+          brew update
+          brew install \
+            meson ninja pkg-config gettext perl \
+            gtk+3 gdk-pixbuf pango adwaita-icon-theme \
+            hicolor-icon-theme glib dbus \
+            enchant gtk-mac-integration
+
+          if ! command -v gtk-mac-bundler >/dev/null 2>&1 && ! python3 -c 'import gtk_mac_bundler' >/dev/null 2>&1; then
+            curl -fsSL https://codeload.github.com/jralls/gtk-mac-bundler/tar.gz/refs/heads/master -o /tmp/gtk-mac-bundler.tar.gz
+            rm -rf /tmp/gtk-mac-bundler
+            mkdir -p /tmp/gtk-mac-bundler
+            tar -xzf /tmp/gtk-mac-bundler.tar.gz -C /tmp/gtk-mac-bundler --strip-components=1
+            (cd /tmp/gtk-mac-bundler && make install)
+          fi
+
+      - name: Configure and build (x86_64)
+        run: |
+          set -eux
+          rm -rf build-macos-x86_64 stage/x86_64
+
           CFLAGS="-arch x86_64" LDFLAGS="-arch x86_64" meson setup build-macos-x86_64 \
-            --prefix="$PREFIX" \
+            --prefix="$PWD/stage/x86_64" \
             -Dgtk3=true \
             -Dtext-frontend=true \
             -Dlibcanberra=disabled \
@@ -60,43 +133,113 @@ jobs:
             -Dwith-python=python3 \
             -Dauto_features=enabled
 
-      - name: Build (arm64 + x86_64)
-        run: |
-          set -eux
-          CFLAGS="-arch arm64" LDFLAGS="-arch arm64" meson compile -C build-macos-arm64
           CFLAGS="-arch x86_64" LDFLAGS="-arch x86_64" meson compile -C build-macos-x86_64
 
-      - name: Install for bundling (arm64 runtime)
+
+      - name: Stage runtime dependencies for bundling (x86_64)
         run: |
           set -eux
-          sudo meson install -C build-macos-arm64
+          STAGE_PREFIX="$PWD/stage/x86_64"
+          BREW_PREFIX="$(brew --prefix)"
+          ENCHANT_PREFIX="$(brew --prefix enchant)"
 
-      - name: Package unsigned .app (universal binary)
+          mkdir -p "$STAGE_PREFIX/lib" "$STAGE_PREFIX/share"
+          rsync -a "$BREW_PREFIX/lib/gtk-3.0" "$STAGE_PREFIX/lib/"
+          rsync -a "$BREW_PREFIX/lib/gdk-pixbuf-2.0" "$STAGE_PREFIX/lib/"
+          rsync -a "$BREW_PREFIX/share/locale" "$STAGE_PREFIX/share/"
+
+          mkdir -p "$STAGE_PREFIX/opt"
+          rm -rf "$STAGE_PREFIX/opt/enchant"
+          cp -a "$ENCHANT_PREFIX" "$STAGE_PREFIX/opt/enchant"
+
+      - name: Package unsigned .app (x86_64)
         run: |
           set -eux
           VERSION="$(git describe --tags --always)"
-          PREFIX="$(brew --prefix)"
-          ENCHANT_PREFIX="$(brew --prefix enchant)"
-          export VERSION PREFIX ENCHANT_PREFIX
+          export VERSION
 
           (
             cd osx
-            UNIVERSAL=1 \
-            UNIVERSAL_BINARIES="../build-macos-arm64/src/fe-gtk/zoitechat ../build-macos-x86_64/src/fe-gtk/zoitechat" \
+            BUNDLE_PREFIX="$PWD/../stage/x86_64" \
+            ENCHANT_PREFIX="$PWD/../stage/x86_64/opt/enchant" \
+            TARGET_ARCHES="x86_64" \
             ./makebundle.sh
           )
-          mv osx/ZoiteChat-*.app.zip ./
 
+          mv osx/ZoiteChat-*.app.zip ./ZoiteChat-x86_64.app.zip
+
+      - name: Upload x86_64 macOS app artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: zoitechat-macos-x86_64
+          path: ZoiteChat-x86_64.app.zip
+          if-no-files-found: error
+          retention-days: 14
+
+  macos_assemble_universal_unsigned:
+    needs:
+      - macos_build_arm64
+      - macos_build_x86_64
+    runs-on: macos-latest
+
+    steps:
+      - name: Download arm64 app artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: zoitechat-macos-arm64
+          path: dist/arm64
+
+      - name: Download x86_64 app artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: zoitechat-macos-x86_64
+          path: dist/x86_64
+
+      - name: Merge app bundles into universal
+        run: |
+          set -eux
+          unzip -q dist/arm64/ZoiteChat-arm64.app.zip -d dist/arm64
+          unzip -q dist/x86_64/ZoiteChat-x86_64.app.zip -d dist/x86_64
+
+          ARM_APP="$(find dist/arm64 -maxdepth 2 -name 'ZoiteChat.app' -type d | head -n 1)"
+          X86_APP="$(find dist/x86_64 -maxdepth 2 -name 'ZoiteChat.app' -type d | head -n 1)"
+          UNIVERSAL_APP="dist/universal/ZoiteChat.app"
+
+          rm -rf "$UNIVERSAL_APP"
+          mkdir -p dist/universal
+          cp -a "$ARM_APP" "$UNIVERSAL_APP"
+
+          while IFS= read -r relpath; do
+            arm_file="$ARM_APP/$relpath"
+            x86_file="$X86_APP/$relpath"
+            out_file="$UNIVERSAL_APP/$relpath"
+
+            if [ -f "$x86_file" ] && file -b "$arm_file" | grep -q 'Mach-O'; then
+              mkdir -p "$(dirname "$out_file")"
+              lipo -create "$arm_file" "$x86_file" -output "$out_file"
+            fi
+          done < <(cd "$ARM_APP" && find . -type f | sed 's|^./||')
+
+          while IFS= read -r macho_path; do
+            archs="$(lipo -archs "$macho_path")"
+            echo "$macho_path -> $archs"
+            echo " $archs " | grep -q ' arm64 '
+            echo " $archs " | grep -q ' x86_64 '
+          done < <(find "$UNIVERSAL_APP" -type f -exec sh -c 'file -b "$1" | grep -q "Mach-O" && printf "%s\n" "$1"' _ {} \;)
+
+          VERSION="$(git -C "$GITHUB_WORKSPACE" describe --tags --always)"
+          ditto -c -k --sequesterRsrc --keepParent "$UNIVERSAL_APP" "dist/ZoiteChat-$VERSION.app.zip"
       - name: Upload unsigned macOS app artifact
         uses: actions/upload-artifact@v4
         with:
           name: zoitechat-macos-unsigned
-          path: ZoiteChat-*.app.zip
+          
+          path: dist/ZoiteChat-*.app.zip
           if-no-files-found: error
           retention-days: 14
 
   macos_release_signed:
-    needs: macos_build_unsigned
+    needs: macos_assemble_universal_unsigned
     runs-on: macos-latest
     if: >-
       github.event_name == 'push' &&
