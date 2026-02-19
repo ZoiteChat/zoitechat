@@ -75,7 +75,7 @@ dh1080_init (void)
 
 		BN_set_word (g, 2);
 
-#ifndef HAVE_DH_SET0_PQG
+#if OPENSSL_VERSION_NUMBER < 0x10100000L && !defined(LIBRESSL_VERSION_NUMBER)
 		g_dh->p = p;
 		g_dh->g = g;
 #else
@@ -163,7 +163,7 @@ dh1080_generate_key (char **priv_key, char **pub_key)
 		return 0;
 	}
 
-#ifndef HAVE_DH_GET0_KEY
+#if OPENSSL_VERSION_NUMBER < 0x10100000L && !defined(LIBRESSL_VERSION_NUMBER)
 	dh_pub_key = dh->pub_key;
 	dh_priv_key = dh->priv_key;
 #else
@@ -190,9 +190,6 @@ dh1080_compute_key (const char *priv_key, const char *pub_key, char **secret_key
 	gsize pub_key_len;
 	BIGNUM *pk;
 	DH *dh;
-#ifdef HAVE_DH_SET0_KEY
-	BIGNUM *temp_pub_key = BN_new();
-#endif
 
 	g_assert (secret_key != NULL);
 
@@ -217,10 +214,10 @@ dh1080_compute_key (const char *priv_key, const char *pub_key, char **secret_key
 
 		priv_key_data = dh1080_decode_b64 (priv_key, &priv_key_len);
 		priv_key_num = BN_bin2bn(priv_key_data, priv_key_len, NULL);
-#ifndef HAVE_DH_SET0_KEY
+	#if OPENSSL_VERSION_NUMBER < 0x10100000L && !defined(LIBRESSL_VERSION_NUMBER)
 		dh->priv_key = priv_key_num;
 #else
-		DH_set0_key (dh, temp_pub_key, priv_key_num);
+		DH_set0_key (dh, NULL, priv_key_num);
 #endif
 
 		shared_len = DH_compute_key (shared_key, pk, dh);
