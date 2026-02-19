@@ -10,6 +10,7 @@ project('zoitechat', 'c',
 
 i18n = import('i18n')
 gnome = import('gnome')
+fs = import('fs')
 cc = meson.get_compiler('c')
 
 
@@ -57,6 +58,53 @@ if host_machine.system() == 'darwin' and darwin_arch_sanity_check
     error('Detected x86_64 build flags (-arch x86_64) while pkg-config resolves glib from /opt/homebrew (arm64). ' +
           'Use arm64 build flags with /opt/homebrew, use a universal build (-arch arm64 -arch x86_64) with universal dependencies, or run an x86_64/Rosetta environment with an x86_64 dependency stack (typically /usr/local). ' +
           'To bypass this safety check, configure with -Ddarwin-arch-sanity-check=false or set ZOITECHAT_DARWIN_ARCH_SANITY_CHECK=0.')
+  endif
+
+  if targeting_x86_64
+    # When building x86_64-only or universal binaries on Apple Silicon,
+    # pkg-config can still resolve arm64-only Homebrew libraries.
+    # Detect this at configure time and fail fast with a clear message.
+    macos_link_deps = [
+      ['gio-2.0', 'libgio-2.0.dylib'],
+      ['gobject-2.0', 'libgobject-2.0.dylib'],
+      ['glib-2.0', 'libglib-2.0.dylib'],
+      ['gmodule-2.0', 'libgmodule-2.0.dylib'],
+      ['openssl', 'libssl.dylib'],
+      ['openssl', 'libcrypto.dylib'],
+      ['libintl', 'libintl.dylib'],
+    ]
+
+    foreach dep_spec : macos_link_deps
+      dep_pkg = dep_spec[0]
+      dep_lib = dep_spec[1]
+      dep_libdir_cmd = run_command('pkg-config', '--libs-only-L', dep_pkg, check: false)
+      if dep_libdir_cmd.returncode() != 0
+        continue
+      endif
+
+      foreach dep_libdir_arg : dep_libdir_cmd.stdout().strip().split()
+        if not dep_libdir_arg.startswith('-L')
+          continue
+        endif
+
+        dep_lib_path = join_paths(dep_libdir_arg.substring(2), dep_lib)
+        if not fs.exists(dep_lib_path)
+          continue
+        endif
+
+        dep_archs = run_command('lipo', '-archs', dep_lib_path, check: false)
+        if dep_archs.returncode() != 0
+          continue
+        endif
+
+        if not dep_archs.stdout().contains('x86_64')
+          error('Detected x86_64 build flags, but dependency ' + dep_lib_path +
+                ' does not contain x86_64 architecture (archs: ' + dep_archs.stdout().strip() + '). ' +
+                'Use dependencies that include x86_64 (or universal) slices, or build only arm64. ' +
+                'To bypass this safety check, configure with -Ddarwin-arch-sanity-check=false or set ZOITECHAT_DARWIN_ARCH_SANITY_CHECK=0.')
+        endif
+      endforeach
+    endforeach
   endif
 endif
 
