@@ -55,6 +55,7 @@ jobs:
             -Dgtk3=true \
             -Dtext-frontend=true \
             -Dlibcanberra=disabled \
+            -Ddarwin-arch-sanity-check=false \
             -Dwith-perl=perl \
             -Dwith-python=python3 \
             -Dauto_features=enabled
