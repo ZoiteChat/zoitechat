@@ -8,6 +8,9 @@ cd "$SCRIPT_DIR"
 BUNDLE_DEF="zoitechat.bundle"
 APP_NAME="ZoiteChat.app"
 
+HOST_ARCH="$(uname -m 2>/dev/null || echo unknown)"
+TARGET_ARCHES="${TARGET_ARCHES:-$HOST_ARCH}"
+
 # Expected prefixes for macOS GTK dependencies:
 # - Homebrew: /opt/homebrew (Apple Silicon) or /usr/local (Intel)
 # - MacPorts: /opt/local
@@ -92,9 +95,31 @@ if [ ! -d "$APP_NAME" ]; then
     exit 1
 fi
 
+BIN_PATH="$APP_NAME/Contents/MacOS/ZoiteChat-bin"
+
+if command -v lipo >/dev/null 2>&1; then
+    BIN_ARCHS="$(lipo -archs "$BIN_PATH" 2>/dev/null || true)"
+    if [ -z "$BIN_ARCHS" ]; then
+        echo "error: unable to detect architectures for $BIN_PATH" >&2
+        exit 1
+    fi
+
+    for required_arch in $TARGET_ARCHES; do
+        if ! echo " $BIN_ARCHS " | grep -q " $required_arch "; then
+            cat >&2 <<MSG
+error: bundled binary architecture mismatch.
+  required: $TARGET_ARCHES
+  actual:   $BIN_ARCHS
+hint: rebuild ZoiteChat-bin with matching architecture(s) before bundling.
+MSG
+            exit 1
+        fi
+    done
+fi
+
 if command -v file >/dev/null 2>&1; then
     echo "Bundled binary architecture:"
-    file "$APP_NAME/Contents/MacOS/ZoiteChat-bin" || true
+    file "$BIN_PATH" || true
 fi
 
 echo "Compressing bundle"
