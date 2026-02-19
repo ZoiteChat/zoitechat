@@ -82,6 +82,22 @@ if [ -n "$ENCHANT_PREFIX_PATH" ]; then
     fi
 fi
 
+# GTK module extension differs across package manager builds:
+# - Homebrew commonly installs .dylib modules
+# - Some environments still ship .so modules
+# Detect what exists in the staged prefix and rewrite the bundle definition
+# so gtk-mac-bundler does not fail on a missing glob.
+GTK_MODULE_EXT="so"
+if find "$BUNDLE_PREFIX/lib/gtk-3.0" -type f \( -path '*/immodules/*.dylib' -o -path '*/printbackends/*.dylib' \) -print -quit 2>/dev/null | grep -q . \
+    || find "$BUNDLE_PREFIX/lib/gdk-pixbuf-2.0" -type f -path '*/loaders/*.dylib' -print -quit 2>/dev/null | grep -q .; then
+    GTK_MODULE_EXT="dylib"
+fi
+if [ "$GTK_MODULE_EXT" = "dylib" ]; then
+    perl -0pi -e 's|(/immodules/)\*\.so|$1*.dylib|g; s|(/printbackends/)\*\.so|$1*.dylib|g; s|(/loaders/)\*\.so|$1*.dylib|g' "$BUNDLE_DEF"
+else
+    perl -0pi -e 's|(/immodules/)\*\.dylib|$1*.so|g; s|(/printbackends/)\*\.dylib|$1*.so|g; s|(/loaders/)\*\.dylib|$1*.so|g' "$BUNDLE_DEF"
+fi
+
 
 # Keep Info.plist generation deterministic by always rendering from template
 # using a single, explicit version source.
