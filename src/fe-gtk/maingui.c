@@ -58,6 +58,9 @@
 
 #ifdef G_OS_WIN32
 #include <windows.h>
+#ifdef GDK_WINDOWING_WIN32
+#include <gdk/gdkwin32.h>
+#endif
 #endif
 
 #if HAVE_GTK3
@@ -3862,6 +3865,39 @@ mg_tabwindow_de_cb (GtkWidget *widget, GdkEvent *event, gpointer user_data)
 }
 
 #ifdef G_OS_WIN32
+static GtkWindow *
+mg_win32_resolve_target_window (HWND target_hwnd)
+{
+	GtkWidget *target_widget = NULL;
+
+#ifdef GDK_WINDOWING_WIN32
+	if (target_hwnd)
+	{
+		GdkDisplay *display = gdk_display_get_default ();
+		GdkWindow *target_gdk_window = NULL;
+		gpointer user_data = NULL;
+
+		if (display)
+			target_gdk_window = gdk_win32_window_lookup_for_display (display, target_hwnd);
+
+		if (target_gdk_window)
+		{
+			gdk_window_get_user_data (target_gdk_window, &user_data);
+			if (user_data && GTK_IS_WIDGET (user_data))
+				target_widget = gtk_widget_get_toplevel (GTK_WIDGET (user_data));
+		}
+	}
+#endif
+
+	if (!target_widget && current_sess && current_sess->gui && current_sess->gui->window)
+		target_widget = current_sess->gui->window;
+
+	if (target_widget && GTK_IS_WINDOW (target_widget))
+		return GTK_WINDOW (target_widget);
+
+	return NULL;
+}
+
 static GdkFilterReturn
 mg_win32_filter (GdkXEvent *xevent, GdkEvent *event, gpointer data)
 {
@@ -3889,6 +3925,7 @@ mg_win32_filter (GdkXEvent *xevent, GdkEvent *event, gpointer data)
 		if (copy_data && copy_data->lpData && copy_data->cbData > 0 && current_sess)
 		{
 			char *command = g_strndup ((const char *)copy_data->lpData, copy_data->cbData);
+			GtkWindow *target_win = mg_win32_resolve_target_window (msg->hwnd);
 
 			if (command)
 			{
@@ -3902,16 +3939,16 @@ mg_win32_filter (GdkXEvent *xevent, GdkEvent *event, gpointer data)
 						{
 							ShowWindow (msg->hwnd, SW_RESTORE);
 							SetForegroundWindow (msg->hwnd);
-							if (current_sess && current_sess->gui && current_sess->gui->window)
-								gtk_window_present (GTK_WINDOW (current_sess->gui->window));
+							if (target_win)
+								gtk_window_present (target_win);
 							handled = TRUE;
 						}
 						else if (!IsWindowVisible (msg->hwnd))
 						{
 							ShowWindow (msg->hwnd, SW_SHOW);
 							SetForegroundWindow (msg->hwnd);
-							if (current_sess && current_sess->gui && current_sess->gui->window)
-								gtk_window_present (GTK_WINDOW (current_sess->gui->window));
+							if (target_win)
+								gtk_window_present (target_win);
 							handled = TRUE;
 						}
 						else
@@ -3930,12 +3967,23 @@ mg_win32_filter (GdkXEvent *xevent, GdkEvent *event, gpointer data)
 						}
 					}
 
-					if (!handled && current_sess && current_sess->gui && current_sess->gui->window)
+					if (!handled && target_win)
 					{
-						if (gtk_widget_get_visible (current_sess->gui->window))
-							fe_ctrl_gui (current_sess, FE_GUI_ICONIFY, 0);
+						GtkWidget *target_widget = GTK_WIDGET (target_win);
+						GdkWindow *target_gdk_window = gtk_widget_get_window (target_widget);
+						GdkWindowState target_state = target_gdk_window ? gdk_window_get_state (target_gdk_window) : 0;
+						gboolean target_visible = gtk_widget_get_visible (target_widget);
+
+						if (!target_visible || (target_state & GDK_WINDOW_STATE_ICONIFIED))
+						{
+							gtk_widget_show (target_widget);
+							gtk_window_deiconify (target_win);
+							gtk_window_present (target_win);
+						}
 						else
-							fe_ctrl_gui (current_sess, FE_GUI_SHOW, 0);
+						{
+							gtk_window_iconify (target_win);
+						}
 					}
 				}
 				else
