@@ -134,6 +134,7 @@ jobs:
             -Dauto_features=enabled
 
           CFLAGS="-arch x86_64" LDFLAGS="-arch x86_64" meson compile -C build-macos-x86_64
+          meson install -C build-macos-x86_64
 
 
       - name: Stage runtime dependencies for bundling (x86_64)
