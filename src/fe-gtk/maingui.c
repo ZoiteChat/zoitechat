@@ -3916,6 +3916,42 @@ mg_win32_get_target_session (void)
 	return NULL;
 }
 
+static gboolean
+mg_win32_foreground_belongs_to_zoitechat (void)
+{
+	GSList *list;
+	HWND foreground;
+	HWND foreground_root;
+
+	foreground = GetForegroundWindow ();
+	if (!foreground)
+		return FALSE;
+
+	foreground_root = GetAncestor (foreground, GA_ROOTOWNER);
+	if (!foreground_root)
+		foreground_root = foreground;
+
+	for (list = sess_list; list; list = list->next)
+	{
+		session *sess = list->data;
+		GtkWidget *window;
+		HWND hwnd;
+
+		if (!sess || !sess->gui)
+			continue;
+
+		window = sess->gui->window;
+		if (!window || !gtk_widget_get_realized (window))
+			continue;
+
+		hwnd = gdk_win32_window_get_handle (gtk_widget_get_window (window));
+		if (hwnd && (foreground == hwnd || foreground_root == hwnd))
+			return TRUE;
+	}
+
+	return FALSE;
+}
+
 static GdkFilterReturn
 mg_win32_filter (GdkXEvent *xevent, GdkEvent *event, gpointer data)
 {
@@ -3958,22 +3994,7 @@ mg_win32_filter (GdkXEvent *xevent, GdkEvent *event, gpointer data)
 
 					if (hwnd && !IsIconic (hwnd))
 					{
-						HWND foreground = GetForegroundWindow ();
-						HWND foreground_root = NULL;
-						DWORD foreground_pid = 0;
-						DWORD app_pid = 0;
-
-						if (foreground)
-							foreground_root = GetAncestor (foreground, GA_ROOTOWNER);
-
-						GetWindowThreadProcessId (hwnd, &app_pid);
-						if (foreground_root)
-							GetWindowThreadProcessId (foreground_root, &foreground_pid);
-						else if (foreground)
-							GetWindowThreadProcessId (foreground, &foreground_pid);
-
-						if (foreground == hwnd || foreground_root == hwnd ||
-							(foreground_pid != 0 && foreground_pid == app_pid))
+						if (mg_win32_foreground_belongs_to_zoitechat ())
 							should_minimize = TRUE;
 
 						if (!should_minimize && window && gtk_window_is_active (GTK_WINDOW (window)))
