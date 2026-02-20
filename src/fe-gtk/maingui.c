@@ -3952,6 +3952,42 @@ mg_win32_foreground_belongs_to_zoitechat (void)
 	return FALSE;
 }
 
+static session *
+mg_win32_get_foreground_session (void)
+{
+	GSList *list;
+	HWND foreground;
+	HWND foreground_root;
+
+	foreground = GetForegroundWindow ();
+	if (!foreground)
+		return NULL;
+
+	foreground_root = GetAncestor (foreground, GA_ROOTOWNER);
+	if (!foreground_root)
+		foreground_root = foreground;
+
+	for (list = sess_list; list; list = list->next)
+	{
+		session *sess = list->data;
+		GtkWidget *window;
+		HWND hwnd;
+
+		if (!sess || !sess->gui)
+			continue;
+
+		window = sess->gui->window;
+		if (!window || !gtk_widget_get_realized (window))
+			continue;
+
+		hwnd = gdk_win32_window_get_handle (gtk_widget_get_window (window));
+		if (hwnd && (foreground == hwnd || foreground_root == hwnd))
+			return sess;
+	}
+
+	return NULL;
+}
+
 static GdkFilterReturn
 mg_win32_filter (GdkXEvent *xevent, GdkEvent *event, gpointer data)
 {
@@ -3985,9 +4021,15 @@ mg_win32_filter (GdkXEvent *xevent, GdkEvent *event, gpointer data)
 			{
 				if (strcmp (command, "__WIN32_TASKBAR_TOGGLE__") == 0)
 				{
-					GtkWidget *window = target_sess->gui->window;
+					session *toggle_sess = mg_win32_get_foreground_session ();
+					GtkWidget *window;
 					HWND hwnd = NULL;
 					gboolean should_minimize = FALSE;
+
+					if (!toggle_sess)
+						toggle_sess = target_sess;
+
+					window = toggle_sess->gui->window;
 
 					if (window && gtk_widget_get_realized (window))
 						hwnd = gdk_win32_window_get_handle (gtk_widget_get_window (window));
@@ -4007,9 +4049,9 @@ mg_win32_filter (GdkXEvent *xevent, GdkEvent *event, gpointer data)
 					}
 
 					if (should_minimize)
-						fe_ctrl_gui (target_sess, FE_GUI_ICONIFY, 0);
+						fe_ctrl_gui (toggle_sess, FE_GUI_ICONIFY, 0);
 					else
-						fe_ctrl_gui (target_sess, FE_GUI_SHOW, 0);
+						fe_ctrl_gui (toggle_sess, FE_GUI_SHOW, 0);
 				}
 				else
 				{
