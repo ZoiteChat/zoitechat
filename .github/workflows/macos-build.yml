@@ -63,6 +63,9 @@ jobs:
           rsync -a "$BREW_PREFIX/lib/gtk-3.0" "$STAGE_PREFIX/lib/"
           rsync -a "$BREW_PREFIX/lib/gdk-pixbuf-2.0" "$STAGE_PREFIX/lib/"
           rsync -a "$BREW_PREFIX/share/locale/" "$STAGE_PREFIX/locale/"
+          if [ -d "$STAGE_PREFIX/share/locale" ]; then
+            rsync -a "$STAGE_PREFIX/share/locale/" "$STAGE_PREFIX/locale/"
+          fi
 
           mkdir -p "$STAGE_PREFIX/opt"
           rm -rf "$STAGE_PREFIX/opt/enchant"
@@ -148,6 +151,9 @@ jobs:
           rsync -a "$BREW_PREFIX/lib/gtk-3.0" "$STAGE_PREFIX/lib/"
           rsync -a "$BREW_PREFIX/lib/gdk-pixbuf-2.0" "$STAGE_PREFIX/lib/"
           rsync -a "$BREW_PREFIX/share/locale/" "$STAGE_PREFIX/locale/"
+          if [ -d "$STAGE_PREFIX/share/locale" ]; then
+            rsync -a "$STAGE_PREFIX/share/locale/" "$STAGE_PREFIX/locale/"
+          fi
 
           mkdir -p "$STAGE_PREFIX/opt"
           rm -rf "$STAGE_PREFIX/opt/enchant"
