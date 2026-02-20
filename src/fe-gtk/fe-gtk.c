@@ -1480,6 +1480,20 @@ fe_ctrl_gui (session *sess, fe_gui_action action, int arg)
 	case FE_GUI_COLOR:
 		fe_set_tab_color (sess, arg); break;
 	case FE_GUI_ICONIFY:
+	#ifdef G_OS_WIN32
+		{
+			HWND hwnd = NULL;
+
+			if (sess->gui->window && gtk_widget_get_realized (sess->gui->window))
+				hwnd = gdk_win32_window_get_handle (gtk_widget_get_window (sess->gui->window));
+
+			if (hwnd)
+			{
+				ShowWindow (hwnd, SW_MINIMIZE);
+				break;
+			}
+		}
+	#endif
 		gtk_window_iconify (GTK_WINDOW (sess->gui->window)); break;
 	case FE_GUI_MENU:
 		menu_bar_toggle ();	/* toggle menubar on/off */
