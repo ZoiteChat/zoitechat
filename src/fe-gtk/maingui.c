@@ -3926,9 +3926,27 @@ mg_win32_filter (GdkXEvent *xevent, GdkEvent *event, gpointer data)
 			{
 				if (strcmp (command, "__WIN32_TASKBAR_TOGGLE__") == 0)
 				{
-					GtkWindow *window = GTK_WINDOW (current_sess->gui->window);
+					GtkWidget *window = current_sess->gui->window;
+					HWND hwnd = NULL;
+					gboolean should_minimize = FALSE;
 
-					if (gtk_window_is_active (window))
+					if (window && gtk_widget_get_realized (window))
+						hwnd = gdk_win32_window_get_handle (gtk_widget_get_window (window));
+
+					if (hwnd && !IsIconic (hwnd))
+					{
+						HWND foreground = GetForegroundWindow ();
+
+						if (foreground == hwnd)
+							should_minimize = TRUE;
+					}
+					else if (window && gtk_window_is_active (GTK_WINDOW (window)))
+					{
+						/* Fallback if we couldn't query the native window state. */
+						should_minimize = TRUE;
+					}
+
+					if (should_minimize)
 						fe_ctrl_gui (current_sess, FE_GUI_ICONIFY, 0);
 					else
 						fe_ctrl_gui (current_sess, FE_GUI_SHOW, 0);
