@@ -59,13 +59,10 @@ jobs:
           BREW_PREFIX="$(brew --prefix)"
           ENCHANT_PREFIX="$(brew --prefix enchant)"
 
-          mkdir -p "$STAGE_PREFIX/lib" "$STAGE_PREFIX/locale"
+          mkdir -p "$STAGE_PREFIX/lib" "$STAGE_PREFIX/share"
           rsync -a "$BREW_PREFIX/lib/gtk-3.0" "$STAGE_PREFIX/lib/"
           rsync -a "$BREW_PREFIX/lib/gdk-pixbuf-2.0" "$STAGE_PREFIX/lib/"
-          rsync -a "$BREW_PREFIX/share/locale/" "$STAGE_PREFIX/locale/"
-          if [ -d "$STAGE_PREFIX/share/locale" ]; then
-            rsync -a "$STAGE_PREFIX/share/locale/" "$STAGE_PREFIX/locale/"
-          fi
+          rsync -a "$BREW_PREFIX/share/locale/" "$STAGE_PREFIX/share/locale/"
 
           mkdir -p "$STAGE_PREFIX/opt"
           rm -rf "$STAGE_PREFIX/opt/enchant"
@@ -147,13 +144,10 @@ jobs:
           BREW_PREFIX="$(brew --prefix)"
           ENCHANT_PREFIX="$(brew --prefix enchant)"
 
-          mkdir -p "$STAGE_PREFIX/lib" "$STAGE_PREFIX/locale"
+          mkdir -p "$STAGE_PREFIX/lib" "$STAGE_PREFIX/share"
           rsync -a "$BREW_PREFIX/lib/gtk-3.0" "$STAGE_PREFIX/lib/"
           rsync -a "$BREW_PREFIX/lib/gdk-pixbuf-2.0" "$STAGE_PREFIX/lib/"
-          rsync -a "$BREW_PREFIX/share/locale/" "$STAGE_PREFIX/locale/"
-          if [ -d "$STAGE_PREFIX/share/locale" ]; then
-            rsync -a "$STAGE_PREFIX/share/locale/" "$STAGE_PREFIX/locale/"
-          fi
+          rsync -a "$BREW_PREFIX/share/locale/" "$STAGE_PREFIX/share/locale/"
 
           mkdir -p "$STAGE_PREFIX/opt"
           rm -rf "$STAGE_PREFIX/opt/enchant"
