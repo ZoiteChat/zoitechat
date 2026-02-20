@@ -3833,6 +3833,8 @@ mg_create_topwindow (session *sess)
 	fe_apply_theme_to_toplevel (win);
 
 #ifdef G_OS_WIN32
+	mg_win32_enable_minimizebox (win);
+
 	parent_win = gtk_widget_get_window (win);
 	gdk_window_add_filter (parent_win, mg_win32_filter, NULL);
 #endif
