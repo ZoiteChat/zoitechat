@@ -59,6 +59,9 @@
 #ifdef G_OS_WIN32
 #include <windows.h>
 #include <gdk/gdkwin32.h>
+
+static void mg_win32_enable_minimizebox (GtkWidget *window);
+static GdkFilterReturn mg_win32_filter (GdkXEvent *xevent, GdkEvent *event, gpointer data);
 #endif
 
 #if HAVE_GTK3
