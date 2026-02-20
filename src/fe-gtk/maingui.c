@@ -3952,6 +3952,9 @@ mg_win32_filter (GdkXEvent *xevent, GdkEvent *event, gpointer data)
 						if (foreground == hwnd || foreground_root == hwnd ||
 							(foreground_pid != 0 && foreground_pid == app_pid))
 							should_minimize = TRUE;
+
+						if (!should_minimize && window && gtk_window_is_active (GTK_WINDOW (window)))
+							should_minimize = TRUE;
 					}
 					else if (window && gtk_window_is_active (GTK_WINDOW (window)))
 					{
