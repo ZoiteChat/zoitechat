@@ -58,6 +58,7 @@
 
 #ifdef G_OS_WIN32
 #include <windows.h>
+#include <gdk/gdkwin32.h>
 #endif
 
 #if HAVE_GTK3
@@ -3862,6 +3863,32 @@ mg_tabwindow_de_cb (GtkWidget *widget, GdkEvent *event, gpointer user_data)
 }
 
 #ifdef G_OS_WIN32
+static void
+mg_win32_enable_minimizebox (GtkWidget *window)
+{
+	HWND hwnd;
+	LONG_PTR style;
+
+	if (!window)
+		return;
+
+	gtk_widget_realize (window);
+	if (!gtk_widget_get_realized (window))
+		return;
+
+	hwnd = gdk_win32_window_get_handle (gtk_widget_get_window (window));
+	if (!hwnd)
+		return;
+
+	style = GetWindowLongPtr (hwnd, GWL_STYLE);
+	if ((style & WS_MINIMIZEBOX) != 0)
+		return;
+
+	SetWindowLongPtr (hwnd, GWL_STYLE, style | WS_MINIMIZEBOX);
+	SetWindowPos (hwnd, NULL, 0, 0, 0, 0,
+			  SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
+}
+
 static GdkFilterReturn
 mg_win32_filter (GdkXEvent *xevent, GdkEvent *event, gpointer data)
 {
@@ -4019,6 +4046,8 @@ mg_create_tabwindow (session *sess)
         fe_apply_theme_to_toplevel (win);
 
 #ifdef G_OS_WIN32
+	mg_win32_enable_minimizebox (win);
+
 	parent_win = gtk_widget_get_window (win);
 	gdk_window_add_filter (parent_win, mg_win32_filter, NULL);
 #endif
