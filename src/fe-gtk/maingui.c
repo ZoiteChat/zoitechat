@@ -3936,8 +3936,21 @@ mg_win32_filter (GdkXEvent *xevent, GdkEvent *event, gpointer data)
 					if (hwnd && !IsIconic (hwnd))
 					{
 						HWND foreground = GetForegroundWindow ();
+						HWND foreground_root = NULL;
+						DWORD foreground_pid = 0;
+						DWORD app_pid = 0;
 
-						if (foreground == hwnd)
+						if (foreground)
+							foreground_root = GetAncestor (foreground, GA_ROOTOWNER);
+
+						GetWindowThreadProcessId (hwnd, &app_pid);
+						if (foreground_root)
+							GetWindowThreadProcessId (foreground_root, &foreground_pid);
+						else if (foreground)
+							GetWindowThreadProcessId (foreground, &foreground_pid);
+
+						if (foreground == hwnd || foreground_root == hwnd ||
+							(foreground_pid != 0 && foreground_pid == app_pid))
 							should_minimize = TRUE;
 					}
 					else if (window && gtk_window_is_active (GTK_WINDOW (window)))
