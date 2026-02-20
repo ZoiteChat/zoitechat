@@ -3894,6 +3894,28 @@ mg_win32_enable_minimizebox (GtkWidget *window)
 			  SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
 }
 
+static session *
+mg_win32_get_target_session (void)
+{
+	GSList *list;
+
+	if (current_sess && current_sess->gui && current_sess->gui->window)
+		return current_sess;
+
+	if (current_tab && current_tab->gui && current_tab->gui->window)
+		return current_tab;
+
+	for (list = sess_list; list; list = list->next)
+	{
+		session *sess = list->data;
+
+		if (sess && sess->gui && sess->gui->window)
+			return sess;
+	}
+
+	return NULL;
+}
+
 static GdkFilterReturn
 mg_win32_filter (GdkXEvent *xevent, GdkEvent *event, gpointer data)
 {
@@ -3917,8 +3939,9 @@ mg_win32_filter (GdkXEvent *xevent, GdkEvent *event, gpointer data)
 	if (msg->message == WM_COPYDATA)
 	{
 		COPYDATASTRUCT *copy_data = (COPYDATASTRUCT *)msg->lParam;
+		session *target_sess = mg_win32_get_target_session ();
 
-		if (copy_data && copy_data->lpData && copy_data->cbData > 0 && current_sess)
+		if (copy_data && copy_data->lpData && copy_data->cbData > 0 && target_sess)
 		{
 			char *command = g_strndup ((const char *)copy_data->lpData, copy_data->cbData);
 
@@ -3926,7 +3949,7 @@ mg_win32_filter (GdkXEvent *xevent, GdkEvent *event, gpointer data)
 			{
 				if (strcmp (command, "__WIN32_TASKBAR_TOGGLE__") == 0)
 				{
-					GtkWidget *window = current_sess->gui->window;
+					GtkWidget *window = target_sess->gui->window;
 					HWND hwnd = NULL;
 					gboolean should_minimize = FALSE;
 
@@ -3963,13 +3986,13 @@ mg_win32_filter (GdkXEvent *xevent, GdkEvent *event, gpointer data)
 					}
 
 					if (should_minimize)
-						fe_ctrl_gui (current_sess, FE_GUI_ICONIFY, 0);
+						fe_ctrl_gui (target_sess, FE_GUI_ICONIFY, 0);
 					else
-						fe_ctrl_gui (current_sess, FE_GUI_SHOW, 0);
+						fe_ctrl_gui (target_sess, FE_GUI_SHOW, 0);
 				}
 				else
 				{
-					handle_command (current_sess, command, FALSE);
+					handle_command (target_sess, command, FALSE);
 				}
 				g_free (command);
 				return GDK_FILTER_REMOVE;
