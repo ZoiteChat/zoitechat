@@ -3916,70 +3916,6 @@ mg_win32_get_target_session (void)
 	return NULL;
 }
 
-static gboolean
-mg_win32_foreground_belongs_to_zoitechat (void)
-{
-	GSList *list;
-	HWND foreground;
-	HWND foreground_root;
-
-	foreground = GetForegroundWindow ();
-	if (!foreground)
-		return FALSE;
-
-	foreground_root = GetAncestor (foreground, GA_ROOTOWNER);
-	if (!foreground_root)
-		foreground_root = foreground;
-
-	for (list = sess_list; list; list = list->next)
-	{
-		session *sess = list->data;
-		GtkWidget *window;
-		HWND hwnd;
-
-		if (!sess || !sess->gui)
-			continue;
-
-		window = sess->gui->window;
-		if (!window || !gtk_widget_get_realized (window))
-			continue;
-
-		hwnd = gdk_win32_window_get_handle (gtk_widget_get_window (window));
-		if (hwnd && (foreground == hwnd || foreground_root == hwnd))
-			return TRUE;
-	}
-
-	return FALSE;
-}
-
-static gboolean
-mg_win32_window_is_foreground (HWND hwnd)
-{
-	HWND foreground;
-	HWND foreground_root;
-	HWND hwnd_root;
-
-	if (!hwnd)
-		return FALSE;
-
-	foreground = GetForegroundWindow ();
-	if (!foreground)
-		return FALSE;
-
-	foreground_root = GetAncestor (foreground, GA_ROOTOWNER);
-	if (!foreground_root)
-		foreground_root = foreground;
-
-	hwnd_root = GetAncestor (hwnd, GA_ROOTOWNER);
-	if (!hwnd_root)
-		hwnd_root = hwnd;
-
-	return foreground == hwnd ||
-	       foreground == hwnd_root ||
-	       foreground_root == hwnd ||
-	       foreground_root == hwnd_root;
-}
-
 static session *
 mg_win32_get_foreground_session (void)
 {
@@ -4072,18 +4008,16 @@ mg_win32_filter (GdkXEvent *xevent, GdkEvent *event, gpointer data)
 						toggle_sess = target_sess;
 					hwnd = mg_win32_get_session_hwnd (toggle_sess);
 
-					if (hwnd && !IsIconic (hwnd))
-					{
-						if (mg_win32_window_is_foreground (hwnd) ||
-						    mg_win32_foreground_belongs_to_zoitechat ())
-							should_minimize = TRUE;
-					}
-					else if (toggle_sess->gui->window &&
-					         gtk_window_is_active (GTK_WINDOW (toggle_sess->gui->window)))
-					{
-						/* Fallback if we couldn't query the native window state. */
-						should_minimize = TRUE;
-					}
+					/*
+					 * Keep this as a strict visibility toggle. The launcher/shortcut
+					 * message can arrive while another process is foreground, so
+					 * foreground-based checks can fail to minimize even when the
+					 * ZoiteChat window is the one that should be toggled.
+					 */
+					if (hwnd)
+						should_minimize = !IsIconic (hwnd) && IsWindowVisible (hwnd);
+					else if (toggle_sess->gui->window)
+						should_minimize = gtk_widget_get_visible (toggle_sess->gui->window);
 
 					if (should_minimize)
 						fe_ctrl_gui (toggle_sess, FE_GUI_ICONIFY, 0);
