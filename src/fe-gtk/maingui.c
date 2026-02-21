@@ -4019,7 +4019,17 @@ mg_win32_filter (GdkXEvent *xevent, GdkEvent *event, gpointer data)
 						should_minimize = gtk_widget_get_visible (toggle_sess->gui->window);
 
 					if (should_minimize)
-						fe_ctrl_gui (toggle_sess, FE_GUI_ICONIFY, 0);
+					{
+						/*
+						 * Use the same Win32 system-command path as the titlebar
+						 * minimize button so tray/minimize handlers see identical
+						 * window-state transitions.
+						 */
+						if (hwnd)
+							PostMessage (hwnd, WM_SYSCOMMAND, SC_MINIMIZE, 0);
+						else
+							gtk_window_iconify (GTK_WINDOW (toggle_sess->gui->window));
+					}
 					else
 						fe_ctrl_gui (toggle_sess, FE_GUI_SHOW, 0);
 				}
