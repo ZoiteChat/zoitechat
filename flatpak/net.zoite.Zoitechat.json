@@ -11,6 +11,10 @@
     "--share=network",
     "--socket=pulseaudio",
     "--filesystem=xdg-download",
+    "--filesystem=xdg-data/themes:ro",
+    "--filesystem=xdg-data/icons:ro",
+    "--filesystem=~/.themes:ro",
+    "--filesystem=~/.icons:ro",
 
     "--talk-name=org.freedesktop.Notifications",
 
