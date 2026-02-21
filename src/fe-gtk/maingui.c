@@ -3952,6 +3952,34 @@ mg_win32_foreground_belongs_to_zoitechat (void)
 	return FALSE;
 }
 
+static gboolean
+mg_win32_window_is_foreground (HWND hwnd)
+{
+	HWND foreground;
+	HWND foreground_root;
+	HWND hwnd_root;
+
+	if (!hwnd)
+		return FALSE;
+
+	foreground = GetForegroundWindow ();
+	if (!foreground)
+		return FALSE;
+
+	foreground_root = GetAncestor (foreground, GA_ROOTOWNER);
+	if (!foreground_root)
+		foreground_root = foreground;
+
+	hwnd_root = GetAncestor (hwnd, GA_ROOTOWNER);
+	if (!hwnd_root)
+		hwnd_root = hwnd;
+
+	return foreground == hwnd ||
+	       foreground == hwnd_root ||
+	       foreground_root == hwnd ||
+	       foreground_root == hwnd_root;
+}
+
 static session *
 mg_win32_get_foreground_session (void)
 {
@@ -4036,7 +4064,10 @@ mg_win32_filter (GdkXEvent *xevent, GdkEvent *event, gpointer data)
 
 					if (hwnd && !IsIconic (hwnd))
 					{
-						if (mg_win32_foreground_belongs_to_zoitechat ())
+						if (mg_win32_window_is_foreground (hwnd))
+							should_minimize = TRUE;
+
+						if (!should_minimize && mg_win32_foreground_belongs_to_zoitechat ())
 							should_minimize = TRUE;
 
 						if (!should_minimize && window && gtk_window_is_active (GTK_WINDOW (window)))
