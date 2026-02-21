@@ -835,7 +835,7 @@ tray_toggle_visibility (gboolean force_hide)
 	if (!win)
 		return FALSE;
 
-	if (force_hide || gtk_widget_get_visible (GTK_WIDGET (win)))
+	if (force_hide || tray_get_window_status () != WS_HIDDEN)
 	{
 		if (prefs.hex_gui_tray_away)
 			zoitechat_command (ph, "ALLSERV AWAY");
