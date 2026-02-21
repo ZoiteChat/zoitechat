@@ -4016,6 +4016,21 @@ mg_win32_get_foreground_session (void)
 	return NULL;
 }
 
+static HWND
+mg_win32_get_session_hwnd (session *sess)
+{
+	GtkWidget *window;
+
+	if (!sess || !sess->gui)
+		return NULL;
+
+	window = sess->gui->window;
+	if (!window || !gtk_widget_get_realized (window))
+		return NULL;
+
+	return gdk_win32_window_get_handle (gtk_widget_get_window (window));
+}
+
 static GdkFilterReturn
 mg_win32_filter (GdkXEvent *xevent, GdkEvent *event, gpointer data)
 {
@@ -4050,30 +4065,21 @@ mg_win32_filter (GdkXEvent *xevent, GdkEvent *event, gpointer data)
 				if (strcmp (command, "__WIN32_TASKBAR_TOGGLE__") == 0)
 				{
 					session *toggle_sess = mg_win32_get_foreground_session ();
-					GtkWidget *window;
 					HWND hwnd = NULL;
 					gboolean should_minimize = FALSE;
 
 					if (!toggle_sess)
 						toggle_sess = target_sess;
-
-					window = toggle_sess->gui->window;
-
-					if (window && gtk_widget_get_realized (window))
-						hwnd = gdk_win32_window_get_handle (gtk_widget_get_window (window));
+					hwnd = mg_win32_get_session_hwnd (toggle_sess);
 
 					if (hwnd && !IsIconic (hwnd))
 					{
-						if (mg_win32_window_is_foreground (hwnd))
-							should_minimize = TRUE;
-
-						if (!should_minimize && mg_win32_foreground_belongs_to_zoitechat ())
-							should_minimize = TRUE;
-
-						if (!should_minimize && window && gtk_window_is_active (GTK_WINDOW (window)))
+						if (mg_win32_window_is_foreground (hwnd) ||
+						    mg_win32_foreground_belongs_to_zoitechat ())
 							should_minimize = TRUE;
 					}
-					else if (window && gtk_window_is_active (GTK_WINDOW (window)))
+					else if (toggle_sess->gui->window &&
+					         gtk_window_is_active (GTK_WINDOW (toggle_sess->gui->window)))
 					{
 						/* Fallback if we couldn't query the native window state. */
 						should_minimize = TRUE;
