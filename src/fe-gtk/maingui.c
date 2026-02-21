@@ -4021,12 +4021,12 @@ mg_win32_filter (GdkXEvent *xevent, GdkEvent *event, gpointer data)
 					if (should_minimize)
 					{
 						/*
-						 * Use the same Win32 system-command path as the titlebar
-						 * minimize button so tray/minimize handlers see identical
-						 * window-state transitions.
+						 * Explicitly request a minimize on the native window handle.
+						 * Sending SC_MINIMIZE can be interpreted as a deactivation
+						 * in some maximized-window/taskbar activation paths.
 						 */
 						if (hwnd)
-							PostMessage (hwnd, WM_SYSCOMMAND, SC_MINIMIZE, 0);
+							ShowWindowAsync (hwnd, SW_MINIMIZE);
 						else
 							gtk_window_iconify (GTK_WINDOW (toggle_sess->gui->window));
 					}
