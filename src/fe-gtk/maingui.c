@@ -4000,7 +4000,8 @@ mg_win32_filter (GdkXEvent *xevent, GdkEvent *event, gpointer data)
 			{
 				if (strcmp (command, "__WIN32_TASKBAR_TOGGLE__") == 0)
 				{
-					session *toggle_sess = target_sess;
+					session *foreground_sess = mg_win32_get_foreground_session ();
+					session *toggle_sess = foreground_sess ? foreground_sess : target_sess;
 					HWND hwnd = NULL;
 					gboolean should_minimize = FALSE;
 
