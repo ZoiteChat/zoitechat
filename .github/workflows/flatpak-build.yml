@@ -2,9 +2,9 @@ name: Flatpak Build
 
 on:
   push:
-    branches: [master]
+    branches: [update-shared-modules]
   pull_request:
-    branches: [master]
+    branches: [update-shared-modules]
 
 jobs:
   flatpak_build:
