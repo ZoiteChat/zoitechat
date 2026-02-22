@@ -2,9 +2,6 @@
 option('gtk-frontend', type: 'boolean',
   description: 'Main graphical interface'
 )
-option('gtk3', type: 'boolean', value: true, deprecated: true,
-  description: 'Deprecated: GTK frontend always builds against GTK 3'
-)
 option('text-frontend', type: 'boolean', value: false,
   description: 'Text interface (not generally useful)'
 )

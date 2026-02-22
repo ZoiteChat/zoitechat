@@ -26,7 +26,6 @@ builddeps  :
 setup      : |
     %meson_configure \
         -Dgtk-frontend=true \
-        -Dgtk3=true \
         -Dinstall-appdata=true
 build      : |
     %ninja_build
