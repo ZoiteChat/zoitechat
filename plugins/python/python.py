@@ -538,8 +538,22 @@ def _on_plugin_init(plugin_name, plugin_desc, plugin_version, arg, libdir):
 
     try:
         libdir = __decode(_cstr(libdir))
-        modpath = os.path.join(libdir, '..', 'python')
-        sys.path.append(os.path.abspath(modpath))
+        modpaths = [
+            os.path.abspath(os.path.join(libdir, '..', 'python')),
+            os.path.abspath(os.path.join(libdir, 'python')),
+        ]
+
+        appdir = os.getenv('APPDIR')
+        if appdir:
+            modpaths.extend([
+                os.path.join(appdir, 'usr', 'lib', 'zoitechat', 'python'),
+                os.path.join(appdir, 'usr', 'lib', 'x86_64-linux-gnu', 'zoitechat', 'python'),
+            ])
+
+        for modpath in modpaths:
+            if os.path.isdir(modpath) and modpath not in sys.path:
+                sys.path.append(modpath)
+
         zoitechat = importlib.import_module('zoitechat')
 
     except (UnicodeDecodeError, ImportError) as e:
