@@ -4109,7 +4109,7 @@ const struct commands xc_cmds[] = {
 	{"ME", cmd_me, 0, 0, 1,
 	 N_("ME <action>, sends the action to the current channel (actions are written in the 3rd person, like /me jumps)")},
 	{"MENU", cmd_menu, 0, 0, 1, "MENU [-eX] [-i<ICONFILE>] [-k<mod>,<key>] [-m] [-pX] [-r<X,group>] [-tX] {ADD|DEL} <path> [command] [unselect command]\n"
-										 "       See http://zoitechat.zoite.net/docs/en/latest/plugins.html#controlling-the-gui for more details."},
+										 "       See https://docs.zoitechat.zoite.net/en/latest/en/latest/plugins.html#controlling-the-gui for more details."},
 	{"MHOP", cmd_mhop, 1, 1, 1,
 	 N_("MHOP, Mass hop's all users in the current channel (needs chanop)")},
 	{"MKICK", cmd_mkick, 1, 1, 1,
