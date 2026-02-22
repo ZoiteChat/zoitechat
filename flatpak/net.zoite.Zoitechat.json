@@ -7,10 +7,14 @@
   "command": "zoitechat",
   "finish-args": [
     "--share=ipc",
-    "--socket=wayland",
+    "--socket=x11",
     "--share=network",
     "--socket=pulseaudio",
     "--filesystem=xdg-download",
+    "--filesystem=xdg-data/themes:ro",
+    "--filesystem=xdg-data/icons:ro",
+    "--filesystem=~/.themes:ro",
+    "--filesystem=~/.icons:ro",
 
     "--talk-name=org.freedesktop.Notifications",
 
@@ -18,7 +22,7 @@
   ],
   "add-extensions": {
     "net.zoite.Zoitechat.Plugin": {
-      "version": "20.08",
+      "version": "49",
       "directory": "extensions",
       "add-ld-path": "lib",
       "merge-dirs": "lib/zoitechat/plugins",
@@ -29,7 +33,7 @@
   },
   "modules": [
     "shared-modules/dbus-glib/dbus-glib.json",
-    "shared-modules/lua5.3/lua-5.3.5.json",
+    "shared-modules/lua5.4/lua-5.4.json",
     "shared-modules/libcanberra/libcanberra.json",
     "shared-modules/libayatana-appindicator/libayatana-appindicator-gtk3.json",
     "python3-cffi.json",
@@ -40,7 +44,7 @@
         {
           "type": "git",
           "url": "https://github.com/pavouk/lgi.git",
-          "commit": "95418635aa8151a516d43166227ea2b9d4c4403f"
+          "commit": "c9b8e4473c6421f2a215d8c06c0d94b86eb0b26a"
         }
       ]
     },
@@ -48,7 +52,6 @@
       "name": "zoitechat",
       "buildsystem": "meson",
       "config-opts": [
-        "--buildtype=release",
         "-Dgtk3=true",
         "-Ddbus-service-use-appid=true",
         "-Dwith-perl=false",
@@ -56,7 +59,7 @@
         "-Dwith-lua=lua"
       ],
       "build-options": {
-        "cflags": "-Wno-error=missing-include-dirs"
+        "cflags": "-Dgtk3=true -Wno-error=missing-include-dirs"
       },
       "cleanup": [
         "/share/man"

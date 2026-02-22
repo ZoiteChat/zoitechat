@@ -17,7 +17,7 @@ jobs:
       artifact-metadata: write
 
     container:
-      image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-49
+      image: ghcr.io/flathub-infra/flatpak-github-actions:kde-6.9
       options: --privileged
 
     steps:
@@ -31,7 +31,8 @@ jobs:
         with:
           bundle: zoitechat.flatpak
           manifest-path: flatpak/net.zoite.Zoitechat.json
-          cache-key: flatpak-builder-${{ github.sha }}
+          cache: false
+          restore-cache: false
 
       - name: Upload Flatpak Bundle
         id: upload_flatpak
