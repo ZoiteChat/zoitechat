@@ -61,6 +61,39 @@ jobs:
           rm -rf AppDir
           DESTDIR="${PWD}/AppDir" ninja -C build install
 
+      - name: Bundle scripting runtimes in AppDir
+        run: |
+          set -eux
+
+          python3_version="$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')"
+
+          install -Dm755 "$(command -v python3)" "AppDir/usr/bin/python3"
+          if [ -x "/usr/bin/perl" ]; then
+            install -Dm755 /usr/bin/perl AppDir/usr/bin/perl
+          fi
+
+          install -d AppDir/usr/lib
+          cp -a "/usr/lib/python${python3_version}" "AppDir/usr/lib/"
+
+          if [ -d "/usr/lib/x86_64-linux-gnu/perl" ]; then
+            install -d AppDir/usr/lib/x86_64-linux-gnu
+            cp -a /usr/lib/x86_64-linux-gnu/perl AppDir/usr/lib/x86_64-linux-gnu/
+          fi
+
+          if [ -d "/usr/share/perl" ]; then
+            install -d AppDir/usr/share
+            cp -a /usr/share/perl AppDir/usr/share/
+          fi
+
+          if [ -d "/usr/share/perl5" ]; then
+            install -d AppDir/usr/share
+            cp -a /usr/share/perl5 AppDir/usr/share/
+          fi
+          if compgen -G '/usr/lib/x86_64-linux-gnu/libpython3*.so*' > /dev/null; then
+            install -d AppDir/usr/lib/x86_64-linux-gnu
+            cp -a /usr/lib/x86_64-linux-gnu/libpython3*.so* AppDir/usr/lib/x86_64-linux-gnu/
+          fi
+
       - name: Verify bundled plugins
         run: |
           set -eux
@@ -116,6 +149,14 @@ jobs:
             export GIO_EXTRA_MODULES="$APPDIR/usr/lib/x86_64-linux-gnu/gio/modules${GIO_EXTRA_MODULES:+:$GIO_EXTRA_MODULES}"
           elif [ -d "$APPDIR/usr/lib/gio/modules" ]; then
             export GIO_EXTRA_MODULES="$APPDIR/usr/lib/gio/modules${GIO_EXTRA_MODULES:+:$GIO_EXTRA_MODULES}"
+          fi
+
+          export PYTHONHOME="$APPDIR/usr"
+          python_stdlib_dir="$(find "$APPDIR/usr/lib" -maxdepth 1 -type d -name 'python3.*' | head -n 1 || true)"
+          if [ -n "$python_stdlib_dir" ] && [ -d "$python_stdlib_dir/dist-packages" ]; then
+            export PYTHONPATH="$python_stdlib_dir/dist-packages:$APPDIR/usr/lib/python3/dist-packages${PYTHONPATH:+:$PYTHONPATH}"
+          else
+            export PYTHONPATH="$APPDIR/usr/lib/python3/dist-packages${PYTHONPATH:+:$PYTHONPATH}"
           fi
 
           # OpenSSL trust store override
