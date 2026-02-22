@@ -75,6 +75,16 @@ jobs:
           install -d AppDir/usr/lib
           cp -a "/usr/lib/python${python3_version}" "AppDir/usr/lib/"
 
+          if [ -d "/usr/lib/python3/dist-packages" ]; then
+            install -d AppDir/usr/lib/python3
+            cp -a /usr/lib/python3/dist-packages AppDir/usr/lib/python3/
+          fi
+
+          if [ -d "/usr/lib/x86_64-linux-gnu/python3/dist-packages" ]; then
+            install -d AppDir/usr/lib/x86_64-linux-gnu/python3
+            cp -a /usr/lib/x86_64-linux-gnu/python3/dist-packages AppDir/usr/lib/x86_64-linux-gnu/python3/
+          fi
+
           if [ -d "/usr/lib/x86_64-linux-gnu/perl" ]; then
             install -d AppDir/usr/lib/x86_64-linux-gnu
             cp -a /usr/lib/x86_64-linux-gnu/perl AppDir/usr/lib/x86_64-linux-gnu/
@@ -153,10 +163,18 @@ jobs:
 
           export PYTHONHOME="$APPDIR/usr"
           python_stdlib_dir="$(find "$APPDIR/usr/lib" -maxdepth 1 -type d -name 'python3.*' | head -n 1 || true)"
+          pythonpath_entries=""
           if [ -n "$python_stdlib_dir" ] && [ -d "$python_stdlib_dir/dist-packages" ]; then
-            export PYTHONPATH="$python_stdlib_dir/dist-packages:$APPDIR/usr/lib/python3/dist-packages${PYTHONPATH:+:$PYTHONPATH}"
-          else
-            export PYTHONPATH="$APPDIR/usr/lib/python3/dist-packages${PYTHONPATH:+:$PYTHONPATH}"
+            pythonpath_entries="$python_stdlib_dir/dist-packages"
+          fi
+          if [ -d "$APPDIR/usr/lib/python3/dist-packages" ]; then
+            pythonpath_entries="${pythonpath_entries:+$pythonpath_entries:}$APPDIR/usr/lib/python3/dist-packages"
+          fi
+          if [ -d "$APPDIR/usr/lib/x86_64-linux-gnu/python3/dist-packages" ]; then
+            pythonpath_entries="${pythonpath_entries:+$pythonpath_entries:}$APPDIR/usr/lib/x86_64-linux-gnu/python3/dist-packages"
+          fi
+          if [ -n "$pythonpath_entries" ]; then
+            export PYTHONPATH="$pythonpath_entries${PYTHONPATH:+:$PYTHONPATH}"
           fi
 
           # OpenSSL trust store override
