@@ -686,7 +686,7 @@ gtkutil_file_req_response (GtkWidget *dialog, gint res, struct file_req *freq)
 	gtk_widget_destroy (dialog);
 }
 
-#if defined (WIN32) && HAVE_GTK3
+#ifdef WIN32
 static gboolean
 gtkutil_native_dialog_unref_idle (gpointer native)
 {
@@ -730,7 +730,7 @@ gtkutil_file_req (GtkWindow *parent, const char *title, void *callback, void *us
 
 	xdir = get_xdir ();
 
-#if defined (WIN32) && HAVE_GTK3
+#ifdef WIN32
 	{
 		GtkFileChooserNative *native = gtk_file_chooser_native_new (
 			title,

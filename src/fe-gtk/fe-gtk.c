@@ -673,7 +673,7 @@ fe_apply_theme_to_toplevel (GtkWidget *window)
 	if (!window)
 		return;
 
-#if defined(G_OS_WIN32) && HAVE_GTK3
+#ifdef G_OS_WIN32
 	{
 		GtkStyleContext *context = gtk_widget_get_style_context (window);
 		gboolean dark = fe_dark_mode_is_enabled ();

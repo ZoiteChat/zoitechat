@@ -32,22 +32,6 @@
 #include <gtk/gtk.h>
 #include <cairo.h>
 
-#ifndef HAVE_GTK3
-#if GTK_MAJOR_VERSION >= 3
-#define HAVE_GTK3 1
-#else
-#define HAVE_GTK3 0
-#endif
-#endif
-
-#if !HAVE_GTK3
-/* GtkWidget expansion APIs were introduced in GTK3. Keep GTK2 builds
- * source-compatible by accepting the calls as no-ops.
- */
-#define gtk_widget_set_hexpand(widget, expand) G_STMT_START { (void) (widget); (void) (expand); } G_STMT_END
-#define gtk_widget_set_vexpand(widget, expand) G_STMT_START { (void) (widget); (void) (expand); } G_STMT_END
-#endif
-
 #ifdef HAVE_GTK_MAC
 #include <gtkosxapplication.h>
 #endif
@@ -64,14 +48,10 @@
 #define flag_b flag_wid[7]
 #define NUM_FLAG_WIDS 8
 
-#if HAVE_GTK3
 typedef struct _input_style
 {
 	PangoFontDescription *font_desc;
 } InputStyle;
-#else
-typedef GtkStyle InputStyle;
-#endif
 
 #ifdef HAVE_GTK_MAC
 extern GtkosxApplication *osx_app;
