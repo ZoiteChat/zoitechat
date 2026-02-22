@@ -2,8 +2,13 @@
 option('gtk-frontend', type: 'boolean',
   description: 'Main graphical interface'
 )
+<<<<<<< ours
 option('gtk3', type: 'boolean', value: true, deprecated: true,
   description: 'Deprecated: GTK frontend always builds against GTK 3'
+=======
+option('gtk3', type: 'boolean', value: true,
+  description: 'Deprecated: GTK frontend is always built against GTK 3 (option is ignored)'
+>>>>>>> theirs
 )
 option('text-frontend', type: 'boolean', value: false,
   description: 'Text interface (not generally useful)'
@@ -23,7 +28,11 @@ option('libcanberra', type: 'feature', value: 'auto',
   description: 'Support for sound alerts, Unix only'
 )
 option('appindicator', type: 'feature', value: 'auto',
+<<<<<<< ours
   description: 'Use Ayatana/AppIndicator-based tray backend for GTK frontend (non-Windows only)'
+=======
+  description: 'Use Ayatana/AppIndicator-based tray backend for GTK frontend builds'
+>>>>>>> theirs
 )
 
 # Install options
