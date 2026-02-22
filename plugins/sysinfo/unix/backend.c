@@ -19,7 +19,11 @@
 
 #include <glib.h>
 
-#if defined(HAVE_GTK3)
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+#if defined(USE_GTK_FRONTEND)
 #include <gdk/gdk.h>
 #endif
 #include "parse.h"
@@ -175,7 +179,7 @@ char *sysinfo_backend_get_network(void)
 
 static const char *sysinfo_detect_toolkit(void)
 {
-#if defined(HAVE_GTK3)
+#if defined(USE_GTK_FRONTEND)
 	return "GTK3";
 #else
 	return NULL;
@@ -190,7 +194,7 @@ static const char *sysinfo_detect_display_backend(void)
 	const gboolean session_wayland = session && g_ascii_strcasecmp(session, "wayland") == 0;
 
 	/* Best-effort: ask GDK what it actually opened, if available. */
-#if defined(HAVE_GTK3)
+#if defined(USE_GTK_FRONTEND)
 	{
 		GdkDisplay *display = gdk_display_get_default();
 		if (display)

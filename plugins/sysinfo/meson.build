@@ -10,7 +10,7 @@ sysinfo_deps = [
 ]
 
 sysinfo_includes = []
-sysinfo_cargs = []
+sysinfo_cargs = ['-DHAVE_CONFIG_H']
 
 system = host_machine.system()
 if system == 'linux' or system == 'gnu' or system.startswith('gnu/') or system == 'darwin' or system == 'freebsd'
@@ -18,6 +18,10 @@ if system == 'linux' or system == 'gnu' or system.startswith('gnu/') or system =
   sysinfo_sources += [
     'shared/df.c'
   ]
+
+  if get_option('gtk-frontend')
+    sysinfo_cargs += '-DUSE_GTK_FRONTEND'
+  endif
 
   if system == 'linux' or system == 'gnu' or system.startswith('gnu/') or system == 'freebsd'
     libpci = dependency('libpci', required: false, method: 'pkg-config')
@@ -30,6 +34,10 @@ if system == 'linux' or system == 'gnu' or system.startswith('gnu/') or system =
       pciids = join_paths(picidsdir, 'pci.ids')
       sysinfo_cargs += '-DPCIIDS_FILE="@0@"'.format(pciids)
     endif
+    if get_option('gtk-frontend')
+      sysinfo_deps += dependency('gtk+-3.0', version: '>= 3.22')
+    endif
+
     sysinfo_includes += 'unix'
     sysinfo_sources += [
       'unix/backend.c',
@@ -52,7 +60,7 @@ endif
 
 shared_module('sysinfo', sysinfo_sources,
   dependencies: sysinfo_deps,
-  include_directories: include_directories(sysinfo_includes),
+  include_directories: [config_h_include, include_directories(sysinfo_includes)],
   c_args: sysinfo_cargs,
   install: true,
   install_dir: plugindir,

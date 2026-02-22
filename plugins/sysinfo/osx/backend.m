@@ -32,6 +32,10 @@
 
 #include <glib.h>
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include "format.h"
 #include "df.h"
 
@@ -276,7 +280,7 @@ sysinfo_backend_get_network(void)
 
 static const char *sysinfo_detect_toolkit(void)
 {
-#if defined(HAVE_GTK3)
+#if defined(USE_GTK_FRONTEND)
 	return "GTK3";
 #else
 	return NULL;
