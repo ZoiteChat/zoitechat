@@ -52,6 +52,7 @@
       "name": "zoitechat",
       "buildsystem": "meson",
       "config-opts": [
+        "-Dgtk3=true",
         "-Ddbus-service-use-appid=true",
         "-Dwith-perl=false",
         "-Dwith-python=false",
