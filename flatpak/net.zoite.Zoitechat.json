@@ -16,6 +16,7 @@
     "--filesystem=xdg-data/icons:ro",
     "--filesystem=~/.themes:ro",
     "--filesystem=~/.icons:ro",
+    "--filesystem=xdg-run/tray-icon:create",
 
     "--talk-name=org.freedesktop.Notifications",
 
