@@ -31,7 +31,8 @@ jobs:
         with:
           bundle: zoitechat.flatpak
           manifest-path: flatpak/net.zoite.Zoitechat.json
-          cache-key: flatpak-builder-${{ github.sha }}
+          cache: false
+          restore-cache: false
 
       - name: Upload Flatpak Bundle
         id: upload_flatpak
