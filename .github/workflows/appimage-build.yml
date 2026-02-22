@@ -61,6 +61,17 @@ jobs:
           rm -rf AppDir
           DESTDIR="${PWD}/AppDir" ninja -C build install
 
+      - name: Verify bundled plugins
+        run: |
+          set -eux
+
+          # Include every built-in plugin except the Windows-only update plugin.
+          find AppDir/usr/lib -maxdepth 4 -type f -name '*.so' -path '*/zoitechat/plugins/*' -print | sort
+
+          for plugin in checksum fishlim lua perl python sysinfo; do
+            find "AppDir/usr/lib" -maxdepth 4 -type f -name "${plugin}.so" -path '*/zoitechat/plugins/*' -print -quit | grep -q .
+          done
+
       - name: Build AppImage
         env:
           APPIMAGE_EXTRACT_AND_RUN: 1
@@ -90,6 +101,12 @@ jobs:
           export PATH="$APPDIR/usr/bin:${PATH:-/usr/bin:/bin}"
           export LD_LIBRARY_PATH="$APPDIR/usr/lib:$APPDIR/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH:-}"
           export XDG_DATA_DIRS="$APPDIR/usr/share:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
+
+          if [ -d "$APPDIR/usr/lib/x86_64-linux-gnu/zoitechat/plugins" ]; then
+            export ZOITECHAT_LIBDIR="$APPDIR/usr/lib/x86_64-linux-gnu/zoitechat/plugins"
+          elif [ -d "$APPDIR/usr/lib/zoitechat/plugins" ]; then
+            export ZOITECHAT_LIBDIR="$APPDIR/usr/lib/zoitechat/plugins"
+          fi
 
           if [ -d "$APPDIR/usr/share/glib-2.0/schemas" ]; then
             export GSETTINGS_SCHEMA_DIR="$APPDIR/usr/share/glib-2.0/schemas${GSETTINGS_SCHEMA_DIR:+:$GSETTINGS_SCHEMA_DIR}"
