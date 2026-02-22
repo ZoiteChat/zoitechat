@@ -35,42 +35,35 @@ zoitechat_gtk_deps = [
   libgmodule_dep, # used by libsexy
 ]
 
-if get_option('gtk3')
-  gtk_dep = dependency('gtk+-3.0', version: '>= 3.22')
-  zoitechat_gtk_cflags += '-DHAVE_GTK3'
+gtk_dep = dependency('gtk+-3.0', version: '>= 3.22')
+zoitechat_gtk_cflags += '-DHAVE_GTK3'
 
-  if host_machine.system() != 'windows'
-    appindicator_opt = get_option('appindicator')
+if host_machine.system() != 'windows'
+  appindicator_opt = get_option('appindicator')
 
-    if appindicator_opt.allowed()
-      appindicator_dep = dependency('ayatana-appindicator3-0.1', required: false)
+  if appindicator_opt.allowed()
+    appindicator_dep = dependency('ayatana-appindicator3-0.1', required: false)
+    if appindicator_dep.found()
+      zoitechat_gtk_deps += appindicator_dep
+      zoitechat_gtk_cflags += '-DHAVE_AYATANA_APPINDICATOR'
+    else
+      appindicator_dep = dependency('appindicator3-0.1', required: false)
       if appindicator_dep.found()
         zoitechat_gtk_deps += appindicator_dep
-        zoitechat_gtk_cflags += '-DHAVE_AYATANA_APPINDICATOR'
-      else
-        appindicator_dep = dependency('appindicator3-0.1', required: false)
-        if appindicator_dep.found()
-          zoitechat_gtk_deps += appindicator_dep
-          zoitechat_gtk_cflags += '-DHAVE_APPINDICATOR'
-        elif appindicator_opt.enabled()
-          error('appindicator=enabled, but neither ayatana-appindicator3-0.1 nor appindicator3-0.1 was found')
-        endif
+        zoitechat_gtk_cflags += '-DHAVE_APPINDICATOR'
+      elif appindicator_opt.enabled()
+        error('appindicator=enabled, but neither ayatana-appindicator3-0.1 nor appindicator3-0.1 was found')
       endif
     endif
   endif
-else
-  gtk_dep = dependency('gtk+-2.0', version: '>= 2.24.0')
-  zoitechat_gtk_cflags += '-DHAVE_GTK2'
 endif
 
 zoitechat_gtk_deps += gtk_dep
 
 if host_machine.system() != 'windows'
-  if get_option('gtk3')
-    gdk_x11_dep = dependency('gdk-x11-3.0', required: false)
-    if gdk_x11_dep.found()
-      zoitechat_gtk_deps += gdk_x11_dep
-    endif
+  gdk_x11_dep = dependency('gdk-x11-3.0', required: false)
+  if gdk_x11_dep.found()
+    zoitechat_gtk_deps += gdk_x11_dep
   endif
 
   x11_dep = dependency('x11', required: false)

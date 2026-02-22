@@ -177,6 +177,7 @@ if meson.version().version_compare('>= 0.55.0')
   }, section: 'Directories')
 
   summary({
+    'GTK Frontend': get_option('gtk-frontend') ? 'enabled (GTK+ 3.22+)' : 'disabled',
     'TLS (openssl)': libssl_dep.found(),
     'Plugin Support': get_option('plugin'),
     'DBus Support': dbus_glib_dep.found(),
