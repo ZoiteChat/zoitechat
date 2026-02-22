@@ -22,6 +22,9 @@ option('dbus', type: 'feature', value: 'auto',
 option('libcanberra', type: 'feature', value: 'auto',
   description: 'Support for sound alerts, Unix only'
 )
+option('appindicator', type: 'feature', value: 'auto',
+  description: 'Use Ayatana/AppIndicator-based tray backend when GTK3 is enabled'
+)
 
 # Install options
 option('dbus-service-use-appid', type: 'boolean', value: false,

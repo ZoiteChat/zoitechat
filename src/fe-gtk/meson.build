@@ -40,15 +40,21 @@ if get_option('gtk3')
   zoitechat_gtk_cflags += '-DHAVE_GTK3'
 
   if host_machine.system() != 'windows'
-    appindicator_dep = dependency('ayatana-appindicator3-0.1', required: false)
-    if appindicator_dep.found()
-      zoitechat_gtk_deps += appindicator_dep
-      zoitechat_gtk_cflags += '-DHAVE_AYATANA_APPINDICATOR'
-    else
-      appindicator_dep = dependency('appindicator3-0.1', required: false)
+    appindicator_opt = get_option('appindicator')
+
+    if appindicator_opt.allowed()
+      appindicator_dep = dependency('ayatana-appindicator3-0.1', required: false)
       if appindicator_dep.found()
         zoitechat_gtk_deps += appindicator_dep
-        zoitechat_gtk_cflags += '-DHAVE_APPINDICATOR'
+        zoitechat_gtk_cflags += '-DHAVE_AYATANA_APPINDICATOR'
+      else
+        appindicator_dep = dependency('appindicator3-0.1', required: false)
+        if appindicator_dep.found()
+          zoitechat_gtk_deps += appindicator_dep
+          zoitechat_gtk_cflags += '-DHAVE_APPINDICATOR'
+        elif appindicator_opt.enabled()
+          error('appindicator=enabled, but neither ayatana-appindicator3-0.1 nor appindicator3-0.1 was found')
+        endif
       endif
     endif
   endif
