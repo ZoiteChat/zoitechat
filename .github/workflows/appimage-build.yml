@@ -98,7 +98,7 @@ jobs:
 
           APPDIR="${APPDIR:-$(dirname "$(readlink -f "$0")")}"
 
-          export PATH="$APPDIR/usr/bin:${PATH:-/usr/bin:/bin}"
+          export PATH="${PATH:-/usr/bin:/bin}:$APPDIR/usr/bin"
           export LD_LIBRARY_PATH="$APPDIR/usr/lib:$APPDIR/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH:-}"
           export XDG_DATA_DIRS="$APPDIR/usr/share:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
 
