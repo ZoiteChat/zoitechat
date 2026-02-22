@@ -111,6 +111,7 @@ jobs:
 
           install -d AppDir/usr/lib/x86_64-linux-gnu
           cp -a /usr/lib/x86_64-linux-gnu/libenchant-2.so* AppDir/usr/lib/x86_64-linux-gnu/
+          cp -a /usr/lib/x86_64-linux-gnu/libhunspell-*.so* AppDir/usr/lib/x86_64-linux-gnu/
 
           if [ -d /usr/lib/x86_64-linux-gnu/enchant-2 ]; then
             install -d AppDir/usr/lib/x86_64-linux-gnu
@@ -142,6 +143,12 @@ jobs:
           for plugin in checksum fishlim lua perl python sysinfo; do
             find "AppDir/usr/lib" -maxdepth 4 -type f -name "${plugin}.so" -path '*/zoitechat/plugins/*' -print -quit | grep -q .
           done
+
+          # Ensure Enchant has a provider module and dictionary data inside AppDir.
+          find AppDir/usr/lib -maxdepth 4 -type f -name 'libenchant_hunspell.so' -path '*/enchant-2/*' -print -quit | grep -q .
+          find AppDir/usr/share/hunspell -maxdepth 1 -type f \( -name 'en_US.aff' -o -name 'en_US.dic' \) -print | sort
+          test -f AppDir/usr/share/hunspell/en_US.aff
+          test -f AppDir/usr/share/hunspell/en_US.dic
 
       - name: Build AppImage
         env:
