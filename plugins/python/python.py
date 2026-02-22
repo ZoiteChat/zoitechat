@@ -550,6 +550,12 @@ def _on_plugin_init(plugin_name, plugin_desc, plugin_version, arg, libdir):
                 os.path.join(appdir, 'usr', 'lib', 'x86_64-linux-gnu', 'zoitechat', 'python'),
             ])
 
+        if os.getenv('FLATPAK_ID'):
+            modpaths.extend([
+                '/app/lib/zoitechat/python',
+                '/app/lib/x86_64-linux-gnu/zoitechat/python',
+            ])
+
         for modpath in modpaths:
             if os.path.isdir(modpath) and modpath not in sys.path:
                 sys.path.append(modpath)
