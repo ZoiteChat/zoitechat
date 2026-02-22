@@ -2,9 +2,6 @@
 option('gtk-frontend', type: 'boolean',
   description: 'Main graphical interface'
 )
-option('gtk3', type: 'boolean', value: false,
-  description: 'Build GTK frontend against GTK 3'
-)
 option('text-frontend', type: 'boolean', value: false,
   description: 'Text interface (not generally useful)'
 )
@@ -23,7 +20,7 @@ option('libcanberra', type: 'feature', value: 'auto',
   description: 'Support for sound alerts, Unix only'
 )
 option('appindicator', type: 'feature', value: 'auto',
-  description: 'Use Ayatana/AppIndicator-based tray backend when GTK3 is enabled'
+  description: 'Use Ayatana/AppIndicator-based tray backend for GTK frontend (non-Windows only)'
 )
 
 # Install options

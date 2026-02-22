@@ -43,7 +43,6 @@ jobs:
           rm -rf build
           meson setup build \
             --prefix=/usr \
-            -Dgtk3=true \
             -Dtext-frontend=true \
             -Dwith-perl=perl \
             -Dwith-python=python3 \

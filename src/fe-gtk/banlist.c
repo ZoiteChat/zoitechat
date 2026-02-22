@@ -37,16 +37,9 @@
 #include "maingui.h"
 #include "banlist.h"
 
-#if HAVE_GTK3
 #define ICON_BANLIST_REMOVE "list-remove"
 #define ICON_BANLIST_CLEAR "edit-clear"
 #define ICON_BANLIST_REFRESH "view-refresh"
-#endif
-#if !HAVE_GTK3
-#define ICON_BANLIST_REMOVE GTK_STOCK_REMOVE
-#define ICON_BANLIST_CLEAR GTK_STOCK_CLEAR
-#define ICON_BANLIST_REFRESH GTK_STOCK_REFRESH
-#endif
 
 /*
  * These supports_* routines set capable, readable, writable bits */
@@ -788,11 +781,7 @@ banlist_table_new (void)
 {
 	GtkWidget *table = gtkutil_grid_new (1, MODE_CT, FALSE);
 
-#if HAVE_GTK3
 	gtk_grid_set_column_spacing (GTK_GRID (table), 16);
-#else
-	gtk_table_set_col_spacings (GTK_TABLE (table), 16);
-#endif
 	return table;
 }
 
@@ -857,13 +846,8 @@ banlist_opengui (struct session *sess)
 				     GTKUTIL_ATTACH_FILL, GTKUTIL_ATTACH_FILL, 0, 0);
 	}
 
-#if HAVE_GTK3
 	bbox = gtk_button_box_new (GTK_ORIENTATION_HORIZONTAL);
 	gtk_button_box_set_layout (GTK_BUTTON_BOX (bbox), GTK_BUTTONBOX_SPREAD);
-#elif !HAVE_GTK3
-	bbox = gtk_hbutton_box_new ();
-	gtk_button_box_set_layout (GTK_BUTTON_BOX (bbox), GTK_BUTTONBOX_SPREAD);
-#endif
 	gtk_container_set_border_width (GTK_CONTAINER (bbox), 5);
 	gtk_box_pack_end (GTK_BOX (vbox), bbox, 0, 0, 0);
 	gtk_widget_show (bbox);

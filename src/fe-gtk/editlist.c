@@ -42,18 +42,10 @@
 #include "maingui.h"
 #include "editlist.h"
 
-#if HAVE_GTK3
 #define ICON_EDITLIST_NEW "document-new"
 #define ICON_EDITLIST_DELETE "edit-delete"
 #define ICON_EDITLIST_CANCEL "dialog-cancel"
 #define ICON_EDITLIST_SAVE "document-save"
-#endif
-#if !HAVE_GTK3
-#define ICON_EDITLIST_NEW GTK_STOCK_NEW
-#define ICON_EDITLIST_DELETE GTK_STOCK_DELETE
-#define ICON_EDITLIST_CANCEL GTK_STOCK_CANCEL
-#define ICON_EDITLIST_SAVE GTK_STOCK_SAVE
-#endif
 
 enum
 {
@@ -361,13 +353,8 @@ editlist_gui_open (char *title1, char *title2, GSList *list, char *title, char *
 	if (help)
 		gtk_widget_set_tooltip_text (view, help);
 
-#if HAVE_GTK3
 	box = gtk_button_box_new (GTK_ORIENTATION_HORIZONTAL);
 	gtk_button_box_set_layout (GTK_BUTTON_BOX (box), GTK_BUTTONBOX_SPREAD);
-#elif !HAVE_GTK3
-	box = gtk_hbutton_box_new ();
-	gtk_button_box_set_layout (GTK_BUTTON_BOX (box), GTK_BUTTONBOX_SPREAD);
-#endif
 	gtk_box_pack_start (GTK_BOX (vbox), box, FALSE, FALSE, 2);
 	gtk_container_set_border_width (GTK_CONTAINER (box), 5);
 	gtk_widget_show (box);

@@ -37,18 +37,10 @@
 #include "palette.h"
 #include "notifygui.h"
 
-#if HAVE_GTK3
 #define ICON_NOTIFY_NEW "document-new"
 #define ICON_NOTIFY_DELETE "edit-delete"
 #define LABEL_NOTIFY_CANCEL _("_Cancel")
 #define LABEL_NOTIFY_OK _("_OK")
-#endif
-#if !HAVE_GTK3
-#define ICON_NOTIFY_NEW GTK_STOCK_NEW
-#define ICON_NOTIFY_DELETE GTK_STOCK_DELETE
-#define LABEL_NOTIFY_CANCEL GTK_STOCK_CANCEL
-#define LABEL_NOTIFY_OK GTK_STOCK_OK
-#endif
 
 
 /* model for the notify treeview */
@@ -91,24 +83,16 @@ notify_treecell_property_mapper (GtkTreeViewColumn *col, GtkCellRenderer *cell,
 	gtk_tree_model_get (GTK_TREE_MODEL (model), iter, 
 	                    COLOUR_COLUMN, &colour,
 	                    model_column, &text, -1);
-#if HAVE_GTK3
 	g_object_set (G_OBJECT (cell), "text", text,
 	              PALETTE_FOREGROUND_PROPERTY, colour, NULL);
 	if (colour)
 		gdk_rgba_free (colour);
-#else
-	g_object_set (G_OBJECT (cell), "text", text,
-	              PALETTE_FOREGROUND_PROPERTY, colour, NULL);
-	if (colour)
-		gdk_color_free (colour);
-#endif
 	g_free (text);
 }
 
 static void
 notify_store_color (GtkListStore *store, GtkTreeIter *iter, const PaletteColor *color)
 {
-#if HAVE_GTK3
 	if (color)
 	{
 		GdkRGBA rgba = *color;
@@ -118,9 +102,6 @@ notify_store_color (GtkListStore *store, GtkTreeIter *iter, const PaletteColor *
 	{
 		gtk_list_store_set (store, iter, COLOUR_COLUMN, NULL, -1);
 	}
-#else
-	gtk_list_store_set (store, iter, COLOUR_COLUMN, color, -1);
-#endif
 }
 
 static void
@@ -398,13 +379,8 @@ fe_notify_ask (char *nick, char *networks)
 
 	table = gtkutil_grid_new (2, 3, FALSE);
 	gtk_container_set_border_width (GTK_CONTAINER (table), 12);
-#if HAVE_GTK3
 	gtk_grid_set_row_spacing (GTK_GRID (table), 3);
 	gtk_grid_set_column_spacing (GTK_GRID (table), 8);
-#else
-	gtk_table_set_row_spacings (GTK_TABLE (table), 3);
-	gtk_table_set_col_spacings (GTK_TABLE (table), 8);
-#endif
 	gtk_container_add (GTK_CONTAINER (gtk_dialog_get_content_area (GTK_DIALOG (dialog))), table);
 
 	label = gtk_label_new (msg);
@@ -465,13 +441,8 @@ notify_opengui (void)
 	view = notify_treeview_new (vbox);
 	g_object_set_data (G_OBJECT (notify_window), "view", view);
   
-#if HAVE_GTK3
 	bbox = gtk_button_box_new (GTK_ORIENTATION_HORIZONTAL);
 	gtk_button_box_set_layout (GTK_BUTTON_BOX (bbox), GTK_BUTTONBOX_SPREAD);
-#elif !HAVE_GTK3
-	bbox = gtk_hbutton_box_new ();
-	gtk_button_box_set_layout (GTK_BUTTON_BOX (bbox), GTK_BUTTONBOX_SPREAD);
-#endif
 	gtk_container_set_border_width (GTK_CONTAINER (bbox), 5);
 	gtk_box_pack_end (GTK_BOX (vbox), bbox, 0, 0, 0);
 	gtk_widget_show (bbox);

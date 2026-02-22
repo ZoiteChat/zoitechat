@@ -31,7 +31,6 @@
 #include "menu.h"
 #include "gtkutil.h"
 
-#if HAVE_GTK3
 #include <gio/gio.h>
 #if defined(GTK_DISABLE_DEPRECATED)
 typedef struct _GtkStatusIcon GtkStatusIcon;
@@ -41,7 +40,6 @@ typedef struct _GtkStatusIcon GtkStatusIcon;
 #include <libayatana-appindicator/app-indicator.h>
 #elif defined(HAVE_APPINDICATOR)
 #include <libappindicator/app-indicator.h>
-#endif
 #endif
 #endif
 
@@ -70,7 +68,7 @@ typedef enum
 	WS_HIDDEN
 } WinStatus;
 
-#if HAVE_GTK3 && !defined(WIN32) && (defined(HAVE_AYATANA_APPINDICATOR) || defined(HAVE_APPINDICATOR))
+#if !defined(WIN32) && (defined(HAVE_AYATANA_APPINDICATOR) || defined(HAVE_APPINDICATOR))
 #define HAVE_APPINDICATOR_BACKEND 1
 #else
 #define HAVE_APPINDICATOR_BACKEND 0
@@ -109,7 +107,7 @@ typedef GdkPixbuf* TrayCustomIcon;
 #define ICON_HILIGHT pix_tray_highlight
 #define ICON_FILE pix_tray_fileoffer
 #endif
-#if HAVE_GTK3 && defined(GTK_DISABLE_DEPRECATED) && !HAVE_APPINDICATOR_BACKEND
+#if defined(GTK_DISABLE_DEPRECATED) && !HAVE_APPINDICATOR_BACKEND
 GtkStatusIcon *gtk_status_icon_new_from_pixbuf (GdkPixbuf *pixbuf);
 void gtk_status_icon_set_from_pixbuf (GtkStatusIcon *status_icon, GdkPixbuf *pixbuf);
 void gtk_status_icon_set_tooltip_text (GtkStatusIcon *status_icon, const gchar *text);
@@ -1098,7 +1096,7 @@ tray_menu_populate (GtkWidget *menu)
 	mg_create_icon_item (_("_Quit"), ICON_TRAY_QUIT, menu, tray_menu_quit_cb, NULL);
 }
 
-#if HAVE_GTK3 && !defined(WIN32)
+#if !defined(WIN32)
 static void
 tray_menu_clear (GtkWidget *menu)
 {

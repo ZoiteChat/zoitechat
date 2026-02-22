@@ -137,21 +137,11 @@ cv_tree_init (chanview *cv)
 	gtk_widget_set_vexpand (view, TRUE);
 	gtk_widget_set_name (view, "zoitechat-tree");
 	if (
-#if HAVE_GTK3
 		cv->font_desc
-#else
-		cv->style
-#endif
 	)
 	{
-#if HAVE_GTK3
 		gtkutil_apply_palette (view, &colors[COL_BG], &colors[COL_FG],
 		                       cv->font_desc);
-#else
-		gtkutil_apply_palette (view, &cv->style->base[GTK_STATE_NORMAL],
-		                       &cv->style->text[GTK_STATE_NORMAL],
-		                       cv->style->font_desc);
-#endif
 	}
 	/*gtk_widget_modify_base (view, GTK_STATE_NORMAL, &colors[COL_BG]);*/
 	gtk_widget_set_can_focus (view, FALSE);

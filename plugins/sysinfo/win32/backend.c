@@ -26,6 +26,10 @@
 
 #include <glib.h>
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include "../../../src/common/sysinfo/sysinfo.h"
 
 #include "../format.h"
@@ -106,12 +110,8 @@ static char *get_memory_info (void)
 
 static const char *sysinfo_detect_toolkit(void)
 {
-#if defined(HAVE_GTK3)
+#if defined(USE_GTK_FRONTEND)
 	return "GTK3";
-#elif defined(HAVE_GTK2)
-	return "GTK2";
-#elif defined(HAVE_GTK)
-	return "GTK";
 #else
 	return NULL;
 #endif

@@ -73,11 +73,7 @@ chanlistrow;
  *             structure.                                          */
 struct _CustomList
 {
-#if HAVE_GTK3
 	GObject parent_instance;
-#else
-	GObject parent;
-#endif
 
 	guint num_rows;     /* number of rows that we have used */
 	guint num_alloc;    /* number of rows allocated */

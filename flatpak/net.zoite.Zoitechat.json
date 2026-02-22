@@ -56,14 +56,13 @@
       "name": "zoitechat",
       "buildsystem": "meson",
       "config-opts": [
-        "-Dgtk3=true",
         "-Ddbus-service-use-appid=true",
         "-Dwith-perl=false",
         "-Dwith-python=false",
         "-Dwith-lua=lua"
       ],
       "build-options": {
-        "cflags": "-Dgtk3=true -Wno-error=missing-include-dirs"
+        "cflags": "-Wno-error=missing-include-dirs"
       },
       "cleanup": [
         "/share/man"

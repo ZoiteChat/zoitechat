@@ -473,7 +473,6 @@ userlist_store_color (GtkListStore *store, GtkTreeIter *iter, int color_index)
 {
 	const PaletteColor *color = color_index ? &colors[color_index] : NULL;
 
-#if HAVE_GTK3
 	if (color)
 	{
 		GdkRGBA rgba = *color;
@@ -483,9 +482,6 @@ userlist_store_color (GtkListStore *store, GtkTreeIter *iter, int color_index)
 	{
 		gtk_list_store_set (store, iter, COL_GDKCOLOR, NULL, -1);
 	}
-#else
-	gtk_list_store_set (store, iter, COL_GDKCOLOR, color, -1);
-#endif
 }
 
 GtkListStore *

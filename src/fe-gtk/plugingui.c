@@ -68,7 +68,6 @@ plugingui_get_target_session (void)
 #define ICON_PLUGIN_UNLOAD "zc-menu-delete"
 #define ICON_PLUGIN_RELOAD "zc-menu-refresh"
 
-#if HAVE_GTK3
 static GtkWidget *
 plugingui_icon_button (GtkWidget *box, const char *label,
 							  const char *icon_name, GCallback callback,
@@ -87,7 +86,6 @@ plugingui_icon_button (GtkWidget *box, const char *label,
 
 	return button;
 }
-#endif
 
 
 static GtkWidget *
@@ -355,17 +353,11 @@ plugingui_open (void)
 	g_object_set_data (G_OBJECT (plugin_window), "view", view);
 
 
-#if HAVE_GTK3
 	hbox = gtk_button_box_new (GTK_ORIENTATION_HORIZONTAL);
 	gtk_button_box_set_layout (GTK_BUTTON_BOX (hbox), GTK_BUTTONBOX_SPREAD);
-#elif !HAVE_GTK3
-	hbox = gtk_hbutton_box_new ();
-	gtk_button_box_set_layout (GTK_BUTTON_BOX (hbox), GTK_BUTTONBOX_SPREAD);
-#endif
 	gtk_container_set_border_width (GTK_CONTAINER (hbox), 5);
 	gtk_box_pack_end (GTK_BOX (vbox), hbox, 0, 0, 0);
 
-#if HAVE_GTK3
 	{
 		plugingui_icon_button (hbox, _("_Load..."), ICON_PLUGIN_LOAD,
 									  G_CALLBACK (plugingui_loadbutton_cb), NULL);
@@ -374,17 +366,6 @@ plugingui_open (void)
 		plugingui_icon_button (hbox, _("_Reload"), ICON_PLUGIN_RELOAD,
 									  G_CALLBACK (plugingui_reloadbutton_cb), view);
 	}
-#endif
-#if !HAVE_GTK3
-	gtkutil_button (hbox, ICON_PLUGIN_LOAD, NULL,
-	                plugingui_loadbutton_cb, NULL, _("_Load..."));
-
-	gtkutil_button (hbox, ICON_PLUGIN_UNLOAD, NULL,
-	                plugingui_unload, NULL, _("_Unload"));
-
-	gtkutil_button (hbox, ICON_PLUGIN_RELOAD, NULL,
-	                plugingui_reloadbutton_cb, view, _("_Reload"));
-#endif
 
 	fe_pluginlist_update ();
 

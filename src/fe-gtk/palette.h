@@ -24,30 +24,18 @@
 
 #include "xtext-color.h"
 
-#if HAVE_GTK3
 typedef GdkRGBA PaletteColor;
 #define PALETTE_GDK_TYPE GDK_TYPE_RGBA
 #define PALETTE_FOREGROUND_PROPERTY "foreground-rgba"
-#else
-typedef GdkColor PaletteColor;
-#define PALETTE_GDK_TYPE GDK_TYPE_COLOR
-#define PALETTE_FOREGROUND_PROPERTY "foreground-gdk"
-#endif
 
 extern PaletteColor colors[];
 
 static inline void
 palette_color_get_rgb16 (const PaletteColor *color, guint16 *red, guint16 *green, guint16 *blue)
 {
-#if HAVE_GTK3
 	*red = (guint16) CLAMP (color->red * 65535.0 + 0.5, 0.0, 65535.0);
 	*green = (guint16) CLAMP (color->green * 65535.0 + 0.5, 0.0, 65535.0);
 	*blue = (guint16) CLAMP (color->blue * 65535.0 + 0.5, 0.0, 65535.0);
-#else
-	*red = color->red;
-	*green = color->green;
-	*blue = color->blue;
-#endif
 }
 
 #define COL_MARK_FG 32
