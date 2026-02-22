@@ -311,6 +311,19 @@ tray_gtk3_icon_to_name (TrayIcon icon, char **allocated)
 		names = g_themed_icon_get_names (G_THEMED_ICON (icon));
 		if (names && names[0])
 		{
+			/*
+			 * Some StatusNotifier hosts (e.g. XFCE plugin combinations) can fail to
+			 * resolve our desktop-id icon name even when GTK's icon theme lookup says
+			 * it exists. Prefer an absolute PNG fallback for the app's normal icon so
+			 * the tray item never renders as a blank placeholder.
+			 */
+			if (g_strcmp0 (names[0], ICON_NORMAL_NAME) == 0)
+			{
+				*allocated = tray_gtk3_fallback_icon_path_for_name (names[0]);
+				if (*allocated)
+					return *allocated;
+			}
+			
 			theme = gtk_icon_theme_get_default ();
 			if (theme && gtk_icon_theme_has_icon (theme, names[0]))
 				return names[0];

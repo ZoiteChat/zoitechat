@@ -47,7 +47,8 @@ jobs:
             -Dtext-frontend=true \
             -Dwith-perl=perl \
             -Dwith-python=python3 \
-            -Dauto_features=enabled
+            -Dauto_features=enabled \
+            -Dappindicator=enabled
 
       - name: Build
         run: |

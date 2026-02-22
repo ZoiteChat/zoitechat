@@ -8,6 +8,7 @@
   "finish-args": [
     "--share=ipc",
     "--socket=wayland",
+    "--socket=fallback-x11",
     "--share=network",
     "--socket=pulseaudio",
     "--filesystem=xdg-download",
@@ -15,8 +16,11 @@
     "--filesystem=xdg-data/icons:ro",
     "--filesystem=~/.themes:ro",
     "--filesystem=~/.icons:ro",
+    "--filesystem=xdg-run/tray-icon:create",
 
     "--talk-name=org.freedesktop.Notifications",
+    "--talk-name=org.kde.StatusNotifierWatcher",
+    "--talk-name=com.canonical.AppMenu.Registrar",
 
     "--talk-name=org.mpris.MediaPlayer2.*"
   ],
