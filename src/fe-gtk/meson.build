@@ -36,7 +36,6 @@ zoitechat_gtk_deps = [
 ]
 
 gtk_dep = dependency('gtk+-3.0', version: '>= 3.22')
-zoitechat_gtk_cflags += '-DHAVE_GTK3'
 
 if host_machine.system() != 'windows'
   appindicator_opt = get_option('appindicator')
