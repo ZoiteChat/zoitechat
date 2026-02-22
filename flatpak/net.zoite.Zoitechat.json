@@ -19,14 +19,9 @@
     "--filesystem=xdg-run/tray-icon:create",
 
     "--talk-name=org.freedesktop.Notifications",
-
     "--talk-name=org.kde.StatusNotifierWatcher",
     "--talk-name=com.canonical.AppMenu.Registrar",
-<<<<<<< ours
-    "--own-name=org.kde.StatusNotifierItem*",
 
-=======
->>>>>>> theirs
     "--talk-name=org.mpris.MediaPlayer2.*"
   ],
   "add-extensions": {
