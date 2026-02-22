@@ -2,13 +2,13 @@ name: Flatpak Build
 
 on:
   push:
-    branches: [update-shared-modules]
+    branches: [master]
   pull_request:
-    branches: [update-shared-modules]
+    branches: [master]
 
 jobs:
   flatpak_build:
-    runs-on: ubuntu-latest
+    runs-on: debian-latest
 
     permissions:
       contents: read
