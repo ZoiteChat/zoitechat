@@ -1447,6 +1447,16 @@ server_child (server * serv)
 			GProxyResolver *resolver;
 			GError *error = NULL;
 
+			/*
+			 * In Flatpak, auto proxy resolution may block indefinitely when
+			 * proxy backends are unavailable in the sandbox. If this happens,
+			 * the connection attempt appears to hang after pressing Connect.
+			 * Prefer direct connections there unless the user configured a
+			 * specific proxy manually.
+			 */
+			if (g_file_test ("/.flatpak-info", G_FILE_TEST_EXISTS))
+				goto proxy_lookup_done;
+
 			resolver = g_proxy_resolver_get_default ();
 			url = g_strdup_printf ("irc://%s:%d", hostname, port);
 			proxy_list = g_proxy_resolver_lookup (resolver, url, NULL, &error);
@@ -1477,6 +1487,8 @@ server_child (server * serv)
 
 			g_strfreev (proxy_list);
 			g_free (url);
+
+		proxy_lookup_done:;
 		}
 
 		if (prefs.hex_net_proxy_host[0] &&

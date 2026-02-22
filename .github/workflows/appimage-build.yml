@@ -34,7 +34,7 @@ jobs:
             libxkbcommon0 \
             libgtk-3-bin libglib2.0-bin shared-mime-info gsettings-desktop-schemas \
             libluajit-5.1-dev libpci-dev libperl-dev libssl-dev libayatana-appindicator3-dev \
-            python3-dev python3-cffi mono-devel desktop-file-utils \
+            perl python3 python3-minimal python3-dev python3-cffi mono-devel desktop-file-utils \
             patchelf file curl
 
       - name: Configure
@@ -60,6 +60,60 @@ jobs:
           set -eux
           rm -rf AppDir
           DESTDIR="${PWD}/AppDir" ninja -C build install
+
+      - name: Bundle scripting runtimes in AppDir
+        run: |
+          set -eux
+
+          python3_version="$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')"
+
+          install -Dm755 "$(command -v python3)" "AppDir/usr/bin/python3"
+          if [ -x "/usr/bin/perl" ]; then
+            install -Dm755 /usr/bin/perl AppDir/usr/bin/perl
+          fi
+
+          install -d AppDir/usr/lib
+          cp -a "/usr/lib/python${python3_version}" "AppDir/usr/lib/"
+
+          if [ -d "/usr/lib/python3/dist-packages" ]; then
+            install -d AppDir/usr/lib/python3
+            cp -a /usr/lib/python3/dist-packages AppDir/usr/lib/python3/
+          fi
+
+          if [ -d "/usr/lib/x86_64-linux-gnu/python3/dist-packages" ]; then
+            install -d AppDir/usr/lib/x86_64-linux-gnu/python3
+            cp -a /usr/lib/x86_64-linux-gnu/python3/dist-packages AppDir/usr/lib/x86_64-linux-gnu/python3/
+          fi
+
+          if [ -d "/usr/lib/x86_64-linux-gnu/perl" ]; then
+            install -d AppDir/usr/lib/x86_64-linux-gnu
+            cp -a /usr/lib/x86_64-linux-gnu/perl AppDir/usr/lib/x86_64-linux-gnu/
+          fi
+
+          if [ -d "/usr/share/perl" ]; then
+            install -d AppDir/usr/share
+            cp -a /usr/share/perl AppDir/usr/share/
+          fi
+
+          if [ -d "/usr/share/perl5" ]; then
+            install -d AppDir/usr/share
+            cp -a /usr/share/perl5 AppDir/usr/share/
+          fi
+          if compgen -G '/usr/lib/x86_64-linux-gnu/libpython3*.so*' > /dev/null; then
+            install -d AppDir/usr/lib/x86_64-linux-gnu
+            cp -a /usr/lib/x86_64-linux-gnu/libpython3*.so* AppDir/usr/lib/x86_64-linux-gnu/
+          fi
+
+      - name: Verify bundled plugins
+        run: |
+          set -eux
+
+          # Include every built-in plugin except the Windows-only update plugin.
+          find AppDir/usr/lib -maxdepth 4 -type f -name '*.so' -path '*/zoitechat/plugins/*' -print | sort
+
+          for plugin in checksum fishlim lua perl python sysinfo; do
+            find "AppDir/usr/lib" -maxdepth 4 -type f -name "${plugin}.so" -path '*/zoitechat/plugins/*' -print -quit | grep -q .
+          done
 
       - name: Build AppImage
         env:
@@ -87,9 +141,15 @@ jobs:
 
           APPDIR="${APPDIR:-$(dirname "$(readlink -f "$0")")}"
 
-          export PATH="$APPDIR/usr/bin:${PATH:-/usr/bin:/bin}"
+          export PATH="${PATH:-/usr/bin:/bin}:$APPDIR/usr/bin"
           export LD_LIBRARY_PATH="$APPDIR/usr/lib:$APPDIR/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH:-}"
           export XDG_DATA_DIRS="$APPDIR/usr/share:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
+
+          if [ -d "$APPDIR/usr/lib/x86_64-linux-gnu/zoitechat/plugins" ]; then
+            export ZOITECHAT_LIBDIR="$APPDIR/usr/lib/x86_64-linux-gnu/zoitechat/plugins"
+          elif [ -d "$APPDIR/usr/lib/zoitechat/plugins" ]; then
+            export ZOITECHAT_LIBDIR="$APPDIR/usr/lib/zoitechat/plugins"
+          fi
 
           if [ -d "$APPDIR/usr/share/glib-2.0/schemas" ]; then
             export GSETTINGS_SCHEMA_DIR="$APPDIR/usr/share/glib-2.0/schemas${GSETTINGS_SCHEMA_DIR:+:$GSETTINGS_SCHEMA_DIR}"
@@ -99,6 +159,22 @@ jobs:
             export GIO_EXTRA_MODULES="$APPDIR/usr/lib/x86_64-linux-gnu/gio/modules${GIO_EXTRA_MODULES:+:$GIO_EXTRA_MODULES}"
           elif [ -d "$APPDIR/usr/lib/gio/modules" ]; then
             export GIO_EXTRA_MODULES="$APPDIR/usr/lib/gio/modules${GIO_EXTRA_MODULES:+:$GIO_EXTRA_MODULES}"
+          fi
+
+          export PYTHONHOME="$APPDIR/usr"
+          python_stdlib_dir="$(find "$APPDIR/usr/lib" -maxdepth 1 -type d -name 'python3.*' | head -n 1 || true)"
+          pythonpath_entries=""
+          if [ -n "$python_stdlib_dir" ] && [ -d "$python_stdlib_dir/dist-packages" ]; then
+            pythonpath_entries="$python_stdlib_dir/dist-packages"
+          fi
+          if [ -d "$APPDIR/usr/lib/python3/dist-packages" ]; then
+            pythonpath_entries="${pythonpath_entries:+$pythonpath_entries:}$APPDIR/usr/lib/python3/dist-packages"
+          fi
+          if [ -d "$APPDIR/usr/lib/x86_64-linux-gnu/python3/dist-packages" ]; then
+            pythonpath_entries="${pythonpath_entries:+$pythonpath_entries:}$APPDIR/usr/lib/x86_64-linux-gnu/python3/dist-packages"
+          fi
+          if [ -n "$pythonpath_entries" ]; then
+            export PYTHONPATH="$pythonpath_entries${PYTHONPATH:+:$PYTHONPATH}"
           fi
 
           # OpenSSL trust store override
