@@ -127,6 +127,11 @@ jobs:
             cp -a /usr/share/myspell AppDir/usr/share/
           fi
 
+          if [ -d /usr/share/enchant-2 ]; then
+            install -d AppDir/usr/share
+            cp -a /usr/share/enchant-2 AppDir/usr/share/
+          fi
+
       - name: Verify bundled plugins
         run: |
           set -eux
@@ -185,8 +190,9 @@ jobs:
           fi
 
           if [ -d "$APPDIR/usr/lib/x86_64-linux-gnu/enchant-2" ]; then
-            export ENCHANT_CONFIG_DIR="$APPDIR/usr/share/enchant"
+            export ENCHANT_CONFIG_DIR="$APPDIR/usr/share/enchant-2"
             export ENCHANT_MODULES_DIR="$APPDIR/usr/lib/x86_64-linux-gnu/enchant-2"
+            export ENCHANT_DATA_DIR="$APPDIR/usr/share/enchant-2"
             export DICPATH="$APPDIR/usr/share/hunspell${DICPATH:+:$DICPATH}"
           fi
 
