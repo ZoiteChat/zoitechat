@@ -1,6 +1,6 @@
 {
   "app-id": "net.zoite.Zoitechat",
-  "branch": "stable",
+  "branch": "master",
   "runtime": "org.gnome.Platform",
   "runtime-version": "49",
   "sdk": "org.gnome.Sdk",
