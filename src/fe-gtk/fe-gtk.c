@@ -589,7 +589,6 @@ fe_apply_windows_theme (gboolean dark)
 		g_object_set (settings, "gtk-application-prefer-dark-theme", dark, NULL);
 	}
 
-#if HAVE_GTK3
 	{
 		static GtkCssProvider *win_theme_provider = NULL;
 		GdkScreen *screen = gdk_screen_get_default ();
@@ -613,7 +612,6 @@ fe_apply_windows_theme (gboolean dark)
 				GTK_STYLE_PROVIDER (win_theme_provider),
 				GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
 	}
-#endif
 }
 #endif
 
@@ -718,7 +716,6 @@ create_input_style (InputStyle *style)
 {
 	char buf[256];
 	static int done_rc = FALSE;
-#if HAVE_GTK3
 	static GtkCssProvider *input_css_provider = NULL;
 	static char *last_theme_name = NULL;
 	static gboolean last_dark_mode = FALSE;
@@ -730,12 +727,9 @@ create_input_style (InputStyle *style)
 	static guint16 last_bg_red;
 	static guint16 last_bg_green;
 	static guint16 last_bg_blue;
-#endif
 
-#if HAVE_GTK3
 	if (!style)
 		style = g_new0 (InputStyle, 1);
-#endif
 
 	if (style->font_desc)
 		pango_font_description_free (style->font_desc);
@@ -752,31 +746,6 @@ create_input_style (InputStyle *style)
 
 	if (prefs.hex_gui_input_style)
 	{
-#if !HAVE_GTK3
-		if (!done_rc)
-		{
-			GtkSettings *settings = gtk_settings_get_default ();
-			char *theme_name;
-
-			/* gnome-themes-standard 3.20+ relies on images to do theming
-			 * so we have to override that. */
-			g_object_get (settings, "gtk-theme-name", &theme_name, NULL);
-			if (g_str_has_prefix (theme_name, "Adwaita") || g_str_has_prefix (theme_name, "Yaru"))
-				gtk_rc_parse_string (adwaita_workaround_rc);
-			g_free (theme_name);
-
-			{
-				guint16 red;
-				guint16 green;
-				guint16 blue;
-
-				palette_color_get_rgb16 (&colors[COL_FG], &red, &green, &blue);
-				sprintf (buf, cursor_color_rc, (red >> 8), (green >> 8), (blue >> 8));
-			}
-			gtk_rc_parse_string (buf);
-			done_rc = TRUE;
-		}
-#else
 		GtkSettings *settings = gtk_settings_get_default ();
 		GdkScreen *screen = gdk_screen_get_default ();
 		char *theme_name;
@@ -877,9 +846,7 @@ create_input_style (InputStyle *style)
 		}
 
 		g_free (theme_name);
-#endif
 	}
-#if HAVE_GTK3
 	else
 	{
 		GdkScreen *screen = gdk_screen_get_default ();
@@ -896,13 +863,7 @@ create_input_style (InputStyle *style)
 		last_input_style = FALSE;
 		last_colors_set = FALSE;
 	}
-#endif
 
-#if !HAVE_GTK3
-	style->bg[GTK_STATE_NORMAL] = colors[COL_FG];
-	style->base[GTK_STATE_NORMAL] = colors[COL_BG];
-	style->text[GTK_STATE_NORMAL] = colors[COL_FG];
-#endif
 
 	return style;
 }
@@ -925,11 +886,7 @@ fe_init (void)
 	gtkosx_application_set_dock_icon_pixbuf (osx_app, pix_zoitechat);
 #endif
 	channelwin_pix = pixmap_load_from_file (prefs.hex_text_background);
-#if HAVE_GTK3
 	input_style = create_input_style (input_style);
-#else
-	input_style = create_input_style (gtk_style_new ());
-#endif
 
 	if (settings)
 	{

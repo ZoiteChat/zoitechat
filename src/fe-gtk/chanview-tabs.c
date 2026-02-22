@@ -27,12 +27,7 @@ typedef struct
 	GtkWidget *b2;		/* button2 */
 } tabview;
 
-#if HAVE_GTK3
 #define ICON_CHANVIEW_CLOSE "window-close"
-#endif
-#if !HAVE_GTK3
-#define ICON_CHANVIEW_CLOSE GTK_STOCK_CLOSE
-#endif
 
 static void chanview_populate (chanview *cv);
 
@@ -57,17 +52,10 @@ cv_tabs_get_viewport_size (GdkWindow *parent_win, gboolean vertical)
 {
 	gint viewport_size = 0;
 
-#if HAVE_GTK3
 	if (vertical)
 		viewport_size = gdk_window_get_height (parent_win);
 	else
 		viewport_size = gdk_window_get_width (parent_win);
-#else
-	if (vertical)
-		gdk_window_get_geometry (parent_win, 0, 0, 0, &viewport_size, 0);
-	else
-		gdk_window_get_geometry (parent_win, 0, 0, &viewport_size, 0, 0);
-#endif
 
 	return viewport_size;
 }
@@ -293,12 +281,9 @@ static GtkWidget *
 make_sbutton (GtkArrowType type, void *click_cb, void *userdata)
 {
 	GtkWidget *button, *arrow;
-#if HAVE_GTK3
 	const char *icon_name = "pan-end-symbolic";
-#endif
 
 	button = gtk_button_new ();
-#if HAVE_GTK3
 	switch (type)
 	{
 	case GTK_ARROW_UP:
@@ -317,9 +302,6 @@ make_sbutton (GtkArrowType type, void *click_cb, void *userdata)
 	}
 
 	arrow = gtk_image_new_from_icon_name (icon_name, GTK_ICON_SIZE_BUTTON);
-#elif !HAVE_GTK3
-	arrow = gtk_arrow_new (type, GTK_SHADOW_NONE);
-#endif
 	gtk_container_add (GTK_CONTAINER (button), arrow);
 	gtk_button_set_relief (GTK_BUTTON (button), GTK_RELIEF_NONE);
 	g_signal_connect (G_OBJECT (button), "clicked",
@@ -546,20 +528,12 @@ tab_add_real (chanview *cv, GtkWidget *tab, chan *ch)
 	{
 		/* vertical */
 		box = gtkutil_box_new (GTK_ORIENTATION_VERTICAL, FALSE, 0);
-#if HAVE_GTK3
 		sep = gtk_separator_new (GTK_ORIENTATION_HORIZONTAL);
-#elif !HAVE_GTK3
-		sep = gtk_hseparator_new ();
-#endif
 	} else
 	{
 		/* horiz */
 		box = gtkutil_box_new (GTK_ORIENTATION_HORIZONTAL, FALSE, 0);
-#if HAVE_GTK3
 		sep = gtk_separator_new (GTK_ORIENTATION_VERTICAL);
-#elif !HAVE_GTK3
-		sep = gtk_vseparator_new ();
-#endif
 	}
 
 	gtk_box_pack_end (GTK_BOX (box), sep, 0, 0, 4);

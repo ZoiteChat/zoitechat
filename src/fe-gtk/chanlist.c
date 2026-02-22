@@ -77,15 +77,10 @@ chanlistrow;
 static void
 chanlist_set_label_alignment (GtkWidget *widget)
 {
-#if HAVE_GTK3
 	gtk_widget_set_halign (widget, GTK_ALIGN_START);
 	gtk_widget_set_valign (widget, GTK_ALIGN_CENTER);
-#elif !HAVE_GTK3
-	gtk_misc_set_alignment (GTK_MISC (widget), 0, 0.5);
-#endif
 }
 
-#if HAVE_GTK3
 static void
 chanlist_grid_attach (GtkWidget *grid, GtkWidget *child,
 					  gint column, gint row,
@@ -99,19 +94,14 @@ chanlist_grid_attach (GtkWidget *grid, GtkWidget *child,
 	gtk_widget_set_valign (child, valign);
 	gtk_grid_attach (GTK_GRID (grid), child, column, row, width, height);
 }
-#endif
 
 static GtkWidget *
 chanlist_box_new (void)
 {
-#if HAVE_GTK3
 	GtkWidget *box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
 
 	gtk_box_set_homogeneous (GTK_BOX (box), FALSE);
 	return box;
-#elif !HAVE_GTK3
-	return gtk_hbox_new (FALSE, 0);
-#endif
 }
 
 static GtkWidget *
@@ -136,7 +126,6 @@ chanlist_icon_menu_item (const char *label, const char *icon_name,
 								 GCallback callback, gpointer userdata)
 {
 	GtkWidget *item;
-#if HAVE_GTK3
 	GtkWidget *box;
 	GtkWidget *image = NULL;
 	GtkWidget *label_widget;
@@ -149,13 +138,6 @@ chanlist_icon_menu_item (const char *label, const char *icon_name,
 		gtk_box_pack_start (GTK_BOX (box), image, FALSE, FALSE, 0);
 	gtk_box_pack_start (GTK_BOX (box), label_widget, FALSE, FALSE, 0);
 	gtk_container_add (GTK_CONTAINER (item), box);
-#else
-	GtkWidget *image;
-
-	item = gtk_image_menu_item_new_with_mnemonic (label);
-	image = gtkutil_image_new_from_stock (icon_name, GTK_ICON_SIZE_MENU);
-	gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (item), image);
-#endif
 	g_signal_connect (G_OBJECT (item), "activate", callback, userdata);
 	gtk_widget_show_all (item);
 
@@ -735,7 +717,6 @@ chanlist_button_cb (GtkTreeView *tree, GdkEventButton *event, server *serv)
 	menu_addfavoritemenu (serv, menu, chan, FALSE);
 	g_free (chan);
 
-#if HAVE_GTK3
 	if (event)
 	{
 		gtk_menu_popup_at_pointer (GTK_MENU (menu), (GdkEvent *)event);
@@ -747,10 +728,6 @@ chanlist_button_cb (GtkTreeView *tree, GdkEventButton *event, server *serv)
 										  GDK_GRAVITY_NORTH_WEST,
 										  NULL);
 	}
-#endif
-#if !HAVE_GTK3
-	gtk_menu_popup (GTK_MENU (menu), NULL, NULL, NULL, NULL, 0, event ? event->time : 0);
-#endif
 
 	return TRUE;
 }
@@ -902,108 +879,48 @@ chanlist_opengui (server *serv, int do_refresh)
 
 	/* ============================================================= */
 
-#if HAVE_GTK3
 	table = gtk_grid_new ();
 	gtk_grid_set_column_spacing (GTK_GRID (table), 12);
 	gtk_grid_set_row_spacing (GTK_GRID (table), 3);
-#else
-	table = gtk_table_new (4, 4, FALSE);
-	gtk_table_set_col_spacings (GTK_TABLE (table), 12);
-	gtk_table_set_row_spacings (GTK_TABLE (table), 3);
-#endif
 	gtk_box_pack_start (GTK_BOX (vbox), table, 0, 1, 0);
 	gtk_widget_show (table);
 
-#if HAVE_GTK3
 	wid = chanlist_icon_button (_("_Search"), ICON_CHANLIST_FIND,
 										 G_CALLBACK (chanlist_search_pressed), serv);
-#endif
-#if !HAVE_GTK3
-	wid = gtkutil_button (NULL, ICON_CHANLIST_FIND, 0, chanlist_search_pressed, serv,
-								 _("_Search"));
-#endif
 	serv->gui->chanlist_search = wid;
-#if HAVE_GTK3
 	chanlist_grid_attach (table, wid, 3, 3, 1, 1, FALSE, FALSE,
 						  GTK_ALIGN_FILL, GTK_ALIGN_FILL);
-#else
-	gtk_table_attach (GTK_TABLE (table), wid, 3, 4, 3, 4,
-							GTK_SHRINK | GTK_FILL, GTK_SHRINK | GTK_FILL, 0, 0);
-#endif
 
-#if HAVE_GTK3
 	wid = chanlist_icon_button (_("_Download List"), ICON_CHANLIST_REFRESH,
 										 G_CALLBACK (chanlist_refresh), serv);
-#endif
-#if !HAVE_GTK3
-	wid = gtkutil_button (NULL, ICON_CHANLIST_REFRESH, 0, chanlist_refresh, serv,
-								 _("_Download List"));
-#endif
 	serv->gui->chanlist_refresh = wid;
-#if HAVE_GTK3
 	chanlist_grid_attach (table, wid, 3, 2, 1, 1, FALSE, FALSE,
 						  GTK_ALIGN_FILL, GTK_ALIGN_FILL);
-#else
-	gtk_table_attach (GTK_TABLE (table), wid, 3, 4, 2, 3,
-							GTK_SHRINK | GTK_FILL, GTK_SHRINK | GTK_FILL, 0, 0);
-#endif
 
-#if HAVE_GTK3
 	wid = chanlist_icon_button (_("Save _List..."), ICON_CHANLIST_SAVE,
 										 G_CALLBACK (chanlist_save), serv);
-#endif
-#if !HAVE_GTK3
-	wid = gtkutil_button (NULL, ICON_CHANLIST_SAVE, 0, chanlist_save, serv,
-								 _("Save _List..."));
-#endif
 	serv->gui->chanlist_savelist = wid;
-#if HAVE_GTK3
 	chanlist_grid_attach (table, wid, 3, 1, 1, 1, FALSE, FALSE,
 						  GTK_ALIGN_FILL, GTK_ALIGN_FILL);
-#else
-	gtk_table_attach (GTK_TABLE (table), wid, 3, 4, 1, 2,
-							GTK_SHRINK | GTK_FILL, GTK_SHRINK | GTK_FILL, 0, 0);
-#endif
 
-#if HAVE_GTK3
 	wid = chanlist_icon_button (_("_Join Channel"), ICON_CHANLIST_JOIN,
 										 G_CALLBACK (chanlist_join), serv);
-#endif
-#if !HAVE_GTK3
-	wid = gtkutil_button (NULL, ICON_CHANLIST_JOIN, 0, chanlist_join, serv,
-						 _("_Join Channel"));
-#endif
 	serv->gui->chanlist_join = wid;
-#if HAVE_GTK3
 	chanlist_grid_attach (table, wid, 3, 0, 1, 1, FALSE, FALSE,
 						  GTK_ALIGN_FILL, GTK_ALIGN_FILL);
-#else
-	gtk_table_attach (GTK_TABLE (table), wid, 3, 4, 0, 1,
-							GTK_SHRINK | GTK_FILL, GTK_SHRINK | GTK_FILL, 0, 0);
-#endif
 
 	/* ============================================================= */
 
 	wid = gtk_label_new (_("Show only:"));
 	chanlist_set_label_alignment (wid);
-#if HAVE_GTK3
 	chanlist_grid_attach (table, wid, 0, 3, 1, 1, FALSE, FALSE,
 						  GTK_ALIGN_START, GTK_ALIGN_CENTER);
-#else
-	gtk_table_attach (GTK_TABLE (table), wid, 0, 1, 3, 4,
-							GTK_SHRINK | GTK_FILL, GTK_SHRINK | GTK_FILL, 0, 0);
-#endif
 	gtk_widget_show (wid);
 
 	hbox = chanlist_box_new ();
 	gtk_box_set_spacing (GTK_BOX (hbox), 9);
-#if HAVE_GTK3
 	chanlist_grid_attach (table, hbox, 1, 3, 1, 1, FALSE, FALSE,
 						  GTK_ALIGN_FILL, GTK_ALIGN_FILL);
-#else
-	gtk_table_attach (GTK_TABLE (table), hbox, 1, 2, 3, 4,
-							GTK_FILL, GTK_FILL, 0, 0);
-#endif
 	gtk_widget_show (hbox);
 
 	wid = gtk_label_new (_("channels with"));
@@ -1039,24 +956,14 @@ chanlist_opengui (server *serv, int do_refresh)
 
 	wid = gtk_label_new (_("Look in:"));
 	chanlist_set_label_alignment (wid);
-#if HAVE_GTK3
 	chanlist_grid_attach (table, wid, 0, 2, 1, 1, FALSE, FALSE,
 						  GTK_ALIGN_START, GTK_ALIGN_CENTER);
-#else
-	gtk_table_attach (GTK_TABLE (table), wid, 0, 1, 2, 3,
-							GTK_SHRINK | GTK_FILL, GTK_SHRINK | GTK_FILL, 0, 0);
-#endif
 	gtk_widget_show (wid);
 
 	hbox = chanlist_box_new ();
 	gtk_box_set_spacing (GTK_BOX (hbox), 12);
-#if HAVE_GTK3
 	chanlist_grid_attach (table, hbox, 1, 2, 1, 1, FALSE, FALSE,
 						  GTK_ALIGN_FILL, GTK_ALIGN_FILL);
-#else
-	gtk_table_attach (GTK_TABLE (table), hbox, 1, 2, 2, 3,
-							GTK_FILL, GTK_FILL, 0, 0);
-#endif
 	gtk_widget_show (hbox);
 
 	wid = gtk_check_button_new_with_label (_("Channel name"));
@@ -1081,13 +988,8 @@ chanlist_opengui (server *serv, int do_refresh)
 
 	wid = gtk_label_new (_("Search type:"));
 	chanlist_set_label_alignment (wid);
-#if HAVE_GTK3
 	chanlist_grid_attach (table, wid, 0, 1, 1, 1, FALSE, FALSE,
 						  GTK_ALIGN_START, GTK_ALIGN_CENTER);
-#else
-	gtk_table_attach (GTK_TABLE (table), wid, 0, 1, 1, 2,
-							GTK_SHRINK | GTK_FILL, GTK_SHRINK | GTK_FILL, 0, 0);
-#endif
 	gtk_widget_show (wid);
 
 	wid = gtk_combo_box_text_new ();
@@ -1095,13 +997,8 @@ chanlist_opengui (server *serv, int do_refresh)
 	gtk_combo_box_text_append_text (GTK_COMBO_BOX_TEXT (wid), _("Pattern Match (Wildcards)"));
 	gtk_combo_box_text_append_text (GTK_COMBO_BOX_TEXT (wid), _("Regular Expression"));
 	gtk_combo_box_set_active (GTK_COMBO_BOX (wid), serv->gui->chanlist_search_type);
-#if HAVE_GTK3
 	chanlist_grid_attach (table, wid, 1, 1, 1, 1, FALSE, FALSE,
 						  GTK_ALIGN_FILL, GTK_ALIGN_CENTER);
-#else
-	gtk_table_attach (GTK_TABLE (table), wid, 1, 2, 1, 2,
-							GTK_SHRINK | GTK_FILL, GTK_SHRINK | GTK_FILL, 0, 0);
-#endif
 	g_signal_connect (G_OBJECT (wid), "changed",
 							G_CALLBACK (chanlist_combo_cb), serv);
 	gtk_widget_show (wid);
@@ -1110,13 +1007,8 @@ chanlist_opengui (server *serv, int do_refresh)
 
 	wid = gtk_label_new (_("Find:"));
 	chanlist_set_label_alignment (wid);
-#if HAVE_GTK3
 	chanlist_grid_attach (table, wid, 0, 0, 1, 1, FALSE, FALSE,
 						  GTK_ALIGN_START, GTK_ALIGN_CENTER);
-#else
-	gtk_table_attach (GTK_TABLE (table), wid, 0, 1, 0, 1,
-							GTK_SHRINK | GTK_FILL, GTK_SHRINK | GTK_FILL, 0, 0);
-#endif
 	gtk_widget_show (wid);
 
 	wid = gtk_entry_new ();
@@ -1126,13 +1018,8 @@ chanlist_opengui (server *serv, int do_refresh)
 	g_signal_connect (G_OBJECT (wid), "activate",
 							  G_CALLBACK (chanlist_search_pressed),
 							  (gpointer) serv);
-#if HAVE_GTK3
 	chanlist_grid_attach (table, wid, 1, 0, 1, 1, TRUE, FALSE,
 						  GTK_ALIGN_FILL, GTK_ALIGN_CENTER);
-#else
-	gtk_table_attach (GTK_TABLE (table), wid, 1, 2, 0, 1,
-							GTK_EXPAND | GTK_FILL, 0, 0, 0);
-#endif
 	gtk_widget_show (wid);
 	serv->gui->chanlist_wild = wid;
 
@@ -1140,18 +1027,9 @@ chanlist_opengui (server *serv, int do_refresh)
 
 	/* ============================================================= */
 
-#if HAVE_GTK3
 	wid = gtk_separator_new (GTK_ORIENTATION_VERTICAL);
-#else
-	wid = gtk_vseparator_new ();
-#endif
-#if HAVE_GTK3
 	chanlist_grid_attach (table, wid, 2, 0, 1, 5, FALSE, FALSE,
 						  GTK_ALIGN_FILL, GTK_ALIGN_FILL);
-#else
-	gtk_table_attach (GTK_TABLE (table), wid, 2, 3, 0, 5,
-							GTK_SHRINK | GTK_FILL, GTK_SHRINK | GTK_FILL, 0, 0);
-#endif
 	gtk_widget_show (wid);
 
 	g_signal_connect (G_OBJECT (serv->gui->chanlist_window), "destroy",

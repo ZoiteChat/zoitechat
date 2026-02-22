@@ -53,18 +53,10 @@
 #include "textgui.h"
 #include "fkeys.h"
 
-#if HAVE_GTK3
 #define ICON_FKEYS_NEW "document-new"
 #define ICON_FKEYS_DELETE "edit-delete"
 #define ICON_FKEYS_CANCEL "dialog-cancel"
 #define ICON_FKEYS_SAVE "document-save"
-#endif
-#if !HAVE_GTK3
-#define ICON_FKEYS_NEW GTK_STOCK_NEW
-#define ICON_FKEYS_DELETE GTK_STOCK_DELETE
-#define ICON_FKEYS_CANCEL GTK_STOCK_CANCEL
-#define ICON_FKEYS_SAVE GTK_STOCK_SAVE
-#endif
 
 static void replace_handle (GtkWidget * wid);
 void key_check_replace_on_change (GtkEditable *editable, gpointer data);
@@ -753,7 +745,6 @@ key_dialog_treeview_new (GtkWidget *box)
 	g_signal_connect (G_OBJECT (gtk_tree_view_get_selection (GTK_TREE_VIEW(view))),
 					"changed", G_CALLBACK (key_dialog_selection_changed), NULL);
 
-#if HAVE_GTK3
 	gtk_widget_set_name (view, "fkeys-treeview");
 	{
 		GtkCssProvider *provider = gtk_css_provider_new ();
@@ -773,10 +764,6 @@ key_dialog_treeview_new (GtkWidget *box)
 										GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
 		g_object_unref (provider);
 	}
-#endif
-#if !HAVE_GTK3
-	gtk_tree_view_set_rules_hint (GTK_TREE_VIEW (view), TRUE);
-#endif
 
 	render = gtk_cell_renderer_accel_new ();
 	g_object_set (render, "editable", TRUE,
@@ -925,13 +912,8 @@ key_dialog_show ()
 	g_object_set_data (G_OBJECT (key_dialog), "view", view);
 	g_object_set_data (G_OBJECT (key_dialog), "xtext", xtext);
 
-#if HAVE_GTK3
 	box = gtk_button_box_new (GTK_ORIENTATION_HORIZONTAL);
 	gtk_button_box_set_layout (GTK_BUTTON_BOX (box), GTK_BUTTONBOX_SPREAD);
-#elif !HAVE_GTK3
-	box = gtk_hbutton_box_new ();
-	gtk_button_box_set_layout (GTK_BUTTON_BOX (box), GTK_BUTTONBOX_SPREAD);
-#endif
 	gtk_box_pack_start (GTK_BOX (vbox), box, FALSE, FALSE, 2);
 	gtk_container_set_border_width (GTK_CONTAINER (box), 5);
 

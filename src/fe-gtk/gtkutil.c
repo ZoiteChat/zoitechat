@@ -62,7 +62,6 @@ struct file_req
 	int flags;		/* FRF_* flags */
 };
 
-#if HAVE_GTK3
 static const char *
 gtkutil_menu_custom_icon_from_stock (const char *stock_name)
 {
@@ -162,60 +161,7 @@ gtkutil_menu_custom_icon_from_icon_name (const char *icon_name)
 
 	return NULL;
 }
-#endif
 
-#if !HAVE_GTK3
-static const char *
-gtkutil_stock_from_menu_custom_icon (const char *custom_icon)
-{
-	static const struct
-	{
-		const char *custom_icon;
-		const char *stock;
-	} icon_map[] = {
-		{ "zc-menu-new", GTK_STOCK_NEW },
-		{ "zc-menu-network-list", GTK_STOCK_INDEX },
-		{ "zc-menu-load-plugin", GTK_STOCK_REVERT_TO_SAVED },
-		{ "zc-menu-detach", GTK_STOCK_REDO },
-		{ "zc-menu-close", GTK_STOCK_CLOSE },
-		{ "zc-menu-quit", GTK_STOCK_QUIT },
-		{ "zc-menu-disconnect", GTK_STOCK_DISCONNECT },
-		{ "zc-menu-connect", GTK_STOCK_CONNECT },
-		{ "zc-menu-join", GTK_STOCK_JUMP_TO },
-		{ "zc-menu-chanlist", GTK_STOCK_INDEX },
-		{ "zc-menu-preferences", GTK_STOCK_PREFERENCES },
-		{ "zc-menu-clear", GTK_STOCK_CLEAR },
-		{ "zc-menu-copy", GTK_STOCK_COPY },
-		{ "zc-menu-delete", GTK_STOCK_DELETE },
-		{ "zc-menu-add", GTK_STOCK_ADD },
-		{ "zc-menu-remove", GTK_STOCK_REMOVE },
-		{ "zc-menu-spell-check", GTK_STOCK_SPELL_CHECK },
-		{ "zc-menu-save", GTK_STOCK_SAVE },
-		{ "zc-menu-save-as", GTK_STOCK_SAVE_AS },
-		{ "zc-menu-refresh", GTK_STOCK_REFRESH },
-		{ "zc-menu-search", GTK_STOCK_JUSTIFY_LEFT },
-		{ "zc-menu-find", GTK_STOCK_FIND },
-		{ "zc-menu-previous", GTK_STOCK_GO_BACK },
-		{ "zc-menu-next", GTK_STOCK_GO_FORWARD },
-		{ "zc-menu-help", GTK_STOCK_HELP },
-		{ "zc-menu-about", GTK_STOCK_ABOUT },
-		{ "zc-menu-emoji", GTK_STOCK_CONVERT },
-		{ "zc-menu-update", GTK_STOCK_REFRESH },
-	};
-	size_t i;
-
-	if (!custom_icon)
-		return NULL;
-
-	for (i = 0; i < G_N_ELEMENTS (icon_map); i++)
-	{
-		if (strcmp (custom_icon, icon_map[i].custom_icon) == 0)
-			return icon_map[i].stock;
-	}
-
-	return custom_icon;
-}
-#endif
 
 static GdkPixbuf *
 gtkutil_menu_icon_pixbuf_new (const char *icon_name)
@@ -239,7 +185,6 @@ gtkutil_menu_icon_pixbuf_new (const char *icon_name)
 	return pixbuf;
 }
 
-#if HAVE_GTK3
 const char *
 gtkutil_icon_name_from_stock (const char *stock_name)
 {
@@ -296,9 +241,7 @@ gtkutil_icon_name_from_stock (const char *stock_name)
 
 	return stock_name;
 }
-#endif
 
-#if HAVE_GTK3
 static const char *
 gtkutil_menu_icon_theme_variant (void)
 {
@@ -378,12 +321,10 @@ gtkutil_menu_icon_image_new (const char *icon_name, GtkIconSize size)
 
 	return image;
 }
-#endif
 
 GtkWidget *
 gtkutil_image_new_from_stock (const char *stock, GtkIconSize size)
 {
-#if HAVE_GTK3
 	GtkWidget *image;
 	const char *icon_name;
 
@@ -406,29 +347,11 @@ gtkutil_image_new_from_stock (const char *stock, GtkIconSize size)
 		return image;
 
 	return gtk_image_new_from_icon_name (icon_name, size);
-#elif !HAVE_GTK3
-	if (stock && g_str_has_prefix (stock, "zc-menu-"))
-	{
-		GdkPixbuf *pixbuf = gtkutil_menu_icon_pixbuf_new (stock);
-
-		if (pixbuf)
-		{
-			GtkWidget *image = gtk_image_new_from_pixbuf (pixbuf);
-			g_object_unref (pixbuf);
-			return image;
-		}
-	}
-
-	if (stock && g_str_has_prefix (stock, "zc-menu-"))
-		stock = gtkutil_stock_from_menu_custom_icon (stock);
-	return gtk_image_new_from_stock (stock, size);
-#endif
 }
 
 GtkWidget *
 gtkutil_button_new_from_stock (const char *stock, const char *label)
 {
-#if HAVE_GTK3
 	GtkWidget *button = label ? gtk_button_new_with_mnemonic (label) : gtk_button_new ();
 
 	if (stock)
@@ -443,16 +366,8 @@ gtkutil_button_new_from_stock (const char *stock, const char *label)
 	}
 
 	return button;
-#elif !HAVE_GTK3
-	if (stock)
-		return gtk_button_new_from_stock (stock);
-	if (label)
-		return gtk_button_new_with_mnemonic (label);
-	return gtk_button_new ();
-#endif
 }
 
-#if HAVE_GTK3
 void
 gtkutil_append_font_css (GString *css, const PangoFontDescription *font_desc)
 {
@@ -568,16 +483,10 @@ gtkutil_append_font_css (GString *css, const PangoFontDescription *font_desc)
 void
 gtkutil_apply_palette (GtkWidget *widget, const GdkRGBA *bg, const GdkRGBA *fg,
                        const PangoFontDescription *font_desc)
-#else
-void
-gtkutil_apply_palette (GtkWidget *widget, const GdkColor *bg, const GdkColor *fg,
-                       const PangoFontDescription *font_desc)
-#endif
 {
 	if (!widget)
 		return;
 
-#if HAVE_GTK3
 	{
 		static const char *class_name = "zoitechat-palette";
 		GtkStyleContext *context = gtk_widget_get_style_context (widget);
@@ -635,11 +544,6 @@ gtkutil_apply_palette (GtkWidget *widget, const GdkColor *bg, const GdkColor *fg
 		g_free (bg_color);
 		g_free (fg_color);
 	}
-#else
-	gtk_widget_modify_base (widget, GTK_STATE_NORMAL, bg);
-	gtk_widget_modify_text (widget, GTK_STATE_NORMAL, fg);
-	gtk_widget_modify_font (widget, (PangoFontDescription *) font_desc);
-#endif
 }
 
 static void
@@ -902,37 +806,21 @@ gtkutil_file_req (GtkWindow *parent, const char *title, void *callback, void *us
 
 	if (flags & FRF_WRITE)
 	{
-#if HAVE_GTK3
 		dialog = gtk_file_chooser_dialog_new (title, NULL,
 												GTK_FILE_CHOOSER_ACTION_SAVE,
 												_("_Cancel"), GTK_RESPONSE_CANCEL,
 												_("_Save"), GTK_RESPONSE_ACCEPT,
 												NULL);
-#elif !HAVE_GTK3
-		dialog = gtk_file_chooser_dialog_new (title, NULL,
-												GTK_FILE_CHOOSER_ACTION_SAVE,
-												GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
-												GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT,
-												NULL);
-#endif
 
 		if (!(flags & FRF_NOASKOVERWRITE))
 			gtk_file_chooser_set_do_overwrite_confirmation (GTK_FILE_CHOOSER (dialog), TRUE);
 	}
 	else
-#if HAVE_GTK3
 		dialog = gtk_file_chooser_dialog_new (title, NULL,
 												GTK_FILE_CHOOSER_ACTION_OPEN,
 												_("_Cancel"), GTK_RESPONSE_CANCEL,
 												_("_Open"), GTK_RESPONSE_ACCEPT,
 												NULL);
-#elif !HAVE_GTK3
-		dialog = gtk_file_chooser_dialog_new (title, NULL,
-												GTK_FILE_CHOOSER_ACTION_OPEN,
-												GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
-												GTK_STOCK_OK, GTK_RESPONSE_ACCEPT,
-												NULL);
-#endif
 
 	if (filter && filter[0] && (flags & FRF_FILTERISINITIAL))
 	{
@@ -1088,17 +976,10 @@ fe_get_str (char *msg, char *def, void *callback, void *userdata)
 	GtkWidget *label;
 	extern GtkWidget *parent_window;
 
-#if HAVE_GTK3
 	dialog = gtk_dialog_new_with_buttons (msg, NULL, 0,
 										_("_Cancel"), GTK_RESPONSE_REJECT,
 										_("_OK"), GTK_RESPONSE_ACCEPT,
 										NULL);
-#elif !HAVE_GTK3
-	dialog = gtk_dialog_new_with_buttons (msg, NULL, 0,
-										GTK_STOCK_CANCEL, GTK_RESPONSE_REJECT,
-										GTK_STOCK_OK, GTK_RESPONSE_ACCEPT,
-										NULL);
-#endif
 
 	gtk_window_set_transient_for (GTK_WINDOW (dialog), GTK_WINDOW (parent_window));
 	gtk_box_set_homogeneous (GTK_BOX (gtk_dialog_get_content_area (GTK_DIALOG (dialog))), TRUE);
@@ -1190,17 +1071,10 @@ fe_get_int (char *msg, int def, void *callback, void *userdata)
 	GtkAdjustment *adj;
 	extern GtkWidget *parent_window;
 
-#if HAVE_GTK3
 	dialog = gtk_dialog_new_with_buttons (msg, NULL, 0,
 										_("_Cancel"), GTK_RESPONSE_REJECT,
 										_("_OK"), GTK_RESPONSE_ACCEPT,
 										NULL);
-#elif !HAVE_GTK3
-	dialog = gtk_dialog_new_with_buttons (msg, NULL, 0,
-										GTK_STOCK_CANCEL, GTK_RESPONSE_REJECT,
-										GTK_STOCK_OK, GTK_RESPONSE_ACCEPT,
-										NULL);
-#endif
 	gtk_box_set_homogeneous (GTK_BOX (gtk_dialog_get_content_area (GTK_DIALOG (dialog))), TRUE);
 	gtk_window_set_position (GTK_WINDOW (dialog), GTK_WIN_POS_MOUSE);
 	gtk_window_set_transient_for (GTK_WINDOW (dialog), GTK_WINDOW (parent_window));
@@ -1237,17 +1111,10 @@ fe_get_bool (char *title, char *prompt, void *callback, void *userdata)
 	GtkWidget *prompt_label;
 	extern GtkWidget *parent_window;
 
-#if HAVE_GTK3
 	dialog = gtk_dialog_new_with_buttons (title, NULL, 0,
 		_("_No"), GTK_RESPONSE_REJECT,
 		_("_Yes"), GTK_RESPONSE_ACCEPT,
 		NULL);
-#elif !HAVE_GTK3
-	dialog = gtk_dialog_new_with_buttons (title, NULL, 0,
-		GTK_STOCK_NO, GTK_RESPONSE_REJECT,
-		GTK_STOCK_YES, GTK_RESPONSE_ACCEPT,
-		NULL);
-#endif
 	gtk_box_set_homogeneous (GTK_BOX (gtk_dialog_get_content_area (GTK_DIALOG (dialog))), TRUE);
 	gtk_window_set_position (GTK_WINDOW (dialog), GTK_WIN_POS_MOUSE);
 	gtk_window_set_transient_for (GTK_WINDOW (dialog), GTK_WINDOW (parent_window));
@@ -1278,20 +1145,12 @@ gtkutil_button (GtkWidget *box, char *stock, char *tip, void *callback,
 	{
 		gtk_button_set_label (GTK_BUTTON (wid), labeltext);
 		img = NULL;
-#if HAVE_GTK3
 		if (stock)
 			img = gtkutil_image_new_from_stock (stock, GTK_ICON_SIZE_BUTTON);
-#endif
-#if !HAVE_GTK3
-		if (stock)
-			img = gtk_image_new_from_stock (stock, GTK_ICON_SIZE_BUTTON);
-#endif
 		if (img)
 		{
 			gtk_button_set_image (GTK_BUTTON (wid), img);
-#if HAVE_GTK3
 			gtk_button_set_always_show_image (GTK_BUTTON (wid), TRUE);
-#endif
 		}
 		gtk_button_set_use_underline (GTK_BUTTON (wid), TRUE);
 		if (box)
@@ -1304,21 +1163,13 @@ gtkutil_button (GtkWidget *box, char *stock, char *tip, void *callback,
 		gtk_widget_show (bbox);
 
 		img = NULL;
-#if HAVE_GTK3
 		if (stock)
 			img = gtkutil_image_new_from_stock (stock, GTK_ICON_SIZE_BUTTON);
-#endif
-#if !HAVE_GTK3
-		if (stock)
-			img = gtk_image_new_from_stock (stock, GTK_ICON_SIZE_BUTTON);
-#endif
 		if (img)
 		{
 			gtk_container_add (GTK_CONTAINER (bbox), img);
 			gtk_widget_show (img);
-#if HAVE_GTK3
 			gtk_button_set_always_show_image (GTK_BUTTON (wid), TRUE);
-#endif
 		}
 		gtk_box_pack_start (GTK_BOX (box), wid, 0, 0, 0);
 	}
@@ -1545,10 +1396,8 @@ gtkutil_tray_icon_supported (GtkWindow *window)
 #ifdef GDK_WINDOWING_X11
 	GdkScreen *screen = gtk_window_get_screen (window);
 	GdkDisplay *display = gdk_screen_get_display (screen);
-#if HAVE_GTK3
 	if (!GDK_IS_X11_DISPLAY (display))
 		return FALSE;
-#endif
 	int screen_number = gdk_screen_get_number (screen);
 	Display *xdisplay = gdk_x11_display_get_xdisplay (display);
 	char *selection_name = g_strdup_printf ("_NET_SYSTEM_TRAY_S%d", screen_number);
@@ -1603,34 +1452,22 @@ gtkutil_find_font (const char *fontname)
 GtkWidget *
 gtkutil_box_new (GtkOrientation orientation, gboolean homogeneous, gint spacing)
 {
-#if HAVE_GTK3
 	GtkWidget *box = gtk_box_new (orientation, spacing);
 
 	gtk_box_set_homogeneous (GTK_BOX (box), homogeneous);
 	return box;
-#elif !HAVE_GTK3
-	if (orientation == GTK_ORIENTATION_HORIZONTAL)
-		return gtk_hbox_new (homogeneous, spacing);
-
-	return gtk_vbox_new (homogeneous, spacing);
-#endif
 }
 
 GtkWidget *
 gtkutil_grid_new (guint rows, guint columns, gboolean homogeneous)
 {
-#if HAVE_GTK3
 	GtkWidget *grid = gtk_grid_new ();
 
 	gtk_grid_set_row_homogeneous (GTK_GRID (grid), homogeneous);
 	gtk_grid_set_column_homogeneous (GTK_GRID (grid), homogeneous);
 	return grid;
-#elif !HAVE_GTK3
-	return gtk_table_new (rows, columns, homogeneous);
-#endif
 }
 
-#if HAVE_GTK3
 static GtkAlign
 gtkutil_align_from_options (GtkutilAttachOptions options, GtkAlign default_align)
 {
@@ -1639,7 +1476,6 @@ gtkutil_align_from_options (GtkutilAttachOptions options, GtkAlign default_align
 
 	return default_align;
 }
-#endif
 
 static gboolean
 gtkutil_expansion_from_options (GtkutilAttachOptions options, gboolean default_expand)
@@ -1657,7 +1493,6 @@ gtkutil_grid_attach (GtkWidget *table, GtkWidget *child,
 		     GtkutilAttachOptions xoptions, GtkutilAttachOptions yoptions,
 		     guint xpad, guint ypad)
 {
-#if HAVE_GTK3
 	gtk_widget_set_hexpand (child, gtkutil_expansion_from_options (xoptions, FALSE));
 	gtk_widget_set_vexpand (child, gtkutil_expansion_from_options (yoptions, FALSE));
 	gtk_widget_set_halign (child, gtkutil_align_from_options (xoptions, GTK_ALIGN_CENTER));
@@ -1668,10 +1503,6 @@ gtkutil_grid_attach (GtkWidget *table, GtkWidget *child,
 	gtk_widget_set_margin_bottom (child, ypad);
 	gtk_grid_attach (GTK_GRID (table), child, left_attach, top_attach,
 			 right_attach - left_attach, bottom_attach - top_attach);
-#elif !HAVE_GTK3
-	gtk_table_attach (GTK_TABLE (table), child, left_attach, right_attach,
-			  top_attach, bottom_attach, xoptions, yoptions, xpad, ypad);
-#endif
 }
 
 void
@@ -1679,15 +1510,10 @@ gtkutil_grid_attach_defaults (GtkWidget *table, GtkWidget *child,
 			      guint left_attach, guint right_attach,
 			      guint top_attach, guint bottom_attach)
 {
-#if HAVE_GTK3
 	gtk_widget_set_hexpand (child, TRUE);
 	gtk_widget_set_vexpand (child, TRUE);
 	gtk_widget_set_halign (child, GTK_ALIGN_FILL);
 	gtk_widget_set_valign (child, GTK_ALIGN_FILL);
 	gtk_grid_attach (GTK_GRID (table), child, left_attach, top_attach,
 			 right_attach - left_attach, bottom_attach - top_attach);
-#elif !HAVE_GTK3
-	gtk_table_attach_defaults (GTK_TABLE (table), child, left_attach, right_attach,
-				   top_attach, bottom_attach);
-#endif
 }

@@ -33,16 +33,9 @@
 #include "maingui.h"
 #include "urlgrab.h"
 
-#if HAVE_GTK3
 #define ICON_URLGRAB_CLEAR "zc-menu-clear"
 #define ICON_URLGRAB_COPY "zc-menu-copy"
 #define ICON_URLGRAB_SAVE_AS "zc-menu-save-as"
-#endif
-#if !HAVE_GTK3
-#define ICON_URLGRAB_CLEAR GTK_STOCK_CLEAR
-#define ICON_URLGRAB_COPY GTK_STOCK_COPY
-#define ICON_URLGRAB_SAVE_AS GTK_STOCK_SAVE_AS
-#endif
 
 /* model for the URL treeview */
 enum
@@ -218,13 +211,8 @@ url_opengui ()
 	g_object_set_data (G_OBJECT (urlgrabberwindow), "model",
 	                   gtk_tree_view_get_model (GTK_TREE_VIEW (view)));
 
-#if HAVE_GTK3
 	hbox = gtk_button_box_new (GTK_ORIENTATION_HORIZONTAL);
 	gtk_button_box_set_layout (GTK_BUTTON_BOX (hbox), GTK_BUTTONBOX_SPREAD);
-#elif !HAVE_GTK3
-	hbox = gtk_hbutton_box_new ();
-	gtk_button_box_set_layout (GTK_BUTTON_BOX (hbox), GTK_BUTTONBOX_SPREAD);
-#endif
 	gtk_container_set_border_width (GTK_CONTAINER (hbox), 5);
 	gtk_box_pack_end (GTK_BOX (vbox), hbox, 0, 0, 0);
 	gtk_widget_show (hbox);

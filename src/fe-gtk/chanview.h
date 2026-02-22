@@ -26,11 +26,7 @@ typedef struct _chanview chanview;
 typedef struct _chan chan;
 
 chanview *chanview_new (int type, int trunc_len, gboolean sort, gboolean use_icons,
-#if HAVE_GTK3
 						PangoFontDescription *font_desc
-#else
-						InputStyle *style
-#endif
 );
 void chanview_set_callbacks (chanview *cv,
 	void (*cb_focus) (chanview *, chan *, int tag, void *userdata),

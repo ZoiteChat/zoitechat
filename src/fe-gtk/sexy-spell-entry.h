@@ -44,11 +44,7 @@ typedef enum {
 
 struct _SexySpellEntry
 {
-#if HAVE_GTK3
 	GtkEntry parent_instance;
-#else
-	GtkEntry parent_object;
-#endif
 
 	SexySpellEntryPriv *priv;
 

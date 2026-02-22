@@ -137,11 +137,7 @@ ascii_open (void)
 		if (table_pos[0] == '\n' || i == 0)
 		{
 			table_pos++;
-#if HAVE_GTK3
 			hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
-#elif !HAVE_GTK3
-			hbox = gtk_hbox_new (0, 0);
-#endif
 			gtk_container_add (GTK_CONTAINER (vbox), hbox);
 			gtk_widget_show (hbox);
 			i++;
