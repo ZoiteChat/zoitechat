@@ -144,8 +144,8 @@ jobs:
             find "AppDir/usr/lib" -maxdepth 4 -type f -name "${plugin}.so" -path '*/zoitechat/plugins/*' -print -quit | grep -q .
           done
 
-          # Ensure Enchant has a provider module and dictionary data inside AppDir.
-          find AppDir/usr/lib -maxdepth 4 -type f -name 'libenchant_hunspell.so' -path '*/enchant-2/*' -print -quit | grep -q .
+          # Ensure Enchant has a Hunspell provider module and dictionary data inside AppDir.
+          find AppDir/usr/lib -maxdepth 4 -type f -name '*hunspell*.so' -path '*/enchant-2/*' -print -quit | grep -q .
           find AppDir/usr/share/hunspell -maxdepth 1 -type f \( -name 'en_US.aff' -o -name 'en_US.dic' \) -print | sort
           test -f AppDir/usr/share/hunspell/en_US.aff
           test -f AppDir/usr/share/hunspell/en_US.dic
