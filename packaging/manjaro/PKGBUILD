@@ -54,6 +54,12 @@ pkgver() {
 build() {
   arch-meson zoitechat build \
     -Dtext-frontend=false \
+    -Dwith-checksum=true \
+    -Dwith-fishlim=true \
+    -Dwith-lua=lua \
+    -Dwith-perl=perl \
+    -Dwith-python=python3 \
+    -Dwith-sysinfo=true \
     -Dinstall-plugin-metainfo=true
 
   meson compile -C build
