@@ -35,7 +35,7 @@ jobs:
             dbus-glib \
             libcanberra \
             libayatana-appindicator \
-            luajit-devel \
+            luajit \
             iso-codes \
             lua \
             perl \
