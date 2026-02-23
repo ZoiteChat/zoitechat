@@ -42,7 +42,8 @@ pkgver() {
   if git describe --long --tags --abbrev=7 >/dev/null 2>&1; then
     git describe --long --tags --abbrev=7 \
       | sed 's/^v//' \
-      | sed 's/-/.r/;s/-/./'
+      | sed -E 's/([^-]+)-([0-9]+)-g/\1.r\2.g/' \
+      | sed 's/-/./g'
   else
     printf '0.r%s.%s\n' \
       "$(git rev-list --count HEAD)" \
