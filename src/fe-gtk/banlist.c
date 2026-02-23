@@ -488,7 +488,6 @@ banlist_unban_inner (gpointer none, banlist_info *banl, int mode_num)
 	int num_sel, i;
 
 
-	/* grab the list of selected items */
 	model = GTK_TREE_MODEL (get_store (sess));
 	sel = gtk_tree_view_get_selection (get_view (sess));
 
@@ -501,14 +500,11 @@ banlist_unban_inner (gpointer none, banlist_info *banl, int mode_num)
 	{
 		if (gtk_tree_selection_iter_is_selected (sel, &iter))
 		{
-			/* Get the mask part of this selected line */
 			gtk_tree_model_get (model, &iter, TYPE_COLUMN, &type, MASK_COLUMN, &mask, -1);
 
-			/* If it's the wrong type of mask, just continue */
 			if (strcmp (_(modes[mode_num].type), type) != 0)
 				continue;
 
-			/* Otherwise add it to our array of mask pointers */
 			masks[num_sel++] = g_strdup (mask);
 			g_free (mask);
 			g_free (type);
@@ -516,11 +512,9 @@ banlist_unban_inner (gpointer none, banlist_info *banl, int mode_num)
 	}
 	while (gtk_tree_model_iter_next (model, &iter));
 
-	/* and send to server */
 	if (num_sel)
 		send_channel_modes (sess, tbuf, masks, 0, num_sel, '-', modes[mode_num].letter, 0);
 
-	/* now free everything */
 	for (i=0; i < num_sel; i++)
 		g_free (masks[i]);
 	g_free (masks);
@@ -536,7 +530,6 @@ banlist_unban (GtkWidget * wid, banlist_info *banl)
 	for (i = 0; i < MODE_CT; i++)
 		num += banlist_unban_inner (wid, banl, i);
 
-	/* This really should not occur with the redesign */
 	if (num < 1)
 	{
 		fe_message (_("You must select some bans."), FE_MSG_ERROR);
@@ -602,14 +595,11 @@ banlist_crop (GtkWidget * wid, banlist_info *banl)
 	GSList *list = NULL, *node;
 	int num_sel;
 
-	/* remember which bans are selected */
 	select = gtk_tree_view_get_selection (get_view (sess));
-	/* gtk_tree_selected_get_selected_rows() isn't present in gtk 2.0.x */
 	gtk_tree_selection_selected_foreach (select, banlist_add_selected_cb,
 	                                     &list);
 
 	num_sel = g_slist_length (list);
-	/* select all, then unselect those that we remembered */
 	if (num_sel)
 	{
 		gtk_tree_selection_select_all (select);
@@ -638,7 +628,7 @@ banlist_toggle (GtkWidget *item, gpointer data)
 			break;
 		}
 
-	if (bit)		/* Should be gassert() */
+	if (bit)
 	{
 		banl->checked &= ~bit;
 		banl->checked |= (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (item)))? bit: 0;
