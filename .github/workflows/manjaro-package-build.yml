@@ -50,7 +50,7 @@ jobs:
       - name: Build package and generate .SRCINFO (non-root)
         run: |
           set -euxo pipefail
-          useradd -m builder
+          id -u builder >/dev/null 2>&1 || useradd -m builder
           chown -R builder:builder "$GITHUB_WORKSPACE"
           su builder -c "cd '$GITHUB_WORKSPACE/packaging/manjaro' && makepkg --noconfirm --syncdeps --cleanbuild"
           su builder -c "cd '$GITHUB_WORKSPACE/packaging/manjaro' && makepkg --printsrcinfo > .SRCINFO"
