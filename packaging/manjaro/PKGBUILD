@@ -1,0 +1,64 @@
+# Maintainer: ZoiteChat Maintainers <zoitechat@users.noreply.github.com>
+
+pkgname=zoitechat-git
+pkgver=0
+pkgrel=1
+pkgdesc='IRC client for GNOME (ZoiteChat development snapshot)'
+arch=('x86_64')
+url='https://github.com/zoitechat/zoitechat'
+license=('GPL-2.0-or-later')
+depends=(
+  'dbus-glib'
+  'glib2'
+  'gtk3'
+  'iso-codes'
+  'libcanberra'
+  'lua'
+  'openssl'
+  'perl'
+  'python-cffi'
+)
+makedepends=(
+  'git'
+  'meson'
+  'ninja'
+  'pkgconf'
+  'python'
+)
+optdepends=(
+  'libayatana-appindicator: Ayatana/AppIndicator tray backend'
+  'pciutils: sysinfo plugin hardware detection details'
+)
+provides=('zoitechat')
+conflicts=('zoitechat')
+
+_repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+source=("zoitechat::git+file://${_repo_root}")
+sha256sums=('SKIP')
+
+pkgver() {
+  cd "$srcdir/zoitechat"
+
+  if git describe --long --tags --abbrev=7 >/dev/null 2>&1; then
+    git describe --long --tags --abbrev=7 \
+      | sed 's/^v//' \
+      | sed 's/-/.r/;s/-/./'
+  else
+    printf '0.r%s.%s\n' \
+      "$(git rev-list --count HEAD)" \
+      "$(git rev-parse --short=7 HEAD)"
+  fi
+}
+
+build() {
+  arch-meson zoitechat build \
+    -Dbuildtype=plain \
+    -Dtext-frontend=false \
+    -Dinstall-plugin-metainfo=true
+
+  meson compile -C build
+}
+
+package() {
+  meson install -C build --destdir "$pkgdir"
+}
