@@ -19,7 +19,7 @@ python3_source = custom_target('python-bindings',
   command: [find_program('generate_plugin.py'), '@INPUT@', '@OUTPUT@']
 )
 
-install_data(['_zoitechat.py', 'zoitechat.py', 'xchat.py'],
+install_data(['_zoitechat.py', 'zoitechat.py', 'xchat.py', 'hexchat.py'],
   install_dir: join_paths(get_option('libdir'), 'zoitechat/python')
 )
 

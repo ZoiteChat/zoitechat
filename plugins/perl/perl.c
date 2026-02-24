@@ -1365,6 +1365,7 @@ xs_init (pTHX)
 	newCONSTSUB (stash, "EAT_NONE", newSViv (ZOITECHAT_EAT_NONE));
 	newCONSTSUB (stash, "EAT_ZOITECHAT", newSViv (ZOITECHAT_EAT_ZOITECHAT));
 	newCONSTSUB (stash, "EAT_XCHAT", newSViv (ZOITECHAT_EAT_ZOITECHAT)); /* for compatibility */
+	newCONSTSUB (stash, "EAT_HEXCHAT", newSViv (ZOITECHAT_EAT_ZOITECHAT)); /* for compatibility */
 	newCONSTSUB (stash, "EAT_PLUGIN", newSViv (ZOITECHAT_EAT_PLUGIN));
 	newCONSTSUB (stash, "EAT_ALL", newSViv (ZOITECHAT_EAT_ALL));
 	newCONSTSUB (stash, "FD_READ", newSViv (ZOITECHAT_FD_READ));
