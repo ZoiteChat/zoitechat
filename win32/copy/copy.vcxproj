@@ -114,6 +114,7 @@
     <Copy SourceFiles="@(LuaLib)" DestinationFiles="@(LuaLib->'$(ZoiteChatRel)\lib\lua\%(RecursiveDir)%(Filename)%(Extension)')" />
     <Copy SourceFiles="@(Typelib)" DestinationFiles="@(Typelib->'$(ZoiteChatRel)\lib\girepository-1.0\%(Filename)%(Extension)')" />
     <Copy SourceFiles="..\..\plugins\python\xchat.py" DestinationFolder="$(ZoiteChatRel)\python" />
+    <Copy SourceFiles="..\..\plugins\python\hexchat.py" DestinationFolder="$(ZoiteChatRel)\python" />
     <Copy SourceFiles="..\..\plugins\python\zoitechat.py" DestinationFolder="$(ZoiteChatRel)\python" />
     <Copy SourceFiles="..\..\plugins\python\_zoitechat.py" DestinationFolder="$(ZoiteChatRel)\python" />
 
