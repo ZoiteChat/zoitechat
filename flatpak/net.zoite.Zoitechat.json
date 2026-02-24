@@ -2,7 +2,7 @@
   "app-id": "net.zoite.Zoitechat",
   "branch": "master",
   "runtime": "org.gnome.Platform",
-  "runtime-version": "49",
+  "runtime-version": "45",
   "sdk": "org.gnome.Sdk",
   "command": "zoitechat",
   "finish-args": [

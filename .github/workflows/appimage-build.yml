@@ -8,7 +8,7 @@ on:
 
 jobs:
   appimage_build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-20.04
 
     permissions:
       contents: read
