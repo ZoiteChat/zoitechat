@@ -222,15 +222,51 @@ inbound_privmsg (server *serv, char *from, char *ip, char *text, int id,
 
 /* used for Alerts section. Masks can be separated by commas and spaces. */
 
+static char *
+alert_normalize_word (const char *text)
+{
+	GString *normalized;
+	char *composed;
+	const char *p;
+
+	composed = g_utf8_normalize (text, -1, G_NORMALIZE_ALL_COMPOSE);
+	if (!composed)
+		composed = g_strdup (text);
+
+	normalized = g_string_sized_new (strlen (composed));
+	p = composed;
+
+	while (*p)
+	{
+		gunichar ch = g_utf8_get_char ((const guchar *)p);
+
+		/* Ignore selector/joiner codepoints that vary by input method. */
+		if (ch != 0x200D && ch != 0xFE0E && ch != 0xFE0F)
+			g_string_append_unichar (normalized, ch);
+
+		p = g_utf8_next_char (p);
+	}
+
+	g_free (composed);
+	return g_string_free (normalized, FALSE);
+}
+
 gboolean
 alert_match_word (char *word, char *masks)
 {
 	char *p = masks;
 	char endchar;
+	char *word_normalized;
+	char *mask_normalized;
 	int res;
 
+	word_normalized = alert_normalize_word (word);
+
 	if (masks[0] == 0)
+	{
+		g_free (word_normalized);
 		return FALSE;
+	}
 
 	while (1)
 	{
@@ -239,15 +275,23 @@ alert_match_word (char *word, char *masks)
 		{
 			endchar = *p;
 			*p = 0;
-			res = match (g_strchug (masks), word);
+			mask_normalized = alert_normalize_word (g_strchug (masks));
+			res = match (mask_normalized, word_normalized);
+			g_free (mask_normalized);
 			*p = endchar;
 
 			if (res)
+			{
+				g_free (word_normalized);
 				return TRUE;	/* yes, matched! */
+			}
 
 			masks = p + 1;
 			if (*p == 0)
+			{
+				g_free (word_normalized);
 				return FALSE;
+			}
 		}
 		p++;
 	}
@@ -259,6 +303,7 @@ alert_match_text (char *text, char *masks)
 	unsigned char *p = text;
 	unsigned char endchar;
 	gunichar ch;
+	GUnicodeType ch_type;
 	int res;
 
 	if (masks[0] == 0)
@@ -267,6 +312,7 @@ alert_match_text (char *text, char *masks)
 	while (1)
 	{
 		ch = g_utf8_get_char (p);
+		ch_type = g_unichar_type (ch);
 
 		if (g_unichar_isdigit (ch) || g_unichar_isalpha (ch))
 		{
@@ -285,17 +331,18 @@ alert_match_text (char *text, char *masks)
 		}
 
 		/* Symbols (including emoji) can be part of highlighted words. */
-		if (!g_unichar_isspace (ch) && !g_unichar_ispunct (ch) &&
-			 !g_unichar_iscntrl (ch))
+		if (ch_type == G_UNICODE_MATH_SYMBOL ||
+			 ch_type == G_UNICODE_CURRENCY_SYMBOL ||
+			 ch_type == G_UNICODE_MODIFIER_SYMBOL ||
+			 ch_type == G_UNICODE_OTHER_SYMBOL)
 		{
 			p += g_utf8_skip [p[0]];
 			continue;
 		}
 
-		/* if it's a 0, space or comma, the word has ended. */
-		if (*p == 0 || *p == ' ' || *p == ',' ||
-			/* if it's anything BUT a letter, the word has ended. */
-			 (!g_unichar_isalpha (ch)))
+		/* Delimiters end the word. */
+		if (*p == 0 || g_unichar_isspace (ch) || g_unichar_ispunct (ch) ||
+			 g_unichar_iscntrl (ch))
 		{
 			endchar = *p;
 			*p = 0;
