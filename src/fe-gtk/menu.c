@@ -778,6 +778,7 @@ fe_userlist_update (session *sess, struct User *user)
 {
 	GList *items, *next;
 	GList *iter;
+	gboolean needs_refresh;
 
 	if (!nick_submenu || !str_copy)
 		return;
@@ -801,7 +802,14 @@ fe_userlist_update (session *sess, struct User *user)
 	g_list_free (items);
 
 	/* and re-create them with new info */
-	menu_create_nickinfo_menu (user, nick_submenu);
+	needs_refresh = menu_create_nickinfo_menu (user, nick_submenu) ||
+		!user->hostname || !user->realname || !user->servername;
+
+	if (needs_refresh)
+	{
+		g_signal_connect (G_OBJECT (nick_submenu), "show",
+						 G_CALLBACK (menu_nickinfo_cb), sess);
+	}
 }
 
 void
