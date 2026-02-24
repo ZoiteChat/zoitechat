@@ -258,6 +258,7 @@ alert_match_text (char *text, char *masks)
 {
 	unsigned char *p = text;
 	unsigned char endchar;
+	gunichar ch;
 	int res;
 
 	if (masks[0] == 0)
@@ -265,26 +266,36 @@ alert_match_text (char *text, char *masks)
 
 	while (1)
 	{
-		if (*p >= '0' && *p <= '9')
+		ch = g_utf8_get_char (p);
+
+		if (g_unichar_isdigit (ch) || g_unichar_isalpha (ch))
 		{
-			p++;
+			p += g_utf8_skip [p[0]];
 			continue;
 		}
 
 		/* if it's RFC1459 <special>, it can be inside a word */
-		switch (*p)
+		switch (ch)
 		{
 		case '-': case '[': case ']': case '\\':
 		case '`': case '^': case '{': case '}':
 		case '_': case '|':
-			p++;
+			p += g_utf8_skip [p[0]];
+			continue;
+		}
+
+		/* Symbols (including emoji) can be part of highlighted words. */
+		if (!g_unichar_isspace (ch) && !g_unichar_ispunct (ch) &&
+			 !g_unichar_iscntrl (ch))
+		{
+			p += g_utf8_skip [p[0]];
 			continue;
 		}
 
 		/* if it's a 0, space or comma, the word has ended. */
 		if (*p == 0 || *p == ' ' || *p == ',' ||
 			/* if it's anything BUT a letter, the word has ended. */
-			 (!g_unichar_isalpha (g_utf8_get_char (p))))
+			 (!g_unichar_isalpha (ch)))
 		{
 			endchar = *p;
 			*p = 0;
