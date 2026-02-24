@@ -4,6 +4,7 @@ zoitechat_perl_module = custom_target('zoitechat-perl-header',
   input: [
     'lib/ZoiteChat.pm',
     'lib/Xchat.pm',
+    'lib/HexChat.pm',
     'lib/ZoiteChat/Embed.pm',
     'lib/ZoiteChat/List/Network.pm',
     'lib/ZoiteChat/List/Network/Entry.pm',

@@ -5,7 +5,7 @@ from contextlib import contextmanager
 from _zoitechat_embedded import ffi, lib
 
 __all__ = [
-    'EAT_ALL', 'EAT_ZOITECHAT', 'EAT_NONE', 'EAT_PLUGIN', 'EAT_XCHAT',
+    'EAT_ALL', 'EAT_ZOITECHAT', 'EAT_NONE', 'EAT_PLUGIN', 'EAT_XCHAT', 'EAT_HEXCHAT',
     'PRI_HIGH', 'PRI_HIGHEST', 'PRI_LOW', 'PRI_LOWEST', 'PRI_NORM',
     '__doc__', '__version__', 'command', 'del_pluginpref', 'emit_print',
     'find_context', 'get_context', 'get_info',
@@ -22,6 +22,7 @@ __license__ = 'GPL-2.0+'
 EAT_NONE = 0
 EAT_ZOITECHAT = 1
 EAT_XCHAT = EAT_ZOITECHAT
+EAT_HEXCHAT = EAT_ZOITECHAT
 EAT_PLUGIN = 2
 EAT_ALL = EAT_ZOITECHAT | EAT_PLUGIN
 
