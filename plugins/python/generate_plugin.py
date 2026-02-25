@@ -5,11 +5,9 @@ import cffi
 
 builder = cffi.FFI()
 
-# zoitechat-plugin.h
 with open(sys.argv[1]) as f:
     output = []
     eat_until_endif = 0
-    # This is very specific to zoitechat-plugin.h, it is not a cpp
     for line in f:
         if line.startswith('#define'):
             continue
@@ -81,9 +79,7 @@ int zoitechat_plugin_deinit(void)
 }
 ''')
 
-# python.py
 with open(sys.argv[2]) as f:
     builder.embedding_init_code(f.read())
 
-# python.c
 builder.emit_c_code(sys.argv[3])
