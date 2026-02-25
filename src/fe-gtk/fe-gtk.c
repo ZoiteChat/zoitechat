@@ -925,8 +925,6 @@ fe_main (void)
 void
 fe_cleanup (void)
 {
-	/* it's saved when pressing OK in setup.c */
-	/*palette_save ();*/
 }
 
 void
@@ -963,8 +961,7 @@ log_handler (const gchar   *log_domain,
 {
 	session *sess;
 
-	/* if (getenv ("ZOITECHAT_WARNING_IGNORE")) this gets ignored sometimes, so simply just disable all warnings */
-		return;
+	return;
 
 	sess = find_dialog (serv_list->data, "(warnings)");
 	if (!sess)
@@ -976,8 +973,6 @@ log_handler (const gchar   *log_domain,
 }
 
 #endif
-
-/* install tray stuff */
 
 static int
 fe_idle (gpointer data)
