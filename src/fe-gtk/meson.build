@@ -77,12 +77,6 @@ if host_machine.system() == 'windows'
   zoitechat_gtk_sources += 'notifications/notification-windows.c'
   zoitechat_gtk_deps += cc.find_library('dwmapi', required: true)
 
-  # TODO: mingw doesn't have these headers or libs
-  # add_languages('cpp')
-  # shared_module('hcnotifications-winrt',
-  #  sources: 'notifications/notification-winrt.cpp'
-  #)
-
 else
   zoitechat_gtk_sources += 'notifications/notification-freedesktop.c'
 endif
@@ -102,7 +96,7 @@ endif
 
 resources = gnome.compile_resources('resources',
   '../../data/zoitechat.gresource.xml',
-  source_dir: '../../data', # TODO: Fix upstream
+  source_dir: '../../data',
   c_name: 'zoitechat',
   extra_args: ['--manual-register']
 )
