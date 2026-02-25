@@ -764,7 +764,6 @@ load_default_config(void)
 	prefs.hex_gui_input_style = 1;
 	prefs.hex_gui_join_dialog = 1;
 	prefs.hex_gui_quit_dialog = 1;
-	/* prefs.hex_gui_slist_skip = 1; */
 	prefs.hex_gui_tab_chans = 1;
 	prefs.hex_gui_tab_dialogs = 1;
 	prefs.hex_gui_tab_icons = 1;
@@ -788,7 +787,7 @@ load_default_config(void)
 	prefs.hex_irc_reconnect_rejoin = 1;
 	prefs.hex_irc_cap_server_time = 1;
 	prefs.hex_irc_logging = 1;
-	prefs.hex_irc_who_join = 1; /* Can kick with inordinate amount of channels, required for some of our features though, TODO: add cap like away check? */
+	prefs.hex_irc_who_join = 1;
 	prefs.hex_irc_whois_front = 1;
 	prefs.hex_net_auto_reconnect = 1;
 	prefs.hex_net_throttle = 1;
@@ -819,7 +818,7 @@ load_default_config(void)
 	prefs.hex_flood_ctcp_num = 5;
 	prefs.hex_flood_ctcp_time = 30;
 	prefs.hex_flood_msg_num = 5;
-	/*FIXME*/ prefs.hex_flood_msg_time = 30;
+	prefs.hex_flood_msg_time = 30;
 	prefs.hex_gui_chanlist_maxusers = 9999;
 	prefs.hex_gui_chanlist_minusers = 5;
 	prefs.hex_gui_dialog_height = 256;
