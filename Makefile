@@ -14,7 +14,6 @@ CONFIG_STAMP := $(BUILD_DIR)/build.ninja
 
 all: build
 
-# Only run initial meson setup if we don't have a configured build dir yet.
 $(CONFIG_STAMP):
 	@mkdir -p $(BUILD_DIR)
 	@env NINJA=$(NINJA) $(MESON) setup $(BUILD_DIR) --prefix=$(PREFIX) $(MESON_SETUP_ARGS)
