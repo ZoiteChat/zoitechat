@@ -39,13 +39,11 @@ gboolean irc_parse_message(const char *words[],
     if (prefix) *prefix = NULL;
     if (command) *command = NULL;
     
-    /* See if the message starts with a prefix (sender user) */
     if (words[w][0] == ':') {
         if (prefix) *prefix = &words[w][1];
         w++;
     }
-    
-    /* Check command */
+
     if (words[w][0] == '\0') return FALSE;
     if (command) *command = words[w];
     w++;
@@ -72,11 +70,9 @@ char *irc_prefix_get_nick(const char *prefix) {
     
     if (!prefix) return NULL;
     
-    /* Find end of nick */
     end = prefix;
     while (*end != '\0' && *end != '!' && *end != '@') end++;
-    
-    /* Allocate string */
+
     length = end - prefix;
     return g_strndup (prefix, length);
 }
