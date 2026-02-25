@@ -1851,11 +1851,9 @@ server_set_defaults (server *serv)
 char *
 server_get_network (server *serv, gboolean fallback)
 {
-	/* check the network list */
 	if (serv->network)
 		return ((ircnet *)serv->network)->name;
 
-	/* check the network name given in 005 NETWORK=... */
 	if (serv->server_session && *serv->server_session->channel)
 		return serv->server_session->channel;
 
@@ -1874,7 +1872,6 @@ server_set_name (server *serv, char *name)
 	if (name[0] == 0)
 		name = serv->hostname;
 
-	/* strncpy parameters must NOT overlap */
 	if (name != serv->servername)
 	{
 		safe_strcpy (serv->servername, name, sizeof (serv->servername));
