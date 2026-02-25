@@ -42,18 +42,14 @@ typedef struct {
 static void
 print_sha256_result (ChecksumCallbackInfo *info, const char *checksum, const char *filename, GError *error)
 {
-	// So then we get the next best available channel, since we always want to print at least somewhere, it's fine
 	zoitechat_context *ctx = zoitechat_find_context(ph, info->servername, info->channel);
 	if (!ctx) {
-		// before we print a private message to the wrong channel, we exit early
 		if (info->send_message) {
 			return;
 		}
 
-		// if the context isn't found the first time, we search in the server
 		ctx = zoitechat_find_context(ph, info->servername, NULL);
 		if (!ctx) {
-			// The second time we exit early, since printing in another server isn't desireable
 			return;
 		}
 	}
