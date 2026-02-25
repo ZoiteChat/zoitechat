@@ -1693,11 +1693,13 @@ fe_open_url_inner (const char *url)
 	{
 		gchar **tmp_env = spawn_env;
 		spawn_env = g_environ_unsetenv (tmp_env, "LD_LIBRARY_PATH");
-		g_strfreev (tmp_env);
+		if (spawn_env != tmp_env)
+			g_strfreev (tmp_env);
 
 		tmp_env = spawn_env;
 		spawn_env = g_environ_unsetenv (tmp_env, "LD_PRELOAD");
-		g_strfreev (tmp_env);
+		if (spawn_env != tmp_env)
+			g_strfreev (tmp_env);
 	}
 
 	/* Prefer xdg-open when available because gtk_show_uri can inherit
