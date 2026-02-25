@@ -87,7 +87,7 @@ notify_do_network (struct notify *notify, server *serv)
 		return TRUE;
 
 	if (token_foreach (notify->networks, ',', notify_netcmp, serv))
-		return FALSE;	/* network list doesn't contain this one */
+		return FALSE;
 
 	return TRUE;
 }
@@ -106,8 +106,6 @@ notify_find_server_entry (struct notify *notify, struct server *serv)
 		list = list->next;
 	}
 
-	/* not found, should we add it, or is this not a network where
-      we're monitoring this nick? */
 	if (!notify_do_network (notify, serv))
 		return NULL;
 
@@ -123,11 +121,7 @@ notify_save (void)
 {
 	int fh;
 	struct notify *notify;
-        // while reading the notify.conf file, elements are added by prepending to the
-        // list. reverse the list before writing to disk to keep the original
-        // order of the list
-        GSList *list = g_slist_copy(notify_list);
-        list = g_slist_reverse(list);
+	GSList *list = g_slist_reverse (g_slist_copy (notify_list));
 
 	fh = zoitechat_open_file ("notify.conf", O_TRUNC | O_WRONLY | O_CREAT, 0600, XOF_DOMODE);
 	if (fh != -1)
@@ -146,7 +140,7 @@ notify_save (void)
 		}
 		close (fh);
 	}
-        g_slist_free(list);
+	g_slist_free (list);
 }
 
 void
