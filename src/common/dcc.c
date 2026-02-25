@@ -743,9 +743,6 @@ dcc_read (GIOChannel *source, GIOCondition condition, struct DCC *dcc)
 			EMIT_SIGNAL (XP_TE_DCCRECVERR, dcc->serv->front_session, dcc->file,
 							 dcc->destfile, dcc->nick,
 							 errorstring ((n < 0) ? sock_error () : 0), 0);
-			/* send ack here? but the socket is dead */
-			/*if (need_ack)
-				dcc_send_ack (dcc);*/
 			dcc_close (dcc, STAT_FAILED, FALSE);
 			return TRUE;
 		}
@@ -1383,7 +1380,6 @@ dcc_connect (struct DCC *dcc)
 			dcc_close (dcc, STAT_FAILED, FALSE);
 			return;
 		}
-		/* possible problems with filenames containing spaces? */
 		if (dcc->type == TYPE_RECV)
 			g_snprintf (tbuf, sizeof (tbuf), strchr (dcc->file, ' ') ?
 					"DCC SEND \"%s\" %u %d %" G_GUINT64_FORMAT " %d" :
@@ -1720,7 +1716,7 @@ dcc_listen_init (struct DCC *dcc, session *sess)
 }
 
 static struct session *dccsess;
-static char *dccto;				  /* lame!! */
+static char *dccto;
 static gint64 dccmaxcps;
 static int recursive = FALSE;
 
