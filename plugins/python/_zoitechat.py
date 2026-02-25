@@ -79,7 +79,6 @@ def emit_print(event_name, *args, **kwargs):
     return ret
 
 
-# TODO: this shadows itself. command should be changed to cmd
 def command(command):
     lib.zoitechat_command(lib.ph, command.encode())
 
@@ -221,7 +220,6 @@ def get_list(name):
     return ret
 
 
-# TODO: 'command' here shadows command above, and should be renamed to cmd
 def hook_command(command, callback, userdata=None, priority=PRI_NORM, help=None):
     plugin = __get_current_plugin()
     hook = plugin.add_hook(callback, userdata)

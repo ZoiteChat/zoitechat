@@ -24,7 +24,6 @@ PLUGIN_NAME = ffi.new('char[]', b'Python')
 PLUGIN_DESC = ffi.new('char[]', b'Python %d.%d scripting interface' % (sys.version_info[0], sys.version_info[1]))
 PLUGIN_VERSION = ffi.new('char[]', VERSION)
 
-# TODO: Constants should be screaming snake case
 zoitechat = None
 local_interp = None
 zoitechat_stdout = None
