@@ -125,8 +125,4 @@ GSList *servlist_favchan_listadd (GSList *chanlist, char *channel, char *key);
 
 gboolean joinlist_is_in_list (server *serv, char *channel);
 
-/* FIXME
-void joinlist_split (char *autojoin, GSList **channels, GSList **keys);
-void joinlist_free (GSList *channels, GSList *keys);
-*/
 #endif

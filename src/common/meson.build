@@ -96,11 +96,6 @@ textevents = custom_target('textevents',
   command: [make_te, '@INPUT@', '@OUTPUT0@', '@OUTPUT1@']
 )
 
-# TODO:
-#   LOOKUPD
-#   SIGACTION
-#   HAVE_GTK_MAC
-
 if libssl_dep.found()
   common_sources += 'ssl.c'
   common_deps += libssl_dep
