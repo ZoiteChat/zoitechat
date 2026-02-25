@@ -55,11 +55,38 @@ if host_machine.system() == 'windows'
   common_includes += include_directories('sysinfo')
 endif
 
-marshal = gnome.genmarshal('marshal',
-  sources: 'marshalers.list',
-  prefix: '_zoitechat_marshal',
-  internal: true
+glib_genmarshal = find_program(
+  'glib-genmarshal',
+  'glib-genmarshal-2.0',
+  required: true,
 )
+
+marshal = [
+  custom_target('marshal_h',
+    input: 'marshalers.list',
+    output: 'marshal.h',
+    command: [
+      glib_genmarshal,
+      '--prefix=_zoitechat_marshal',
+      '--header',
+      '@INPUT@',
+      '--output',
+      '@OUTPUT@',
+    ]
+  ),
+  custom_target('marshal_c',
+    input: 'marshalers.list',
+    output: 'marshal.c',
+    command: [
+      glib_genmarshal,
+      '--prefix=_zoitechat_marshal',
+      '--body',
+      '@INPUT@',
+      '--output',
+      '@OUTPUT@',
+    ]
+  )
+]
 
 make_te = find_program('make-te.py')
 

@@ -1,0 +1,81 @@
+name: Manjaro Package Build
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  manjaro-package:
+    runs-on: ubuntu-latest
+    container:
+      image: manjarolinux/base:latest
+
+    steps:
+      - name: Install packaging toolchain
+        run: |
+          set -euxo pipefail
+          pacman -Syu --noconfirm
+          pacman -S --noconfirm --needed \
+            base-devel \
+            git \
+            namcap \
+            meson \
+            ninja \
+            pkgconf \
+            glib2 \
+            glib2-devel \
+            gtk3 \
+            openssl \
+            dbus-glib \
+            libcanberra \
+            libayatana-appindicator \
+            luajit \
+            iso-codes \
+            lua \
+            perl \
+            python \
+            python-cffi \
+            pciutils
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: true
+
+      - name: Build package and generate .SRCINFO (non-root)
+        run: |
+          set -euxo pipefail
+          id -u builder >/dev/null 2>&1 || useradd -m builder
+          chown -R builder:builder "$GITHUB_WORKSPACE"
+          su builder -c "cd '$GITHUB_WORKSPACE/packaging/manjaro' && makepkg --noconfirm --syncdeps --cleanbuild"
+          su builder -c "cd '$GITHUB_WORKSPACE/packaging/manjaro' && makepkg --printsrcinfo > .SRCINFO"
+
+      - name: Lint PKGBUILD and package with namcap
+        run: |
+          set -euxo pipefail
+          cd "$GITHUB_WORKSPACE/packaging/manjaro"
+          namcap PKGBUILD
+          pkg_file="$(find . -maxdepth 1 -type f -name '*.pkg.tar.*' | head -n1)"
+          namcap "$pkg_file"
+
+      - name: Collect artifacts
+        run: |
+          set -euxo pipefail
+          mkdir -p artifacts
+          cp -v "$GITHUB_WORKSPACE"/packaging/manjaro/*.pkg.tar.* artifacts/
+          cp -v "$GITHUB_WORKSPACE"/packaging/manjaro/PKGBUILD artifacts/
+          cp -v "$GITHUB_WORKSPACE"/packaging/manjaro/.SRCINFO artifacts/
+
+      - name: Upload package artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: zoitechat-manjaro-package
+          path: artifacts/*
+          if-no-files-found: error
