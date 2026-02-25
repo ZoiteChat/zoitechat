@@ -1105,6 +1105,8 @@ static int luaopen_zoitechat(lua_State *L)
         lua_pushinteger(L, ZOITECHAT_PRI_LOWEST); lua_setfield(L, -2, "PRI_LOWEST");
         lua_pushinteger(L, ZOITECHAT_EAT_NONE); lua_setfield(L, -2, "EAT_NONE");
         lua_pushinteger(L, ZOITECHAT_EAT_ZOITECHAT); lua_setfield(L, -2, "EAT_ZOITECHAT");
+        lua_pushinteger(L, ZOITECHAT_EAT_ZOITECHAT); lua_setfield(L, -2, "EAT_XCHAT");
+        lua_pushinteger(L, ZOITECHAT_EAT_ZOITECHAT); lua_setfield(L, -2, "EAT_HEXCHAT");
         lua_pushinteger(L, ZOITECHAT_EAT_PLUGIN); lua_setfield(L, -2, "EAT_PLUGIN");
         lua_pushinteger(L, ZOITECHAT_EAT_ALL); lua_setfield(L, -2, "EAT_ALL");
 
@@ -1271,6 +1273,13 @@ static void prepare_state(lua_State *L, script_info *info)
         lua_setfield(L, LUA_REGISTRYINDEX, registry_field);
         luaopen_zoitechat(L);
         lua_setglobal(L, "zoitechat");
+
+        lua_getglobal(L, "zoitechat");
+        lua_setglobal(L, "xchat");
+
+        lua_getglobal(L, "zoitechat");
+        lua_setglobal(L, "hexchat");
+
         lua_getglobal(L, "zoitechat");
         lua_getfield(L, -1, "print");
         lua_setglobal(L, "print");
