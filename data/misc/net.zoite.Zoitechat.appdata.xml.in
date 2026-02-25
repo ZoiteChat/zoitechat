@@ -25,6 +25,17 @@
     <id>zoitechat.desktop</id>
   </provides>
 <releases>
+  <release date="2026-02-25" version="2.18.0~pre2">
+    <description>
+      <p>Compatibility and UI improvements:</p>
+      <ul>
+        <li>Added HexChat plugin compatibility improvements.</li>
+        <li>Fixed the user info right-click menu so it updates properly.</li>
+        <li>Added support for emoji characters in alert highlights.</li>
+        <li>Removed remaining unused GTK2 code paths.</li>
+      </ul>
+    </description>
+  </release>
   <release date="2026-02-16" version="2.18.0-pre1">
     <description>
       <p>Packaging and GTK3 improvements:</p>

@@ -1,3 +1,13 @@
+zoitechat (2.18.0~pre2-1) unstable; urgency=medium
+
+  * New upstream pre-release 2.18.0~pre2.
+  * Added HexChat plugin compatibility improvements.
+  * Fixed user info right-click menu refresh behavior.
+  * Added support for emoji characters in alert highlight matching.
+  * Removed remaining unused GTK2 code paths.
+
+ -- ZoiteChat Maintainers <zoitechat@users.noreply.github.com>  Wed, 25 Feb 2026 02:16:43 +0000
+
 zoitechat (2.18.0~pre1-1) unstable; urgency=medium
 
   * New upstream pre-release 2.18.0~pre1.

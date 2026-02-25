@@ -1,5 +1,5 @@
 name       : zoitechat
-version    : 2.18.0
+version    : 2.18.0~pre2
 release    : 2
 source     :
     - https://github.com/ZoiteChat/zoitechat/archive/e060d57baee1be22bee1f9c3b047be3fa71c6d35.tar.gz : ed315a0b1c46e798912fd830d3845427972857c43ccaa16284969c6f542add38

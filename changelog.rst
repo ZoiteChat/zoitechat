@@ -1,6 +1,15 @@
 ZoiteChat ChangeLog
 =================
 
+2.18.0~pre2 (2026-02-25)
+------------------------
+
+- Added HexChat plugin compatibility improvements.
+- Fixed the user info right-click menu so it updates properly.
+- Added support for emoji characters in alert highlights.
+- Removed remaining unused GTK2 code paths.
+- Continued GTK3 cleanup and packaging alignment work.
+
 2.18.0-pre1 (2026-02-16)
 ------------------------
 

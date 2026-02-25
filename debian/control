@@ -39,7 +39,7 @@ Suggests:
  zoitechat-python3,
  zoitechat-otr,
  unifont
-Description: IRC client for GNOME (fork of HexChat 2.18.0-pre1 base)
+Description: IRC client for GNOME (fork of HexChat 2.18.0~pre2 base)
  ZoiteChat is a graphical IRC client with a GTK 3 GUI. Features include Python,
  Perl and Lua scripting support, a plugin API, multiple server/channel
  windows, spell checking, multiple authentication methods including SASL, and
