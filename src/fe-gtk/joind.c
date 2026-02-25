@@ -81,11 +81,9 @@ joind_ok_cb (GtkWidget *ok, server *serv)
 		return;
 	}
 
-	/* do nothing */
 	if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (serv->gui->joind_radio1)))
 		goto xit;
 
-	/* join specific channel */
 	if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (serv->gui->joind_radio2)))
 	{
 		char *text = (char *)gtk_entry_get_text (GTK_ENTRY (serv->gui->joind_entry));
@@ -98,7 +96,6 @@ joind_ok_cb (GtkWidget *ok, server *serv)
 		goto xit;
 	}
 
-	/* channel list */
 	chanlist_opengui (serv, TRUE);
 
 xit:
