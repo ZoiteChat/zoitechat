@@ -1680,9 +1680,62 @@ fe_open_url_inner (const char *url)
 #elif defined(__APPLE__)
     osx_show_uri (url);
 #else
+	GError *error = NULL;
 	char *escaped_url = maybe_escape_uri (url);
+	gchar *xdg_open_argv[] = {(gchar *) "xdg-open", escaped_url, NULL};
+	gchar **spawn_env = NULL;
+	gboolean opened = FALSE;
 	g_debug ("Opening URL \"%s\" (%s)", escaped_url, url);
-	gtk_show_uri (NULL, escaped_url, GDK_CURRENT_TIME, NULL);
+
+	/* AppImage runtime variables can point host binaries like /bin/sh at
+	 * bundled libraries, which may not be ABI-compatible with system tools. */
+	spawn_env = g_get_environ ();
+	{
+		gchar **tmp_env = spawn_env;
+		spawn_env = g_environ_unsetenv (tmp_env, "LD_LIBRARY_PATH");
+		if (spawn_env != tmp_env)
+			g_strfreev (tmp_env);
+
+		tmp_env = spawn_env;
+		spawn_env = g_environ_unsetenv (tmp_env, "LD_PRELOAD");
+		if (spawn_env != tmp_env)
+			g_strfreev (tmp_env);
+	}
+
+	/* Prefer xdg-open when available because gtk_show_uri can inherit
+	 * AppImage runtime state and fail before we can control the environment. */
+	{
+		gchar *xdg_open_path = g_find_program_in_path ("xdg-open");
+		if (xdg_open_path &&
+			g_spawn_async (NULL, xdg_open_argv, spawn_env,
+							 G_SPAWN_SEARCH_PATH | G_SPAWN_STDOUT_TO_DEV_NULL | G_SPAWN_STDERR_TO_DEV_NULL,
+							 NULL, NULL, NULL, &error))
+		{
+			opened = TRUE;
+		}
+		else
+		{
+			g_clear_error (&error);
+		}
+		g_free (xdg_open_path);
+	}
+
+	if (!opened && gtk_show_uri (NULL, escaped_url, GDK_CURRENT_TIME, &error))
+	{
+		opened = TRUE;
+	}
+	else if (!opened)
+	{
+		g_warning ("gtk_show_uri failed for '%s': %s", escaped_url, error ? error->message : "unknown error");
+		g_clear_error (&error);
+	}
+
+	if (!opened)
+	{
+		g_warning ("Unable to open URL '%s' via xdg-open or gtk_show_uri", escaped_url);
+	}
+
+	g_strfreev (spawn_env);
 	g_free (escaped_url);
 #endif
 }
