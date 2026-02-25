@@ -1683,6 +1683,7 @@ fe_open_url_inner (const char *url)
 	GError *error = NULL;
 	char *escaped_url = maybe_escape_uri (url);
 	gchar *xdg_open_argv[] = {(gchar *) "xdg-open", escaped_url, NULL};
+	gchar **spawn_env = NULL;
 	g_debug ("Opening URL \"%s\" (%s)", escaped_url, url);
 	if (gtk_show_uri (NULL, escaped_url, GDK_CURRENT_TIME, &error))
 	{
@@ -1693,9 +1694,22 @@ fe_open_url_inner (const char *url)
 	g_warning ("gtk_show_uri failed for '%s': %s", escaped_url, error ? error->message : "unknown error");
 	g_clear_error (&error);
 
+	/* AppImage runtime variables can point host binaries like /bin/sh at
+	 * bundled libraries, which may not be ABI-compatible with system tools. */
+	spawn_env = g_get_environ ();
+	{
+		gchar **tmp_env = spawn_env;
+		spawn_env = g_environ_unsetenv (tmp_env, "LD_LIBRARY_PATH");
+		g_strfreev (tmp_env);
+
+		tmp_env = spawn_env;
+		spawn_env = g_environ_unsetenv (tmp_env, "LD_PRELOAD");
+		g_strfreev (tmp_env);
+	}
+
 	/* AppImage and sandboxed environments can fail to resolve URI handlers
 	 * through GTK/GIO. Fall back to xdg-open when available. */
-	if (!g_spawn_async (NULL, xdg_open_argv, NULL,
+	if (!g_spawn_async (NULL, xdg_open_argv, spawn_env,
 						 G_SPAWN_SEARCH_PATH | G_SPAWN_STDOUT_TO_DEV_NULL | G_SPAWN_STDERR_TO_DEV_NULL,
 						 NULL, NULL, NULL, &error))
 	{
@@ -1703,6 +1717,7 @@ fe_open_url_inner (const char *url)
 		g_clear_error (&error);
 	}
 
+	g_strfreev (spawn_env);
 	g_free (escaped_url);
 #endif
 }
