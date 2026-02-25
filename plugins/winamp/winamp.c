@@ -20,7 +20,7 @@
 #define PLAYING 1
 #define PAUSED 3
 
-static zoitechat_plugin *ph;   /* plugin handle */
+static zoitechat_plugin *ph;
 
 static int
 winamp(char *word[], char *word_eol[], void *userdata)
@@ -130,7 +130,6 @@ zoitechat_plugin_init(zoitechat_plugin *plugin_handle,
 					  char **plugin_version,
 					  char *arg)
 {
-	/* we need to save this for use with any zoitechat_* functions */
 	ph = plugin_handle;
 
 	*plugin_name = "Winamp";
@@ -142,7 +141,7 @@ zoitechat_plugin_init(zoitechat_plugin *plugin_handle,
 
 	zoitechat_print (ph, "Winamp plugin loaded\n");
 
-	return 1;	   /* return 1 for success */
+	return 1;
 }
 
 int

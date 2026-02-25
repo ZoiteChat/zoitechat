@@ -145,7 +145,7 @@ zoitechat_plugin_init (zoitechat_plugin *plugin_handle, char **plugin_name, char
 	zoitechat_hook_command (ph, "EXEC", ZOITECHAT_PRI_NORM, run_command, "Usage: /EXEC [-O] - execute commands inside ZoiteChat", 0);
 	zoitechat_printf (ph, "%s plugin loaded\n", name);
 
-	return 1;       /* return 1 for success */
+	return 1;
 }
 
 int
