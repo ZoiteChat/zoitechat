@@ -99,8 +99,6 @@ str_to_chanopt (const char *str)
 		return SET_DEFAULT;
 }
 
-/* handle the /CHANOPT command */
-
 int
 chanopt_command (session *sess, char *tbuf, char *word[], char *word_eol[])
 {
@@ -135,13 +133,13 @@ chanopt_command (session *sess, char *tbuf, char *word[], char *word_eol[])
 	{
 		if (find[0] == 0 || match (find, chanopt[i].name) || (chanopt[i].alias && match (find, chanopt[i].alias)))
 		{
-			if (newval != -1)	/* set new value */
+			if (newval != -1)
 			{
 				*(guint8 *)G_STRUCT_MEMBER_P(sess, chanopt[i].offset) = newval;
 				chanopt_changed = TRUE;
 			}
 
-			if (!quiet)	/* print value */
+			if (!quiet)
 			{
 				strcpy (tbuf, chanopt[i].name);
 				p = strlen (tbuf);
@@ -177,18 +175,13 @@ chanopt_is_set (unsigned int global, guint8 per_chan_setting)
 		return global;
 }
 
-/* === below is LOADING/SAVING stuff only === */
-
 typedef struct
 {
-	/* Per-Channel Alerts */
-	/* use a byte, because we need a pointer to each element */
 	guint8 alert_balloon;
 	guint8 alert_beep;
 	guint8 alert_taskbar;
 	guint8 alert_tray;
 
-	/* Per-Channel Settings */
 	guint8 text_hidejoinpart;
 	guint8 text_logging;
 	guint8 text_scrollback;
@@ -218,12 +211,10 @@ chanopt_find (char *network, char *channel, gboolean add_new)
 	if (!add_new)
 		return NULL;
 
-	/* allocate a new one */
 	co = g_new0 (chanopt_in_memory, 1);
 	co->channel = g_strdup (channel);
 	co->network = g_strdup (network);
 
-	/* set all values to SET_DEFAULT */
 	i = 0;
 	while (i < sizeof (chanopt) / sizeof (channel_options))
 	{
@@ -254,8 +245,6 @@ chanopt_add_opt (chanopt_in_memory *co, char *var, int new_value)
 	}
 }
 
-/* load chanopt.conf from disk into our chanopt_list GSList */
-
 static void
 chanopt_load_all (void)
 {
@@ -265,7 +254,6 @@ chanopt_load_all (void)
 	char *network = NULL;
 	chanopt_in_memory *current = NULL;
 
-	/* 1. load the old file into our GSList */
 	fh = zoitechat_open_file ("chanopt.conf", O_RDONLY, 0, 0);
 	if (fh != -1)
 	{
@@ -326,7 +314,6 @@ chanopt_load (session *sess)
 	if (!co)
 		return;
 
-	/* fill in all the sess->xxxxx fields */
 	i = 0;
 	while (i < sizeof (chanopt) / sizeof (channel_options))
 	{
@@ -351,8 +338,6 @@ chanopt_save (session *sess)
 	network = server_get_network (sess->server, FALSE);
 	if (!network)
 		return;
-
-	/* 2. reconcile sess with what we loaded from disk */
 
 	co = chanopt_find (network, sess->session_name, TRUE);
 
