@@ -44,7 +44,7 @@
 #include "fe-text.h"
 
 
-static int done = FALSE;		  /* finished ? */
+static int done = FALSE;
 
 
 static void
@@ -227,10 +227,9 @@ fe_print_text (struct session *sess, char *text, time_t stamp,
 				i++;
 			}
 			break;
-		/* don't actually want hidden text */
-		case '\010':				  /* hidden */
+		case '\010':
 			break;
-		case '\026':				  /* REVERSE */
+		case '\026':
 			if (reverse)
 			{
 				reverse = FALSE;
@@ -242,7 +241,7 @@ fe_print_text (struct session *sess, char *text, time_t stamp,
 			}
 			j = strlen (newtext);
 			break;
-		case '\037':				  /* underline */
+		case '\037':
 			if (under)
 			{
 				under = FALSE;
@@ -254,7 +253,7 @@ fe_print_text (struct session *sess, char *text, time_t stamp,
 			}
 			j = strlen (newtext);
 			break;
-		case '\002':				  /* bold */
+		case '\002':
 			if (bold)
 			{
 				bold = FALSE;
@@ -273,7 +272,7 @@ fe_print_text (struct session *sess, char *text, time_t stamp,
 				j++;
 			}
 			break;
-		case '\017':				  /* reset all */
+		case '\017':
 			strcpy (&newtext[j], "\033[m");
 			j += 3;
 			reverse = FALSE;
@@ -361,12 +360,11 @@ fe_print_text (struct session *sess, char *text, time_t stamp,
 				i++;
 			}
 			break;
-		/* don't actually want hidden text */
-		case '\010':				  /* hidden */
-		case '\026':				  /* REVERSE */
-		case '\037':				  /* underline */
-		case '\002':				  /* bold */
-		case '\017':				  /* reset all */
+		case '\010':
+		case '\026':
+		case '\037':
+		case '\002':
+		case '\017':
 			break;
 		case '\007':
 			if (!prefs.hex_input_filter_beep)
