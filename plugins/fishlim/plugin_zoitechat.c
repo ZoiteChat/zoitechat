@@ -277,15 +277,6 @@ char *decrypt_raw_message(const char *message, const char *key) {
     return NULL;
 }
 
-/*static int handle_debug(char *word[], char *word_eol[], void *userdata) {
-    zoitechat_printf(ph, "debug incoming: ");
-    for (size_t i = 1; word[i] != NULL && word[i][0] != '\0'; i++) {
-        zoitechat_printf(ph, ">%s< ", word[i]);
-    }
-    zoitechat_printf(ph, "\n");
-    return ZOITECHAT_EAT_NONE;
-}*/
-
 /**
  * Called when a message is to be sent.
  */
@@ -811,7 +802,6 @@ int zoitechat_plugin_init(zoitechat_plugin *plugin_handle,
     zoitechat_hook_server(ph, "NOTICE", ZOITECHAT_PRI_HIGHEST, handle_keyx_notice, NULL);
     zoitechat_hook_server_attrs(ph, "NOTICE", ZOITECHAT_PRI_NORM, handle_incoming, NULL);
     zoitechat_hook_server_attrs(ph, "PRIVMSG", ZOITECHAT_PRI_NORM, handle_incoming, NULL);
-    /* zoitechat_hook_server(ph, "RAW LINE", ZOITECHAT_PRI_NORM, handle_debug, NULL); */
     zoitechat_hook_server_attrs(ph, "TOPIC", ZOITECHAT_PRI_NORM, handle_incoming, NULL);
     zoitechat_hook_server_attrs(ph, "332", ZOITECHAT_PRI_NORM, handle_incoming, NULL);
 
@@ -836,4 +826,3 @@ int zoitechat_plugin_deinit(void) {
     zoitechat_printf(ph, "%s plugin unloaded\n", plugin_name);
     return 1;
 }
-
