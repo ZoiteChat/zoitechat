@@ -7,6 +7,7 @@ ZoiteChat ChangeLog
 - Added HexChat plugin compatibility improvements.
 - Fixed the user info right-click menu so it updates properly.
 - Added support for emoji characters in alert highlights.
+- clicking links in chat window with appimage build now works.
 - Removed remaining unused GTK2 code paths.
 - Continued GTK3 cleanup and packaging alignment work.
 
