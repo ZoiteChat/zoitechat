@@ -58,6 +58,36 @@
 
 #ifdef G_OS_WIN32
 #include <windows.h>
+#include <gdk/gdkwin32.h>
+
+static void
+mg_win32_allow_autohide_taskbar (GtkWindow *window, GdkEventWindowState *event)
+{
+	GdkWindow *gdk_window;
+	HWND hwnd;
+
+	if (!window || !event)
+		return;
+
+	if ((event->new_window_state & GDK_WINDOW_STATE_FULLSCREEN) != 0)
+		return;
+
+	gdk_window = gtk_widget_get_window (GTK_WIDGET (window));
+	if (!gdk_window)
+		return;
+
+	hwnd = gdk_win32_window_get_handle (gdk_window);
+	if (!hwnd)
+		return;
+
+	SetWindowPos (hwnd,
+	              HWND_NOTOPMOST,
+	              0,
+	              0,
+	              0,
+	              0,
+	              SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOOWNERZORDER);
+}
 #endif
 
 #define ICON_TAB_DETACH "zc-menu-detach"
@@ -658,6 +688,10 @@ mg_windowstate_cb (GtkWindow *wid, GdkEventWindowState *event, gpointer userdata
                 prefs.hex_gui_win_fullscreen = 1;
 
         menu_set_fullscreen (current_sess->gui, prefs.hex_gui_win_fullscreen);
+
+#ifdef G_OS_WIN32
+	mg_win32_allow_autohide_taskbar (wid, event);
+#endif
 
         return FALSE;
 }
