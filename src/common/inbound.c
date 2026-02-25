@@ -108,7 +108,6 @@ find_session_from_nick (char *nick, server *serv)
 
 	if (serv->front_session)
 	{
-		// If we are here for ChanServ, then it is usually a reply for the user
 		if (!g_ascii_strcasecmp(nick, "ChanServ") || userlist_find (serv->front_session, nick))
 			return serv->front_session;
 	}
@@ -2121,7 +2120,6 @@ scram_authenticate (server *serv, const char *data, const char *digest,
 
 	if (status == SCRAM_IN_PROGRESS)
 	{
-		// Authentication is still in progress
 		encoded = g_base64_encode ((guchar *) output, output_len);
 		tcp_sendf (serv, "AUTHENTICATE %s\r\n", encoded);
 		g_free (encoded);
@@ -2129,13 +2127,11 @@ scram_authenticate (server *serv, const char *data, const char *digest,
 	}
 	else if (status == SCRAM_SUCCESS)
 	{
-		// Authentication succeeded
 		tcp_sendf (serv, "AUTHENTICATE +\r\n");
 		g_clear_pointer (&serv->scram_session, scram_session_free);
 	}
 	else if (status == SCRAM_ERROR)
 	{
-		// Authentication failed
 		tcp_sendf (serv, "AUTHENTICATE *\r\n");
 
 		if (serv->scram_session->error != NULL)
