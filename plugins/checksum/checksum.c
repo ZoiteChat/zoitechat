@@ -26,7 +26,7 @@
 
 #include "zoitechat-plugin.h"
 
-static zoitechat_plugin *ph;									/* plugin handle */
+static zoitechat_plugin *ph;
 static char name[] = "Checksum";
 static char desc[] = "Calculate checksum for DCC file transfers";
 static char version[] = "4.0";

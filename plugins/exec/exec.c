@@ -25,7 +25,7 @@
 
 #include "zoitechat-plugin.h"
 
-static zoitechat_plugin *ph;   /* plugin handle */
+static zoitechat_plugin *ph;
 static char name[] = "Exec";
 static char desc[] = "Execute commands inside ZoiteChat";
 static char version[] = "1.2";
