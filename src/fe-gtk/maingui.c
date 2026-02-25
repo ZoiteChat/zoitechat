@@ -58,6 +58,87 @@
 
 #ifdef G_OS_WIN32
 #include <windows.h>
+#include <shellapi.h>
+#include <gdk/gdkwin32.h>
+
+static void
+mg_win32_allow_autohide_taskbar (GtkWindow *window, GdkEventWindowState *event)
+{
+	GdkWindow *gdk_window;
+	HWND hwnd;
+
+	if (!window || !event)
+		return;
+
+	if ((event->new_window_state & GDK_WINDOW_STATE_FULLSCREEN) != 0)
+		return;
+
+	gdk_window = gtk_widget_get_window (GTK_WIDGET (window));
+	if (!gdk_window)
+		return;
+
+	hwnd = gdk_win32_window_get_handle (gdk_window);
+	if (!hwnd)
+		return;
+
+	if (event->new_window_state & GDK_WINDOW_STATE_MAXIMIZED)
+	{
+		APPBARDATA appbar_data;
+		RECT work_area;
+
+		ZeroMemory (&appbar_data, sizeof (APPBARDATA));
+		appbar_data.cbSize = sizeof (APPBARDATA);
+
+		if ((SHAppBarMessage (ABM_GETSTATE, &appbar_data) & ABS_AUTOHIDE) != 0 &&
+			SHAppBarMessage (ABM_GETTASKBARPOS, &appbar_data) != 0)
+		{
+			HMONITOR monitor;
+			MONITORINFO monitor_info;
+
+			monitor = MonitorFromWindow (hwnd, MONITOR_DEFAULTTONEAREST);
+			ZeroMemory (&monitor_info, sizeof (MONITORINFO));
+			monitor_info.cbSize = sizeof (MONITORINFO);
+
+			if (monitor && GetMonitorInfo (monitor, &monitor_info))
+			{
+				work_area = monitor_info.rcMonitor;
+
+				switch (appbar_data.uEdge)
+				{
+				case ABE_LEFT:
+					work_area.left += 1;
+					break;
+				case ABE_TOP:
+					work_area.top += 1;
+					break;
+				case ABE_RIGHT:
+					work_area.right -= 1;
+					break;
+				case ABE_BOTTOM:
+				default:
+					work_area.bottom -= 1;
+					break;
+				}
+
+				SetWindowPos (hwnd,
+				              NULL,
+				              work_area.left,
+				              work_area.top,
+				              work_area.right - work_area.left,
+				              work_area.bottom - work_area.top,
+				              SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOZORDER);
+			}
+		}
+	}
+
+	SetWindowPos (hwnd,
+	              HWND_NOTOPMOST,
+	              0,
+	              0,
+	              0,
+	              0,
+	              SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOOWNERZORDER);
+}
 #endif
 
 #define ICON_TAB_DETACH "zc-menu-detach"
@@ -658,6 +739,10 @@ mg_windowstate_cb (GtkWindow *wid, GdkEventWindowState *event, gpointer userdata
                 prefs.hex_gui_win_fullscreen = 1;
 
         menu_set_fullscreen (current_sess->gui, prefs.hex_gui_win_fullscreen);
+
+#ifdef G_OS_WIN32
+	mg_win32_allow_autohide_taskbar (wid, event);
+#endif
 
         return FALSE;
 }
