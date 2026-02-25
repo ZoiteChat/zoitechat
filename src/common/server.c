@@ -510,16 +510,7 @@ server_stopconnecting (server * serv)
 static void
 ssl_cb_info (SSL * s, int where, int ret)
 {
-/*	char buf[128];*/
-
-
 	return;							  /* FIXME: make debug level adjustable in serverlist or settings */
-
-/*	g_snprintf (buf, sizeof (buf), "%s (%d)", SSL_state_string_long (s), where);
-	if (g_sess)
-		EMIT_SIGNAL (XP_TE_SSLMESSAGE, g_sess, buf, NULL, NULL, NULL, 0);
-	else
-		fprintf (stderr, "%s\n", buf);*/
 }
 
 static int
@@ -625,14 +616,6 @@ ssl_do_connect (server * serv)
 						 cert_info.algorithm, cert_info.algorithm_bits);
 			EMIT_SIGNAL (XP_TE_SSLMESSAGE, serv->server_session, buf, NULL, NULL,
 							 NULL, 0);
-			/*if (cert_info.rsa_tmp_bits)
-			{
-				g_snprintf (buf, sizeof (buf),
-							 "  Public key algorithm uses ephemeral key with %d bits",
-							 cert_info.rsa_tmp_bits);
-				EMIT_SIGNAL (XP_TE_SSLMESSAGE, serv->server_session, buf, NULL, NULL,
-								 NULL, 0);
-			}*/
 			g_snprintf (buf, sizeof (buf), "  Sign algorithm %s",
 						 cert_info.sign_algorithm/*, cert_info.sign_algorithm_bits*/);
 			EMIT_SIGNAL (XP_TE_SSLMESSAGE, serv->server_session, buf, NULL, NULL,
@@ -675,8 +658,6 @@ ssl_do_connect (server * serv)
 				}
 				break;
 			}
-			/* g_snprintf (buf, sizeof (buf), "* Verify OK (?)"); */
-			/* EMIT_SIGNAL (XP_TE_SSLMESSAGE, serv->server_session, buf, NULL, NULL, NULL, 0); */
 		case X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY:
 		case X509_V_ERR_UNABLE_TO_VERIFY_LEAF_SIGNATURE:
 		case X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT:
