@@ -1684,15 +1684,8 @@ fe_open_url_inner (const char *url)
 	char *escaped_url = maybe_escape_uri (url);
 	gchar *xdg_open_argv[] = {(gchar *) "xdg-open", escaped_url, NULL};
 	gchar **spawn_env = NULL;
+	gboolean opened = FALSE;
 	g_debug ("Opening URL \"%s\" (%s)", escaped_url, url);
-	if (gtk_show_uri (NULL, escaped_url, GDK_CURRENT_TIME, &error))
-	{
-		g_free (escaped_url);
-		return;
-	}
-
-	g_warning ("gtk_show_uri failed for '%s': %s", escaped_url, error ? error->message : "unknown error");
-	g_clear_error (&error);
 
 	/* AppImage runtime variables can point host binaries like /bin/sh at
 	 * bundled libraries, which may not be ABI-compatible with system tools. */
@@ -1707,14 +1700,37 @@ fe_open_url_inner (const char *url)
 		g_strfreev (tmp_env);
 	}
 
-	/* AppImage and sandboxed environments can fail to resolve URI handlers
-	 * through GTK/GIO. Fall back to xdg-open when available. */
-	if (!g_spawn_async (NULL, xdg_open_argv, spawn_env,
-						 G_SPAWN_SEARCH_PATH | G_SPAWN_STDOUT_TO_DEV_NULL | G_SPAWN_STDERR_TO_DEV_NULL,
-						 NULL, NULL, NULL, &error))
+	/* Prefer xdg-open when available because gtk_show_uri can inherit
+	 * AppImage runtime state and fail before we can control the environment. */
 	{
-		g_warning ("xdg-open fallback failed for '%s': %s", escaped_url, error ? error->message : "unknown error");
+		gchar *xdg_open_path = g_find_program_in_path ("xdg-open");
+		if (xdg_open_path &&
+			g_spawn_async (NULL, xdg_open_argv, spawn_env,
+							 G_SPAWN_SEARCH_PATH | G_SPAWN_STDOUT_TO_DEV_NULL | G_SPAWN_STDERR_TO_DEV_NULL,
+							 NULL, NULL, NULL, &error))
+		{
+			opened = TRUE;
+		}
+		else
+		{
+			g_clear_error (&error);
+		}
+		g_free (xdg_open_path);
+	}
+
+	if (!opened && gtk_show_uri (NULL, escaped_url, GDK_CURRENT_TIME, &error))
+	{
+		opened = TRUE;
+	}
+	else if (!opened)
+	{
+		g_warning ("gtk_show_uri failed for '%s': %s", escaped_url, error ? error->message : "unknown error");
 		g_clear_error (&error);
+	}
+
+	if (!opened)
+	{
+		g_warning ("Unable to open URL '%s' via xdg-open or gtk_show_uri", escaped_url);
 	}
 
 	g_strfreev (spawn_env);
