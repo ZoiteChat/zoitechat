@@ -533,7 +533,7 @@ fe_args (int argc, char *argv[])
 		return 0;
 	}
 
-	if (arg_cfgdir)	/* we want filesystem encoding */
+	if (arg_cfgdir)
 	{
 		g_free (xdir);
 		xdir = g_strdup(arg_cfgdir);
@@ -548,10 +548,8 @@ fe_args (int argc, char *argv[])
 void
 fe_init (void)
 {
-	/* the following should be default generated, not enfoced in binary */
 	prefs.hex_gui_tab_server = 0;
 	prefs.hex_gui_autoopen_dialog = 0;
-	/* except for these, there is no lag meter, there is no server list */
 	prefs.hex_gui_lagometer = 0;
 	prefs.hex_gui_slist_skip = 1;
 }
@@ -563,7 +561,6 @@ fe_main (void)
 
 	main_loop = g_main_loop_new(NULL, FALSE);
 
-	/* Keyboard Entry Setup */
 #ifdef G_OS_WIN32
 	keyboard_input = g_io_channel_win32_new_fd(STDIN_FILENO);
 #else
@@ -832,10 +829,8 @@ fe_idle_add (void *func, void *data)
 void
 fe_ctrl_gui (session *sess, fe_gui_action action, int arg)
 {
-	/* only one action type handled for now, but could add more */
 	switch (action)
 	{
-	/* gui focus is really the only case zoitechat-text needs to worry about */
 	case FE_GUI_FOCUS:
 		current_sess = sess;
 		current_tab = sess;
