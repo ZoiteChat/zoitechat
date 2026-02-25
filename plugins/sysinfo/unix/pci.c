@@ -132,7 +132,6 @@ void pci_find_fullname(char *fullname, char *vendor, char *device)
 	if(fp == NULL)
 	{
 		g_snprintf(fullname, bsize, "%s:%s", vendor, device);
-		//sysinfo_print_error ("pci.ids file not found! You might want to adjust your pciids setting with /SYSINFO SET pciids (you can query its current value with /SYSINFO LIST).\n");
 		return;
 	}
 
