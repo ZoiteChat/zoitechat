@@ -314,15 +314,14 @@ static const char *const noticeposmenu[] =
 
 static const char *const swtype[] =
 {
-        N_("Tabs"),     /* 0 tabs */
-        "",                     /* 1 reserved */
-        N_("Tree"),     /* 2 tree */
+        N_("Tabs"),
+        "",
+        N_("Tree"),
         NULL
 };
 
 static const setting tabs_settings[] =
 {
-        /*{ST_HEADER,   N_("Channel Switcher"),0,0,0},*/
         {ST_RADIO,  N_("Switcher type:"),P_OFFINTNL(hex_gui_tab_layout), 0, swtype, 0},
         {ST_TOGGLE, N_("Open an extra tab for server messages"), P_OFFINTNL(hex_gui_tab_server), 0, 0, 0},
         {ST_TOGGLE, N_("Open a new tab when you receive a private message"), P_OFFINTNL(hex_gui_autoopen_dialog), 0, 0, 0},
@@ -954,7 +953,6 @@ setup_apply_trans (int *tag)
         gtk_window_set_opacity (GTK_WINDOW (current_sess->gui->window),
                                                         (prefs.hex_gui_transparency / 255.));
 
-        /* mg_update_xtext (current_sess->gui->xtext); */
         *tag = 0;
         return 0;
 }
@@ -1000,8 +998,8 @@ setup_create_hscale (GtkWidget *table, int row, const setting *set)
 }
 
 
-static GtkWidget *proxy_user;   /* username GtkEntry */
-static GtkWidget *proxy_pass;   /* password GtkEntry */
+static GtkWidget *proxy_user;
+static GtkWidget *proxy_pass;
 
 static void
 setup_menu_cb (GtkWidget *cbox, const setting *set)
