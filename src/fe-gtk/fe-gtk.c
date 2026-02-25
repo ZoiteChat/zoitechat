@@ -1680,9 +1680,29 @@ fe_open_url_inner (const char *url)
 #elif defined(__APPLE__)
     osx_show_uri (url);
 #else
+	GError *error = NULL;
 	char *escaped_url = maybe_escape_uri (url);
+	gchar *xdg_open_argv[] = {(gchar *) "xdg-open", escaped_url, NULL};
 	g_debug ("Opening URL \"%s\" (%s)", escaped_url, url);
-	gtk_show_uri (NULL, escaped_url, GDK_CURRENT_TIME, NULL);
+	if (gtk_show_uri (NULL, escaped_url, GDK_CURRENT_TIME, &error))
+	{
+		g_free (escaped_url);
+		return;
+	}
+
+	g_warning ("gtk_show_uri failed for '%s': %s", escaped_url, error ? error->message : "unknown error");
+	g_clear_error (&error);
+
+	/* AppImage and sandboxed environments can fail to resolve URI handlers
+	 * through GTK/GIO. Fall back to xdg-open when available. */
+	if (!g_spawn_async (NULL, xdg_open_argv, NULL,
+						 G_SPAWN_SEARCH_PATH | G_SPAWN_STDOUT_TO_DEV_NULL | G_SPAWN_STDERR_TO_DEV_NULL,
+						 NULL, NULL, NULL, &error))
+	{
+		g_warning ("xdg-open fallback failed for '%s': %s", escaped_url, error ? error->message : "unknown error");
+		g_clear_error (&error);
+	}
+
 	g_free (escaped_url);
 #endif
 }
