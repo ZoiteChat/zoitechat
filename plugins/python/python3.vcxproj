@@ -67,6 +67,7 @@
     <None Include="python.def" />
     <None Include="python.py" />
     <None Include="xchat.py" />
+    <None Include="hexchat.py" />
     <None Include="_zoitechat.py" />
   </ItemGroup>
   <ItemGroup>
