@@ -72,6 +72,7 @@ typedef struct
 	GtkWidget *gtk3_combo;
 	GtkWidget *gtk3_import_button;
 	GtkWidget *gtk3_apply_button;
+	GtkWidget *gtk3_use_system_button;
 	GtkWidget *gtk3_status_label;
 } setup_theme_ui;
 
@@ -2068,12 +2069,14 @@ setup_theme_populate_gtk3 (setup_theme_ui *ui)
 		gtk_combo_box_text_append_text (GTK_COMBO_BOX_TEXT (ui->gtk3_combo), g_ptr_array_index (names, i));
 
 	settings = gtk_settings_get_default ();
-	if (settings)
+	if (prefs.hex_gui_gtk3_theme_name[0] != '\0')
+		current_theme = g_strdup (prefs.hex_gui_gtk3_theme_name);
+	else if (settings)
 		g_object_get (settings, "gtk-theme-name", &current_theme, NULL);
 
 	if (names->len > 0)
 	{
-		gtk_combo_box_set_active (GTK_COMBO_BOX (ui->gtk3_combo), 0);
+		gtk_combo_box_set_active (GTK_COMBO_BOX (ui->gtk3_combo), -1);
 		if (current_theme)
 		{
 			for (i = 0; i < names->len; i++)
@@ -2087,9 +2090,10 @@ setup_theme_populate_gtk3 (setup_theme_ui *ui)
 		}
 	}
 
-	gtk_widget_set_sensitive (ui->gtk3_apply_button, names->len > 0);
+	gtk_widget_set_sensitive (ui->gtk3_apply_button,
+		gtk_combo_box_get_active (GTK_COMBO_BOX (ui->gtk3_combo)) >= 0);
 	gtk_label_set_text (GTK_LABEL (ui->gtk3_status_label),
-								  names->len > 0 ? _("Select a GTK3 theme to activate for the interface.") : _("No GTK3 themes found."));
+								  names->len > 0 ? _("Select a GTK3 theme to activate from the dropdown, or use the system GTK theme.") : _("No GTK3 themes found."));
 
 	g_ptr_array_free (names, TRUE);
 	g_hash_table_destroy (seen);
@@ -2169,26 +2173,40 @@ static void
 setup_theme_gtk3_apply_cb (GtkWidget *button, gpointer user_data)
 {
 	setup_theme_ui *ui = user_data;
-	GtkSettings *settings;
 	char *theme;
+	GError *error = NULL;
 
 	theme = gtk_combo_box_text_get_active_text (GTK_COMBO_BOX_TEXT (ui->gtk3_combo));
 	if (!theme)
 		return;
 
-	settings = gtk_settings_get_default ();
-	if (!settings)
+	if (!fe_apply_gtk3_theme (theme, &error))
 	{
-		setup_theme_show_message (GTK_MESSAGE_ERROR, _("GTK settings are unavailable, cannot activate GTK3 theme."));
+		setup_theme_show_message (GTK_MESSAGE_ERROR,
+			error ? error->message : _("Failed to apply GTK3 theme."));
+		g_clear_error (&error);
 		g_free (theme);
 		return;
 	}
 
-	g_object_set (settings, "gtk-theme-name", theme, NULL);
-	gtk_label_set_text (GTK_LABEL (ui->gtk3_status_label), _("GTK3 theme activated for this session."));
-	setup_theme_show_message (GTK_MESSAGE_INFO, _("GTK3 theme activated. Application palette settings were not changed."));
+	safe_strcpy (prefs.hex_gui_gtk3_theme_name, theme, sizeof (prefs.hex_gui_gtk3_theme_name));
+	save_config ();
+	gtk_label_set_text (GTK_LABEL (ui->gtk3_status_label), _("GTK3 theme activated from ZoiteChat's local theme store."));
+	setup_theme_show_message (GTK_MESSAGE_INFO, _("GTK3 theme activated and saved."));
 
 	g_free (theme);
+}
+
+static void
+setup_theme_gtk3_use_system_cb (GtkWidget *button, gpointer user_data)
+{
+	setup_theme_ui *ui = user_data;
+
+	fe_apply_gtk3_theme (NULL, NULL);
+	prefs.hex_gui_gtk3_theme_name[0] = '\0';
+	save_config ();
+	gtk_label_set_text (GTK_LABEL (ui->gtk3_status_label), _("Using system GTK theme."));
+	setup_theme_show_message (GTK_MESSAGE_INFO, _("Using system GTK theme."));
 }
 
 static GtkWidget *
@@ -2262,7 +2280,7 @@ setup_create_theme_page (void)
 	gtk_container_set_border_width (GTK_CONTAINER (hbox), 6);
 	gtk_container_add (GTK_CONTAINER (frame), hbox);
 
-	label = gtk_label_new (_("Import a GTK3 theme archive or select an installed GTK3 theme."));
+	label = gtk_label_new (_("Import a GTK3 theme archive or select a GTK3 theme installed in ZoiteChat's local theme store."));
 	gtk_label_set_line_wrap (GTK_LABEL (label), TRUE);
 	gtk_widget_set_halign (label, GTK_ALIGN_START);
 	gtk_box_pack_start (GTK_BOX (hbox), label, FALSE, FALSE, 0);
@@ -2284,6 +2302,11 @@ setup_create_theme_page (void)
 	gtk_box_pack_start (GTK_BOX (button_box), ui->gtk3_apply_button, FALSE, FALSE, 0);
 	g_signal_connect (G_OBJECT (ui->gtk3_apply_button), "clicked",
 								G_CALLBACK (setup_theme_gtk3_apply_cb), ui);
+
+	ui->gtk3_use_system_button = gtk_button_new_with_mnemonic (_("Use _System GTK Theme"));
+	gtk_box_pack_start (GTK_BOX (button_box), ui->gtk3_use_system_button, FALSE, FALSE, 0);
+	g_signal_connect (G_OBJECT (ui->gtk3_use_system_button), "clicked",
+								G_CALLBACK (setup_theme_gtk3_use_system_cb), ui);
 
 	ui->gtk3_status_label = gtk_label_new (NULL);
 	gtk_widget_set_halign (ui->gtk3_status_label, GTK_ALIGN_START);

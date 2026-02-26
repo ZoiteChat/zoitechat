@@ -193,6 +193,7 @@ gboolean fe_dark_mode_state_is_initialized (void);
 void fe_set_auto_dark_mode_state (gboolean enabled);
 void fe_refresh_auto_dark_mode (void);
 gboolean fe_apply_theme_for_mode (unsigned int mode, gboolean *palette_changed);
+gboolean fe_apply_gtk3_theme (const char *theme_name, GError **error);
 void fe_apply_theme_to_toplevel (GtkWidget *window);
 
 #define SPELL_ENTRY_GET_TEXT(e) ((char *)(gtk_entry_get_text (GTK_ENTRY(e))))

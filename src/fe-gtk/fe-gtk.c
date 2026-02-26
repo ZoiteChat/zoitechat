@@ -590,6 +590,109 @@ fe_system_prefers_dark (void)
 static gboolean auto_dark_mode_enabled = FALSE;
 static gboolean dark_mode_state_initialized = FALSE;
 
+
+static GtkCssProvider *gtk3_theme_provider = NULL;
+static char *gtk3_theme_provider_name = NULL;
+static gboolean gtk3_theme_provider_dark = FALSE;
+
+gboolean
+fe_apply_gtk3_theme (const char *theme_name, GError **error)
+{
+	GdkScreen *screen = gdk_screen_get_default ();
+	char *theme_dir = NULL;
+	char *gtk3_dir = NULL;
+	char *gtk_css = NULL;
+	char *gtk_dark_css = NULL;
+	const char *selected_css = NULL;
+	gboolean dark = fe_dark_mode_is_enabled ();
+	GList *toplevels, *node;
+
+	if (!theme_name || !*theme_name)
+	{
+		if (gtk3_theme_provider && screen)
+		{
+			gtk_style_context_remove_provider_for_screen (
+				screen,
+				GTK_STYLE_PROVIDER (gtk3_theme_provider));
+		}
+		g_clear_object (&gtk3_theme_provider);
+		g_clear_pointer (&gtk3_theme_provider_name, g_free);
+		gtk3_theme_provider_dark = FALSE;
+
+		toplevels = gtk_window_list_toplevels ();
+		for (node = toplevels; node; node = node->next)
+			fe_apply_theme_to_toplevel (GTK_WIDGET (node->data));
+		g_list_free (toplevels);
+
+		return TRUE;
+	}
+
+	if (gtk3_theme_provider_name
+		&& g_strcmp0 (gtk3_theme_provider_name, theme_name) == 0
+		&& gtk3_theme_provider_dark == dark)
+	{
+		return TRUE;
+	}
+
+	theme_dir = g_build_filename (get_xdir (), "gtk3-themes", theme_name, NULL);
+	gtk3_dir = g_build_filename (theme_dir, "gtk-3.0", NULL);
+	gtk_css = g_build_filename (gtk3_dir, "gtk.css", NULL);
+	gtk_dark_css = g_build_filename (gtk3_dir, "gtk-dark.css", NULL);
+
+	if (!g_file_test (gtk_css, G_FILE_TEST_IS_REGULAR))
+	{
+		g_set_error (error, G_FILE_ERROR, G_FILE_ERROR_NOENT,
+		             _("GTK3 theme '%s' is missing gtk-3.0/gtk.css."), theme_name);
+		g_free (gtk_dark_css);
+		g_free (gtk_css);
+		g_free (gtk3_dir);
+		g_free (theme_dir);
+		return FALSE;
+	}
+
+	if (dark && g_file_test (gtk_dark_css, G_FILE_TEST_IS_REGULAR))
+		selected_css = gtk_dark_css;
+	else
+		selected_css = gtk_css;
+
+	if (!gtk3_theme_provider)
+		gtk3_theme_provider = gtk_css_provider_new ();
+
+	if (!gtk_css_provider_load_from_path (gtk3_theme_provider, selected_css, error))
+	{
+		g_free (gtk_dark_css);
+		g_free (gtk_css);
+		g_free (gtk3_dir);
+		g_free (theme_dir);
+		return FALSE;
+	}
+
+	if (screen)
+	{
+		gtk_style_context_add_provider_for_screen (
+			screen,
+			GTK_STYLE_PROVIDER (gtk3_theme_provider),
+			GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+		gtk_style_context_reset_widgets (screen);
+	}
+
+	g_free (gtk3_theme_provider_name);
+	gtk3_theme_provider_name = g_strdup (theme_name);
+	gtk3_theme_provider_dark = dark;
+
+	toplevels = gtk_window_list_toplevels ();
+	for (node = toplevels; node; node = node->next)
+		fe_apply_theme_to_toplevel (GTK_WIDGET (node->data));
+	g_list_free (toplevels);
+
+	g_free (gtk_dark_css);
+	g_free (gtk_css);
+	g_free (gtk3_dir);
+	g_free (theme_dir);
+	return TRUE;
+}
+
+
 static void
 fe_set_gtk_prefer_dark_theme (gboolean dark)
 {
@@ -721,6 +824,12 @@ fe_apply_theme_for_mode (unsigned int mode, gboolean *palette_changed)
 
 	if (input_style)
 		create_input_style (input_style);
+
+	if (!fe_apply_gtk3_theme (prefs.hex_gui_gtk3_theme_name, NULL)
+		&& prefs.hex_gui_gtk3_theme_name[0] != '\0')
+	{
+		fe_message (_("Failed to apply configured GTK3 theme from gtk3-themes."), FE_MSG_ERROR);
+	}
 
 	/* Existing toplevel windows also need the class refreshed for selectors like
 	 * .zoitechat-dark / .zoitechat-light to update immediately. */

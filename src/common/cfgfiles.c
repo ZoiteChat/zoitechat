@@ -419,6 +419,7 @@ const struct prefs vars[] =
 	{"gui_input_nick", P_OFFINT (hex_gui_input_nick), TYPE_BOOL},
 	{"gui_input_spell", P_OFFINT (hex_gui_input_spell), TYPE_BOOL},
 	{"gui_input_style", P_OFFINT (hex_gui_input_style), TYPE_BOOL},
+	{"gui_gtk3_theme_name", P_OFFSET (hex_gui_gtk3_theme_name), TYPE_STR},
 	{"gui_join_dialog", P_OFFINT (hex_gui_join_dialog), TYPE_BOOL},
 	{"gui_lagometer", P_OFFINT (hex_gui_lagometer), TYPE_INT},
 	{"gui_lang", P_OFFINT (hex_gui_lang), TYPE_INT},
