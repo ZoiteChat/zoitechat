@@ -614,6 +614,7 @@ fe_apply_gtk3_theme (const char *theme_name, GError **error)
 			gtk_style_context_remove_provider_for_screen (
 				screen,
 				GTK_STYLE_PROVIDER (gtk3_theme_provider));
+			gtk_style_context_reset_widgets (screen);
 		}
 		g_clear_object (&gtk3_theme_provider);
 		g_clear_pointer (&gtk3_theme_provider_name, g_free);
@@ -672,7 +673,7 @@ fe_apply_gtk3_theme (const char *theme_name, GError **error)
 		gtk_style_context_add_provider_for_screen (
 			screen,
 			GTK_STYLE_PROVIDER (gtk3_theme_provider),
-			GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+			GTK_STYLE_PROVIDER_PRIORITY_THEME);
 		gtk_style_context_reset_widgets (screen);
 	}
 
