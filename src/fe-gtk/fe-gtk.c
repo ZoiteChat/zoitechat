@@ -587,6 +587,7 @@ fe_system_prefers_dark (void)
 }
 
 static gboolean auto_dark_mode_enabled = FALSE;
+static gboolean dark_mode_state_initialized = FALSE;
 
 static void
 fe_set_gtk_prefer_dark_theme (gboolean dark)
@@ -657,6 +658,13 @@ void
 fe_set_auto_dark_mode_state (gboolean enabled)
 {
 	auto_dark_mode_enabled = enabled;
+	dark_mode_state_initialized = TRUE;
+}
+
+gboolean
+fe_dark_mode_state_is_initialized (void)
+{
+	return dark_mode_state_initialized;
 }
 
 void
@@ -1008,7 +1016,10 @@ fe_init (void)
 	palette_load ();
 	settings = gtk_settings_get_default ();
 	if (settings)
+	{
 		auto_dark_mode_enabled = fe_system_prefers_dark ();
+		dark_mode_state_initialized = TRUE;
+	}
 
 	fe_apply_theme_for_mode (prefs.hex_gui_dark_mode, NULL);
 	key_init ();

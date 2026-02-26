@@ -189,6 +189,7 @@ extern cairo_surface_t *dialogwin_pix;
 
 gboolean fe_dark_mode_is_enabled (void);
 gboolean fe_dark_mode_is_enabled_for (unsigned int mode);
+gboolean fe_dark_mode_state_is_initialized (void);
 void fe_set_auto_dark_mode_state (gboolean enabled);
 void fe_refresh_auto_dark_mode (void);
 gboolean fe_apply_theme_for_mode (unsigned int mode, gboolean *palette_changed);

@@ -251,6 +251,9 @@ gtkutil_menu_icon_theme_variant (void)
 	char *theme_name_lower = NULL;
 	const char *theme_variant = "light";
 
+	if (fe_dark_mode_state_is_initialized ())
+		return fe_dark_mode_is_enabled () ? "dark" : "light";
+
 	settings = gtk_settings_get_default ();
 	if (settings)
 	{
