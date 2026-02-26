@@ -57,6 +57,8 @@ void palette_save (void);
 /* Keep a copy of the user's palette so dark mode can be toggled without losing it. */
 void palette_user_set_color (int idx, const PaletteColor *col);
 void palette_dark_set_color (int idx, const PaletteColor *col);
+const PaletteColor *palette_user_colors (void);
+const PaletteColor *palette_dark_colors (void);
 
 /*
  * Apply ZoiteChat's built-in "dark mode" palette.

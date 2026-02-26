@@ -224,6 +224,27 @@ palette_dark_set_color (int idx, const PaletteColor *col)
 	dark_user_colors[idx] = *col;
 }
 
+const PaletteColor *
+palette_user_colors (void)
+{
+	if (!user_colors_valid)
+	{
+		memcpy (user_colors, colors, sizeof (user_colors));
+		user_colors_valid = TRUE;
+	}
+
+	return user_colors;
+}
+
+const PaletteColor *
+palette_dark_colors (void)
+{
+	if (!dark_user_colors_valid)
+		return dark_colors;
+
+	return dark_user_colors;
+}
+
 void
 palette_alloc (GtkWidget * widget)
 {

@@ -57,6 +57,7 @@ static int last_selected_page = 0;
 static int last_selected_row = 0; /* sound row */
 static gboolean color_change;
 static gboolean setup_color_edit_dark_palette;
+static const PaletteColor *setup_color_edit_source_colors;
 static struct zoitechatprefs setup_prefs;
 static GSList *color_selector_widgets;
 static GtkWidget *cancel_button;
@@ -1499,6 +1500,14 @@ setup_color_selectors_set_sensitive (gboolean sensitive)
 }
 
 static void
+setup_color_update_source_palette (void)
+{
+	setup_color_edit_source_colors = setup_color_edit_dark_palette
+		? palette_dark_colors ()
+		: palette_user_colors ();
+}
+
+static void
 setup_refresh_color_selector_widgets (void)
 {
 	GSList *l = color_selector_widgets;
@@ -1523,8 +1532,8 @@ setup_refresh_color_selector_widgets (void)
 		}
 
 		color_index = GPOINTER_TO_INT (color_index_ptr);
-		if (color_index >= 0 && color_index <= MAX_COL)
-			setup_color_button_apply (w, &colors[color_index]);
+		if (setup_color_edit_source_colors && color_index >= 0 && color_index <= MAX_COL)
+			setup_color_button_apply (w, &setup_color_edit_source_colors[color_index]);
 
 		l = l->next;
 	}
@@ -1534,7 +1543,7 @@ static void
 setup_dark_mode_menu_cb (GtkWidget *cbox, const setting *set)
 {
 	setup_menu_cb (cbox, set);
-	palette_apply_dark_mode (setup_color_edit_dark_palette);
+	setup_color_update_source_palette ();
 	setup_refresh_color_selector_widgets ();
 	/* Keep color selectors usable even when dark mode is enabled. */
 	setup_color_selectors_set_sensitive (TRUE);
@@ -1546,7 +1555,7 @@ setup_color_edit_target_menu_cb (GtkComboBox *cbox, gpointer userdata)
 	(void) userdata;
 
 	setup_color_edit_dark_palette = gtk_combo_box_get_active (cbox) == 1;
-	palette_apply_dark_mode (setup_color_edit_dark_palette);
+	setup_color_update_source_palette ();
 	setup_refresh_color_selector_widgets ();
 	setup_color_selectors_set_sensitive (TRUE);
 }
@@ -1630,8 +1639,7 @@ setup_color_button_apply (GtkWidget *button, const PaletteColor *color)
 
 typedef struct
 {
-	GtkWidget *button;
-	PaletteColor *color;
+	int color_index;
 } setup_color_dialog_data;
 
 static void
@@ -1662,14 +1670,15 @@ setup_color_response_cb (GtkDialog *dialog, gint response_id, gpointer user_data
 		GdkRGBA rgba;
 
 		gtk_color_chooser_get_rgba (GTK_COLOR_CHOOSER (dialog), &rgba);
-		*data->color = rgba;
-		color_change = TRUE;
-		setup_color_button_apply (data->button, data->color);
 
 		if (setup_color_edit_dark_palette)
-			palette_dark_set_color ((int)(data->color - colors), data->color);
+			palette_dark_set_color (data->color_index, &rgba);
 		else
-			palette_user_set_color ((int)(data->color - colors), data->color);
+			palette_user_set_color (data->color_index, &rgba);
+
+		color_change = TRUE;
+		setup_color_update_source_palette ();
+		setup_refresh_color_selector_widgets ();
 	}
 
 	gtk_widget_destroy (GTK_WIDGET (dialog));
@@ -1680,20 +1689,23 @@ static void
 setup_color_cb (GtkWidget *button, gpointer userdata)
 {
         GtkWidget *dialog;
-        PaletteColor *color;
+        int color_index;
         GdkRGBA rgba;
         setup_color_dialog_data *data;
 
-        color = &colors[GPOINTER_TO_INT (userdata)];
+        (void) button;
+        color_index = GPOINTER_TO_INT (userdata);
 
         dialog = gtk_color_chooser_dialog_new (_("Select color"), GTK_WINDOW (setup_window));
-        setup_rgba_from_palette (color, &rgba);
+        if (setup_color_edit_source_colors && color_index >= 0 && color_index <= MAX_COL)
+                setup_rgba_from_palette (&setup_color_edit_source_colors[color_index], &rgba);
+        else
+                setup_rgba_from_palette (&colors[color_index], &rgba);
         gtk_color_chooser_set_rgba (GTK_COLOR_CHOOSER (dialog), &rgba);
         gtk_window_set_modal (GTK_WINDOW (dialog), TRUE);
 
         data = g_new0 (setup_color_dialog_data, 1);
-        data->button = button;
-        data->color = color;
+        data->color_index = color_index;
         g_signal_connect (dialog, "response", G_CALLBACK (setup_color_response_cb), data);
         gtk_widget_show (dialog);
 }
@@ -1732,7 +1744,10 @@ setup_create_color_button (GtkWidget *table, int num, int row, int col)
                             SETUP_ALIGN_CENTER, SETUP_ALIGN_CENTER, 0, 0);
         g_signal_connect (G_OBJECT (but), "clicked",
                                                         G_CALLBACK (setup_color_cb), GINT_TO_POINTER (num));
-        setup_color_button_apply (but, &colors[num]);
+        if (setup_color_edit_source_colors)
+                setup_color_button_apply (but, &setup_color_edit_source_colors[num]);
+        else
+                setup_color_button_apply (but, &colors[num]);
 
         /* Track all color selector widgets (used for dark mode UI behavior). */
         color_selector_widgets = g_slist_prepend (color_selector_widgets, but);
@@ -1771,6 +1786,7 @@ setup_create_color_page (void)
 {
 	color_selector_widgets = NULL;
 	setup_color_edit_dark_palette = setup_prefs.hex_gui_dark_mode == ZOITECHAT_DARK_MODE_DARK;
+	setup_color_update_source_palette ();
 
 	GtkWidget *tab, *box, *label;
 	int i;
@@ -1824,6 +1840,7 @@ setup_create_color_page (void)
 	setup_create_other_colorR (_("Spell checker:"), COL_SPELL, 11, tab);
 	setup_create_dark_mode_menu (tab, 13, &dark_mode_setting);
 	setup_create_color_edit_target_menu (tab, 14);
+	setup_refresh_color_selector_widgets ();
 	setup_color_selectors_set_sensitive (TRUE);
 	setup_create_header (tab, 16, N_("Color Stripping"));
 
@@ -2888,6 +2905,8 @@ setup_close_cb (GtkWidget *win, GtkWidget **swin)
 			g_slist_free (color_selector_widgets);
 			color_selector_widgets = NULL;
 		}
+
+		setup_color_edit_source_colors = NULL;
 
         if (font_dialog)
         {
