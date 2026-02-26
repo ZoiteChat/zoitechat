@@ -56,6 +56,7 @@ static GtkWidget *setup_window = NULL;
 static int last_selected_page = 0;
 static int last_selected_row = 0; /* sound row */
 static gboolean color_change;
+static gboolean setup_color_edit_dark_palette;
 static struct zoitechatprefs setup_prefs;
 static GSList *color_selector_widgets;
 static GtkWidget *cancel_button;
@@ -370,6 +371,13 @@ static const setting dark_mode_setting =
 	   "This includes message colors, selection colors, and interface highlights.\n"),
 	dark_mode_modes,
 	0
+};
+
+static const char *const color_edit_target_modes[] =
+{
+	N_("Light"),
+	N_("Dark"),
+	NULL
 };
 
 static const char *const dccaccept[] =
@@ -1525,14 +1533,53 @@ setup_refresh_color_selector_widgets (void)
 static void
 setup_dark_mode_menu_cb (GtkWidget *cbox, const setting *set)
 {
-	gboolean dark_mode_enabled;
-
 	setup_menu_cb (cbox, set);
-	dark_mode_enabled = fe_dark_mode_is_enabled_for (setup_prefs.hex_gui_dark_mode);
-	palette_apply_dark_mode (dark_mode_enabled);
+	palette_apply_dark_mode (setup_color_edit_dark_palette);
 	setup_refresh_color_selector_widgets ();
 	/* Keep color selectors usable even when dark mode is enabled. */
 	setup_color_selectors_set_sensitive (TRUE);
+}
+
+static void
+setup_color_edit_target_menu_cb (GtkComboBox *cbox, gpointer userdata)
+{
+	(void) userdata;
+
+	setup_color_edit_dark_palette = gtk_combo_box_get_active (cbox) == 1;
+	palette_apply_dark_mode (setup_color_edit_dark_palette);
+	setup_refresh_color_selector_widgets ();
+	setup_color_selectors_set_sensitive (TRUE);
+}
+
+static GtkWidget *
+setup_create_color_edit_target_menu (GtkWidget *table, int row)
+{
+	GtkWidget *wid;
+	GtkWidget *cbox;
+	GtkWidget *box;
+	int i;
+
+	wid = gtk_label_new (_("Editing:"));
+	gtk_widget_set_halign (wid, GTK_ALIGN_START);
+	gtk_widget_set_valign (wid, GTK_ALIGN_CENTER);
+	setup_table_attach (table, wid, 2, 3, row, row + 1, FALSE, FALSE,
+			    SETUP_ALIGN_START, SETUP_ALIGN_CENTER,
+			    LABEL_INDENT, 0);
+
+	cbox = gtk_combo_box_text_new ();
+	for (i = 0; color_edit_target_modes[i]; i++)
+		gtk_combo_box_text_append_text (GTK_COMBO_BOX_TEXT (cbox), _(color_edit_target_modes[i]));
+
+	gtk_combo_box_set_active (GTK_COMBO_BOX (cbox), setup_color_edit_dark_palette ? 1 : 0);
+	g_signal_connect (G_OBJECT (cbox), "changed",
+			  G_CALLBACK (setup_color_edit_target_menu_cb), NULL);
+
+	box = gtkutil_box_new (GTK_ORIENTATION_HORIZONTAL, FALSE, 0);
+	gtk_box_pack_start (GTK_BOX (box), cbox, 0, 0, 0);
+	setup_table_attach (table, box, 3, 4, row, row + 1, TRUE, FALSE,
+			    SETUP_ALIGN_FILL, SETUP_ALIGN_FILL, 0, 0);
+
+	return cbox;
 }
 
 static GtkWidget *
@@ -1619,7 +1666,7 @@ setup_color_response_cb (GtkDialog *dialog, gint response_id, gpointer user_data
 		color_change = TRUE;
 		setup_color_button_apply (data->button, data->color);
 
-		if (fe_dark_mode_is_enabled_for (setup_prefs.hex_gui_dark_mode))
+		if (setup_color_edit_dark_palette)
 			palette_dark_set_color ((int)(data->color - colors), data->color);
 		else
 			palette_user_set_color ((int)(data->color - colors), data->color);
@@ -1723,6 +1770,7 @@ static GtkWidget *
 setup_create_color_page (void)
 {
 	color_selector_widgets = NULL;
+	setup_color_edit_dark_palette = setup_prefs.hex_gui_dark_mode == ZOITECHAT_DARK_MODE_DARK;
 
 	GtkWidget *tab, *box, *label;
 	int i;
@@ -1775,8 +1823,9 @@ setup_create_color_page (void)
 	setup_create_other_color (_("Highlight:"), COL_HILIGHT, 11, tab);
 	setup_create_other_colorR (_("Spell checker:"), COL_SPELL, 11, tab);
 	setup_create_dark_mode_menu (tab, 13, &dark_mode_setting);
+	setup_create_color_edit_target_menu (tab, 14);
 	setup_color_selectors_set_sensitive (TRUE);
-	setup_create_header (tab, 15, N_("Color Stripping"));
+	setup_create_header (tab, 16, N_("Color Stripping"));
 
         /* label = gtk_label_new (_("Strip colors from:"));
         gtk_widget_set_halign (label, GTK_ALIGN_START);
@@ -1787,7 +1836,7 @@ setup_create_color_page (void)
 
         for (i = 0; i < 3; i++)
         {
-                setup_create_toggleL (tab, i + 16, &color_settings[i]);
+                setup_create_toggleL (tab, i + 17, &color_settings[i]);
         }
 
         return box;
