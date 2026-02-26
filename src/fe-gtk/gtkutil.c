@@ -668,8 +668,6 @@ static void
 gtkutil_file_req_done (GtkWidget * wid, struct file_req *freq)
 {
 	gtkutil_file_req_done_chooser (GTK_FILE_CHOOSER (freq->dialog), freq);
-
-	/* this should call the "destroy" cb, where we free(freq) */
 	gtk_widget_destroy (freq->dialog);
 }
 
@@ -682,7 +680,6 @@ gtkutil_file_req_response (GtkWidget *dialog, gint res, struct file_req *freq)
 		return;
 	}
 
-	/* this should call the "destroy" cb, where we free(freq) */
 	gtk_widget_destroy (dialog);
 }
 
@@ -1359,16 +1356,6 @@ gtkutil_treemodel_string_to_iter (GtkTreeModel *model, gchar *pathstr, GtkTreeIt
 	gtk_tree_path_free (path);
 	return success;
 }
-
-/*gboolean
-gtkutil_treeview_get_selected_iter (GtkTreeView *view, GtkTreeIter *iter_ret)
-{
-	GtkTreeModel *store;
-	GtkTreeSelection *select;
-	
-	select = gtk_tree_view_get_selection (view);
-	return gtk_tree_selection_get_selected (select, &store, iter_ret);
-}*/
 
 gboolean
 gtkutil_treeview_get_selected (GtkTreeView *view, GtkTreeIter *iter_ret, ...)
