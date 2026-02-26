@@ -533,11 +533,14 @@ fe_win32_apply_native_titlebar (GtkWidget *window, gboolean dark_mode)
 }
 #endif
 
+static gboolean app_set_prefer_dark = FALSE;
+
 static gboolean
 fe_system_prefers_dark (void)
 {
 	GtkSettings *settings = gtk_settings_get_default ();
 	gboolean prefer_dark = FALSE;
+	gboolean has_theme_name = FALSE;
 	char *theme_name = NULL;
 #ifdef G_OS_WIN32
 	gboolean have_win_pref = FALSE;
@@ -549,27 +552,32 @@ fe_system_prefers_dark (void)
 	if (!settings)
 		return FALSE;
 
-#ifdef G_OS_WIN32
-	have_win_pref = fe_win32_try_get_system_dark (&prefer_dark);
-	if (!have_win_pref)
-#endif
-	if (g_object_class_find_property (G_OBJECT_GET_CLASS (settings),
-	                                  "gtk-application-prefer-dark-theme"))
+	g_object_get (settings, "gtk-theme-name", &theme_name, NULL);
+	if (theme_name)
 	{
-		g_object_get (settings, "gtk-application-prefer-dark-theme", &prefer_dark, NULL);
+		char *lower = g_ascii_strdown (theme_name, -1);
+		has_theme_name = TRUE;
+		if (g_str_has_suffix (lower, "-dark") || g_strrstr (lower, "dark"))
+			prefer_dark = TRUE;
+		g_free (lower);
+		g_free (theme_name);
+
+		if (prefer_dark)
+			return TRUE;
 	}
 
-	if (!prefer_dark)
+#ifdef G_OS_WIN32
+	have_win_pref = fe_win32_try_get_system_dark (&prefer_dark);
+	if (have_win_pref)
+		return prefer_dark;
+#endif
+
+	if (!has_theme_name
+		&& !app_set_prefer_dark
+		&& g_object_class_find_property (G_OBJECT_GET_CLASS (settings),
+		                                  "gtk-application-prefer-dark-theme"))
 	{
-		g_object_get (settings, "gtk-theme-name", &theme_name, NULL);
-		if (theme_name)
-		{
-			char *lower = g_ascii_strdown (theme_name, -1);
-			if (g_str_has_suffix (lower, "-dark") || g_strrstr (lower, "dark"))
-				prefer_dark = TRUE;
-			g_free (lower);
-			g_free (theme_name);
-		}
+		g_object_get (settings, "gtk-application-prefer-dark-theme", &prefer_dark, NULL);
 	}
 
 	return prefer_dark;
@@ -586,6 +594,7 @@ fe_set_gtk_prefer_dark_theme (gboolean dark)
 	                                              "gtk-application-prefer-dark-theme"))
 	{
 		g_object_set (settings, "gtk-application-prefer-dark-theme", dark, NULL);
+		app_set_prefer_dark = TRUE;
 	}
 }
 
