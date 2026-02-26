@@ -330,16 +330,364 @@ cleanup:
 	return ok;
 }
 
+static gboolean
+zoitechat_is_safe_archive_entry (const char *entry)
+{
+	char **parts;
+	gboolean safe = TRUE;
+	guint i;
+
+	if (!entry || !*entry)
+		return FALSE;
+
+	if (g_path_is_absolute (entry) || entry[0] == '/' || entry[0] == '\\')
+		return FALSE;
+
+	if (g_ascii_isalpha (entry[0]) && entry[1] == ':')
+		return FALSE;
+
+	parts = g_strsplit_set (entry, "/\\", -1);
+	for (i = 0; parts[i] != NULL; i++)
+	{
+		if (strcmp (parts[i], "..") == 0)
+		{
+			safe = FALSE;
+			break;
+		}
+	}
+
+	g_strfreev (parts);
+	return safe;
+}
+
+static gboolean
+zoitechat_remove_tree (const char *path, GError **error)
+{
+	GDir *dir;
+	const char *name;
+
+	if (!g_file_test (path, G_FILE_TEST_EXISTS))
+		return TRUE;
+
+	if (!g_file_test (path, G_FILE_TEST_IS_DIR))
+		return g_remove (path) == 0;
+
+	dir = g_dir_open (path, 0, error);
+	if (!dir)
+		return FALSE;
+
+	while ((name = g_dir_read_name (dir)))
+	{
+		char *child = g_build_filename (path, name, NULL);
+
+		if (!zoitechat_remove_tree (child, error))
+		{
+			g_free (child);
+			g_dir_close (dir);
+			return FALSE;
+		}
+
+		g_free (child);
+	}
+
+	g_dir_close (dir);
+	if (g_rmdir (path) != 0)
+	{
+		g_set_error (error, G_FILE_ERROR, g_file_error_from_errno (errno),
+		             _("Failed to remove temporary directory."));
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+static gboolean
+zoitechat_copy_directory_recursive (const char *src_dir, const char *dest_dir, GError **error)
+{
+	GDir *dir;
+	const char *name;
+
+	if (g_mkdir_with_parents (dest_dir, 0700) != 0)
+	{
+		g_set_error (error, G_FILE_ERROR, g_file_error_from_errno (errno),
+		             _("Failed to create destination theme directory."));
+		return FALSE;
+	}
+
+	dir = g_dir_open (src_dir, 0, error);
+	if (!dir)
+		return FALSE;
+
+	while ((name = g_dir_read_name (dir)))
+	{
+		char *src_path = g_build_filename (src_dir, name, NULL);
+		char *dest_path = g_build_filename (dest_dir, name, NULL);
+
+		if (g_file_test (src_path, G_FILE_TEST_IS_DIR))
+		{
+			if (!zoitechat_copy_directory_recursive (src_path, dest_path, error))
+			{
+				g_free (dest_path);
+				g_free (src_path);
+				g_dir_close (dir);
+				return FALSE;
+			}
+		}
+		else if (g_file_test (src_path, G_FILE_TEST_IS_REGULAR))
+		{
+			GFile *src_file = g_file_new_for_path (src_path);
+			GFile *dest_file = g_file_new_for_path (dest_path);
+			gboolean copied = g_file_copy (src_file, dest_file,
+			                               G_FILE_COPY_OVERWRITE,
+			                               NULL, NULL, NULL, error);
+
+			g_object_unref (dest_file);
+			g_object_unref (src_file);
+
+			if (!copied)
+			{
+				g_free (dest_path);
+				g_free (src_path);
+				g_dir_close (dir);
+				return FALSE;
+			}
+		}
+
+		g_free (dest_path);
+		g_free (src_path);
+	}
+
+	g_dir_close (dir);
+	return TRUE;
+}
+
+static gboolean
+zoitechat_find_gtk3_theme_root (const char *search_dir, char **theme_root_out, gboolean *has_dark_css_out, GError **error)
+{
+	GDir *dir;
+	const char *name;
+
+	dir = g_dir_open (search_dir, 0, error);
+	if (!dir)
+		return FALSE;
+
+	while ((name = g_dir_read_name (dir)))
+	{
+		char *child = g_build_filename (search_dir, name, NULL);
+
+		if (g_file_test (child, G_FILE_TEST_IS_DIR))
+		{
+			if (strcmp (name, "gtk-3.0") == 0)
+			{
+				char *gtk_css = g_build_filename (child, "gtk.css", NULL);
+
+				if (g_file_test (gtk_css, G_FILE_TEST_IS_REGULAR))
+				{
+					char *dark_css = g_build_filename (child, "gtk-dark.css", NULL);
+
+					if (theme_root_out)
+						*theme_root_out = g_strdup (search_dir);
+					if (has_dark_css_out)
+						*has_dark_css_out = g_file_test (dark_css, G_FILE_TEST_IS_REGULAR);
+
+					g_free (dark_css);
+					g_free (gtk_css);
+					g_free (child);
+					g_dir_close (dir);
+					return TRUE;
+				}
+
+				g_free (gtk_css);
+			}
+			else if (zoitechat_find_gtk3_theme_root (child, theme_root_out, has_dark_css_out, error))
+			{
+				g_free (child);
+				g_dir_close (dir);
+				return TRUE;
+			}
+
+			if (error && *error)
+			{
+				g_free (child);
+				g_dir_close (dir);
+				return FALSE;
+			}
+		}
+
+		g_free (child);
+	}
+
+	g_dir_close (dir);
+	return FALSE;
+}
+
+
+typedef enum
+{
+	ZOITECHAT_GTK3_ARCHIVE_UNKNOWN = 0,
+	ZOITECHAT_GTK3_ARCHIVE_ZIP,
+	ZOITECHAT_GTK3_ARCHIVE_TAR
+} ZoiteChatGtk3ArchiveType;
+
+static ZoiteChatGtk3ArchiveType
+zoitechat_detect_gtk3_archive_type (const char *archive_path)
+{
+	if (!archive_path)
+		return ZOITECHAT_GTK3_ARCHIVE_UNKNOWN;
+
+	if (g_str_has_suffix (archive_path, ".zip") || g_str_has_suffix (archive_path, ".ZIP"))
+		return ZOITECHAT_GTK3_ARCHIVE_ZIP;
+
+	if (g_str_has_suffix (archive_path, ".tar")
+	 || g_str_has_suffix (archive_path, ".tar.gz")
+	 || g_str_has_suffix (archive_path, ".tgz")
+	 || g_str_has_suffix (archive_path, ".tar.xz")
+	 || g_str_has_suffix (archive_path, ".txz"))
+		return ZOITECHAT_GTK3_ARCHIVE_TAR;
+
+	return ZOITECHAT_GTK3_ARCHIVE_UNKNOWN;
+}
+
+#ifndef WIN32
+static gboolean
+zoitechat_validate_zip_entries_unix (const char *archive_path, char **archive_root_out, GError **error)
+{
+	char *stdout_buf = NULL;
+	char *stderr_buf = NULL;
+	char *argv[] = {"unzip", "-Z1", (char *)archive_path, NULL};
+	char *archive_root = NULL;
+	char **lines;
+	gboolean ok;
+	int status = 0;
+	guint i;
+
+	ok = g_spawn_sync (NULL, argv, NULL, G_SPAWN_SEARCH_PATH,
+	                   NULL, NULL, &stdout_buf, &stderr_buf, &status, error);
+	if (!ok)
+		goto cleanup;
+
+	if (!g_spawn_check_exit_status (status, error))
+	{
+		ok = FALSE;
+		goto cleanup;
+	}
+
+	lines = g_strsplit (stdout_buf ? stdout_buf : "", "\n", -1);
+	for (i = 0; lines[i] != NULL; i++)
+	{
+		const char *entry = lines[i];
+		char **parts;
+
+		if (!entry[0])
+			continue;
+
+		if (!zoitechat_is_safe_archive_entry (entry))
+		{
+			g_set_error (error, G_IO_ERROR, G_IO_ERROR_INVALID_DATA,
+			             _("Archive contains unsafe path: %s"), entry);
+			ok = FALSE;
+			break;
+		}
+
+		parts = g_strsplit (entry, "/", 2);
+		if (parts[0] && *parts[0])
+		{
+			if (!archive_root)
+				archive_root = g_strdup (parts[0]);
+			else if (strcmp (archive_root, parts[0]) != 0)
+				g_clear_pointer (&archive_root, g_free);
+		}
+		g_strfreev (parts);
+	}
+	g_strfreev (lines);
+
+	if (ok && archive_root_out)
+		*archive_root_out = g_strdup (archive_root);
+
+cleanup:
+	g_free (archive_root);
+	g_free (stderr_buf);
+	g_free (stdout_buf);
+	return ok;
+}
+
+#endif
+
+static gboolean
+zoitechat_validate_tar_entries_unix (const char *archive_path, char **archive_root_out, GError **error)
+{
+	char *stdout_buf = NULL;
+	char *stderr_buf = NULL;
+	char *argv[] = {"tar", "-tf", (char *)archive_path, NULL};
+	char *archive_root = NULL;
+	char **lines;
+	gboolean ok;
+	int status = 0;
+	guint i;
+
+	ok = g_spawn_sync (NULL, argv, NULL, G_SPAWN_SEARCH_PATH,
+	                   NULL, NULL, &stdout_buf, &stderr_buf, &status, error);
+	if (!ok)
+		goto cleanup;
+
+	if (!g_spawn_check_exit_status (status, error))
+	{
+		ok = FALSE;
+		goto cleanup;
+	}
+
+	lines = g_strsplit (stdout_buf ? stdout_buf : "", "\n", -1);
+	for (i = 0; lines[i] != NULL; i++)
+	{
+		const char *entry = lines[i];
+		char **parts;
+
+		if (!entry[0])
+			continue;
+
+		if (!zoitechat_is_safe_archive_entry (entry))
+		{
+			g_set_error (error, G_IO_ERROR, G_IO_ERROR_INVALID_DATA,
+			             _("Archive contains unsafe path: %s"), entry);
+			ok = FALSE;
+			break;
+		}
+
+		parts = g_strsplit_set (entry, "/\\", 2);
+		if (parts[0] && *parts[0])
+		{
+			if (!archive_root)
+				archive_root = g_strdup (parts[0]);
+			else if (strcmp (archive_root, parts[0]) != 0)
+				g_clear_pointer (&archive_root, g_free);
+		}
+		g_strfreev (parts);
+	}
+	g_strfreev (lines);
+
+	if (ok && archive_root_out)
+		*archive_root_out = g_strdup (archive_root);
+
+cleanup:
+	g_free (archive_root);
+	g_free (stderr_buf);
+	g_free (stdout_buf);
+	return ok;
+}
+
 gboolean
 zoitechat_import_gtk3_theme_archive (const char *archive_path, GError **error)
 {
-	char *theme_root;
-	char *basename;
-	char *dot;
-	char *dest_dir;
-	char *argv[] = {"unzip", "-o", (char *)archive_path, "-d", NULL, NULL};
+	ZoiteChatGtk3ArchiveType archive_type;
+	char *temp_dir = NULL;
+	char *archive_root = NULL;
+	char *theme_root = NULL;
+	char *theme_name = NULL;
+	char *store_dir = NULL;
+	char *dest_dir = NULL;
 	int status = 0;
-	gboolean ok;
+	gboolean ok = FALSE;
+	gboolean has_dark_css = FALSE;
 
 	if (!archive_path)
 	{
@@ -348,56 +696,223 @@ zoitechat_import_gtk3_theme_archive (const char *archive_path, GError **error)
 		return FALSE;
 	}
 
-	theme_root = g_build_filename (g_get_home_dir (), ".themes", NULL);
-	basename = g_path_get_basename (archive_path);
-	if (!basename || basename[0] == '\0')
+	archive_type = zoitechat_detect_gtk3_archive_type (archive_path);
+	if (archive_type == ZOITECHAT_GTK3_ARCHIVE_UNKNOWN)
 	{
-		g_free (theme_root);
-		g_free (basename);
-		g_set_error (error, G_IO_ERROR, G_IO_ERROR_INVALID_ARGUMENT,
-		             _("Failed to determine GTK3 theme name."));
+		g_set_error (error, G_IO_ERROR, G_IO_ERROR_NOT_SUPPORTED,
+		             _("Unsupported archive format. Use .zip, .tar, .tar.gz, .tgz, .tar.xz, or .txz."));
 		return FALSE;
 	}
 
-	dot = strrchr (basename, '.');
-	if (dot)
-		*dot = '\0';
-
-	dest_dir = g_build_filename (theme_root, basename, NULL);
-	if (g_mkdir_with_parents (dest_dir, 0700) != 0)
 	{
-		g_set_error (error, G_FILE_ERROR, g_file_error_from_errno (errno),
-		             _("Failed to create GTK3 theme directory."));
-		g_free (dest_dir);
+		char *basename = g_path_get_basename (archive_path);
+		char *dot;
+
+		if (basename && *basename)
+		{
+			dot = strrchr (basename, '.');
+			if (dot)
+				*dot = '\0';
+			if (g_str_has_suffix (basename, ".tar"))
+				basename[strlen (basename) - 4] = '\0';
+			if (*basename)
+				archive_root = g_strdup (basename);
+		}
 		g_free (basename);
-		g_free (theme_root);
-		return FALSE;
 	}
 
-	argv[4] = dest_dir;
-	ok = g_spawn_sync (NULL, argv, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL,
-	                   NULL, NULL, &status, error);
-	if (!ok)
-	{
-		g_free (dest_dir);
-		g_free (basename);
-		g_free (theme_root);
+	temp_dir = g_dir_make_tmp ("zoitechat-gtk3-theme-XXXXXX", error);
+	if (!temp_dir)
 		return FALSE;
+
+#ifdef WIN32
+	if (archive_type == ZOITECHAT_GTK3_ARCHIVE_ZIP)
+	{
+		char *powershell = NULL;
+		char *command = NULL;
+		GString *escaped_path = g_string_new ("'");
+		GString *escaped_dir = g_string_new ("'");
+		const char *cursor;
+
+		powershell = g_find_program_in_path ("powershell.exe");
+		if (!powershell)
+			powershell = g_find_program_in_path ("powershell");
+		if (!powershell)
+		{
+			g_set_error (error, G_SPAWN_ERROR, G_SPAWN_ERROR_NOENT,
+			             _("No archive extractor was found."));
+			g_string_free (escaped_path, TRUE);
+			g_string_free (escaped_dir, TRUE);
+			goto cleanup;
+		}
+
+		for (cursor = archive_path; *cursor != '\0'; cursor++)
+		{
+			if (*cursor == '\'')
+				g_string_append (escaped_path, "''");
+			else
+				g_string_append_c (escaped_path, *cursor);
+		}
+		g_string_append_c (escaped_path, '\'');
+
+		for (cursor = temp_dir; *cursor != '\0'; cursor++)
+		{
+			if (*cursor == '\'')
+				g_string_append (escaped_dir, "''");
+			else
+				g_string_append_c (escaped_dir, *cursor);
+		}
+		g_string_append_c (escaped_dir, '\'');
+
+		command = g_strdup_printf (
+			"Add-Type -AssemblyName System.IO.Compression.FileSystem; "
+			"$ErrorActionPreference='Stop'; "
+			"$archive=[System.IO.Compression.ZipFile]::OpenRead(%s); "
+			"try { "
+			"foreach ($entry in $archive.Entries) { "
+			"$name=$entry.FullName; "
+			"if ([string]::IsNullOrEmpty($name)) { continue }; "
+			"if ([System.IO.Path]::IsPathRooted($name) -or $name.StartsWith('/') -or $name.StartsWith('\\') -or $name.Contains('..\\') -or $name.Contains('../')) { throw 'Archive contains unsafe path: ' + $name } "
+			"}; "
+			"[System.IO.Compression.ZipFile]::ExtractToDirectory(%s,%s,$true); "
+			"} finally { $archive.Dispose(); }",
+			escaped_path->str,
+			escaped_path->str,
+			escaped_dir->str);
+		g_string_free (escaped_path, TRUE);
+		g_string_free (escaped_dir, TRUE);
+
+		{
+			char *ps_argv[] = {powershell, "-NoProfile", "-NonInteractive", "-Command", command, NULL};
+			ok = g_spawn_sync (NULL, ps_argv, NULL, 0, NULL, NULL,
+			                   NULL, NULL, &status, error);
+		}
+		if (ok)
+			ok = g_spawn_check_exit_status (status, error);
+
+		g_free (command);
+		g_free (powershell);
+		if (!ok)
+			goto cleanup;
+	}
+	else
+	{
+		char *argv[] = {"tar", "-xf", (char *)archive_path, "-C", temp_dir, NULL};
+		char *extracted_root = NULL;
+
+		if (!zoitechat_validate_tar_entries_unix (archive_path, &extracted_root, error))
+			goto cleanup;
+		if (extracted_root)
+		{
+			g_free (archive_root);
+			archive_root = extracted_root;
+		}
+
+		ok = g_spawn_sync (NULL, argv, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL,
+		                   NULL, NULL, &status, error);
+		if (!ok)
+			goto cleanup;
+		if (!g_spawn_check_exit_status (status, error))
+			goto cleanup;
+	}
+#else
+	if (archive_type == ZOITECHAT_GTK3_ARCHIVE_ZIP)
+	{
+		char *argv[] = {"unzip", "-o", (char *)archive_path, "-d", temp_dir, NULL};
+		char *extracted_root = NULL;
+
+		if (!zoitechat_validate_zip_entries_unix (archive_path, &extracted_root, error))
+			goto cleanup;
+		if (extracted_root)
+		{
+			g_free (archive_root);
+			archive_root = extracted_root;
+		}
+
+		ok = g_spawn_sync (NULL, argv, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL,
+		                   NULL, NULL, &status, error);
+		if (!ok)
+			goto cleanup;
+		if (!g_spawn_check_exit_status (status, error))
+			goto cleanup;
+	}
+	else
+	{
+		char *argv[] = {"tar", "-xf", (char *)archive_path, "-C", temp_dir, NULL};
+		char *extracted_root = NULL;
+
+		if (!zoitechat_validate_tar_entries_unix (archive_path, &extracted_root, error))
+			goto cleanup;
+		if (extracted_root)
+		{
+			g_free (archive_root);
+			archive_root = extracted_root;
+		}
+
+		ok = g_spawn_sync (NULL, argv, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL,
+		                   NULL, NULL, &status, error);
+		if (!ok)
+			goto cleanup;
+		if (!g_spawn_check_exit_status (status, error))
+			goto cleanup;
+	}
+#endif
+
+	if (!zoitechat_find_gtk3_theme_root (temp_dir, &theme_root, &has_dark_css, error))
+	{
+		if (error && *error)
+			goto cleanup;
+
+		g_set_error (error, G_IO_ERROR, G_IO_ERROR_INVALID_DATA,
+		             _("Archive does not contain a GTK3 theme. Expected gtk-3.0/gtk.css."));
+		goto cleanup;
 	}
 
-	if (!g_spawn_check_exit_status (status, error))
+	theme_name = g_path_get_basename (theme_root);
+	if (!theme_name || !*theme_name)
 	{
-		g_free (dest_dir);
-		g_free (basename);
-		g_free (theme_root);
-		return FALSE;
+		g_clear_pointer (&theme_name, g_free);
+		if (archive_root)
+			theme_name = g_strdup (archive_root);
 	}
 
+	if (!theme_name || !*theme_name)
+	{
+		g_set_error (error, G_IO_ERROR, G_IO_ERROR_INVALID_DATA,
+		             _("Unable to determine GTK3 theme directory name from archive."));
+		goto cleanup;
+	}
+
+	store_dir = g_build_filename (get_xdir (), "gtk3-themes", NULL);
+	dest_dir = g_build_filename (store_dir, theme_name, NULL);
+
+	if (g_file_test (dest_dir, G_FILE_TEST_EXISTS) && !zoitechat_remove_tree (dest_dir, error))
+		goto cleanup;
+
+	if (!zoitechat_copy_directory_recursive (theme_root, dest_dir, error))
+		goto cleanup;
+
+	if (has_dark_css)
+		fe_message (_("Imported GTK3 theme includes gtk-dark.css."), FE_MSG_INFO);
+
+	ok = TRUE;
+
+cleanup:
+	if (temp_dir)
+	{
+		GError *cleanup_error = NULL;
+		if (!zoitechat_remove_tree (temp_dir, &cleanup_error))
+			g_clear_error (&cleanup_error);
+	}
 	g_free (dest_dir);
-	g_free (basename);
+	g_free (store_dir);
+	g_free (theme_name);
 	g_free (theme_root);
-	return TRUE;
+	g_free (archive_root);
+	g_free (temp_dir);
+	return ok;
 }
+
 
 gboolean
 zoitechat_import_theme (const char *path, GError **error)
