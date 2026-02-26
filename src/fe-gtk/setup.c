@@ -2413,6 +2413,47 @@ setup_apply_entry_style (GtkWidget *entry)
 }
 
 static void
+setup_apply_input_caret_provider (GtkWidget *widget, const char *css)
+{
+        GtkCssProvider *provider;
+        GtkStyleContext *context;
+
+        if (!widget)
+                return;
+
+        context = gtk_widget_get_style_context (widget);
+        provider = g_object_get_data (G_OBJECT (widget), "zoitechat-input-caret-provider");
+        if (!provider)
+        {
+                provider = gtk_css_provider_new ();
+                g_object_set_data_full (G_OBJECT (widget), "zoitechat-input-caret-provider",
+                                        provider, g_object_unref);
+                gtk_style_context_add_provider (context, GTK_STYLE_PROVIDER (provider),
+                                                GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+        }
+
+        gtk_css_provider_load_from_data (provider, css, -1, NULL);
+}
+
+static void
+setup_remove_input_caret_provider (GtkWidget *widget)
+{
+        GtkCssProvider *provider;
+        GtkStyleContext *context;
+
+        if (!widget)
+                return;
+
+        context = gtk_widget_get_style_context (widget);
+        provider = g_object_get_data (G_OBJECT (widget), "zoitechat-input-caret-provider");
+        if (!provider)
+                return;
+
+        gtk_style_context_remove_provider (context, GTK_STYLE_PROVIDER (provider));
+        g_object_set_data (G_OBJECT (widget), "zoitechat-input-caret-provider", NULL);
+}
+
+static void
 setup_apply_to_sess (session_gui *gui)
 {
         mg_update_xtext (gui->xtext);
@@ -2437,34 +2478,28 @@ setup_apply_to_sess (session_gui *gui)
         if (prefs.hex_gui_input_style)
         {
                 char buf[128];
-                GtkCssProvider *provider = gtk_css_provider_new ();
-                GtkStyleContext *context;
                 char *color_string = gdk_rgba_to_string (&colors[COL_FG]);
 
                 g_snprintf (buf, sizeof (buf), ".zoitechat-inputbox { caret-color: %s; }",
                             color_string);
-                gtk_css_provider_load_from_data (provider, buf, -1, NULL);
                 g_free (color_string);
 
-                context = gtk_widget_get_style_context (gui->input_box);
-                gtk_style_context_add_provider (context, GTK_STYLE_PROVIDER (provider),
-                                                GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
-                context = gtk_widget_get_style_context (gui->limit_entry);
-                gtk_style_context_add_provider (context, GTK_STYLE_PROVIDER (provider),
-                                                GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
-                context = gtk_widget_get_style_context (gui->key_entry);
-                gtk_style_context_add_provider (context, GTK_STYLE_PROVIDER (provider),
-                                                GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
-                context = gtk_widget_get_style_context (gui->topic_entry);
-                gtk_style_context_add_provider (context, GTK_STYLE_PROVIDER (provider),
-                                                GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
-
-                g_object_unref (provider);
+                setup_apply_input_caret_provider (gui->input_box, buf);
+                setup_apply_input_caret_provider (gui->limit_entry, buf);
+                setup_apply_input_caret_provider (gui->key_entry, buf);
+                setup_apply_input_caret_provider (gui->topic_entry, buf);
 
                 setup_apply_entry_style (gui->input_box);
                 setup_apply_entry_style (gui->limit_entry);
                 setup_apply_entry_style (gui->key_entry);
                 setup_apply_entry_style (gui->topic_entry);
+        }
+        else
+        {
+                setup_remove_input_caret_provider (gui->input_box);
+                setup_remove_input_caret_provider (gui->limit_entry);
+                setup_remove_input_caret_provider (gui->key_entry);
+                setup_remove_input_caret_provider (gui->topic_entry);
         }
 
         if (prefs.hex_gui_ulist_buttons)

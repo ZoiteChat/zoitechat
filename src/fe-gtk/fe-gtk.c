@@ -577,9 +577,8 @@ fe_system_prefers_dark (void)
 
 static gboolean auto_dark_mode_enabled = FALSE;
 
-#ifdef G_OS_WIN32
 static void
-fe_apply_windows_theme (gboolean dark)
+fe_set_gtk_prefer_dark_theme (gboolean dark)
 {
 	GtkSettings *settings = gtk_settings_get_default ();
 
@@ -588,6 +587,13 @@ fe_apply_windows_theme (gboolean dark)
 	{
 		g_object_set (settings, "gtk-application-prefer-dark-theme", dark, NULL);
 	}
+}
+
+#ifdef G_OS_WIN32
+static void
+fe_apply_windows_theme (gboolean dark)
+{
+	fe_set_gtk_prefer_dark_theme (dark);
 
 	{
 		static GtkCssProvider *win_theme_provider = NULL;
@@ -652,6 +658,10 @@ gboolean
 fe_apply_theme_for_mode (unsigned int mode, gboolean *palette_changed)
 {
 	gboolean enabled = fe_dark_mode_is_enabled_for (mode);
+
+	/* Apply the optional global GTK preference first, then reapply palette-driven
+	 * chat/input colors so Preferences > Colors continues to take precedence. */
+	fe_set_gtk_prefer_dark_theme (enabled);
 	gboolean changed = palette_apply_dark_mode (enabled);
 
 #ifdef G_OS_WIN32
@@ -670,24 +680,23 @@ fe_apply_theme_for_mode (unsigned int mode, gboolean *palette_changed)
 void
 fe_apply_theme_to_toplevel (GtkWidget *window)
 {
+	GtkStyleContext *context;
+	gboolean dark;
+
 	if (!window)
 		return;
 
-#ifdef G_OS_WIN32
+	context = gtk_widget_get_style_context (window);
+	dark = fe_dark_mode_is_enabled ();
+
+	if (context)
 	{
-		GtkStyleContext *context = gtk_widget_get_style_context (window);
-		gboolean dark = fe_dark_mode_is_enabled ();
-
-		if (context)
-		{
-			gtk_style_context_remove_class (context, "zoitechat-dark");
-			gtk_style_context_remove_class (context, "zoitechat-light");
-			gtk_style_context_add_class (context, dark ? "zoitechat-dark" : "zoitechat-light");
-		}
+		gtk_style_context_remove_class (context, "zoitechat-dark");
+		gtk_style_context_remove_class (context, "zoitechat-light");
+		gtk_style_context_add_class (context, dark ? "zoitechat-dark" : "zoitechat-light");
 	}
-#endif
 
-	fe_win32_apply_native_titlebar (window, fe_dark_mode_is_enabled ());
+	fe_win32_apply_native_titlebar (window, dark);
 }
 
 gboolean
@@ -809,18 +818,31 @@ create_input_style (InputStyle *style)
 				g_string_append_printf (
 					css,
 					"background-color: #%02x%02x%02x;"
-					"color: #%02x%02x%02x;"
 					"caret-color: %s;"
 					"}"
 					"#zoitechat-inputbox text {"
 					"color: #%02x%02x%02x;"
 					"caret-color: %s;"
+					"}"
+					"#zoitechat-inputbox:focus text,"
+					"#zoitechat-inputbox:backdrop text {"
+					"color: #%02x%02x%02x;"
+					"caret-color: %s;"
+					"}"
+					"#zoitechat-inputbox:disabled text {"
+					"color: alpha(#%02x%02x%02x, 0.7);"
+					"}"
+					"#zoitechat-inputbox text selection {"
+					"color: @theme_selected_fg_color;"
+					"background-color: @theme_selected_bg_color;"
 					"}",
 					(bg_red >> 8), (bg_green >> 8), (bg_blue >> 8),
+					cursor_color,
 					(fg_red >> 8), (fg_green >> 8), (fg_blue >> 8),
 					cursor_color,
 					(fg_red >> 8), (fg_green >> 8), (fg_blue >> 8),
-					cursor_color);
+					cursor_color,
+					(fg_red >> 8), (fg_green >> 8), (fg_blue >> 8));
 				gtk_css_provider_load_from_data (input_css_provider, css->str, -1, NULL);
 				g_string_free (css, TRUE);
 			}
