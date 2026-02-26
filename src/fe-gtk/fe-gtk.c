@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <math.h>
 
 #include "fe-gtk.h"
 
@@ -846,13 +847,15 @@ create_input_style (InputStyle *style)
 			}
 			{
 				GString *css = g_string_new ("#zoitechat-inputbox {");
-				GtkWidget *tmp_entry = gtk_entry_new ();
-				GtkStyleContext *tmp_context = tmp_entry ? gtk_widget_get_style_context (tmp_entry) : NULL;
+				GtkWidget *tmp_entry = NULL;
+				GtkStyleContext *tmp_context = NULL;
 				GdkRGBA selected_fg = { 0.0, 0.0, 0.0, 1.0 };
 				GdkRGBA selected_bg = { 0.0, 0.0, 0.0, 1.0 };
-				gboolean have_theme_selected_colors = FALSE;
-				const char *selection_fg_css = "@theme_selected_fg_color";
-				const char *selection_bg_css = "@theme_selected_bg_color";
+				gboolean have_palette_selected_colors;
+				const char *selection_fg_css = NULL;
+				const char *selection_bg_css = NULL;
+				char selection_fg_hex[8];
+				char selection_bg_hex[8];
 				char *selection_fg_fallback = NULL;
 				char *selection_bg_fallback = NULL;
 
@@ -862,43 +865,52 @@ create_input_style (InputStyle *style)
 						|| g_str_has_prefix (theme_name, "Yaru")))
 					g_string_append (css, "background-image: none;");
 
-				if (tmp_context)
+				have_palette_selected_colors =
+					isfinite (colors[COL_MARK_FG].red)
+					&& isfinite (colors[COL_MARK_FG].green)
+					&& isfinite (colors[COL_MARK_FG].blue)
+					&& isfinite (colors[COL_MARK_BG].red)
+					&& isfinite (colors[COL_MARK_BG].green)
+					&& isfinite (colors[COL_MARK_BG].blue);
+
+				if (have_palette_selected_colors)
 				{
-					have_theme_selected_colors = gtk_style_context_lookup_color (
-						tmp_context,
-						"theme_selected_fg_color",
-						&selected_fg)
-						&& gtk_style_context_lookup_color (
-							tmp_context,
-							"theme_selected_bg_color",
-							&selected_bg);
+					g_snprintf (selection_fg_hex, sizeof (selection_fg_hex), "#%02x%02x%02x",
+						(sel_fg_red >> 8), (sel_fg_green >> 8), (sel_fg_blue >> 8));
+					g_snprintf (selection_bg_hex, sizeof (selection_bg_hex), "#%02x%02x%02x",
+						(sel_bg_red >> 8), (sel_bg_green >> 8), (sel_bg_blue >> 8));
+					selection_fg_css = selection_fg_hex;
+					selection_bg_css = selection_bg_hex;
 				}
-
-				if (!have_theme_selected_colors)
+				else
 				{
-					selected_fg.red = sel_fg_red / 65535.0;
-					selected_fg.green = sel_fg_green / 65535.0;
-					selected_fg.blue = sel_fg_blue / 65535.0;
-					selected_fg.alpha = 1.0;
-
-					selected_bg.red = sel_bg_red / 65535.0;
-					selected_bg.green = sel_bg_green / 65535.0;
-					selected_bg.blue = sel_bg_blue / 65535.0;
-					selected_bg.alpha = 1.0;
+					tmp_entry = gtk_entry_new ();
+					tmp_context = tmp_entry ? gtk_widget_get_style_context (tmp_entry) : NULL;
 
 					if (tmp_context)
 					{
-						gtk_style_context_save (tmp_context);
-						gtk_style_context_set_state (tmp_context, GTK_STATE_FLAG_SELECTED);
-						gtk_style_context_get_color (tmp_context, GTK_STATE_FLAG_SELECTED, &selected_fg);
-						gtk_style_context_get_background_color (tmp_context, GTK_STATE_FLAG_SELECTED, &selected_bg);
-						gtk_style_context_restore (tmp_context);
+						if (!gtk_style_context_lookup_color (
+							tmp_context,
+							"theme_selected_fg_color",
+							&selected_fg))
+							selected_fg = colors[COL_MARK_FG];
+
+						if (!gtk_style_context_lookup_color (
+							tmp_context,
+							"theme_selected_bg_color",
+							&selected_bg))
+							selected_bg = colors[COL_MARK_BG];
+					}
+					else
+					{
+						selected_fg = colors[COL_MARK_FG];
+						selected_bg = colors[COL_MARK_BG];
 					}
 
 					selection_fg_fallback = gdk_rgba_to_string (&selected_fg);
 					selection_bg_fallback = gdk_rgba_to_string (&selected_bg);
-					selection_fg_css = selection_fg_fallback;
-					selection_bg_css = selection_bg_fallback;
+					selection_fg_css = selection_fg_fallback ? selection_fg_fallback : "@theme_selected_fg_color";
+					selection_bg_css = selection_bg_fallback ? selection_bg_fallback : "@theme_selected_bg_color";
 				}
 
 				g_string_append_printf (
