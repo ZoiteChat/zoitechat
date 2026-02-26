@@ -2012,6 +2012,9 @@ setup_theme_gtk3_import_cb (GtkWidget *button, gpointer user_data)
 		_ ("_Cancel"), GTK_RESPONSE_CANCEL,
 		_ ("_Open"), GTK_RESPONSE_ACCEPT,
 		NULL);
+	/* Window classes are required for GTK CSS selectors like
+	 * .zoitechat-dark / .zoitechat-light. */
+	fe_apply_theme_to_toplevel (dialog);
 
 	filter = gtk_file_filter_new ();
 	gtk_file_filter_set_name (filter, _("Theme archives (.zip, .tar.xz, .tar.gz, .tar)"));
