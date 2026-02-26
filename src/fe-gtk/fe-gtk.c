@@ -754,6 +754,12 @@ create_input_style (InputStyle *style)
 	static guint16 last_bg_red;
 	static guint16 last_bg_green;
 	static guint16 last_bg_blue;
+	static guint16 last_sel_fg_red;
+	static guint16 last_sel_fg_green;
+	static guint16 last_sel_fg_blue;
+	static guint16 last_sel_bg_red;
+	static guint16 last_sel_bg_green;
+	static guint16 last_sel_bg_blue;
 
 	if (!style)
 		style = g_new0 (InputStyle, 1);
@@ -785,6 +791,12 @@ create_input_style (InputStyle *style)
 		guint16 bg_red;
 		guint16 bg_green;
 		guint16 bg_blue;
+		guint16 sel_fg_red;
+		guint16 sel_fg_green;
+		guint16 sel_fg_blue;
+		guint16 sel_bg_red;
+		guint16 sel_bg_green;
+		guint16 sel_bg_blue;
 		gboolean dark_mode = fe_dark_mode_is_enabled ();
 		gboolean needs_reload;
 
@@ -792,6 +804,8 @@ create_input_style (InputStyle *style)
 
 		palette_color_get_rgb16 (&colors[COL_FG], &fg_red, &fg_green, &fg_blue);
 		palette_color_get_rgb16 (&colors[COL_BG], &bg_red, &bg_green, &bg_blue);
+		palette_color_get_rgb16 (&colors[COL_MARK_FG], &sel_fg_red, &sel_fg_green, &sel_fg_blue);
+		palette_color_get_rgb16 (&colors[COL_MARK_BG], &sel_bg_red, &sel_bg_green, &sel_bg_blue);
 		needs_reload = !done_rc
 			|| !last_input_style
 			|| last_dark_mode != dark_mode
@@ -802,7 +816,13 @@ create_input_style (InputStyle *style)
 			|| last_fg_blue != fg_blue
 			|| last_bg_red != bg_red
 			|| last_bg_green != bg_green
-			|| last_bg_blue != bg_blue;
+			|| last_bg_blue != bg_blue
+			|| last_sel_fg_red != sel_fg_red
+			|| last_sel_fg_green != sel_fg_green
+			|| last_sel_fg_blue != sel_fg_blue
+			|| last_sel_bg_red != sel_bg_red
+			|| last_sel_bg_green != sel_bg_green
+			|| last_sel_bg_blue != sel_bg_blue;
 
 		if (needs_reload)
 		{
@@ -826,12 +846,60 @@ create_input_style (InputStyle *style)
 			}
 			{
 				GString *css = g_string_new ("#zoitechat-inputbox {");
+				GtkWidget *tmp_entry = gtk_entry_new ();
+				GtkStyleContext *tmp_context = tmp_entry ? gtk_widget_get_style_context (tmp_entry) : NULL;
+				GdkRGBA selected_fg = { 0.0, 0.0, 0.0, 1.0 };
+				GdkRGBA selected_bg = { 0.0, 0.0, 0.0, 1.0 };
+				gboolean have_theme_selected_colors = FALSE;
+				const char *selection_fg_css = "@theme_selected_fg_color";
+				const char *selection_bg_css = "@theme_selected_bg_color";
+				char *selection_fg_fallback = NULL;
+				char *selection_bg_fallback = NULL;
 
 				/* GTK3 equivalents for adwaita_workaround_rc/cursor_color_rc. */
 				if (adwaita_workaround_rc[0] != '\0'
 					&& (g_str_has_prefix (theme_name, "Adwaita")
 						|| g_str_has_prefix (theme_name, "Yaru")))
 					g_string_append (css, "background-image: none;");
+
+				if (tmp_context)
+				{
+					have_theme_selected_colors = gtk_style_context_lookup_color (
+						tmp_context,
+						"theme_selected_fg_color",
+						&selected_fg)
+						&& gtk_style_context_lookup_color (
+							tmp_context,
+							"theme_selected_bg_color",
+							&selected_bg);
+				}
+
+				if (!have_theme_selected_colors)
+				{
+					selected_fg.red = sel_fg_red / 65535.0;
+					selected_fg.green = sel_fg_green / 65535.0;
+					selected_fg.blue = sel_fg_blue / 65535.0;
+					selected_fg.alpha = 1.0;
+
+					selected_bg.red = sel_bg_red / 65535.0;
+					selected_bg.green = sel_bg_green / 65535.0;
+					selected_bg.blue = sel_bg_blue / 65535.0;
+					selected_bg.alpha = 1.0;
+
+					if (tmp_context)
+					{
+						gtk_style_context_save (tmp_context);
+						gtk_style_context_set_state (tmp_context, GTK_STATE_FLAG_SELECTED);
+						gtk_style_context_get_color (tmp_context, GTK_STATE_FLAG_SELECTED, &selected_fg);
+						gtk_style_context_get_background_color (tmp_context, GTK_STATE_FLAG_SELECTED, &selected_bg);
+						gtk_style_context_restore (tmp_context);
+					}
+
+					selection_fg_fallback = gdk_rgba_to_string (&selected_fg);
+					selection_bg_fallback = gdk_rgba_to_string (&selected_bg);
+					selection_fg_css = selection_fg_fallback;
+					selection_bg_css = selection_bg_fallback;
+				}
 
 				g_string_append_printf (
 					css,
@@ -851,8 +919,8 @@ create_input_style (InputStyle *style)
 					"color: alpha(#%02x%02x%02x, 0.7);"
 					"}"
 					"#zoitechat-inputbox text selection {"
-					"color: @theme_selected_fg_color;"
-					"background-color: @theme_selected_bg_color;"
+					"color: %s;"
+					"background-color: %s;"
 					"}",
 					(bg_red >> 8), (bg_green >> 8), (bg_blue >> 8),
 					cursor_color,
@@ -860,7 +928,13 @@ create_input_style (InputStyle *style)
 					cursor_color,
 					(fg_red >> 8), (fg_green >> 8), (fg_blue >> 8),
 					cursor_color,
-					(fg_red >> 8), (fg_green >> 8), (fg_blue >> 8));
+					(fg_red >> 8), (fg_green >> 8), (fg_blue >> 8),
+					selection_fg_css,
+					selection_bg_css);
+				if (tmp_entry)
+					gtk_widget_destroy (tmp_entry);
+				g_clear_pointer (&selection_fg_fallback, g_free);
+				g_clear_pointer (&selection_bg_fallback, g_free);
 				gtk_css_provider_load_from_data (input_css_provider, css->str, -1, NULL);
 				g_string_free (css, TRUE);
 			}
@@ -881,6 +955,12 @@ create_input_style (InputStyle *style)
 			last_bg_red = bg_red;
 			last_bg_green = bg_green;
 			last_bg_blue = bg_blue;
+			last_sel_fg_red = sel_fg_red;
+			last_sel_fg_green = sel_fg_green;
+			last_sel_fg_blue = sel_fg_blue;
+			last_sel_bg_red = sel_bg_red;
+			last_sel_bg_green = sel_bg_green;
+			last_sel_bg_blue = sel_bg_blue;
 			g_free (last_theme_name);
 			last_theme_name = g_strdup (theme_name);
 		}
