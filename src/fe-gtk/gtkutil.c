@@ -806,21 +806,25 @@ gtkutil_file_req (GtkWindow *parent, const char *title, void *callback, void *us
 
 	if (flags & FRF_WRITE)
 	{
-		dialog = gtk_file_chooser_dialog_new (title, NULL,
-												GTK_FILE_CHOOSER_ACTION_SAVE,
-												_("_Cancel"), GTK_RESPONSE_CANCEL,
-												_("_Save"), GTK_RESPONSE_ACCEPT,
-												NULL);
+		dialog = gtk_file_chooser_dialog_new (title, effective_parent,
+								GTK_FILE_CHOOSER_ACTION_SAVE,
+								_("_Cancel"), GTK_RESPONSE_CANCEL,
+								_("_Save"), GTK_RESPONSE_ACCEPT,
+								NULL);
 
 		if (!(flags & FRF_NOASKOVERWRITE))
 			gtk_file_chooser_set_do_overwrite_confirmation (GTK_FILE_CHOOSER (dialog), TRUE);
 	}
 	else
-		dialog = gtk_file_chooser_dialog_new (title, NULL,
-												GTK_FILE_CHOOSER_ACTION_OPEN,
-												_("_Cancel"), GTK_RESPONSE_CANCEL,
-												_("_Open"), GTK_RESPONSE_ACCEPT,
-												NULL);
+		dialog = gtk_file_chooser_dialog_new (title, effective_parent,
+								GTK_FILE_CHOOSER_ACTION_OPEN,
+								_("_Cancel"), GTK_RESPONSE_CANCEL,
+								_("_Open"), GTK_RESPONSE_ACCEPT,
+								NULL);
+
+	/* Window classes are required for GTK CSS selectors like
+	 * .zoitechat-dark / .zoitechat-light. */
+	fe_apply_theme_to_toplevel (dialog);
 
 	if (filter && filter[0] && (flags & FRF_FILTERISINITIAL))
 	{
@@ -891,7 +895,8 @@ gtkutil_file_req (GtkWindow *parent, const char *title, void *callback, void *us
 	g_signal_connect (G_OBJECT (dialog), "destroy",
 						   G_CALLBACK (gtkutil_file_req_destroy), (gpointer) freq);
 
-	if (effective_parent)
+	if (effective_parent &&
+		gtk_window_get_transient_for (GTK_WINDOW (dialog)) != effective_parent)
 		gtk_window_set_transient_for (GTK_WINDOW (dialog), effective_parent);
 
 	if (flags & FRF_MODAL)
