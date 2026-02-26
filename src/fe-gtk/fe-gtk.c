@@ -410,7 +410,12 @@ fe_args (int argc, char *argv[])
 	/* of the exe. */
 	{
 		g_free (win32_argv0_dir);
-		win32_argv0_dir = g_path_get_dirname (argv[0]);
+		/* In subsystem:windows builds, argv can be absent/invalid depending on
+		 * launch context (e.g. shell URL handlers). Prefer the module path,
+		 * then only fall back to argv[0] when it is available. */
+		win32_argv0_dir = g_win32_get_package_installation_directory_of_module (NULL);
+		if (win32_argv0_dir == NULL && argc > 0 && argv != NULL && argv[0] != NULL)
+			win32_argv0_dir = g_path_get_dirname (argv[0]);
 		if (win32_argv0_dir)
 			chdir (win32_argv0_dir);
 	}
