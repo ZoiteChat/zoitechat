@@ -756,6 +756,12 @@ fe_apply_gtk3_theme_with_reload (const char *theme_name, gboolean force_reload, 
 
 	if (!theme_name || !*theme_name)
 	{
+	#ifdef G_OS_WIN32
+		/* Keep the Win32 fallback provider in sync when returning to the
+		 * system theme from Preferences > Themes. */
+		fe_apply_windows_theme (dark);
+	#endif
+
 		if (gtk3_theme_provider && screen)
 		{
 			gtk_style_context_remove_provider_for_screen (
@@ -841,6 +847,12 @@ fe_apply_gtk3_theme_with_reload (const char *theme_name, gboolean force_reload, 
 			GTK_STYLE_PROVIDER_PRIORITY_USER);
 		gtk_style_context_reset_widgets (screen);
 	}
+
+#ifdef G_OS_WIN32
+	/* Applying a GTK3 theme should immediately disable ZoiteChat's Win32
+	 * fallback window CSS so buttons/chat widgets are fully theme-driven. */
+	fe_apply_windows_theme (dark);
+#endif
 
 	g_free (gtk3_theme_provider_name);
 	gtk3_theme_provider_name = g_strdup (theme_name);
