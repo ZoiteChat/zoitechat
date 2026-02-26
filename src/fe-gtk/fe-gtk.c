@@ -702,6 +702,10 @@ static gboolean gtk3_theme_provider_dark = FALSE;
 static GResource *gtk3_theme_resource = NULL;
 static char *gtk3_theme_resource_path = NULL;
 
+#ifdef G_OS_WIN32
+static void fe_apply_windows_theme (gboolean dark);
+#endif
+
 static void
 fe_gtk3_theme_unregister_resource (void)
 {
