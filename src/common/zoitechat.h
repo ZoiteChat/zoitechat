@@ -30,10 +30,10 @@
 #define ZOITECHAT_H
 
 gboolean zoitechat_theme_path_from_arg (const char *arg, char **path_out);
-gboolean zoitechat_import_theme (const char *path, GError **error);
-/* Imports a GTK3 theme ZIP into ZoiteChat's own gtk3-themes store. */
-gboolean zoitechat_import_gtk3_theme_archive (const char *archive_path, GError **error);
-gboolean zoitechat_apply_theme (const char *theme_name, GError **error);
+/* Imports a GTK3 theme archive into ZoiteChat's own gtk3-themes store. */
+gboolean zoitechat_import_gtk3_theme_archive (const char *archive_path,
+                                              char **theme_name_out,
+                                              GError **error);
 
 #ifdef USE_OPENSSL
 #ifdef __APPLE__

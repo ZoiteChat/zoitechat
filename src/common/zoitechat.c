@@ -113,7 +113,7 @@ gboolean
 zoitechat_theme_path_from_arg (const char *arg, char **path_out)
 {
 	char *path = NULL;
-	const char *ext;
+	gboolean valid_ext = FALSE;
 
 	if (!arg)
 		return FALSE;
@@ -126,11 +126,21 @@ zoitechat_theme_path_from_arg (const char *arg, char **path_out)
 	if (!path)
 		return FALSE;
 
-	ext = strrchr (path, '.');
-	if (!g_file_test (path, G_FILE_TEST_IS_REGULAR) ||
-	    !ext ||
-	    (g_ascii_strcasecmp (ext, ".zct") != 0 &&
-	     g_ascii_strcasecmp (ext, ".hct") != 0))
+	if (g_file_test (path, G_FILE_TEST_IS_REGULAR))
+	{
+		char *path_lower = g_ascii_strdown (path, -1);
+
+		valid_ext = g_str_has_suffix (path_lower, ".zip")
+			|| g_str_has_suffix (path_lower, ".tar")
+			|| g_str_has_suffix (path_lower, ".tar.gz")
+			|| g_str_has_suffix (path_lower, ".tgz")
+			|| g_str_has_suffix (path_lower, ".tar.xz")
+			|| g_str_has_suffix (path_lower, ".txz");
+
+		g_free (path_lower);
+	}
+
+	if (!valid_ext)
 	{
 		g_free (path);
 		return FALSE;
@@ -251,84 +261,6 @@ zoitechat_remote_win32 (void)
 }
 #endif
 
-
-static gboolean
-zoitechat_copy_theme_file (const char *src, const char *dest, GError **error)
-{
-	char *data = NULL;
-	gsize len = 0;
-
-	if (!g_file_get_contents (src, &data, &len, error))
-		return FALSE;
-
-	if (!g_file_set_contents (dest, data, len, error))
-	{
-		g_free (data);
-		return FALSE;
-	}
-
-	g_free (data);
-	return TRUE;
-}
-
-gboolean
-zoitechat_apply_theme (const char *theme_name, GError **error)
-{
-	char *theme_dir;
-	char *colors_src;
-	char *colors_dest;
-	char *events_src;
-	char *events_dest;
-	gboolean ok = FALSE;
-
-	if (!theme_name || !*theme_name)
-	{
-		g_set_error (error, G_IO_ERROR, G_IO_ERROR_INVALID_ARGUMENT,
-		             _("No theme name specified."));
-		return FALSE;
-	}
-
-	theme_dir = g_build_filename (get_xdir (), "themes", theme_name, NULL);
-	colors_src = g_build_filename (theme_dir, "colors.conf", NULL);
-	colors_dest = g_build_filename (get_xdir (), "colors.conf", NULL);
-	events_src = g_build_filename (theme_dir, "pevents.conf", NULL);
-	events_dest = g_build_filename (get_xdir (), "pevents.conf", NULL);
-
-	if (!g_file_test (colors_src, G_FILE_TEST_IS_REGULAR))
-	{
-		g_set_error (error, G_IO_ERROR, G_IO_ERROR_NOT_FOUND,
-		             _("This theme is missing a colors.conf file."));
-		goto cleanup;
-	}
-
-	if (!zoitechat_copy_theme_file (colors_src, colors_dest, error))
-		goto cleanup;
-
-	if (g_file_test (events_src, G_FILE_TEST_IS_REGULAR))
-	{
-		if (!zoitechat_copy_theme_file (events_src, events_dest, error))
-			goto cleanup;
-	}
-	else if (g_file_test (events_dest, G_FILE_TEST_EXISTS))
-	{
-		if (g_unlink (events_dest) != 0)
-		{
-			g_set_error (error, G_FILE_ERROR, g_file_error_from_errno (errno),
-			             _("Failed to remove existing event settings."));
-			goto cleanup;
-		}
-	}
-
-	ok = TRUE;
-
-cleanup:
-	g_free (events_dest);
-	g_free (events_src);
-	g_free (colors_dest);
-	g_free (colors_src);
-	g_free (theme_dir);
-	return ok;
-}
 
 static gboolean
 zoitechat_is_safe_archive_entry (const char *entry)
@@ -686,7 +618,9 @@ cleanup:
 }
 
 gboolean
-zoitechat_import_gtk3_theme_archive (const char *archive_path, GError **error)
+zoitechat_import_gtk3_theme_archive (const char *archive_path,
+                                  char **theme_name_out,
+                                  GError **error)
 {
 	ZoiteChatGtk3ArchiveType archive_type;
 	char *temp_dir = NULL;
@@ -699,6 +633,9 @@ zoitechat_import_gtk3_theme_archive (const char *archive_path, GError **error)
 	gboolean ok = FALSE;
 	gboolean has_dark_css = FALSE;
 	gboolean missing_gtk_css = FALSE;
+
+	if (theme_name_out)
+		*theme_name_out = NULL;
 
 	if (!archive_path)
 	{
@@ -910,6 +847,9 @@ zoitechat_import_gtk3_theme_archive (const char *archive_path, GError **error)
 	if (has_dark_css)
 		fe_message (_("Imported GTK3 theme includes gtk-dark.css."), FE_MSG_INFO);
 
+	if (theme_name_out)
+		*theme_name_out = g_strdup (theme_name);
+
 	ok = TRUE;
 
 cleanup:
@@ -929,159 +869,6 @@ cleanup:
 }
 
 
-gboolean
-zoitechat_import_theme (const char *path, GError **error)
-{
-	char *themes_dir;
-	char *basename;
-	char *dot;
-	char *theme_dir;
-	char *argv[] = {"unzip", "-o", (char *)path, "-d", NULL, NULL};
-	int status = 0;
-	gboolean ok;
-#ifdef WIN32
-	char *command = NULL;
-	char *powershell = NULL;
-#endif
-
-	if (!path)
-	{
-		g_set_error (error, G_IO_ERROR, G_IO_ERROR_INVALID_ARGUMENT,
-		             _("No theme file specified."));
-		return FALSE;
-	}
-
-	themes_dir = g_build_filename (get_xdir (), "themes", NULL);
-	basename = g_path_get_basename (path);
-	if (!basename || basename[0] == '\0')
-	{
-		g_free (themes_dir);
-		g_free (basename);
-		g_set_error (error, G_IO_ERROR, G_IO_ERROR_INVALID_ARGUMENT,
-		             _("Failed to determine theme name."));
-		return FALSE;
-	}
-
-	dot = strrchr (basename, '.');
-	if (dot)
-		*dot = '\0';
-
-	theme_dir = g_build_filename (themes_dir, basename, NULL);
-	if (g_mkdir_with_parents (theme_dir, 0700) != 0)
-	{
-		g_set_error (error, G_FILE_ERROR, g_file_error_from_errno (errno),
-		             _("Failed to create theme directory."));
-		g_free (theme_dir);
-		g_free (basename);
-		g_free (themes_dir);
-		return FALSE;
-	}
-
-#ifdef WIN32
-	powershell = g_find_program_in_path ("powershell.exe");
-	if (!powershell)
-		powershell = g_find_program_in_path ("powershell");
-
-	if (!powershell)
-	{
-		g_set_error (error, G_SPAWN_ERROR, G_SPAWN_ERROR_NOENT,
-		             _("No archive extractor was found."));
-		ok = FALSE;
-	}
-	else
-	{
-		GString *escaped_path = g_string_new ("'");
-		GString *escaped_dir = g_string_new ("'");
-		const char *cursor;
-
-		for (cursor = path; *cursor != '\0'; cursor++)
-		{
-			if (*cursor == '\'')
-				g_string_append (escaped_path, "''");
-			else
-				g_string_append_c (escaped_path, *cursor);
-		}
-		g_string_append_c (escaped_path, '\'');
-
-		for (cursor = theme_dir; *cursor != '\0'; cursor++)
-		{
-			if (*cursor == '\'')
-				g_string_append (escaped_dir, "''");
-			else
-				g_string_append_c (escaped_dir, *cursor);
-		}
-		g_string_append_c (escaped_dir, '\'');
-
-		command = g_strdup_printf (
-			"Add-Type -AssemblyName WindowsBase; "
-			"$ErrorActionPreference='Stop'; "
-			"$package=[System.IO.Packaging.Package]::Open(%s); "
-			"try { "
-			"foreach ($part in $package.GetParts()) { "
-			"$relative=$part.Uri.OriginalString.TrimStart('/'); "
-			"if ([string]::IsNullOrEmpty($relative)) { continue }; "
-			"$destPath=[System.IO.Path]::Combine(%s, $relative); "
-			"$destDir=[System.IO.Path]::GetDirectoryName($destPath); "
-			"if ($destDir -and -not (Test-Path -LiteralPath $destDir)) { "
-			"[System.IO.Directory]::CreateDirectory($destDir) | Out-Null "
-			"}; "
-			"$partStream=$part.GetStream(); "
-			"$fileStream=[System.IO.File]::Open($destPath,[System.IO.FileMode]::Create,[System.IO.FileAccess]::Write); "
-			"$partStream.CopyTo($fileStream); "
-			"$fileStream.Dispose(); "
-			"$partStream.Dispose(); "
-			"} "
-			"} finally { $package.Close(); }",
-			escaped_path->str,
-			escaped_dir->str);
-		g_string_free (escaped_path, TRUE);
-		g_string_free (escaped_dir, TRUE);
-
-		{
-			char *ps_argv[] = {powershell, "-NoProfile", "-NonInteractive", "-Command", command, NULL};
-			ok = g_spawn_sync (NULL, ps_argv, NULL, 0, NULL, NULL,
-			                   NULL, NULL, &status, error);
-		}
-	}
-#else
-	argv[4] = theme_dir;
-	ok = g_spawn_sync (NULL, argv, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL,
-	                   NULL, NULL, &status, error);
-#endif
-	if (!ok)
-	{
-#ifdef WIN32
-		g_free (command);
-		g_free (powershell);
-#endif
-		g_free (theme_dir);
-		g_free (basename);
-		g_free (themes_dir);
-		return FALSE;
-	}
-
-	if (!g_spawn_check_exit_status (status, error))
-	{
-#ifdef WIN32
-		g_free (command);
-		g_free (powershell);
-#endif
-		g_free (theme_dir);
-		g_free (basename);
-		g_free (themes_dir);
-		return FALSE;
-	}
-
-#ifdef WIN32
-	g_free (command);
-	g_free (powershell);
-#endif
-
-	g_free (theme_dir);
-	g_free (basename);
-	g_free (themes_dir);
-	return TRUE;
-}
 
 /*
  * Update the priority queue of the "interesting sessions"
@@ -1411,37 +1198,29 @@ irc_init (session *sess)
 		if (zoitechat_theme_path_from_arg (arg_url, &theme_path))
 		{
 			GError *error = NULL;
-			char *basename = g_path_get_basename (theme_path);
-			char *dot = strrchr (basename, '.');
-			char *message;
+			char *theme_name = NULL;
 
-			if (dot)
-				*dot = '\0';
-
-			if (zoitechat_import_theme (theme_path, &error))
+			if (zoitechat_import_gtk3_theme_archive (theme_path, &theme_name, &error))
 			{
-				if (zoitechat_apply_theme (basename, &error))
+				if (theme_name)
 				{
-					message = g_strdup_printf (_("Theme \"%s\" imported and applied."), basename);
+					char *message = g_strdup_printf (_("GTK3 theme \"%s\" imported. Use Theme settings to apply it."), theme_name);
 					fe_message (message, FE_MSG_INFO);
-					handle_command (sess, "gui apply", FALSE);
 					g_free (message);
 				}
 				else
 				{
-					fe_message (error ? error->message : _("Theme imported, but failed to apply."),
-					            FE_MSG_ERROR);
-					g_clear_error (&error);
+					fe_message (_("GTK3 theme imported. Use Theme settings to apply it."), FE_MSG_INFO);
 				}
 			}
 			else
 			{
-				fe_message (error ? error->message : _("Failed to import theme."),
+				fe_message (error ? error->message : _("Failed to import GTK3 theme archive."),
 				            FE_MSG_ERROR);
 				g_clear_error (&error);
 			}
 
-			g_free (basename);
+			g_free (theme_name);
 		}
 		else
 		{
@@ -1463,37 +1242,29 @@ irc_init (session *sess)
 			if (zoitechat_theme_path_from_arg (arg_urls[i], &theme_path))
 			{
 				GError *error = NULL;
-				char *basename = g_path_get_basename (theme_path);
-				char *dot = strrchr (basename, '.');
-				char *message;
+				char *theme_name = NULL;
 
-				if (dot)
-					*dot = '\0';
-
-				if (zoitechat_import_theme (theme_path, &error))
+				if (zoitechat_import_gtk3_theme_archive (theme_path, &theme_name, &error))
 				{
-					if (zoitechat_apply_theme (basename, &error))
+					if (theme_name)
 					{
-						message = g_strdup_printf (_("Theme \"%s\" imported and applied."), basename);
+						char *message = g_strdup_printf (_("GTK3 theme \"%s\" imported. Use Theme settings to apply it."), theme_name);
 						fe_message (message, FE_MSG_INFO);
-						handle_command (sess, "gui apply", FALSE);
 						g_free (message);
 					}
 					else
 					{
-						fe_message (error ? error->message : _("Theme imported, but failed to apply."),
-						            FE_MSG_ERROR);
-						g_clear_error (&error);
+						fe_message (_("GTK3 theme imported. Use Theme settings to apply it."), FE_MSG_INFO);
 					}
 				}
 				else
 				{
-					fe_message (error ? error->message : _("Failed to import theme."),
+					fe_message (error ? error->message : _("Failed to import GTK3 theme archive."),
 					            FE_MSG_ERROR);
 					g_clear_error (&error);
 				}
 
-				g_free (basename);
+				g_free (theme_name);
 			}
 			else
 			{

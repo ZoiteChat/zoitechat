@@ -3774,37 +3774,29 @@ cmd_url (struct session *sess, char *tbuf, char *word[], char *word_eol[])
 		if (zoitechat_theme_path_from_arg (word[2], &theme_path))
 		{
 			GError *error = NULL;
-			char *basename = g_path_get_basename (theme_path);
-			char *dot = strrchr (basename, '.');
-			char *message;
+			char *theme_name = NULL;
 
-			if (dot)
-				*dot = '\0';
-
-			if (zoitechat_import_theme (theme_path, &error))
+			if (zoitechat_import_gtk3_theme_archive (theme_path, &theme_name, &error))
 			{
-				if (zoitechat_apply_theme (basename, &error))
+				if (theme_name)
 				{
-					message = g_strdup_printf (_("Theme \"%s\" imported and applied."), basename);
+					char *message = g_strdup_printf (_("GTK3 theme \"%s\" imported. Use Theme settings to apply it."), theme_name);
 					fe_message (message, FE_MSG_INFO);
-					handle_command (sess, "gui apply", FALSE);
 					g_free (message);
 				}
 				else
 				{
-					fe_message (error ? error->message : _("Theme imported, but failed to apply."),
-					            FE_MSG_ERROR);
-					g_clear_error (&error);
+					fe_message (_("GTK3 theme imported. Use Theme settings to apply it."), FE_MSG_INFO);
 				}
 			}
 			else
 			{
-				fe_message (error ? error->message : _("Failed to import theme."),
+				fe_message (error ? error->message : _("Failed to import GTK3 theme archive."),
 				            FE_MSG_ERROR);
 				g_clear_error (&error);
 			}
 
-			g_free (basename);
+			g_free (theme_name);
 			g_free (theme_path);
 			return TRUE;
 		}
