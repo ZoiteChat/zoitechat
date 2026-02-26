@@ -533,8 +533,6 @@ fe_win32_apply_native_titlebar (GtkWidget *window, gboolean dark_mode)
 }
 #endif
 
-static gboolean app_set_prefer_dark = FALSE;
-
 static gboolean
 fe_system_prefers_dark (void)
 {
@@ -573,10 +571,11 @@ fe_system_prefers_dark (void)
 #endif
 
 	if (!has_theme_name
-		&& !app_set_prefer_dark
 		&& g_object_class_find_property (G_OBJECT_GET_CLASS (settings),
 		                                  "gtk-application-prefer-dark-theme"))
 	{
+		/* Even if we last wrote this property, the toolkit or desktop can update
+		 * it later, so AUTO mode should keep reading it as a fallback signal. */
 		g_object_get (settings, "gtk-application-prefer-dark-theme", &prefer_dark, NULL);
 	}
 
@@ -594,7 +593,6 @@ fe_set_gtk_prefer_dark_theme (gboolean dark)
 	                                              "gtk-application-prefer-dark-theme"))
 	{
 		g_object_set (settings, "gtk-application-prefer-dark-theme", dark, NULL);
-		app_set_prefer_dark = TRUE;
 	}
 }
 
