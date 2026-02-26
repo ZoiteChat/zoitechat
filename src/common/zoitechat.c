@@ -462,7 +462,11 @@ zoitechat_copy_directory_recursive (const char *src_dir, const char *dest_dir, G
 }
 
 static gboolean
-zoitechat_find_gtk3_theme_root (const char *search_dir, char **theme_root_out, gboolean *has_dark_css_out, GError **error)
+zoitechat_find_gtk3_theme_root (const char *search_dir,
+	                            char **theme_root_out,
+	                            gboolean *has_dark_css_out,
+	                            gboolean *missing_gtk_css_out,
+	                            GError **error)
 {
 	GDir *dir;
 	const char *name;
@@ -498,8 +502,14 @@ zoitechat_find_gtk3_theme_root (const char *search_dir, char **theme_root_out, g
 				}
 
 				g_free (gtk_css);
+				if (missing_gtk_css_out)
+					*missing_gtk_css_out = TRUE;
 			}
-			else if (zoitechat_find_gtk3_theme_root (child, theme_root_out, has_dark_css_out, error))
+			else if (zoitechat_find_gtk3_theme_root (child,
+			                                       theme_root_out,
+			                                       has_dark_css_out,
+			                                       missing_gtk_css_out,
+			                                       error))
 			{
 				g_free (child);
 				g_dir_close (dir);
@@ -688,6 +698,7 @@ zoitechat_import_gtk3_theme_archive (const char *archive_path, GError **error)
 	int status = 0;
 	gboolean ok = FALSE;
 	gboolean has_dark_css = FALSE;
+	gboolean missing_gtk_css = FALSE;
 
 	if (!archive_path)
 	{
@@ -858,13 +869,17 @@ zoitechat_import_gtk3_theme_archive (const char *archive_path, GError **error)
 	}
 #endif
 
-	if (!zoitechat_find_gtk3_theme_root (temp_dir, &theme_root, &has_dark_css, error))
+	if (!zoitechat_find_gtk3_theme_root (temp_dir, &theme_root, &has_dark_css, &missing_gtk_css, error))
 	{
 		if (error && *error)
 			goto cleanup;
 
-		g_set_error (error, G_IO_ERROR, G_IO_ERROR_INVALID_DATA,
-		             _("Archive does not contain a GTK3 theme. Expected gtk-3.0/gtk.css."));
+		if (missing_gtk_css)
+			g_set_error (error, G_IO_ERROR, G_IO_ERROR_INVALID_DATA,
+			             _("Archive contains a gtk-3.0 directory, but gtk-3.0/gtk.css is missing."));
+		else
+			g_set_error (error, G_IO_ERROR, G_IO_ERROR_INVALID_DATA,
+			             _("Archive is not a GTK3 theme. Expected layout: <theme-name>/gtk-3.0/gtk.css."));
 		goto cleanup;
 	}
 
