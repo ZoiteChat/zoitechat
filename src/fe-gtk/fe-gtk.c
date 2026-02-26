@@ -907,14 +907,33 @@ fe_append_window_theme_class_css (GString *css,
 static void
 fe_apply_windows_theme (gboolean dark)
 {
+	static GtkCssProvider *win_theme_provider = NULL;
 	fe_set_gtk_prefer_dark_theme (dark);
 
 	{
-		static GtkCssProvider *win_theme_provider = NULL;
 		GdkScreen *screen = gdk_screen_get_default ();
 		const PaletteColor *light_palette = palette_user_colors ();
 		const PaletteColor *dark_palette = palette_dark_colors ();
-		GString *css = g_string_new (NULL);
+		GString *css;
+
+		/* Let imported GTK3 themes own all widget/window colors on Windows.
+		 * Otherwise ZoiteChat's fallback dark/light window background CSS can
+		 * clash with theme widget colors (for example white buttons on a dark
+		 * window background).
+		 */
+		if (prefs.hex_gui_gtk3_theme_name[0] != '\0')
+		{
+			if (win_theme_provider && screen)
+			{
+				gtk_style_context_remove_provider_for_screen (
+					screen,
+					GTK_STYLE_PROVIDER (win_theme_provider));
+				gtk_style_context_reset_widgets (screen);
+			}
+			return;
+		}
+
+		css = g_string_new (NULL);
 
 		if (!win_theme_provider)
 			win_theme_provider = gtk_css_provider_new ();
