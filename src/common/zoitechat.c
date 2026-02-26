@@ -413,7 +413,7 @@ zoitechat_find_gtk3_theme_root (const char *search_dir,
 
 		if (g_file_test (child, G_FILE_TEST_IS_DIR))
 		{
-			if (strcmp (name, "gtk-3.0") == 0)
+			if (g_str_has_prefix (name, "gtk-3."))
 			{
 				char *gtk_css = g_build_filename (child, "gtk.css", NULL);
 
@@ -813,10 +813,10 @@ zoitechat_import_gtk3_theme_archive (const char *archive_path,
 
 		if (missing_gtk_css)
 			g_set_error (error, G_IO_ERROR, G_IO_ERROR_INVALID_DATA,
-			             _("Archive contains a gtk-3.0 directory, but gtk-3.0/gtk.css is missing."));
+			             _("Archive contains a gtk-3.x directory, but gtk.css is missing."));
 		else
 			g_set_error (error, G_IO_ERROR, G_IO_ERROR_INVALID_DATA,
-			             _("Archive is not a GTK3 theme. Expected layout: <theme-name>/gtk-3.0/gtk.css."));
+			             _("Archive is not a GTK3 theme. Expected layout: <theme-name>/gtk-3.x/gtk.css."));
 		goto cleanup;
 	}
 

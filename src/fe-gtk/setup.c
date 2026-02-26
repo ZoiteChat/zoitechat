@@ -1928,13 +1928,12 @@ setup_gtk3_theme_populate (setup_theme_ui *ui)
 		while ((name = g_dir_read_name (dir)))
 		{
 			char *theme_path;
-			char *gtk_css_path;
+			char *gtk3_dir = NULL;
 
 			theme_path = g_build_filename (themes_dir, name, NULL);
-			gtk_css_path = g_build_filename (theme_path, "gtk-3.0", "gtk.css", NULL);
 
 			if (g_file_test (theme_path, G_FILE_TEST_IS_DIR)
-				&& g_file_test (gtk_css_path, G_FILE_TEST_IS_REGULAR))
+				&& fe_resolve_gtk3_theme_dir (theme_path, &gtk3_dir, NULL))
 			{
 				gtk_combo_box_text_append_text (GTK_COMBO_BOX_TEXT (ui->gtk3_combo), name);
 				g_ptr_array_add (ui->gtk3_theme_paths, theme_path);
@@ -1942,7 +1941,7 @@ setup_gtk3_theme_populate (setup_theme_ui *ui)
 				theme_path = NULL;
 			}
 
-			g_free (gtk_css_path);
+			g_free (gtk3_dir);
 			g_free (theme_path);
 		}
 

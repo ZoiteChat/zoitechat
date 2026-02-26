@@ -591,6 +591,111 @@ static gboolean auto_dark_mode_enabled = FALSE;
 static gboolean dark_mode_state_initialized = FALSE;
 
 
+static gboolean
+fe_parse_gtk3_minor_from_dirname (const char *name, gint *minor_out)
+{
+	const char *prefix = "gtk-3.";
+	char *endptr = NULL;
+	long value;
+
+	if (!name || !g_str_has_prefix (name, prefix))
+		return FALSE;
+
+	value = strtol (name + strlen (prefix), &endptr, 10);
+	if (endptr == name + strlen (prefix) || *endptr != '\0' || value < 0 || value > G_MAXINT)
+		return FALSE;
+
+	if (minor_out)
+		*minor_out = (gint) value;
+	return TRUE;
+}
+
+gboolean
+fe_resolve_gtk3_theme_dir (const char *theme_root,
+				    char **gtk3_dir_out,
+				    gboolean *has_dark_css_out)
+{
+	GDir *dir;
+	const char *entry;
+	gint runtime_minor = gtk_get_minor_version ();
+	gint best_minor = -1;
+	gint best_distance = G_MAXINT;
+	char *best_dir = NULL;
+	gboolean has_dark = FALSE;
+
+	if (gtk3_dir_out)
+		*gtk3_dir_out = NULL;
+	if (has_dark_css_out)
+		*has_dark_css_out = FALSE;
+
+	if (!theme_root || !*theme_root)
+		return FALSE;
+
+	dir = g_dir_open (theme_root, 0, NULL);
+	if (!dir)
+		return FALSE;
+
+	while ((entry = g_dir_read_name (dir)) != NULL)
+	{
+		char *candidate_dir;
+		char *gtk_css;
+		char *gtk_dark_css;
+		gint minor;
+		gint distance;
+
+		if (!fe_parse_gtk3_minor_from_dirname (entry, &minor))
+			continue;
+
+		candidate_dir = g_build_filename (theme_root, entry, NULL);
+		if (!g_file_test (candidate_dir, G_FILE_TEST_IS_DIR))
+		{
+			g_free (candidate_dir);
+			continue;
+		}
+
+		gtk_css = g_build_filename (candidate_dir, "gtk.css", NULL);
+		if (!g_file_test (gtk_css, G_FILE_TEST_IS_REGULAR))
+		{
+			g_free (gtk_css);
+			g_free (candidate_dir);
+			continue;
+		}
+		g_free (gtk_css);
+
+		distance = (minor <= runtime_minor)
+			? (runtime_minor - minor)
+			: (10000 + (minor - runtime_minor));
+
+		if (!best_dir || distance < best_distance || (distance == best_distance && minor > best_minor))
+		{
+			g_free (best_dir);
+			best_dir = candidate_dir;
+			best_minor = minor;
+			best_distance = distance;
+
+			gtk_dark_css = g_build_filename (best_dir, "gtk-dark.css", NULL);
+			has_dark = g_file_test (gtk_dark_css, G_FILE_TEST_IS_REGULAR);
+			g_free (gtk_dark_css);
+
+			candidate_dir = NULL;
+		}
+
+		g_free (candidate_dir);
+	}
+
+	g_dir_close (dir);
+
+	if (!best_dir)
+		return FALSE;
+
+	if (gtk3_dir_out)
+		*gtk3_dir_out = g_strdup (best_dir);
+	if (has_dark_css_out)
+		*has_dark_css_out = has_dark;
+	g_free (best_dir);
+	return TRUE;
+}
+
 static GtkCssProvider *gtk3_theme_provider = NULL;
 static char *gtk3_theme_provider_name = NULL;
 static gboolean gtk3_theme_provider_dark = FALSE;
@@ -680,21 +785,16 @@ fe_apply_gtk3_theme_with_reload (const char *theme_name, gboolean force_reload, 
 	}
 
 	theme_dir = g_build_filename (get_xdir (), "gtk3-themes", theme_name, NULL);
-	gtk3_dir = g_build_filename (theme_dir, "gtk-3.0", NULL);
-	gtk_css = g_build_filename (gtk3_dir, "gtk.css", NULL);
-	gtk_dark_css = g_build_filename (gtk3_dir, "gtk-dark.css", NULL);
-	gtk_resource = g_build_filename (gtk3_dir, "gtk.gresource", NULL);
-
-	if (!g_file_test (gtk_css, G_FILE_TEST_IS_REGULAR))
+	if (!fe_resolve_gtk3_theme_dir (theme_dir, &gtk3_dir, NULL))
 	{
 		g_set_error (error, G_FILE_ERROR, G_FILE_ERROR_NOENT,
-		             _("GTK3 theme '%s' is missing gtk-3.0/gtk.css."), theme_name);
-		g_free (gtk_dark_css);
-		g_free (gtk_css);
-		g_free (gtk3_dir);
+		             _("GTK3 theme '%s' is missing a valid gtk-3.x/gtk.css directory."), theme_name);
 		g_free (theme_dir);
 		return FALSE;
 	}
+	gtk_css = g_build_filename (gtk3_dir, "gtk.css", NULL);
+	gtk_dark_css = g_build_filename (gtk3_dir, "gtk-dark.css", NULL);
+	gtk_resource = g_build_filename (gtk3_dir, "gtk.gresource", NULL);
 
 	if (dark && g_file_test (gtk_dark_css, G_FILE_TEST_IS_REGULAR))
 		selected_css = gtk_dark_css;
