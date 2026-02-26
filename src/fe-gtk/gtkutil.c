@@ -163,28 +163,6 @@ gtkutil_menu_custom_icon_from_icon_name (const char *icon_name)
 }
 
 
-static GdkPixbuf *
-gtkutil_menu_icon_pixbuf_new (const char *icon_name)
-{
-	GdkPixbuf *pixbuf = NULL;
-	char *resource_path;
-
-	if (!icon_name || !g_str_has_prefix (icon_name, "zc-menu-"))
-		return NULL;
-
-	resource_path = g_strdup_printf ("/icons/menu/light/%s.png", icon_name + strlen ("zc-menu-"));
-	pixbuf = gdk_pixbuf_new_from_resource (resource_path, NULL);
-	if (!pixbuf)
-	{
-		g_free (resource_path);
-		resource_path = g_strdup_printf ("/icons/menu/light/%s.svg", icon_name + strlen ("zc-menu-"));
-		pixbuf = gdk_pixbuf_new_from_resource (resource_path, NULL);
-	}
-	g_free (resource_path);
-
-	return pixbuf;
-}
-
 const char *
 gtkutil_icon_name_from_stock (const char *stock_name)
 {
