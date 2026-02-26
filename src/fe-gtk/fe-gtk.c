@@ -604,6 +604,29 @@ fe_set_gtk_prefer_dark_theme (gboolean dark)
 
 #ifdef G_OS_WIN32
 static void
+fe_append_window_theme_class_css (GString *css,
+				      const char *class_name,
+				      const PaletteColor *fg,
+				      const PaletteColor *bg)
+{
+	char *fg_css = gdk_rgba_to_string (fg);
+	char *bg_css = gdk_rgba_to_string (bg);
+
+	g_string_append_printf (css,
+		"window.%s, .%s {"
+		"background-color: %s;"
+		"color: %s;"
+		"}",
+		class_name,
+		class_name,
+		bg_css,
+		fg_css);
+
+	g_free (fg_css);
+	g_free (bg_css);
+}
+
+static void
 fe_apply_windows_theme (gboolean dark)
 {
 	fe_set_gtk_prefer_dark_theme (dark);
@@ -611,20 +634,24 @@ fe_apply_windows_theme (gboolean dark)
 	{
 		static GtkCssProvider *win_theme_provider = NULL;
 		GdkScreen *screen = gdk_screen_get_default ();
-		const char *css =
-			"window.zoitechat-dark, .zoitechat-dark {"
-			"background-color: #202020;"
-			"color: #f0f0f0;"
-			"}"
-			"window.zoitechat-light, .zoitechat-light {"
-			"background-color: #f6f6f6;"
-			"color: #101010;"
-			"}";
+		const PaletteColor *light_palette = palette_user_colors ();
+		const PaletteColor *dark_palette = palette_dark_colors ();
+		GString *css = g_string_new (NULL);
 
 		if (!win_theme_provider)
 			win_theme_provider = gtk_css_provider_new ();
 
-		gtk_css_provider_load_from_data (win_theme_provider, css, -1, NULL);
+		fe_append_window_theme_class_css (css,
+						 "zoitechat-dark",
+						 &dark_palette[COL_FG],
+						 &dark_palette[COL_BG]);
+		fe_append_window_theme_class_css (css,
+						 "zoitechat-light",
+						 &light_palette[COL_FG],
+						 &light_palette[COL_BG]);
+
+		gtk_css_provider_load_from_data (win_theme_provider, css->str, -1, NULL);
+		g_string_free (css, TRUE);
 		if (screen)
 			gtk_style_context_add_provider_for_screen (
 				screen,
@@ -1590,7 +1617,7 @@ fe_ctrl_gui (session *sess, fe_gui_action action, int arg)
 	case FE_GUI_APPLY:
 		/* Keep parity with Preferences -> Theme apply path (setup_theme_apply_cb). */
 		palette_load ();
-		palette_apply_dark_mode (fe_dark_mode_is_enabled ());
+		fe_apply_theme_for_mode (prefs.hex_gui_dark_mode, NULL);
 		setup_apply_real (TRUE, TRUE, TRUE, FALSE);
 	}
 }

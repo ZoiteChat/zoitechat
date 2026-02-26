@@ -1985,7 +1985,7 @@ setup_theme_apply_cb (GtkWidget *button, gpointer user_data)
         }
 
 	palette_load ();
-	palette_apply_dark_mode (fe_dark_mode_is_enabled ());
+	fe_apply_theme_for_mode (prefs.hex_gui_dark_mode, NULL);
 	color_change = TRUE;
         setup_apply_real (0, TRUE, FALSE, FALSE);
 
