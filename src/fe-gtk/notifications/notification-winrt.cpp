@@ -66,7 +66,6 @@ extern "C"
 			node_list->GetAt (1)->AppendChild (
 				toastTemplate->CreateTextNode (Platform::StringReference (wtext.c_str (), wtext.size ())));
 
-			// Mute sound, we already play our own
 			auto node = toastTemplate->SelectSingleNode (L"/toast");
 			auto audio_elem = toastTemplate->CreateElement (L"audio");
 			audio_elem->SetAttribute (L"silent", L"true");
