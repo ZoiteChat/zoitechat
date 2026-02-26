@@ -906,7 +906,20 @@ fe_append_window_theme_class_css (GString *css,
 		"window.%s, .%s {"
 		"background-color: %s;"
 		"color: %s;"
+		"}"
+		"window.%s button, .%s button, window.%s entry, .%s entry, "
+		"window.%s treeview, .%s treeview, window.%s scrolledwindow, .%s scrolledwindow {"
+		"background-color: %s;"
+		"color: %s;"
 		"}",
+		class_name,
+		class_name,
+		class_name,
+		class_name,
+		class_name,
+		class_name,
+		class_name,
+		class_name,
 		class_name,
 		class_name,
 		bg_css,

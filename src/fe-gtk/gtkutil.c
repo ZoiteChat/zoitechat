@@ -229,7 +229,9 @@ gtkutil_menu_icon_theme_variant (void)
 	char *theme_name_lower = NULL;
 	const char *theme_variant = "light";
 
-	if (fe_dark_mode_state_is_initialized ())
+	/* Prefer ZoiteChat's explicit dark-mode selection when available so icon
+	 * variants stay in sync with the app mode, not only the system theme. */
+	if (fe_dark_mode_state_is_initialized () || prefs.hex_gui_dark_mode != ZOITECHAT_DARK_MODE_AUTO)
 		return fe_dark_mode_is_enabled () ? "dark" : "light";
 
 	settings = gtk_settings_get_default ();
@@ -335,20 +337,19 @@ gtkutil_image_new_from_stock (const char *stock, GtkIconSize size)
 {
 	GtkWidget *image;
 	const char *icon_name;
+	const char *custom_icon_name;
 
 	icon_name = gtkutil_icon_name_from_stock (stock);
 	if (!icon_name && stock && g_str_has_prefix (stock, "zc-menu-"))
 		icon_name = stock;
-	if (size == GTK_ICON_SIZE_MENU)
-	{
-		const char *menu_icon_name = gtkutil_menu_custom_icon_from_stock (stock);
 
-		if (!menu_icon_name)
-			menu_icon_name = gtkutil_menu_custom_icon_from_icon_name (icon_name);
-
-		if (menu_icon_name)
-			icon_name = menu_icon_name;
-	}
+	/* Use ZoiteChat's themed icon resources consistently across menu and button
+	 * images so dark/light mode swaps all app icons together. */
+	custom_icon_name = gtkutil_menu_custom_icon_from_stock (stock);
+	if (!custom_icon_name)
+		custom_icon_name = gtkutil_menu_custom_icon_from_icon_name (icon_name);
+	if (custom_icon_name)
+		icon_name = custom_icon_name;
 
 	image = gtkutil_menu_icon_image_new (icon_name, size);
 	if (image)
