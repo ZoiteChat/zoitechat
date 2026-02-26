@@ -3868,6 +3868,7 @@ mg_create_tabwindow (session *sess)
 void
 mg_apply_setup (void)
 {
+        GList *toplevels, *node;
         GSList *list = sess_list;
         session *sess;
         int done_main = FALSE;
@@ -3887,6 +3888,11 @@ mg_apply_setup (void)
                         done_main = TRUE;
                 list = list->next;
         }
+
+        toplevels = gtk_window_list_toplevels ();
+        for (node = toplevels; node; node = node->next)
+                fe_apply_theme_to_toplevel (GTK_WIDGET (node->data));
+        g_list_free (toplevels);
 }
 
 static chan *

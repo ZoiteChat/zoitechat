@@ -2777,6 +2777,7 @@ setup_window_open (void)
         gtk_box_pack_start (GTK_BOX (hbbox), wid, FALSE, FALSE, 0);
 
         gtk_widget_show_all (win);
+        fe_apply_theme_to_toplevel (win);
 
         return win;
 }

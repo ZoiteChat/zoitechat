@@ -1235,6 +1235,7 @@ gtkutil_window_new (char *title, char *role, int width, int height, int flags)
 	gtk_window_set_title (GTK_WINDOW (win), title);
 	gtk_window_set_default_size (GTK_WINDOW (win), width, height);
 	gtk_window_set_role (GTK_WINDOW (win), role);
+	fe_apply_theme_to_toplevel (win);
 	if (flags & 1)
 		gtk_window_set_position (GTK_WINDOW (win), GTK_WIN_POS_MOUSE);
 	if ((flags & 2) && parent_window)
