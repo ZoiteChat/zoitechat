@@ -27,6 +27,8 @@ DefaultDirName={pf64}\ZoiteChat
 #else
 DefaultDirName={pf32}\ZoiteChat
 #endif
+DisableDirPage=no
+UsePreviousAppDir=no
 DefaultGroupName=ZoiteChat
 AllowNoIcons=yes
 SolidCompression=yes
