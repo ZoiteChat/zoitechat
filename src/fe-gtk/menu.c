@@ -65,28 +65,6 @@
 
 static GSList *submenu_list;
 
-static gboolean
-menu_icon_exists_in_resource (const char *icon_name)
-{
-	char *resource_path;
-	gboolean found;
-
-	if (!icon_name || !g_str_has_prefix (icon_name, "zc-menu-"))
-		return FALSE;
-
-	resource_path = g_strdup_printf ("/icons/menu/light/%s.png", icon_name + strlen ("zc-menu-"));
-	found = g_resources_get_info (resource_path, G_RESOURCE_LOOKUP_FLAGS_NONE, NULL, NULL, NULL);
-	if (!found)
-	{
-		g_free (resource_path);
-		resource_path = g_strdup_printf ("/icons/menu/light/%s.svg", icon_name + strlen ("zc-menu-"));
-		found = g_resources_get_info (resource_path, G_RESOURCE_LOOKUP_FLAGS_NONE, NULL, NULL, NULL);
-	}
-	g_free (resource_path);
-
-	return found;
-}
-
 static GtkWidget *
 menu_icon_widget_new (const char *icon)
 {
@@ -112,7 +90,7 @@ menu_icon_widget_new (const char *icon)
 	{
 		char *menu_icon_name = g_strdup_printf ("zc-menu-%s", icon);
 
-		if (menu_icon_exists_in_resource (menu_icon_name))
+		if (gtkutil_menu_icon_exists (menu_icon_name))
 			img = gtkutil_image_new_from_stock (menu_icon_name, GTK_ICON_SIZE_MENU);
 		else
 			img = gtkutil_image_new_from_stock (icon, GTK_ICON_SIZE_MENU);

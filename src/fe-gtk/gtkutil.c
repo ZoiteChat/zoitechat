@@ -250,41 +250,68 @@ gtkutil_menu_icon_theme_variant (void)
 	return theme_variant;
 }
 
+static char *
+gtkutil_menu_icon_resource_path (const char *icon_name, const char *extension)
+{
+	char *resource_path;
+	const char *variant;
+
+	if (!icon_name || !extension || !g_str_has_prefix (icon_name, "zc-menu-"))
+		return NULL;
+
+	variant = gtkutil_menu_icon_theme_variant ();
+	resource_path = g_strdup_printf ("/icons/menu/%s/%s.%s", variant,
+							 icon_name + strlen ("zc-menu-"), extension);
+	if (!g_resources_get_info (resource_path, G_RESOURCE_LOOKUP_FLAGS_NONE, NULL, NULL, NULL))
+	{
+		g_free (resource_path);
+		resource_path = g_strdup_printf ("/icons/menu/light/%s.%s",
+							 icon_name + strlen ("zc-menu-"), extension);
+		if (!g_resources_get_info (resource_path, G_RESOURCE_LOOKUP_FLAGS_NONE, NULL, NULL, NULL))
+		{
+			g_free (resource_path);
+			return NULL;
+		}
+	}
+
+	return resource_path;
+}
+
+gboolean
+gtkutil_menu_icon_exists (const char *icon_name)
+{
+	char *resource_path;
+	gboolean found;
+
+	resource_path = gtkutil_menu_icon_resource_path (icon_name, "png");
+	if (!resource_path)
+		resource_path = gtkutil_menu_icon_resource_path (icon_name, "svg");
+
+	found = resource_path != NULL;
+	g_free (resource_path);
+
+	return found;
+}
+
 static GtkWidget *
 gtkutil_menu_icon_image_new (const char *icon_name, GtkIconSize size)
 {
 	GtkWidget *image = NULL;
 	GdkPixbuf *pixbuf = NULL;
 	char *resource_path;
-	const char *variant;
 
-	if (!icon_name || !g_str_has_prefix (icon_name, "zc-menu-"))
-		return NULL;
+	resource_path = gtkutil_menu_icon_resource_path (icon_name, "png");
+	if (!resource_path)
+		resource_path = gtkutil_menu_icon_resource_path (icon_name, "svg");
 
-	variant = gtkutil_menu_icon_theme_variant ();
-	resource_path = g_strdup_printf ("/icons/menu/%s/%s.png", variant, icon_name + strlen ("zc-menu-"));
-	if (!g_resources_get_info (resource_path, G_RESOURCE_LOOKUP_FLAGS_NONE, NULL, NULL, NULL))
+	if (resource_path)
 	{
-		g_free (resource_path);
-		resource_path = g_strdup_printf ("/icons/menu/light/%s.png", icon_name + strlen ("zc-menu-"));
-	}
-
-	pixbuf = gdk_pixbuf_new_from_resource (resource_path, NULL);
-	if (!pixbuf)
-	{
-		g_free (resource_path);
-		resource_path = g_strdup_printf ("/icons/menu/%s/%s.svg", variant, icon_name + strlen ("zc-menu-"));
-		if (!g_resources_get_info (resource_path, G_RESOURCE_LOOKUP_FLAGS_NONE, NULL, NULL, NULL))
-		{
-			g_free (resource_path);
-			resource_path = g_strdup_printf ("/icons/menu/light/%s.svg", icon_name + strlen ("zc-menu-"));
-		}
 		pixbuf = gdk_pixbuf_new_from_resource (resource_path, NULL);
-	}
-	if (pixbuf)
-	{
-		image = gtk_image_new_from_pixbuf (pixbuf);
-		g_object_unref (pixbuf);
+		if (pixbuf)
+		{
+			image = gtk_image_new_from_pixbuf (pixbuf);
+			g_object_unref (pixbuf);
+		}
 	}
 
 	g_free (resource_path);

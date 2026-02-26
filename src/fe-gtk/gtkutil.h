@@ -41,6 +41,7 @@ GtkWidget *gtkutil_button (GtkWidget *box, char *stock, char *tip, void *callbac
 				 void *userdata, char *labeltext);
 GtkWidget *gtkutil_image_new_from_stock (const char *stock, GtkIconSize size);
 GtkWidget *gtkutil_button_new_from_stock (const char *stock, const char *label);
+gboolean gtkutil_menu_icon_exists (const char *icon_name);
 const char *gtkutil_icon_name_from_stock (const char *stock_name);
 void gtkutil_label_new (char *text, GtkWidget * box);
 GtkWidget *gtkutil_entry_new (int max, GtkWidget * box, void *callback,
