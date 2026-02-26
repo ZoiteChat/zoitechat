@@ -596,7 +596,7 @@ static char *gtk3_theme_provider_name = NULL;
 static gboolean gtk3_theme_provider_dark = FALSE;
 
 gboolean
-fe_apply_gtk3_theme (const char *theme_name, GError **error)
+fe_apply_gtk3_theme_with_reload (const char *theme_name, gboolean force_reload, GError **error)
 {
 	GdkScreen *screen = gdk_screen_get_default ();
 	char *theme_dir = NULL;
@@ -628,7 +628,8 @@ fe_apply_gtk3_theme (const char *theme_name, GError **error)
 		return TRUE;
 	}
 
-	if (gtk3_theme_provider_name
+	if (!force_reload
+		&& gtk3_theme_provider_name
 		&& g_strcmp0 (gtk3_theme_provider_name, theme_name) == 0
 		&& gtk3_theme_provider_dark == dark)
 	{
@@ -692,6 +693,14 @@ fe_apply_gtk3_theme (const char *theme_name, GError **error)
 	g_free (theme_dir);
 	return TRUE;
 }
+
+
+gboolean
+fe_apply_gtk3_theme (const char *theme_name, GError **error)
+{
+	return fe_apply_gtk3_theme_with_reload (theme_name, FALSE, error);
+}
+
 
 
 static void

@@ -72,6 +72,7 @@ typedef struct
 	GtkWidget *gtk3_use_system_button;
 	GtkWidget *gtk3_status_label;
 	GPtrArray *gtk3_theme_paths;
+	gboolean gtk3_force_reload_next_apply;
 } setup_theme_ui;
 
 
@@ -2049,6 +2050,7 @@ setup_theme_gtk3_import_cb (GtkWidget *button, gpointer user_data)
 	}
 	else
 	{
+		ui->gtk3_force_reload_next_apply = TRUE;
 		setup_gtk3_theme_populate (ui);
 		gtk_label_set_text (GTK_LABEL (ui->gtk3_status_label), _("GTK3 theme archive imported successfully."));
 		setup_theme_show_message (GTK_MESSAGE_INFO, _("GTK3 theme archive imported successfully."));
@@ -2079,7 +2081,7 @@ setup_theme_apply_gtk3_cb (GtkWidget *button, gpointer user_data)
 		return;
 	}
 
-	if (!fe_apply_gtk3_theme (theme, &error))
+	if (!fe_apply_gtk3_theme_with_reload (theme, ui->gtk3_force_reload_next_apply, &error))
 	{
 		setup_theme_show_message (GTK_MESSAGE_ERROR,
 			error ? error->message : _("Failed to apply GTK3 theme."));
@@ -2087,6 +2089,8 @@ setup_theme_apply_gtk3_cb (GtkWidget *button, gpointer user_data)
 		g_free (theme);
 		return;
 	}
+
+	ui->gtk3_force_reload_next_apply = FALSE;
 
 	safe_strcpy (prefs.hex_gui_gtk3_theme_name, theme, sizeof (prefs.hex_gui_gtk3_theme_name));
 	/* Keep the Preferences working copy in sync so pressing OK does not
@@ -2106,6 +2110,7 @@ setup_theme_gtk3_use_system_cb (GtkWidget *button, gpointer user_data)
 	setup_theme_ui *ui = user_data;
 
 	fe_apply_gtk3_theme (NULL, NULL);
+	ui->gtk3_force_reload_next_apply = FALSE;
 	prefs.hex_gui_gtk3_theme_name[0] = '\0';
 	setup_prefs.hex_gui_gtk3_theme_name[0] = '\0';
 	save_config ();
