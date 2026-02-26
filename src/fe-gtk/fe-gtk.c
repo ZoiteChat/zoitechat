@@ -736,9 +736,9 @@ fe_apply_gtk3_theme_with_reload (const char *theme_name, gboolean force_reload, 
 		gtk_style_context_add_provider_for_screen (
 			screen,
 			GTK_STYLE_PROVIDER (gtk3_theme_provider),
-			/* Use application priority so imported GTK3 themes consistently
-		 * override the desktop theme for ZoiteChat widgets. */
-			GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+			/* Use user priority so imported GTK3 themes can also override
+		 * ZoiteChat's own application CSS (for example, button backgrounds). */
+			GTK_STYLE_PROVIDER_PRIORITY_USER);
 		gtk_style_context_reset_widgets (screen);
 	}
 
