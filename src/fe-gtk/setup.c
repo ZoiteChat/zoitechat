@@ -2086,6 +2086,10 @@ setup_theme_apply_gtk3_cb (GtkWidget *button, gpointer user_data)
 	}
 
 	safe_strcpy (prefs.hex_gui_gtk3_theme_name, theme, sizeof (prefs.hex_gui_gtk3_theme_name));
+	/* Keep the Preferences working copy in sync so pressing OK does not
+	 * overwrite the just-selected theme with stale setup_prefs data. */
+	safe_strcpy (setup_prefs.hex_gui_gtk3_theme_name, theme,
+	             sizeof (setup_prefs.hex_gui_gtk3_theme_name));
 	save_config ();
 	gtk_label_set_text (GTK_LABEL (ui->gtk3_status_label), _("GTK3 theme activated from ZoiteChat's local theme store."));
 	setup_theme_show_message (GTK_MESSAGE_INFO, _("GTK3 theme activated and saved."));
@@ -2100,6 +2104,7 @@ setup_theme_gtk3_use_system_cb (GtkWidget *button, gpointer user_data)
 
 	fe_apply_gtk3_theme (NULL, NULL);
 	prefs.hex_gui_gtk3_theme_name[0] = '\0';
+	setup_prefs.hex_gui_gtk3_theme_name[0] = '\0';
 	save_config ();
 	gtk_label_set_text (GTK_LABEL (ui->gtk3_status_label), _("Using system GTK theme."));
 	setup_theme_show_message (GTK_MESSAGE_INFO, _("Using system GTK theme."));
