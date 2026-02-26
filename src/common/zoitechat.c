@@ -1855,6 +1855,7 @@ main (int argc, char *argv[])
 	int ret;
 #ifdef WIN32
 	char **win32_argv = NULL;
+	int win32_argc;
 #endif
 
 #ifdef WIN32
@@ -1864,14 +1865,19 @@ main (int argc, char *argv[])
 	srand ((unsigned int) time (NULL)); /* CL: do this only once! */
 
 #ifdef WIN32
-	/* Build argv from the Unicode command line first. In subsystem:windows
-	 * launches (for example protocol handlers), CRT argv can be invalid and can
-	 * crash GLib option parsing during startup. */
 	win32_argv = g_win32_get_command_line ();
-	if (win32_argv != NULL && win32_argv[0] != NULL)
+	if (win32_argv != NULL)
 	{
+		win32_argc = g_strv_length (win32_argv);
+		if (win32_argc == 0 || win32_argv[0] == NULL || win32_argv[0][0] == '\0')
+		{
+			g_strfreev (win32_argv);
+			win32_argv = g_new0 (char *, 2);
+			win32_argv[0] = g_strdup ("zoitechat");
+			win32_argc = 1;
+		}
 		argv = win32_argv;
-		argc = g_strv_length (win32_argv);
+		argc = win32_argc;
 	}
 #endif
 
