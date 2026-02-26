@@ -294,7 +294,10 @@ ignore_clear_entry_clicked (GtkWidget * wid)
 
 	dialog = gtk_message_dialog_new (NULL, 0,
 								GTK_MESSAGE_QUESTION, GTK_BUTTONS_OK_CANCEL,
-					_("Are you sure you want to remove all ignores?"));
+				_("Are you sure you want to remove all ignores?"));
+	/* Window classes are required for GTK CSS selectors like
+	 * .zoitechat-dark / .zoitechat-light. */
+	fe_apply_theme_to_toplevel (dialog);
 	g_signal_connect (G_OBJECT (dialog), "response",
 							G_CALLBACK (ignore_clear_cb), NULL);
 	gtk_window_set_position (GTK_WINDOW (dialog), GTK_WIN_POS_MOUSE);

@@ -562,7 +562,10 @@ banlist_clear (GtkWidget * wid, banlist_info *banl)
 
 	dialog = gtk_message_dialog_new (NULL, 0,
 								GTK_MESSAGE_QUESTION, GTK_BUTTONS_OK_CANCEL,
-					_("Are you sure you want to remove all listed items in %s?"), banl->sess->channel);
+				_("Are you sure you want to remove all listed items in %s?"), banl->sess->channel);
+	/* Window classes are required for GTK CSS selectors like
+	 * .zoitechat-dark / .zoitechat-light. */
+	fe_apply_theme_to_toplevel (dialog);
 
 	g_signal_connect (G_OBJECT (dialog), "response",
 							G_CALLBACK (banlist_clear_cb), banl);

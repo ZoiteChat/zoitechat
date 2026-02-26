@@ -1520,6 +1520,9 @@ menu_join (GtkWidget * wid, gpointer none)
 									_("_Cancel"), GTK_RESPONSE_REJECT,
 									_("_OK"), GTK_RESPONSE_ACCEPT,
 									NULL);
+	/* Window classes are required for GTK CSS selectors like
+	 * .zoitechat-dark / .zoitechat-light. */
+	fe_apply_theme_to_toplevel (dialog);
 	{
 		GtkWidget *button;
 

@@ -129,6 +129,9 @@ joind_show_dialog (server *serv)
 	char buf2[256];
 
 	serv->gui->joind_win = dialog1 = gtk_dialog_new ();
+	/* Window classes are required for GTK CSS selectors like
+	 * .zoitechat-dark / .zoitechat-light. */
+	fe_apply_theme_to_toplevel (dialog1);
 	g_snprintf(buf, sizeof(buf), _("Connection Complete - %s"), _(DISPLAY_NAME));
 	gtk_window_set_title (GTK_WINDOW (dialog1), buf);
 	gtk_window_set_type_hint (GTK_WINDOW (dialog1), GDK_WINDOW_TYPE_HINT_DIALOG);

@@ -1759,6 +1759,9 @@ setup_theme_show_message (GtkMessageType message_type, const char *primary)
 
         dialog = gtk_message_dialog_new (GTK_WINDOW (setup_window), GTK_DIALOG_MODAL,
                                                                                          message_type, GTK_BUTTONS_CLOSE, "%s", primary);
+        /* Window classes are required for GTK CSS selectors like
+         * .zoitechat-dark / .zoitechat-light. */
+        fe_apply_theme_to_toplevel (dialog);
         gtk_dialog_run (GTK_DIALOG (dialog));
         gtk_widget_destroy (dialog);
 }
@@ -1849,6 +1852,9 @@ setup_theme_apply_cb (GtkWidget *button, gpointer user_data)
         dialog = gtk_message_dialog_new (GTK_WINDOW (setup_window), GTK_DIALOG_MODAL,
                                                                                          GTK_MESSAGE_WARNING, GTK_BUTTONS_OK_CANCEL,
                                                                                          "%s", _("Applying a theme will overwrite your current colors and event settings.\nContinue?"));
+        /* Window classes are required for GTK CSS selectors like
+         * .zoitechat-dark / .zoitechat-light. */
+        fe_apply_theme_to_toplevel (dialog);
         response = gtk_dialog_run (GTK_DIALOG (dialog));
         gtk_widget_destroy (dialog);
 

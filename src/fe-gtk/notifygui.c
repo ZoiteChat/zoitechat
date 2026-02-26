@@ -373,6 +373,9 @@ fe_notify_ask (char *nick, char *networks)
 										LABEL_NOTIFY_CANCEL, GTK_RESPONSE_REJECT,
 										LABEL_NOTIFY_OK, GTK_RESPONSE_ACCEPT,
 										NULL);
+	/* Window classes are required for GTK CSS selectors like
+	 * .zoitechat-dark / .zoitechat-light. */
+	fe_apply_theme_to_toplevel (dialog);
 	if (parent_window)
 		gtk_window_set_transient_for (GTK_WINDOW (dialog), GTK_WINDOW (parent_window));
 	gtk_window_set_position (GTK_WINDOW (dialog), GTK_WIN_POS_MOUSE);

@@ -1362,6 +1362,9 @@ mg_tab_close (session *sess)
                                                 GTK_MESSAGE_WARNING, GTK_BUTTONS_OK_CANCEL,
                                                 _("This server still has %d channels or dialogs associated with it. "
                                                   "Close them all?"), i);
+                /* Window classes are required for GTK CSS selectors like
+                 * .zoitechat-dark / .zoitechat-light. */
+                fe_apply_theme_to_toplevel (dialog);
                 g_signal_connect (G_OBJECT (dialog), "response",
                                                                 G_CALLBACK (mg_tab_close_cb), sess);
                 if (prefs.hex_gui_tab_layout)
@@ -1459,6 +1462,9 @@ mg_open_quit_dialog (gboolean minimize_button)
         }
 
         dialog = gtk_dialog_new ();
+        /* Window classes are required for GTK CSS selectors like
+         * .zoitechat-dark / .zoitechat-light. */
+        fe_apply_theme_to_toplevel (dialog);
         gtk_container_set_border_width (GTK_CONTAINER (dialog), 6);
         gtk_window_set_title (GTK_WINDOW (dialog), _("Quit ZoiteChat?"));
         gtk_window_set_transient_for (GTK_WINDOW (dialog), GTK_WINDOW (parent_window));
@@ -3681,6 +3687,8 @@ mg_create_topwindow (session *sess)
         mg_place_userlist_and_chanview (sess->gui);
 
 	gtk_widget_show (win);
+	/* Window classes are required for GTK CSS selectors like
+	 * .zoitechat-dark / .zoitechat-light. */
 	fe_apply_theme_to_toplevel (win);
 
 #ifdef G_OS_WIN32
@@ -3857,6 +3865,8 @@ mg_create_tabwindow (session *sess)
         mg_place_userlist_and_chanview (sess->gui);
 
         gtk_widget_show (win);
+        /* Window classes are required for GTK CSS selectors like
+         * .zoitechat-dark / .zoitechat-light. */
         fe_apply_theme_to_toplevel (win);
 
 #ifdef G_OS_WIN32

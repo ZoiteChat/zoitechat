@@ -781,12 +781,15 @@ servlist_deletenet_cb (GtkWidget *item, ircnet *net)
 	if (!net)
 		return;
 	dialog = gtk_message_dialog_new (GTK_WINDOW (serverlist_win),
-												GTK_DIALOG_DESTROY_WITH_PARENT |
-												GTK_DIALOG_MODAL,
-												GTK_MESSAGE_QUESTION,
-												GTK_BUTTONS_OK_CANCEL,
-							_("Really remove network \"%s\" and all its servers?"),
-												net->name);
+										GTK_DIALOG_DESTROY_WITH_PARENT |
+										GTK_DIALOG_MODAL,
+										GTK_MESSAGE_QUESTION,
+										GTK_BUTTONS_OK_CANCEL,
+						_("Really remove network \"%s\" and all its servers?"),
+										net->name);
+	/* Window classes are required for GTK CSS selectors like
+	 * .zoitechat-dark / .zoitechat-light. */
+	fe_apply_theme_to_toplevel (dialog);
 	g_signal_connect (dialog, "response",
 							G_CALLBACK (servlist_deletenetdialog_cb), net);
 	gtk_window_set_position (GTK_WINDOW (dialog), GTK_WIN_POS_MOUSE);
@@ -1799,6 +1802,8 @@ servlist_open_edit (GtkWidget *parent, ircnet *net)
 	gtk_window_set_modal (GTK_WINDOW (editwindow), TRUE);
 	gtk_window_set_type_hint (GTK_WINDOW (editwindow), GDK_WINDOW_TYPE_HINT_DIALOG);
 	gtk_window_set_role (GTK_WINDOW (editwindow), "editserv");
+	/* Window classes are required for GTK CSS selectors like
+	 * .zoitechat-dark / .zoitechat-light. */
 	fe_apply_theme_to_toplevel (editwindow);
 
 	vbox5 = gtkutil_box_new (GTK_ORIENTATION_VERTICAL, FALSE, 0);
@@ -2079,6 +2084,8 @@ servlist_open_networks (void)
 	gtk_window_set_default_size (GTK_WINDOW (servlist), netlist_win_width, netlist_win_height);
 	gtk_window_set_role (GTK_WINDOW (servlist), "servlist");
 	gtk_window_set_type_hint (GTK_WINDOW (servlist), GDK_WINDOW_TYPE_HINT_DIALOG);
+	/* Window classes are required for GTK CSS selectors like
+	 * .zoitechat-dark / .zoitechat-light. */
 	fe_apply_theme_to_toplevel (servlist);
 	if (current_sess)
 		gtk_window_set_transient_for (GTK_WINDOW (servlist), GTK_WINDOW (current_sess->gui->window));

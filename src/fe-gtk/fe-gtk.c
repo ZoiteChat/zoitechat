@@ -105,6 +105,9 @@ create_msg_dialog (gchar *title, gchar *message)
 	GtkWidget *dialog;
 
 	dialog = gtk_message_dialog_new (NULL, GTK_DIALOG_MODAL, GTK_MESSAGE_INFO, GTK_BUTTONS_CLOSE, "%s", message);
+	/* Window classes are required for GTK CSS selectors like
+	 * .zoitechat-dark / .zoitechat-light. */
+	fe_apply_theme_to_toplevel (dialog);
 	gtk_window_set_title (GTK_WINDOW (dialog), title);
 
 /* On Win32 we automatically have the icon. If we try to load it explicitly, it will look ugly for some reason. */
@@ -665,6 +668,7 @@ gboolean
 fe_apply_theme_for_mode (unsigned int mode, gboolean *palette_changed)
 {
 	gboolean enabled = fe_dark_mode_is_enabled_for (mode);
+	GList *toplevels, *node;
 
 	/* Apply the optional global GTK preference first, then reapply palette-driven
 	 * chat/input colors so Preferences > Colors continues to take precedence. */
@@ -680,6 +684,13 @@ fe_apply_theme_for_mode (unsigned int mode, gboolean *palette_changed)
 
 	if (input_style)
 		create_input_style (input_style);
+
+	/* Existing toplevel windows also need the class refreshed for selectors like
+	 * .zoitechat-dark / .zoitechat-light to update immediately. */
+	toplevels = gtk_window_list_toplevels ();
+	for (node = toplevels; node; node = node->next)
+		fe_apply_theme_to_toplevel (GTK_WIDGET (node->data));
+	g_list_free (toplevels);
 
 	return enabled;
 }
@@ -1068,7 +1079,10 @@ fe_message (char *msg, int flags)
 		type = GTK_MESSAGE_INFO;
 
 	dialog = gtk_message_dialog_new (GTK_WINDOW (parent_window), 0, type,
-												GTK_BUTTONS_OK, "%s", msg);
+										GTK_BUTTONS_OK, "%s", msg);
+	/* Window classes are required for GTK CSS selectors like
+	 * .zoitechat-dark / .zoitechat-light. */
+	fe_apply_theme_to_toplevel (dialog);
 	if (flags & FE_MSG_MARKUP)
 		gtk_message_dialog_set_markup (GTK_MESSAGE_DIALOG (dialog), msg);
 	g_signal_connect (G_OBJECT (dialog), "response",

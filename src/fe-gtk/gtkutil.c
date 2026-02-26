@@ -977,6 +977,9 @@ fe_get_str (char *msg, char *def, void *callback, void *userdata)
 										_("_Cancel"), GTK_RESPONSE_REJECT,
 										_("_OK"), GTK_RESPONSE_ACCEPT,
 										NULL);
+	/* Window classes are required for GTK CSS selectors like
+	 * .zoitechat-dark / .zoitechat-light. */
+	fe_apply_theme_to_toplevel (dialog);
 
 	gtk_window_set_transient_for (GTK_WINDOW (dialog), GTK_WINDOW (parent_window));
 	gtk_box_set_homogeneous (GTK_BOX (gtk_dialog_get_content_area (GTK_DIALOG (dialog))), TRUE);
@@ -1072,6 +1075,9 @@ fe_get_int (char *msg, int def, void *callback, void *userdata)
 										_("_Cancel"), GTK_RESPONSE_REJECT,
 										_("_OK"), GTK_RESPONSE_ACCEPT,
 										NULL);
+	/* Window classes are required for GTK CSS selectors like
+	 * .zoitechat-dark / .zoitechat-light. */
+	fe_apply_theme_to_toplevel (dialog);
 	gtk_box_set_homogeneous (GTK_BOX (gtk_dialog_get_content_area (GTK_DIALOG (dialog))), TRUE);
 	gtk_window_set_position (GTK_WINDOW (dialog), GTK_WIN_POS_MOUSE);
 	gtk_window_set_transient_for (GTK_WINDOW (dialog), GTK_WINDOW (parent_window));
@@ -1112,6 +1118,9 @@ fe_get_bool (char *title, char *prompt, void *callback, void *userdata)
 		_("_No"), GTK_RESPONSE_REJECT,
 		_("_Yes"), GTK_RESPONSE_ACCEPT,
 		NULL);
+	/* Window classes are required for GTK CSS selectors like
+	 * .zoitechat-dark / .zoitechat-light. */
+	fe_apply_theme_to_toplevel (dialog);
 	gtk_box_set_homogeneous (GTK_BOX (gtk_dialog_get_content_area (GTK_DIALOG (dialog))), TRUE);
 	gtk_window_set_position (GTK_WINDOW (dialog), GTK_WIN_POS_MOUSE);
 	gtk_window_set_transient_for (GTK_WINDOW (dialog), GTK_WINDOW (parent_window));
