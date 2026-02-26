@@ -594,6 +594,47 @@ static gboolean dark_mode_state_initialized = FALSE;
 static GtkCssProvider *gtk3_theme_provider = NULL;
 static char *gtk3_theme_provider_name = NULL;
 static gboolean gtk3_theme_provider_dark = FALSE;
+static GResource *gtk3_theme_resource = NULL;
+static char *gtk3_theme_resource_path = NULL;
+
+static void
+fe_gtk3_theme_unregister_resource (void)
+{
+	if (gtk3_theme_resource)
+	{
+		g_resources_unregister (gtk3_theme_resource);
+		g_clear_pointer (&gtk3_theme_resource, g_resource_unref);
+	}
+
+	g_clear_pointer (&gtk3_theme_resource_path, g_free);
+}
+
+static gboolean
+fe_gtk3_theme_register_resource (const char *resource_path, GError **error)
+{
+	GResource *resource;
+
+	if (!resource_path || !*resource_path)
+	{
+		fe_gtk3_theme_unregister_resource ();
+		return TRUE;
+	}
+
+	if (gtk3_theme_resource && gtk3_theme_resource_path
+		&& g_strcmp0 (gtk3_theme_resource_path, resource_path) == 0)
+		return TRUE;
+
+	resource = g_resource_load (resource_path, error);
+	if (!resource)
+		return FALSE;
+
+	fe_gtk3_theme_unregister_resource ();
+	g_resources_register (resource);
+	gtk3_theme_resource = resource;
+	gtk3_theme_resource_path = g_strdup (resource_path);
+
+	return TRUE;
+}
 
 gboolean
 fe_apply_gtk3_theme_with_reload (const char *theme_name, gboolean force_reload, GError **error)
@@ -603,6 +644,7 @@ fe_apply_gtk3_theme_with_reload (const char *theme_name, gboolean force_reload, 
 	char *gtk3_dir = NULL;
 	char *gtk_css = NULL;
 	char *gtk_dark_css = NULL;
+	char *gtk_resource = NULL;
 	const char *selected_css = NULL;
 	gboolean dark = fe_dark_mode_is_enabled ();
 	GList *toplevels, *node;
@@ -619,6 +661,7 @@ fe_apply_gtk3_theme_with_reload (const char *theme_name, gboolean force_reload, 
 		g_clear_object (&gtk3_theme_provider);
 		g_clear_pointer (&gtk3_theme_provider_name, g_free);
 		gtk3_theme_provider_dark = FALSE;
+		fe_gtk3_theme_unregister_resource ();
 
 		toplevels = gtk_window_list_toplevels ();
 		for (node = toplevels; node; node = node->next)
@@ -640,6 +683,7 @@ fe_apply_gtk3_theme_with_reload (const char *theme_name, gboolean force_reload, 
 	gtk3_dir = g_build_filename (theme_dir, "gtk-3.0", NULL);
 	gtk_css = g_build_filename (gtk3_dir, "gtk.css", NULL);
 	gtk_dark_css = g_build_filename (gtk3_dir, "gtk-dark.css", NULL);
+	gtk_resource = g_build_filename (gtk3_dir, "gtk.gresource", NULL);
 
 	if (!g_file_test (gtk_css, G_FILE_TEST_IS_REGULAR))
 	{
@@ -657,6 +701,23 @@ fe_apply_gtk3_theme_with_reload (const char *theme_name, gboolean force_reload, 
 	else
 		selected_css = gtk_css;
 
+	if (g_file_test (gtk_resource, G_FILE_TEST_IS_REGULAR))
+	{
+		if (!fe_gtk3_theme_register_resource (gtk_resource, error))
+		{
+			g_free (gtk_resource);
+			g_free (gtk_dark_css);
+			g_free (gtk_css);
+			g_free (gtk3_dir);
+			g_free (theme_dir);
+			return FALSE;
+		}
+	}
+	else
+	{
+		fe_gtk3_theme_unregister_resource ();
+	}
+
 	if (!gtk3_theme_provider)
 		gtk3_theme_provider = gtk_css_provider_new ();
 
@@ -664,6 +725,7 @@ fe_apply_gtk3_theme_with_reload (const char *theme_name, gboolean force_reload, 
 	{
 		g_free (gtk_dark_css);
 		g_free (gtk_css);
+		g_free (gtk_resource);
 		g_free (gtk3_dir);
 		g_free (theme_dir);
 		return FALSE;
@@ -689,6 +751,7 @@ fe_apply_gtk3_theme_with_reload (const char *theme_name, gboolean force_reload, 
 
 	g_free (gtk_dark_css);
 	g_free (gtk_css);
+	g_free (gtk_resource);
 	g_free (gtk3_dir);
 	g_free (theme_dir);
 	return TRUE;
