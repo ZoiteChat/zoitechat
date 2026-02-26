@@ -474,20 +474,26 @@ typedef enum
 static ZoiteChatGtk3ArchiveType
 zoitechat_detect_gtk3_archive_type (const char *archive_path)
 {
+	char *archive_path_lower;
+	ZoiteChatGtk3ArchiveType type = ZOITECHAT_GTK3_ARCHIVE_UNKNOWN;
+
 	if (!archive_path)
 		return ZOITECHAT_GTK3_ARCHIVE_UNKNOWN;
 
-	if (g_str_has_suffix (archive_path, ".zip") || g_str_has_suffix (archive_path, ".ZIP"))
-		return ZOITECHAT_GTK3_ARCHIVE_ZIP;
+	archive_path_lower = g_ascii_strdown (archive_path, -1);
 
-	if (g_str_has_suffix (archive_path, ".tar")
-	 || g_str_has_suffix (archive_path, ".tar.gz")
-	 || g_str_has_suffix (archive_path, ".tgz")
-	 || g_str_has_suffix (archive_path, ".tar.xz")
-	 || g_str_has_suffix (archive_path, ".txz"))
-		return ZOITECHAT_GTK3_ARCHIVE_TAR;
+	if (g_str_has_suffix (archive_path_lower, ".zip"))
+		type = ZOITECHAT_GTK3_ARCHIVE_ZIP;
+	else if (g_str_has_suffix (archive_path_lower, ".tar")
+	      || g_str_has_suffix (archive_path_lower, ".tar.gz")
+	      || g_str_has_suffix (archive_path_lower, ".tgz")
+	      || g_str_has_suffix (archive_path_lower, ".tar.xz")
+	      || g_str_has_suffix (archive_path_lower, ".txz"))
+		type = ZOITECHAT_GTK3_ARCHIVE_TAR;
 
-	return ZOITECHAT_GTK3_ARCHIVE_UNKNOWN;
+	g_free (archive_path_lower);
+
+	return type;
 }
 
 #ifndef WIN32
