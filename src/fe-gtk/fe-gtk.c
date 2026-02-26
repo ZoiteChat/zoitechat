@@ -870,6 +870,7 @@ create_input_style (InputStyle *style)
 
 				/* GTK3 equivalents for adwaita_workaround_rc/cursor_color_rc. */
 				if (adwaita_workaround_rc[0] != '\0'
+					&& theme_name
 					&& (g_str_has_prefix (theme_name, "Adwaita")
 						|| g_str_has_prefix (theme_name, "Yaru")))
 					g_string_append (css, "background-image: none;");
