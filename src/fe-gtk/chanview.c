@@ -127,15 +127,15 @@ chanview_apply_theme (chanview *cv)
 	if (input_style)
 		font = input_style->font_desc;
 
-	if (fe_dark_mode_is_enabled () || prefs.hex_gui_dark_mode == ZOITECHAT_DARK_MODE_LIGHT)
-	{
-		gtkutil_apply_palette (w, &colors[COL_BG], &colors[COL_FG], font);
-	}
-	else
-	{
-		/* Keep list font in sync while reverting colors to theme defaults. */
-		gtkutil_apply_palette (w, NULL, NULL, font);
-	}
+	/*
+	 * setup_apply_to_sess() and palette_apply_dark_mode() treat all dark-mode
+	 * preference modes as palette-driven: dark uses curated dark colors, while
+	 * light/auto-light use the user's saved palette.
+	 *
+	 * Keep chanview aligned with that resolved behavior so AUTO doesn't
+	 * accidentally revert to theme defaults and clear custom colors.
+	 */
+	gtkutil_apply_palette (w, &colors[COL_BG], &colors[COL_FG], font);
 }
 
 static char *
