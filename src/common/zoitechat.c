@@ -1847,12 +1847,27 @@ main (int argc, char *argv[])
 {
 	int i;
 	int ret;
+#ifdef WIN32
+	char **win32_argv = NULL;
+#endif
 
 #ifdef WIN32
 	HRESULT coinit_result;
 #endif
 
 	srand ((unsigned int) time (NULL)); /* CL: do this only once! */
+
+#ifdef WIN32
+	/* Build argv from the Unicode command line first. In subsystem:windows
+	 * launches (for example protocol handlers), CRT argv can be invalid and can
+	 * crash GLib option parsing during startup. */
+	win32_argv = g_win32_get_command_line ();
+	if (win32_argv != NULL && win32_argv[0] != NULL)
+	{
+		argv = win32_argv;
+		argc = g_strv_length (win32_argv);
+	}
+#endif
 
 	/* We must check for the config dir parameter, otherwise load_config() will behave incorrectly.
 	 * load_config() must come before fe_args() because fe_args() calls gtk_init() which needs to
@@ -1904,11 +1919,19 @@ main (int argc, char *argv[])
 
 	ret = fe_args (argc, argv);
 	if (ret != -1)
+	{
+#ifdef WIN32
+		g_strfreev (win32_argv);
+#endif
 		return ret;
+	}
 
 #ifdef WIN32
 	if (zoitechat_remote_win32 ())
+	{
+		g_strfreev (win32_argv);
 		return 0;
+	}
 #endif
 
 #ifdef USE_DBUS
@@ -1959,6 +1982,10 @@ main (int argc, char *argv[])
 
 #ifdef WIN32
 	WSACleanup ();
+#endif
+
+#ifdef WIN32
+	g_strfreev (win32_argv);
 #endif
 
 	return 0;
