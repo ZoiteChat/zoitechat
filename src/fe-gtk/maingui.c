@@ -1869,7 +1869,7 @@ mg_create_tabmenu (session *sess, GdkEventButton *event, chan *ch)
         if (sess)
         {
                 char *name = g_markup_escape_text (sess->channel[0] ? sess->channel : _("<none>"), -1);
-                g_snprintf (buf, sizeof (buf), "<span foreground=\"#3344cc\"><b>%s</b></span>", name);
+		g_snprintf (buf, sizeof (buf), "<b>%s</b>", name);
                 g_free (name);
 
                 item = gtk_menu_item_new_with_label ("");
