@@ -66,9 +66,13 @@ void setup_apply_real (int new_pix, int do_ulist, int do_layout, int do_identd);
 
 typedef struct
 {
-        GtkWidget *combo;
-        GtkWidget *apply_button;
-        GtkWidget *status_label;
+	GtkWidget *zoitechat_combo;
+	GtkWidget *zoitechat_apply_button;
+	GtkWidget *zoitechat_status_label;
+	GtkWidget *gtk3_combo;
+	GtkWidget *gtk3_import_button;
+	GtkWidget *gtk3_apply_button;
+	GtkWidget *gtk3_status_label;
 } setup_theme_ui;
 
 enum
@@ -1889,9 +1893,9 @@ setup_theme_populate (setup_theme_ui *ui)
         GtkTreeIter iter;
         int count;
 
-        model = gtk_combo_box_get_model (GTK_COMBO_BOX (ui->combo));
-        while (gtk_tree_model_get_iter_first (model, &iter))
-                gtk_combo_box_text_remove (GTK_COMBO_BOX_TEXT (ui->combo), 0);
+	model = gtk_combo_box_get_model (GTK_COMBO_BOX (ui->zoitechat_combo));
+	while (gtk_tree_model_get_iter_first (model, &iter))
+		gtk_combo_box_text_remove (GTK_COMBO_BOX_TEXT (ui->zoitechat_combo), 0);
 
         themes_dir = g_build_filename (get_xdir (), "themes", NULL);
         if (!g_file_test (themes_dir, G_FILE_TEST_IS_DIR))
@@ -1900,23 +1904,23 @@ setup_theme_populate (setup_theme_ui *ui)
         dir = g_dir_open (themes_dir, 0, NULL);
         if (dir)
         {
-                while ((name = g_dir_read_name (dir)))
-                {
-                        char *path = g_build_filename (themes_dir, name, NULL);
-                        if (g_file_test (path, G_FILE_TEST_IS_DIR))
-                                gtk_combo_box_text_append_text (GTK_COMBO_BOX_TEXT (ui->combo), name);
-                        g_free (path);
-                }
+		while ((name = g_dir_read_name (dir)))
+		{
+			char *path = g_build_filename (themes_dir, name, NULL);
+			if (g_file_test (path, G_FILE_TEST_IS_DIR))
+				gtk_combo_box_text_append_text (GTK_COMBO_BOX_TEXT (ui->zoitechat_combo), name);
+			g_free (path);
+		}
                 g_dir_close (dir);
         }
 
-        count = gtk_tree_model_iter_n_children (gtk_combo_box_get_model (GTK_COMBO_BOX (ui->combo)), NULL);
-        if (count > 0)
-                gtk_combo_box_set_active (GTK_COMBO_BOX (ui->combo), 0);
+	count = gtk_tree_model_iter_n_children (gtk_combo_box_get_model (GTK_COMBO_BOX (ui->zoitechat_combo)), NULL);
+	if (count > 0)
+		gtk_combo_box_set_active (GTK_COMBO_BOX (ui->zoitechat_combo), 0);
 
-        gtk_widget_set_sensitive (ui->apply_button, count > 0);
-        gtk_label_set_text (GTK_LABEL (ui->status_label),
-                                                          count > 0 ? _("Select a theme to apply.") : _("No themes found."));
+	gtk_widget_set_sensitive (ui->zoitechat_apply_button, count > 0);
+	gtk_label_set_text (GTK_LABEL (ui->zoitechat_status_label),
+								  count > 0 ? _("Select a ZoiteChat theme to apply colors and events.") : _("No ZoiteChat themes found."));
 
         g_free (themes_dir);
 }
@@ -1943,10 +1947,10 @@ setup_theme_open_folder_cb (GtkWidget *button, gpointer user_data)
 static void
 setup_theme_selection_changed (GtkComboBox *combo, gpointer user_data)
 {
-        setup_theme_ui *ui = user_data;
-        gboolean has_selection = gtk_combo_box_get_active (combo) >= 0;
+	setup_theme_ui *ui = user_data;
+	gboolean has_selection = gtk_combo_box_get_active (combo) >= 0;
 
-        gtk_widget_set_sensitive (ui->apply_button, has_selection);
+	gtk_widget_set_sensitive (ui->zoitechat_apply_button, has_selection);
 }
 
 static void
@@ -1958,7 +1962,7 @@ setup_theme_apply_cb (GtkWidget *button, gpointer user_data)
         char *theme;
         GError *error = NULL;
 
-        theme = gtk_combo_box_text_get_active_text (GTK_COMBO_BOX_TEXT (ui->combo));
+	theme = gtk_combo_box_text_get_active_text (GTK_COMBO_BOX_TEXT (ui->zoitechat_combo));
         if (!theme)
                 return;
 
@@ -1989,10 +1993,207 @@ setup_theme_apply_cb (GtkWidget *button, gpointer user_data)
 	color_change = TRUE;
         setup_apply_real (0, TRUE, FALSE, FALSE);
 
-        setup_theme_show_message (GTK_MESSAGE_INFO, _("Theme applied. Some changes may require a restart to take full effect."));
+	setup_theme_show_message (GTK_MESSAGE_INFO, _("ZoiteChat theme applied. Palette and event settings were updated."));
 
 cleanup:
         g_free (theme);
+}
+
+static void
+setup_theme_populate_gtk3 (setup_theme_ui *ui)
+{
+	const char *theme_dirs[] = {
+		g_get_home_dir (),
+		NULL,
+		"/usr/local/share/themes",
+		"/usr/share/themes",
+		NULL
+	};
+	GHashTable *seen;
+	GPtrArray *names;
+	GtkTreeModel *model;
+	GtkTreeIter iter;
+	GtkSettings *settings;
+	char *current_theme = NULL;
+	guint i;
+
+	theme_dirs[1] = g_build_filename (g_get_home_dir (), ".local", "share", "themes", NULL);
+
+	seen = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
+	names = g_ptr_array_new_with_free_func (g_free);
+
+	for (i = 0; i < G_N_ELEMENTS (theme_dirs); i++)
+	{
+		const char *dir_path = theme_dirs[i];
+		GDir *dir;
+		const char *name;
+
+		if (!dir_path || !g_file_test (dir_path, G_FILE_TEST_IS_DIR))
+			continue;
+
+		dir = g_dir_open (dir_path, 0, NULL);
+		if (!dir)
+			continue;
+
+		while ((name = g_dir_read_name (dir)))
+		{
+			char *theme_path;
+			char *gtk3_path;
+
+			theme_path = g_build_filename (dir_path, name, NULL);
+			gtk3_path = g_build_filename (theme_path, "gtk-3.0", NULL);
+			if (g_file_test (theme_path, G_FILE_TEST_IS_DIR)
+				&& g_file_test (gtk3_path, G_FILE_TEST_IS_DIR)
+				&& !g_hash_table_contains (seen, name))
+			{
+				g_hash_table_add (seen, g_strdup (name));
+				g_ptr_array_add (names, g_strdup (name));
+			}
+			g_free (gtk3_path);
+			g_free (theme_path);
+		}
+
+		g_dir_close (dir);
+	}
+
+	g_ptr_array_sort (names, (GCompareFunc) g_ascii_strcasecmp);
+
+	model = gtk_combo_box_get_model (GTK_COMBO_BOX (ui->gtk3_combo));
+	while (gtk_tree_model_get_iter_first (model, &iter))
+		gtk_combo_box_text_remove (GTK_COMBO_BOX_TEXT (ui->gtk3_combo), 0);
+
+	for (i = 0; i < names->len; i++)
+		gtk_combo_box_text_append_text (GTK_COMBO_BOX_TEXT (ui->gtk3_combo), g_ptr_array_index (names, i));
+
+	settings = gtk_settings_get_default ();
+	if (settings)
+		g_object_get (settings, "gtk-theme-name", &current_theme, NULL);
+
+	if (names->len > 0)
+	{
+		gtk_combo_box_set_active (GTK_COMBO_BOX (ui->gtk3_combo), 0);
+		if (current_theme)
+		{
+			for (i = 0; i < names->len; i++)
+			{
+				if (g_strcmp0 (current_theme, g_ptr_array_index (names, i)) == 0)
+				{
+					gtk_combo_box_set_active (GTK_COMBO_BOX (ui->gtk3_combo), i);
+					break;
+				}
+			}
+		}
+	}
+
+	gtk_widget_set_sensitive (ui->gtk3_apply_button, names->len > 0);
+	gtk_label_set_text (GTK_LABEL (ui->gtk3_status_label),
+								  names->len > 0 ? _("Select a GTK3 theme to activate for the interface.") : _("No GTK3 themes found."));
+
+	g_ptr_array_free (names, TRUE);
+	g_hash_table_destroy (seen);
+	g_free (current_theme);
+	g_free ((char *) theme_dirs[1]);
+}
+
+static void
+setup_theme_gtk3_selection_changed (GtkComboBox *combo, gpointer user_data)
+{
+	setup_theme_ui *ui = user_data;
+	gboolean has_selection = gtk_combo_box_get_active (combo) >= 0;
+
+	gtk_widget_set_sensitive (ui->gtk3_apply_button, has_selection);
+}
+
+static void
+setup_theme_gtk3_import_cb (GtkWidget *button, gpointer user_data)
+{
+	setup_theme_ui *ui = user_data;
+	GtkWidget *dialog;
+	gint response;
+	char *archive_path;
+	char *basename;
+	char *dot;
+	char *dest_root;
+	char *dest_dir;
+	char *argv[] = {"unzip", "-o", NULL, "-d", NULL, NULL};
+	GError *error = NULL;
+	int status = 0;
+
+	dialog = gtk_file_chooser_dialog_new (_("Import GTK3 Theme"), GTK_WINDOW (setup_window),
+		GTK_FILE_CHOOSER_ACTION_OPEN,
+		_ ("_Cancel"), GTK_RESPONSE_CANCEL,
+		_ ("_Open"), GTK_RESPONSE_ACCEPT,
+		NULL);
+
+	response = gtk_dialog_run (GTK_DIALOG (dialog));
+	if (response != GTK_RESPONSE_ACCEPT)
+	{
+		gtk_widget_destroy (dialog);
+		return;
+	}
+
+	archive_path = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (dialog));
+	gtk_widget_destroy (dialog);
+
+	if (!archive_path)
+		return;
+
+	basename = g_path_get_basename (archive_path);
+	dot = strrchr (basename, '.');
+	if (dot)
+		*dot = '\0';
+
+	dest_root = g_build_filename (g_get_home_dir (), ".themes", NULL);
+	g_mkdir_with_parents (dest_root, 0700);
+	dest_dir = g_build_filename (dest_root, basename, NULL);
+	g_mkdir_with_parents (dest_dir, 0700);
+
+	argv[2] = archive_path;
+	argv[4] = dest_dir;
+	if (!g_spawn_sync (NULL, argv, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL,
+		NULL, NULL, &status, &error)
+		|| !g_spawn_check_exit_status (status, &error))
+	{
+		setup_theme_show_message (GTK_MESSAGE_ERROR,
+			error ? error->message : _("Failed to import GTK3 theme archive."));
+		g_clear_error (&error);
+	}
+	else
+	{
+		gtk_label_set_text (GTK_LABEL (ui->gtk3_status_label), _("GTK3 theme imported. Select it and click Apply GTK3 Theme."));
+		setup_theme_populate_gtk3 (ui);
+	}
+
+	g_free (dest_dir);
+	g_free (dest_root);
+	g_free (basename);
+	g_free (archive_path);
+}
+
+static void
+setup_theme_gtk3_apply_cb (GtkWidget *button, gpointer user_data)
+{
+	setup_theme_ui *ui = user_data;
+	GtkSettings *settings;
+	char *theme;
+
+	theme = gtk_combo_box_text_get_active_text (GTK_COMBO_BOX_TEXT (ui->gtk3_combo));
+	if (!theme)
+		return;
+
+	settings = gtk_settings_get_default ();
+	if (!settings)
+	{
+		setup_theme_show_message (GTK_MESSAGE_ERROR, _("GTK settings are unavailable, cannot activate GTK3 theme."));
+		g_free (theme);
+		return;
+	}
+
+	g_object_set (settings, "gtk-theme-name", theme, NULL);
+	gtk_label_set_text (GTK_LABEL (ui->gtk3_status_label), _("GTK3 theme activated for this session."));
+	setup_theme_show_message (GTK_MESSAGE_INFO, _("GTK3 theme activated. Application palette settings were not changed."));
+
+	g_free (theme);
 }
 
 static GtkWidget *
@@ -2000,60 +2201,102 @@ setup_create_theme_page (void)
 {
         setup_theme_ui *ui;
         GtkWidget *box;
-        GtkWidget *label;
-        GtkWidget *hbox;
-        GtkWidget *button_box;
-        char *themes_dir;
-        char *markup;
+	GtkWidget *label;
+	GtkWidget *hbox;
+	GtkWidget *button_box;
+	GtkWidget *frame;
+	char *themes_dir;
+	char *markup;
 
         ui = g_new0 (setup_theme_ui, 1);
 
         box = gtkutil_box_new (GTK_ORIENTATION_VERTICAL, FALSE, 6);
         gtk_container_set_border_width (GTK_CONTAINER (box), 6);
 
-        themes_dir = g_build_filename (get_xdir (), "themes", NULL);
-        markup = g_markup_printf_escaped (_("Theme files are loaded from <tt>%s</tt>."), themes_dir);
-        label = gtk_label_new (NULL);
-        gtk_label_set_markup (GTK_LABEL (label), markup);
-        gtk_label_set_line_wrap (GTK_LABEL (label), TRUE);
-        gtk_widget_set_halign (label, GTK_ALIGN_START);
-        gtk_widget_set_valign (label, GTK_ALIGN_CENTER);
-        gtk_box_pack_start (GTK_BOX (box), label, FALSE, FALSE, 0);
-        g_free (markup);
-        g_free (themes_dir);
+	frame = gtk_frame_new (_("ZoiteChat Theme"));
+	gtk_box_pack_start (GTK_BOX (box), frame, FALSE, FALSE, 0);
 
-        hbox = gtkutil_box_new (GTK_ORIENTATION_HORIZONTAL, FALSE, 6);
-        gtk_box_pack_start (GTK_BOX (box), hbox, FALSE, FALSE, 0);
+	hbox = gtkutil_box_new (GTK_ORIENTATION_VERTICAL, FALSE, 6);
+	gtk_container_set_border_width (GTK_CONTAINER (hbox), 6);
+	gtk_container_add (GTK_CONTAINER (frame), hbox);
 
-        ui->combo = gtk_combo_box_text_new ();
-        gtk_box_pack_start (GTK_BOX (hbox), ui->combo, TRUE, TRUE, 0);
-        g_signal_connect (G_OBJECT (ui->combo), "changed",
-                                                        G_CALLBACK (setup_theme_selection_changed), ui);
+	themes_dir = g_build_filename (get_xdir (), "themes", NULL);
+	markup = g_markup_printf_escaped (_("Theme files are loaded from <tt>%s</tt>."), themes_dir);
+	label = gtk_label_new (NULL);
+	gtk_label_set_markup (GTK_LABEL (label), markup);
+	gtk_label_set_line_wrap (GTK_LABEL (label), TRUE);
+	gtk_widget_set_halign (label, GTK_ALIGN_START);
+	gtk_widget_set_valign (label, GTK_ALIGN_CENTER);
+	gtk_box_pack_start (GTK_BOX (hbox), label, FALSE, FALSE, 0);
+	g_free (markup);
+	g_free (themes_dir);
 
-        button_box = gtkutil_box_new (GTK_ORIENTATION_HORIZONTAL, FALSE, 6);
-        gtk_box_pack_start (GTK_BOX (hbox), button_box, FALSE, FALSE, 0);
+	button_box = gtkutil_box_new (GTK_ORIENTATION_HORIZONTAL, FALSE, 6);
+	gtk_box_pack_start (GTK_BOX (hbox), button_box, FALSE, FALSE, 0);
 
-        ui->apply_button = gtk_button_new_with_mnemonic (_("_Apply Theme"));
-        gtk_box_pack_start (GTK_BOX (button_box), ui->apply_button, FALSE, FALSE, 0);
-        g_signal_connect (G_OBJECT (ui->apply_button), "clicked",
-                                                        G_CALLBACK (setup_theme_apply_cb), ui);
+	ui->zoitechat_combo = gtk_combo_box_text_new ();
+	gtk_box_pack_start (GTK_BOX (button_box), ui->zoitechat_combo, TRUE, TRUE, 0);
+	g_signal_connect (G_OBJECT (ui->zoitechat_combo), "changed",
+								G_CALLBACK (setup_theme_selection_changed), ui);
 
-        label = gtk_button_new_with_mnemonic (_("_Refresh"));
-        gtk_box_pack_start (GTK_BOX (button_box), label, FALSE, FALSE, 0);
+	label = gtk_button_new_with_mnemonic (_("Apply _ZoiteChat Theme"));
+	ui->zoitechat_apply_button = label;
+	gtk_box_pack_start (GTK_BOX (button_box), label, FALSE, FALSE, 0);
+	g_signal_connect (G_OBJECT (label), "clicked",
+								G_CALLBACK (setup_theme_apply_cb), ui);
+
+	label = gtk_button_new_with_mnemonic (_("_Refresh"));
+	gtk_box_pack_start (GTK_BOX (button_box), label, FALSE, FALSE, 0);
         g_signal_connect (G_OBJECT (label), "clicked",
                                                         G_CALLBACK (setup_theme_refresh_cb), ui);
 
         label = gtk_button_new_with_mnemonic (_("_Open Folder"));
         gtk_box_pack_start (GTK_BOX (button_box), label, FALSE, FALSE, 0);
-        g_signal_connect (G_OBJECT (label), "clicked",
-                                                        G_CALLBACK (setup_theme_open_folder_cb), ui);
+	g_signal_connect (G_OBJECT (label), "clicked",
+								G_CALLBACK (setup_theme_open_folder_cb), ui);
 
-        ui->status_label = gtk_label_new (NULL);
-        gtk_widget_set_halign (ui->status_label, GTK_ALIGN_START);
-        gtk_widget_set_valign (ui->status_label, GTK_ALIGN_CENTER);
-        gtk_box_pack_start (GTK_BOX (box), ui->status_label, FALSE, FALSE, 0);
+	ui->zoitechat_status_label = gtk_label_new (NULL);
+	gtk_widget_set_halign (ui->zoitechat_status_label, GTK_ALIGN_START);
+	gtk_widget_set_valign (ui->zoitechat_status_label, GTK_ALIGN_CENTER);
+	gtk_box_pack_start (GTK_BOX (hbox), ui->zoitechat_status_label, FALSE, FALSE, 0);
 
-        setup_theme_populate (ui);
+	frame = gtk_frame_new (_("GTK3 Theme"));
+	gtk_box_pack_start (GTK_BOX (box), frame, FALSE, FALSE, 0);
+
+	hbox = gtkutil_box_new (GTK_ORIENTATION_VERTICAL, FALSE, 6);
+	gtk_container_set_border_width (GTK_CONTAINER (hbox), 6);
+	gtk_container_add (GTK_CONTAINER (frame), hbox);
+
+	label = gtk_label_new (_("Import a GTK3 theme archive or select an installed GTK3 theme."));
+	gtk_label_set_line_wrap (GTK_LABEL (label), TRUE);
+	gtk_widget_set_halign (label, GTK_ALIGN_START);
+	gtk_box_pack_start (GTK_BOX (hbox), label, FALSE, FALSE, 0);
+
+	button_box = gtkutil_box_new (GTK_ORIENTATION_HORIZONTAL, FALSE, 6);
+	gtk_box_pack_start (GTK_BOX (hbox), button_box, FALSE, FALSE, 0);
+
+	ui->gtk3_combo = gtk_combo_box_text_new ();
+	gtk_box_pack_start (GTK_BOX (button_box), ui->gtk3_combo, TRUE, TRUE, 0);
+	g_signal_connect (G_OBJECT (ui->gtk3_combo), "changed",
+								G_CALLBACK (setup_theme_gtk3_selection_changed), ui);
+
+	ui->gtk3_import_button = gtk_button_new_with_mnemonic (_("_Import GTK3 Theme"));
+	gtk_box_pack_start (GTK_BOX (button_box), ui->gtk3_import_button, FALSE, FALSE, 0);
+	g_signal_connect (G_OBJECT (ui->gtk3_import_button), "clicked",
+								G_CALLBACK (setup_theme_gtk3_import_cb), ui);
+
+	ui->gtk3_apply_button = gtk_button_new_with_mnemonic (_("Apply GTK_3 Theme"));
+	gtk_box_pack_start (GTK_BOX (button_box), ui->gtk3_apply_button, FALSE, FALSE, 0);
+	g_signal_connect (G_OBJECT (ui->gtk3_apply_button), "clicked",
+								G_CALLBACK (setup_theme_gtk3_apply_cb), ui);
+
+	ui->gtk3_status_label = gtk_label_new (NULL);
+	gtk_widget_set_halign (ui->gtk3_status_label, GTK_ALIGN_START);
+	gtk_widget_set_valign (ui->gtk3_status_label, GTK_ALIGN_CENTER);
+	gtk_box_pack_start (GTK_BOX (hbox), ui->gtk3_status_label, FALSE, FALSE, 0);
+
+	setup_theme_populate (ui);
+	setup_theme_populate_gtk3 (ui);
 
         g_object_set_data_full (G_OBJECT (box), "setup-theme-ui", ui, g_free);
 
