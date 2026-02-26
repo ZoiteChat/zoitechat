@@ -1278,7 +1278,6 @@ mg_switch_page (int relative, int num)
 static void
 mg_topdestroy_cb (GtkWidget *win, session *sess)
 {
-/*      printf("enter mg_topdestroy. sess %p was destroyed\n", sess);*/
         session_free (sess);    /* tell zoitechat.c about it */
 }
 
@@ -1293,7 +1292,6 @@ mg_ircdestroy (session *sess)
 
         if (mg_gui == NULL)
         {
-/*              puts("-> mg_gui is already NULL");*/
                 return;
         }
 
@@ -1303,13 +1301,11 @@ mg_ircdestroy (session *sess)
                 sess = list->data;
                 if (sess->gui->is_tab)
                 {
-/*                      puts("-> some tabs still remain");*/
                         return;
                 }
                 list = list->next;
         }
 
-/*      puts("-> no tabs left, killing main tabwindow");*/
         gtk_widget_destroy (mg_gui->window);
         active_tab = NULL;
         mg_gui = NULL;
@@ -2089,7 +2085,6 @@ mg_tabwindow_kill_cb (GtkWidget *win, gpointer userdata)
         GSList *list, *next;
         session *sess;
 
-/*      puts("enter mg_tabwindow_kill_cb");*/
         zoitechat_is_quitting = TRUE;
 
         /* see if there's any non-tab windows left */
@@ -2101,7 +2096,6 @@ mg_tabwindow_kill_cb (GtkWidget *win, gpointer userdata)
                 if (!sess->gui->is_tab)
                 {
                         zoitechat_is_quitting = FALSE;
-/*                      puts("-> will not exit, some toplevel windows left");*/
                 } else
                 {
                         mg_ircdestroy (sess);
@@ -2135,7 +2129,6 @@ mg_changui_destroy (session *sess)
                 /* avoid calling the "destroy" callback */
                 g_signal_handlers_disconnect_by_func (G_OBJECT (sess->gui->window),
                                                                                                                   mg_topdestroy_cb, sess);
-                /*gtk_widget_destroy (sess->gui->window);*/
                 /* don't destroy until the new one is created. Not sure why, but */
                 /* it fixes: Gdk-CRITICAL **: gdk_colormap_get_screen: */
                 /*           assertion `GDK_IS_COLORMAP (cmap)' failed */

@@ -743,9 +743,6 @@ dcc_read (GIOChannel *source, GIOCondition condition, struct DCC *dcc)
 			EMIT_SIGNAL (XP_TE_DCCRECVERR, dcc->serv->front_session, dcc->file,
 							 dcc->destfile, dcc->nick,
 							 errorstring ((n < 0) ? sock_error () : 0), 0);
-			/* send ack here? but the socket is dead */
-			/*if (need_ack)
-				dcc_send_ack (dcc);*/
 			dcc_close (dcc, STAT_FAILED, FALSE);
 			return TRUE;
 		}
@@ -1383,7 +1380,6 @@ dcc_connect (struct DCC *dcc)
 			dcc_close (dcc, STAT_FAILED, FALSE);
 			return;
 		}
-		/* possible problems with filenames containing spaces? */
 		if (dcc->type == TYPE_RECV)
 			g_snprintf (tbuf, sizeof (tbuf), strchr (dcc->file, ' ') ?
 					"DCC SEND \"%s\" %u %d %" G_GUINT64_FORMAT " %d" :
@@ -1660,17 +1656,14 @@ dcc_listen_init (struct DCC *dcc, session *sess)
 
 	SAddr.sin_family = AF_INET;
 
-	/*if local_ip is specified use that*/
 	if (prefs.local_ip != 0xffffffff)
 	{
 		my_addr = prefs.local_ip;
 		SAddr.sin_addr.s_addr = prefs.local_ip;
 	}
-	/*otherwise use the default*/
 	else
 		my_addr = SAddr.sin_addr.s_addr;
 
-	/*if we have a valid portrange try to use that*/
 	if (prefs.hex_dcc_port_first > 0)
 	{
 		SAddr.sin_port = 0;
@@ -1680,7 +1673,6 @@ dcc_listen_init (struct DCC *dcc, session *sess)
 		{
 			SAddr.sin_port = htons (prefs.hex_dcc_port_first + i);
 			i++;
-			/*printf("Trying to bind against port: %d\n",ntohs(SAddr.sin_port));*/
 			bindretval = bind (dcc->sok, (struct sockaddr *) &SAddr, sizeof (SAddr));
 		}
 
@@ -1707,12 +1699,8 @@ dcc_listen_init (struct DCC *dcc, session *sess)
 
 	dcc->port = ntohs (SAddr.sin_port);
 
-	/*if we have a dcc_ip, we use that, so the remote client can connect*/
-	/*else we try to take an address from hex_dcc_ip*/
-	/*if something goes wrong we tell the client to connect to our LAN ip*/
 	dcc->addr = dcc_get_my_address (sess);
 
-	/*if nothing else worked we use the address we bound to*/
 	if (dcc->addr == 0)
 	   dcc->addr = my_addr;
 
@@ -1728,7 +1716,7 @@ dcc_listen_init (struct DCC *dcc, session *sess)
 }
 
 static struct session *dccsess;
-static char *dccto;				  /* lame!! */
+static char *dccto;
 static gint64 dccmaxcps;
 static int recursive = FALSE;
 

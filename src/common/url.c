@@ -95,7 +95,6 @@ url_save_node (char* url)
 {
 	FILE *fd;
 
-	/* open <config>/url.log in append mode */
 	fd = zoitechat_fopen_file ("url.log", "a", 0);
 	if (fd == NULL)
 	{
@@ -118,7 +117,6 @@ url_add (char *urltext, int len)
 	char *data;
 	int size;
 
-	/* we don't need any URLs if we have neither URL grabbing nor URL logging enabled */
 	if (!prefs.hex_url_grabber && !prefs.hex_url_logging)
 	{
 		return;
@@ -126,12 +124,11 @@ url_add (char *urltext, int len)
 
 	data = g_strndup (urltext, len);
 
-	if (data[len - 1] == '.')	/* chop trailing dot */
+	if (data[len - 1] == '.')
 	{
 		len--;
 		data[len] = 0;
 	}
-	/* chop trailing ) but only if there's no counterpart */
 	if (data[len - 1] == ')' && strchr (data, '(') == NULL)
 	{
 		data[len - 1] = 0;
@@ -142,7 +139,6 @@ url_add (char *urltext, int len)
 		url_save_node (data);
 	}
 
-	/* the URL is saved already, only continue if we need the URL grabber too */
 	if (!prefs.hex_url_grabber)
 	{
 		g_free (data);
@@ -162,11 +158,8 @@ url_add (char *urltext, int len)
 	}
 
 	size = tree_size (url_tree);
-	/* 0 is unlimited */
 	if (prefs.hex_url_grabber_limit > 0 && size >= prefs.hex_url_grabber_limit)
 	{
-		/* the loop is necessary to handle having the limit lowered while
-		   ZoiteChat is running */
 		size -= prefs.hex_url_grabber_limit;
 		for(; size > 0; size--)
 		{
@@ -182,10 +175,6 @@ url_add (char *urltext, int len)
 	g_tree_insert (url_btree, data, GINT_TO_POINTER (tree_size (url_tree) - 1));
 	fe_url_add (data);
 }
-
-/* check if a word is clickable. This is called on mouse motion events, so
-   keep it FAST! This new version was found to be almost 3x faster than
-   2.4.4 release. */
 
 static int laststart = 0;
 static int lastend = 0;
@@ -234,7 +223,6 @@ match_nick (const char *word, int *start, int *end)
 	if (!regex_match (re_nick (), word, start, end))
 		return FALSE;
 
-	/* ignore matches with prefixes that the server doesn't use */
 	if (strchr (NICKPRE, word[*start])
 		&& !strchr (nick_prefixes, word[*start]))
 		return FALSE;

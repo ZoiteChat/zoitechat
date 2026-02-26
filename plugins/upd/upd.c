@@ -26,7 +26,7 @@
 
 #define APPCAST_URL "https://zoitechat.zoite.net/appcast.xml"
 
-static zoitechat_plugin *ph;   /* plugin handle */
+static zoitechat_plugin *ph;
 static char name[] = "Update Checker";
 static char desc[] = "Check for ZoiteChat updates automatically";
 static char version[] = "5.0";

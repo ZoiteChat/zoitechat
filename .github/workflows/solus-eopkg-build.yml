@@ -62,17 +62,8 @@ jobs:
             sh -lc '
               set -euo pipefail
               eopkg update-repo -y
-              # Do not remove openssl-11 here: it can trigger a very large
-              # dependency cascade (including python3/eopkg itself), which
-              # breaks the build environment before package build starts.
-              # Some Solus base images still contain openssl-11 files that
-              # conflict with openssl 3.x when the package set is refreshed.
-              # Allowing file-conflict resolution keeps the CI image usable
-              # long enough to install ypkg and complete the package build.
-              # The base image does not guarantee Meson toolchain packages,
-              # while our package.yml setup phase calls meson directly.
-              # Install the essential build tools up front to avoid
-              # `/tmp/ypkg-setup*: meson: command not found` failures.
+              # Keep file-conflict handling on: some base images still carry
+              # openssl-11 leftovers, and Meson tooling is not always preinstalled.
               eopkg install -y --ignore-file-conflicts \
                 ypkg git meson ninja pkgconf gcc gettext
               ypkg build "$PACKAGE_YML"

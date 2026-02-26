@@ -502,16 +502,13 @@ lastact_update(session *sess)
 	else if (sess->tab_state & TAB_STATE_NEW_DATA)
 		newidx = dia? LACT_QUERY: LACT_CHAN_DATA;
 
-	/* If already first at the right position, just return */
 	if (oldidx == newidx &&
 		 (newidx == LACT_NONE || g_list_index(sess_list_by_lastact[newidx], sess) == 0))
 		return;
 
-	/* Remove from the old position */
 	if (oldidx != LACT_NONE)
 		sess_list_by_lastact[oldidx] = g_list_remove(sess_list_by_lastact[oldidx], sess);
 
-	/* Add at the new position */
 	sess->lastact_idx = newidx;
 	if (newidx != LACT_NONE)
 		sess_list_by_lastact[newidx] = g_list_prepend(sess_list_by_lastact[newidx], sess);
@@ -533,7 +530,6 @@ lastact_getfirst(int (*filter) (session *sess))
 	session *sess = NULL;
 	GList *curitem;
 
-	/* 5 is the number of priority classes LACT_ */
 	for (i = 0; i < 5 && !sess; i++)
 	{
 		curitem = sess_list_by_lastact[i];
@@ -672,9 +668,8 @@ away_check (void)
 		return 1;
 
 doover:
-	/* request an update of AWAY status of 1 channel every 30 seconds */
 	full = TRUE;
-	sent = 0;	/* number of WHOs (users) requested */
+	sent = 0;
 	list = sess_list;
 	while (list)
 	{
@@ -689,12 +684,10 @@ doover:
 			{
 				full = FALSE;
 
-				/* if we're under 31 WHOs, send another channels worth */
 				if (sent < 31 && !sess->doing_who)
 				{
 					sess->done_away_check = TRUE;
 					sess->doing_who = TRUE;
-					/* this'll send a WHO #channel */
 					sess->server->p_away_status (sess->server, sess->channel);
 					sent += sess->total;
 				}
@@ -704,7 +697,6 @@ doover:
 		list = list->next;
 	}
 
-	/* done them all, reset done_away_check to FALSE and start over unless we have away-notify */
 	if (full)
 	{
 		list = sess_list;
@@ -723,22 +715,20 @@ doover:
 	return 1;
 }
 
-/* these are only run if the lagometer is enabled */
 static int
-zoitechat_lag_check (void)   /* this gets called every 30 seconds */
+zoitechat_lag_check (void)
 {
 	lag_check ();
 	return 1;
 }
 
 static int
-zoitechat_lag_check_update (void)   /* this gets called every 0.5 seconds */
+zoitechat_lag_check_update (void)
 {
 	lagcheck_update ();
 	return 1;
 }
 
-/* call whenever timeout intervals change */
 void
 zoitechat_reinit_timers (void)
 {
@@ -746,7 +736,6 @@ zoitechat_reinit_timers (void)
 	static int lag_check_tag = 0;
 	static int away_tag = 0;
 
-	/* notify timeout */
 	if (prefs.hex_notify_timeout && notify_tag == 0)
 	{
 		notify_tag = fe_timeout_add_seconds (prefs.hex_notify_timeout,
@@ -758,7 +747,6 @@ zoitechat_reinit_timers (void)
 		notify_tag = 0;
 	}
 
-	/* away status tracking */
 	if (prefs.hex_away_track && away_tag == 0)
 	{
 		away_tag = fe_timeout_add_seconds (prefs.hex_away_timeout, away_check, NULL);
@@ -769,7 +757,6 @@ zoitechat_reinit_timers (void)
 		away_tag = 0;
 	}
 
-	/* lag-o-meter */
 	if (prefs.hex_gui_lagometer && lag_check_update_tag == 0)
 	{
 		lag_check_update_tag = fe_timeout_add (500, zoitechat_lag_check_update, NULL);
@@ -780,7 +767,6 @@ zoitechat_reinit_timers (void)
 		lag_check_update_tag = 0;
 	}
 
-	/* network timeouts and lag-o-meter */
 	if ((prefs.hex_net_ping_timeout != 0 || prefs.hex_gui_lagometer)
 	    && lag_check_tag == 0)
 	{
@@ -793,8 +779,6 @@ zoitechat_reinit_timers (void)
 		lag_check_tag = 0;
 	}
 }
-
-/* executed when the first irc window opens */
 
 static void
 irc_init (session *sess)

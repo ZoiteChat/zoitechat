@@ -19,12 +19,11 @@ else:
 if not hasattr(sys, 'argv'):
     sys.argv = ['<zoitechat>']
 
-VERSION = b'2.18.0~pre2'  # Sync with zoitechat.__version__
+VERSION = b'2.18.0~pre2'
 PLUGIN_NAME = ffi.new('char[]', b'Python')
 PLUGIN_DESC = ffi.new('char[]', b'Python %d.%d scripting interface' % (sys.version_info[0], sys.version_info[1]))
 PLUGIN_VERSION = ffi.new('char[]', VERSION)
 
-# TODO: Constants should be screaming snake case
 zoitechat = None
 local_interp = None
 zoitechat_stdout = None
@@ -106,8 +105,6 @@ if sys.version_info[0] == 2:
             return compile(string, '<string>', 'eval', dont_inherit=True)
 
         except SyntaxError:
-            # For some reason `print` is invalid for eval
-            # This will hide any return value though
             return compile(string, '<string>', 'exec', dont_inherit=True)
 else:
     def compile_file(data, filename):
@@ -115,7 +112,6 @@ else:
 
 
     def compile_line(string):
-        # newline appended to solve unexpected EOF issues
         return compile(string + '\n', '<string>', 'single', optimize=2, dont_inherit=True)
 
 
@@ -200,8 +196,6 @@ else:
         return string.decode()
 
 
-# There can be empty entries between non-empty ones so find the actual last value
-
 def _cstr(ptr):
     """Safely convert a C char* (possibly NULL) to bytes."""
     if ptr == ffi.NULL:
@@ -212,7 +206,6 @@ def _cstr(ptr):
         return b''
 
 def wordlist_len(words):
-    # ZoiteChat passes a fixed-size array (typically 32) where unused entries may be NULL.
     for i in range(31, 0, -1):
         if _cstr(words[i]):
             return i
@@ -299,12 +292,8 @@ def _on_timer_hook(userdata):
         return 1
 
     try:
-        # Avoid calling zoitechat_unhook twice if unnecessary
         hook.is_unload = True
     except ReferenceError:
-        # hook is a weak reference, it might have been destroyed by the callback
-        # in which case it has already been removed from hook.plugin.hooks and
-        # we wouldn't be able to test it with h == hook anyway.
         return 0
 
     for h in hook.plugin.hooks:
@@ -338,11 +327,9 @@ def _on_say_command(word, word_eol, userdata):
     if not python:
         return 1
 
-    # Don’t let exceptions here swallow core commands or wedge the UI.
     try:
         exec_in_interp(python)
     except Exception:
-        # Best effort: surface the traceback in the python tab.
         exc = traceback.format_exc().encode('utf-8', errors='replace')
         lib.zoitechat_print(lib.ph, exc)
     return 1
@@ -397,11 +384,10 @@ def autoload():
     configdir = __decode(_cstr(lib.zoitechat_get_info(lib.ph, b'configdir')))
     addondir = os.path.join(configdir, 'addons')
     try:
-        with change_cwd(addondir):  # Maintaining old behavior
+        with change_cwd(addondir):
             for f in os.listdir(addondir):
                 if f.endswith('.py'):
                     log('Autoloading', f)
-                    # TODO: Set cwd
                     load_filename(os.path.join(addondir, f))
 
     except FileNotFoundError as e:

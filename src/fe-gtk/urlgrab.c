@@ -37,7 +37,6 @@
 #define ICON_URLGRAB_COPY "zc-menu-copy"
 #define ICON_URLGRAB_SAVE_AS "zc-menu-save-as"
 
-/* model for the URL treeview */
 enum
 {
 	URL_COLUMN,
@@ -60,7 +59,6 @@ url_treeview_url_clicked_cb (GtkWidget *view, GdkEventButton *event,
 	if (!event || !gtk_tree_view_get_path_at_pos (tree, event->x, event->y, &path, 0, 0, 0))
 		return FALSE;
 
-	/* select what they right-clicked on */
 	sel = gtk_tree_view_get_selection (tree); 
 	gtk_tree_selection_unselect_all (sel);
 	gtk_tree_selection_select_path (sel, path);
@@ -103,7 +101,6 @@ url_treeview_new (GtkWidget *box)
 	gtk_widget_set_vexpand (scroll, TRUE);
 	g_signal_connect (G_OBJECT (view), "button_press_event",
 	                  G_CALLBACK (url_treeview_url_clicked_cb), NULL);
-	/* don't want column headers */
 	gtk_tree_view_set_headers_visible (GTK_TREE_VIEW (view), FALSE);
 	gtk_widget_show (view);
 	return view;
@@ -172,7 +169,6 @@ fe_url_add (const char *urltext)
 		                    URL_COLUMN, urltext,
 		                    -1);
 
-		/* remove any overflow */
 		if (prefs.hex_url_grabber_limit > 0)
 		{
 			valid = gtk_tree_model_iter_nth_child (

@@ -190,11 +190,11 @@ tab_scroll_left_up_clicked (GtkWidget *widget, chanview *cv)
 
 		gtk_adjustment_set_value (adj, new_value);
 
-		tab_left_is_moving = 0;		/* hSP: set to false in case we didnt get stopped (the normal case) */
+		tab_left_is_moving = 0;
 	}
 	else
 	{
-		tab_left_is_moving = 0;		/* hSP: jump directly to next element if user is clicking faster than we can scroll.. */
+		tab_left_is_moving = 0;
 	}
 }
 
@@ -239,11 +239,11 @@ tab_scroll_right_down_clicked (GtkWidget *widget, chanview *cv)
 
 		gtk_adjustment_set_value (adj, new_value);
 
-		tab_right_is_moving = 0;		/* hSP: set to false in case we didnt get stopped (the normal case) */
+		tab_right_is_moving = 0;
 	}
 	else
 	{
-		tab_right_is_moving = 0;		/* hSP: jump directly to next element if user is clicking faster than we can scroll.. */
+		tab_right_is_moving = 0;
 	}
 }
 
@@ -332,7 +332,6 @@ cv_tabs_init (chanview *cv)
 	((tabview *)cv)->outer = outer;
 	g_signal_connect (G_OBJECT (outer), "size_allocate",
 							G_CALLBACK (cv_tabs_sizealloc), cv);
-/*	gtk_container_set_border_width (GTK_CONTAINER (outer), 2);*/
 	gtk_widget_show (outer);
 
 	viewport = gtk_viewport_new (0, 0);
@@ -574,7 +573,7 @@ tab_pressed_cb (GtkToggleButton *tab, chan *ch)
 	ignore_toggle = FALSE;
 	cv->focused = ch;
 
-	if (/*tab->active*/is_switching)
+	if (is_switching)
 		/* call the focus callback */
 		cv->cb_focus (cv, ch, ch->tag, ch->userdata);
 }

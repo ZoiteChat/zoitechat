@@ -24,7 +24,7 @@
 #include <glib/gi18n.h>
 #include <gio/gio.h>
 
-#include <time.h>			/* need time_t */
+#include <time.h>
 
 #ifndef ZOITECHAT_H
 #define ZOITECHAT_H
@@ -44,11 +44,11 @@ gboolean zoitechat_apply_theme (const char *theme_name, GError **error);
 #include "tree.h"
 
 #ifdef USE_OPENSSL
-#include <openssl/ssl.h>		  /* SSL_() */
+#include <openssl/ssl.h>
 #include "scram.h"
 #endif
 
-#ifdef __EMX__						  /* for o/s 2 */
+#ifdef __EMX__
 #define OFLAGS O_BINARY
 #define g_ascii_strcasecmp stricmp
 #define g_ascii_strncasecmp strnicmp
@@ -59,7 +59,7 @@ gboolean zoitechat_apply_theme (const char *theme_name, GError **error);
 /* force a 32bit CMP.L */
 #define WORDL(c0, c1, c2, c3) (guint32)(c0 | (c1 << 8) | (c2 << 16) | (c3 << 24))
 
-#ifdef WIN32						/* for win32 */
+#ifdef WIN32
 #define OFLAGS O_BINARY
 #define sleep(t) Sleep(t*1000)
 #include <direct.h>
@@ -71,7 +71,7 @@ gboolean zoitechat_apply_theme (const char *theme_name, GError **error);
 #define	S_ISDIR(m)	((m) & _S_IFDIR)
 #endif
 #define NETWORK_PRIVATE
-#else									/* for unix */
+#else
 #define OFLAGS 0
 #endif
 

@@ -153,8 +153,6 @@ ignore_showlist (session *sess)
 			strcat (tbuf, _("NO   "));
 		strcat (tbuf, "\n");
 		PrintText (sess, tbuf);
-		/*EMIT_SIGNAL (XP_TE_IGNORELIST, sess, ig->mask, 0, 0, 0, 0); */
-		/* use this later, when TE's support 7 args */
 		list = list->next;
 	}
 
@@ -413,4 +411,3 @@ flood_check (char *nick, char *ip, server *serv, session *sess, int what)	/*0=ct
 	}
 	return 1;
 }
-

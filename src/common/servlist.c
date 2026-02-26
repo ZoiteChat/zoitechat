@@ -1065,7 +1065,7 @@ servlist_load (void)
 			}
 		}
 		if (buf[0] == 'N')
-			net = servlist_net_add (buf + 2, /* comment */ NULL, FALSE);
+			net = servlist_net_add (buf + 2, NULL, FALSE);
 	}
 	fclose (fp);
 

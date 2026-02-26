@@ -32,8 +32,6 @@
 
 ENCHANT_PLUGIN_DECLARE ("win8")
 
-/* --------- Utils ----------*/
-
 static char *
 utf16_to_utf8 (const wchar_t * const str, bool from_bcp47)
 {
@@ -106,7 +104,7 @@ utf8_to_utf16 (const char * const str, int len, bool to_bcp47)
 static char **
 enumstring_to_chararray (IEnumString *strings, size_t *out_len, bool from_bcp47)
 {
-	char **chars = static_cast<char**>(std::calloc (256, sizeof (char*))); /* Hopefully large enough */
+	char **chars = static_cast<char**>(std::calloc (256, sizeof (char*)));
 	LPOLESTR wstr = nullptr;
 	size_t i = 0;
 
@@ -133,8 +131,6 @@ enumstring_to_chararray (IEnumString *strings, size_t *out_len, bool from_bcp47)
 	*out_len = i;
 	return chars;
 }
-
-/* ---------- Dict ------------ */
 
 static void
 win8_dict_add_to_personal (EnchantDict *dict, const char *const word, size_t len)
@@ -169,18 +165,18 @@ win8_dict_check (EnchantDict *dict, const char *const word, size_t len)
 	std::free (wword);
 
 	if (FAILED (hr))
-		return -1; /* Error */
+		return -1;
 
 	if (errors->Next (&error) == S_OK)
 	{
 		error->Release ();
 		errors->Release ();
-		return 1; /* Spelling Issue */
+		return 1;
 	}
 	else
 	{
 		errors->Release ();
-		return 0; /* Correct */
+		return 0;
 	}
 }
 
@@ -204,8 +200,6 @@ win8_dict_suggest (EnchantDict *dict, const char *const word, size_t len, size_t
 	return enumstring_to_chararray (suggestions, out_n_suggs, false);
 }
 
-/* ---------- Provider ------------ */
-
 static EnchantDict *
 win8_provider_request_dict (EnchantProvider *provider, const char *const tag)
 {
@@ -225,7 +219,7 @@ win8_provider_request_dict (EnchantProvider *provider, const char *const tag)
 	dict->suggest = win8_dict_suggest;
 	dict->check = win8_dict_check;
 	dict->add_to_personal = win8_dict_add_to_personal;
-	dict->add_to_exclude = win8_dict_add_to_personal; /* Basically the same */
+	dict->add_to_exclude = win8_dict_add_to_personal;
 	dict->add_to_session = win8_dict_add_to_session;
 
 	dict->user_data = checker;

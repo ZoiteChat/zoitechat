@@ -440,8 +440,6 @@ server_cb (char *word[], char *word_eol[], void *userdata)
 	if (data->depth)
 		return ZOITECHAT_EAT_NONE;
 
-	/*               zoitechat_printf (ph, */
-	/*                               "Received %d words in server callback", av_len (wd)); */
 	PUSHMARK (SP);
 	XPUSHs (newRV_noinc ((SV *) array2av (word)));
 	XPUSHs (newRV_noinc ((SV *) array2av (word_eol)));
@@ -489,8 +487,6 @@ command_cb (char *word[], char *word_eol[], void *userdata)
 	if (data->depth)
 		return ZOITECHAT_EAT_NONE;
 
-	/*               zoitechat_printf (ph, "Received %d words in command callback", */
-	/*                               av_len (wd)); */
 	PUSHMARK (SP);
 	XPUSHs (newRV_noinc ((SV *) array2av (word)));
 	XPUSHs (newRV_noinc ((SV *) array2av (word_eol)));
@@ -567,7 +563,6 @@ print_cb (char *word[], void *userdata)
 		}
 	}
 
-	/*zoitechat_printf (ph, "Received %d words in print callback", av_len (wd)+1); */
 	PUSHMARK (SP);
 	XPUSHs (newRV_noinc ((SV *) wd));
 	XPUSHs (data->userdata);

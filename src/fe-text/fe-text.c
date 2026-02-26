@@ -44,7 +44,7 @@
 #include "fe-text.h"
 
 
-static int done = FALSE;		  /* finished ? */
+static int done = FALSE;
 
 
 static void
@@ -227,10 +227,9 @@ fe_print_text (struct session *sess, char *text, time_t stamp,
 				i++;
 			}
 			break;
-		/* don't actually want hidden text */
-		case '\010':				  /* hidden */
+		case '\010':
 			break;
-		case '\026':				  /* REVERSE */
+		case '\026':
 			if (reverse)
 			{
 				reverse = FALSE;
@@ -242,7 +241,7 @@ fe_print_text (struct session *sess, char *text, time_t stamp,
 			}
 			j = strlen (newtext);
 			break;
-		case '\037':				  /* underline */
+		case '\037':
 			if (under)
 			{
 				under = FALSE;
@@ -254,7 +253,7 @@ fe_print_text (struct session *sess, char *text, time_t stamp,
 			}
 			j = strlen (newtext);
 			break;
-		case '\002':				  /* bold */
+		case '\002':
 			if (bold)
 			{
 				bold = FALSE;
@@ -273,7 +272,7 @@ fe_print_text (struct session *sess, char *text, time_t stamp,
 				j++;
 			}
 			break;
-		case '\017':				  /* reset all */
+		case '\017':
 			strcpy (&newtext[j], "\033[m");
 			j += 3;
 			reverse = FALSE;
@@ -361,12 +360,11 @@ fe_print_text (struct session *sess, char *text, time_t stamp,
 				i++;
 			}
 			break;
-		/* don't actually want hidden text */
-		case '\010':				  /* hidden */
-		case '\026':				  /* REVERSE */
-		case '\037':				  /* underline */
-		case '\002':				  /* bold */
-		case '\017':				  /* reset all */
+		case '\010':
+		case '\026':
+		case '\037':
+		case '\002':
+		case '\017':
 			break;
 		case '\007':
 			if (!prefs.hex_input_filter_beep)
@@ -535,7 +533,7 @@ fe_args (int argc, char *argv[])
 		return 0;
 	}
 
-	if (arg_cfgdir)	/* we want filesystem encoding */
+	if (arg_cfgdir)
 	{
 		g_free (xdir);
 		xdir = g_strdup(arg_cfgdir);
@@ -550,10 +548,8 @@ fe_args (int argc, char *argv[])
 void
 fe_init (void)
 {
-	/* the following should be default generated, not enfoced in binary */
 	prefs.hex_gui_tab_server = 0;
 	prefs.hex_gui_autoopen_dialog = 0;
-	/* except for these, there is no lag meter, there is no server list */
 	prefs.hex_gui_lagometer = 0;
 	prefs.hex_gui_slist_skip = 1;
 }
@@ -565,7 +561,6 @@ fe_main (void)
 
 	main_loop = g_main_loop_new(NULL, FALSE);
 
-	/* Keyboard Entry Setup */
 #ifdef G_OS_WIN32
 	keyboard_input = g_io_channel_win32_new_fd(STDIN_FILENO);
 #else
@@ -834,10 +829,8 @@ fe_idle_add (void *func, void *data)
 void
 fe_ctrl_gui (session *sess, fe_gui_action action, int arg)
 {
-	/* only one action type handled for now, but could add more */
 	switch (action)
 	{
-	/* gui focus is really the only case zoitechat-text needs to worry about */
 	case FE_GUI_FOCUS:
 		current_sess = sess;
 		current_tab = sess;

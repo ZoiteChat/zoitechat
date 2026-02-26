@@ -25,7 +25,7 @@
 
 #include "zoitechat-plugin.h"
 
-static zoitechat_plugin *ph;   /* plugin handle */
+static zoitechat_plugin *ph;
 static char name[] = "Exec";
 static char desc[] = "Execute commands inside ZoiteChat";
 static char version[] = "1.2";
@@ -71,7 +71,7 @@ run_command (char *word[], char *word_eol[], void *userdata)
 			strcat (commandLine, word_eol[2]);
 		}
 
-		CreatePipe (&readPipe, &writePipe, &secattr, 0); /* might be replaced with MyCreatePipeEx */
+		CreatePipe (&readPipe, &writePipe, &secattr, 0);
 
 		ZeroMemory (&sInfo, sizeof (sInfo));
 		ZeroMemory (&pInfo, sizeof (pInfo));
@@ -91,12 +91,10 @@ run_command (char *word[], char *word_eol[], void *userdata)
 			{
 				if (ReadFile (readPipe, buffer, sizeof (buffer) - 1, &dwRead, NULL) && dwRead != 0 )
 				{
-					/* avoid garbage */
 					buffer[dwRead] = '\0';
 
 					if (announce)
 					{
-						/* Say each line seperately, TODO: improve... */
 						token = strtok_s (buffer, "\n", &context);
 						while (token != NULL)
 						{
@@ -110,13 +108,11 @@ run_command (char *word[], char *word_eol[], void *userdata)
 			}
 			else
 			{
-				/* this way we'll more likely get full lines */
 				SleepEx (100, TRUE);
 			}
 			timeElapsed = difftime (time (0), start);
 		}
 
-		/* display a newline to separate things */
 		if (!announce)
 			zoitechat_printf (ph, "\n");
 
@@ -149,7 +145,7 @@ zoitechat_plugin_init (zoitechat_plugin *plugin_handle, char **plugin_name, char
 	zoitechat_hook_command (ph, "EXEC", ZOITECHAT_PRI_NORM, run_command, "Usage: /EXEC [-O] - execute commands inside ZoiteChat", 0);
 	zoitechat_printf (ph, "%s plugin loaded\n", name);
 
-	return 1;       /* return 1 for success */
+	return 1;
 }
 
 int

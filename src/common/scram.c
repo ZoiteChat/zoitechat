@@ -28,7 +28,6 @@
 #define CLIENT_KEY "Client Key"
 #define SERVER_KEY "Server Key"
 
-// EVP_MD_CTX_create() and EVP_MD_CTX_destroy() were renamed in OpenSSL 1.1.0
 #if (OPENSSL_VERSION_NUMBER < 0x10100000L)
 #define EVP_MD_CTX_new(ctx) EVP_MD_CTX_create(ctx)
 #define EVP_MD_CTX_free(ctx) EVP_MD_CTX_destroy(ctx)
@@ -46,7 +45,6 @@ scram_session
 
 	if (md == NULL)
 	{
-		// Unknown message digest
 		return NULL;
 	}
 
@@ -189,7 +187,6 @@ process_server_first (scram_session *session, const char *data, char **output,
 
 	client_nonce_len = strlen (session->client_nonce_b64);
 
-	// The server can append his nonce to the client's nonce
 	if (strlen (server_nonce_b64) < client_nonce_len ||
 		strncmp (server_nonce_b64, session->client_nonce_b64, client_nonce_len))
 	{
@@ -199,28 +196,22 @@ process_server_first (scram_session *session, const char *data, char **output,
 
 	g_base64_decode_inplace ((gchar *) salt, &salt_len);
 
-	// SaltedPassword := Hi(Normalize(password), salt, i)
 	session->salted_password = g_malloc (session->digest_size);
 
 	PKCS5_PBKDF2_HMAC (session->password, strlen (session->password), (unsigned char *) salt,
 					   salt_len, iteration_count, session->digest, session->digest_size,
 					   session->salted_password);
 
-	// AuthMessage := client-first-message-bare + "," +
-	//                server-first-message + "," +
-	//                client-final-message-without-proof
 	client_final_message_without_proof = g_strdup_printf ("c=biws,r=%s", server_nonce_b64);
 
 	session->auth_message = g_strdup_printf ("%s,%s,%s", session->client_first_message_bare,
 											 data, client_final_message_without_proof);
 
-	// ClientKey := HMAC(SaltedPassword, "Client Key")
 	client_key = g_malloc0 (session->digest_size);
 
 	HMAC (session->digest, session->salted_password, session->digest_size,
 		  (unsigned char *) CLIENT_KEY, strlen (CLIENT_KEY), client_key, &client_key_len);
 
-	// StoredKey := H(ClientKey)
 	if (!create_SHA (session, client_key, session->digest_size, stored_key, &stored_key_len))
 	{
 		g_free (client_final_message_without_proof);
@@ -230,12 +221,10 @@ process_server_first (scram_session *session, const char *data, char **output,
 		return SCRAM_ERROR;
 	}
 
-	// ClientSignature := HMAC(StoredKey, AuthMessage)
 	client_signature = g_malloc0 (session->digest_size);
 	HMAC (session->digest, stored_key, stored_key_len, (unsigned char *) session->auth_message,
 		  strlen ((char *) session->auth_message), client_signature, NULL);
 
-	// ClientProof := ClientKey XOR ClientSignature
 	client_proof = g_malloc0 (client_key_len);
 
 	for (i = 0; i < client_key_len; i++)
@@ -276,12 +265,10 @@ process_server_final (scram_session *session, const char *data)
 	verifier = g_strdup (data + 2);
 	g_base64_decode_inplace (verifier, &verifier_len);
 
-	// ServerKey := HMAC(SaltedPassword, "Server Key")
 	server_key = g_malloc0 (session->digest_size);
 	HMAC (session->digest, session->salted_password, session->digest_size,
 		  (unsigned char *) SERVER_KEY, strlen (SERVER_KEY), server_key, &server_key_len);
 
-	// ServerSignature := HMAC(ServerKey, AuthMessage)
 	server_signature = g_malloc0 (session->digest_size);
 	HMAC (session->digest, server_key, session->digest_size,
 		  (unsigned char *) session->auth_message, strlen ((char *) session->auth_message),

@@ -168,7 +168,6 @@ load_pixmap (const char *filename)
 		g_free (path);
 	}
 
-	// Hack to avoid unbearably tiny icons on HiDPI screens.
 	scale = g_getenv ("GDK_SCALE");
 	if (scale)
 	{

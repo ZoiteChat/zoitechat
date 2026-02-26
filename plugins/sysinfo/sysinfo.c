@@ -208,7 +208,6 @@ sysinfo_cb (char *word[], char *word_eol[], void *userdata)
 	int offset = 0, channel_type;
 	char *cmd;
 
-	/* Allow overriding global announce setting */
 	if (!strcmp ("-e", word[2]))
 	{
 		announce = FALSE;
@@ -220,7 +219,6 @@ sysinfo_cb (char *word[], char *word_eol[], void *userdata)
 		offset++;
 	}
 
-	/* Cannot send to server tab */
 	channel_type = zoitechat_list_int (ph, NULL, "type");
 	if (channel_type != 2 /* SESS_CHANNEL */ && channel_type != 3 /* SESS_DIALOG */)
 		announce = FALSE;
@@ -246,7 +244,6 @@ zoitechat_plugin_init (zoitechat_plugin *plugin_handle, char **plugin_name, char
 
 	zoitechat_hook_command (ph, "SYSINFO", ZOITECHAT_PRI_NORM, sysinfo_cb, sysinfo_help, NULL);
 
-	/* Match the classic label from HexChat so people can actually find it. */
 	zoitechat_command (ph, "MENU ADD \"Window/Display System Info\" \"SYSINFO\"");
 	zoitechat_printf (ph, _("%s plugin loaded\n"), name);
 	return 1;
@@ -255,7 +252,6 @@ zoitechat_plugin_init (zoitechat_plugin *plugin_handle, char **plugin_name, char
 int
 zoitechat_plugin_deinit (void)
 {
-	/* Keep both in case older builds used a different label. */
 	zoitechat_command (ph, "MENU DEL \"Window/Send System Info\"");
 	zoitechat_command (ph, "MENU DEL \"Window/Display System Info\"");
 	zoitechat_printf (ph, _("%s plugin unloaded\n"), name);

@@ -465,7 +465,6 @@ static char *read_hdd_info (IWbemClassObject *object)
 
 	if (name_len >= 4 && name_bstr[0] == L'\\' && name_bstr[1] == L'\\' && name_bstr[2] == L'?' && name_bstr[3] == L'\\')
 	{
-		// This is not a named volume. Skip it.
 		VariantClear (&name_variant);
 
 		return NULL;

@@ -54,11 +54,9 @@ jobs:
           Invoke-WebRequest https://github.com/zoitechat/gvsbuild/releases/download/zoitechat-2.17.0/perl-5.20.0-${{ matrix.arch }}.7z -OutFile deps\perl-${{ matrix.arch }}.7z
           & 7z.exe x deps\perl-${{ matrix.arch }}.7z -oC:\gtk-build\perl-5.20\${{ matrix.platform }}
 
-          # Resolve python root from setup-python
           $pyRoot = $env:pythonLocation
           if (-not $pyRoot) { $pyRoot = & python -c "import sys; print(sys.prefix)" }
 
-          # Create BOTH paths because the .vcxproj hard-codes python-3.14\...
           foreach ($pyDir in @("C:\gtk-build\python-3.14.2", "C:\gtk-build\python-3.14")) {
             New-Item -Path $pyDir -ItemType Directory -Force | Out-Null
             $target = Join-Path $pyDir "${{ matrix.platform }}"

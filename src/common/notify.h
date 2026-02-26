@@ -42,19 +42,16 @@ struct notify_per_server
 extern GSList *notify_list;
 extern int notify_tag;
 
-/* the WATCH stuff */
 void notify_set_online (server * serv, char *nick,
 								const message_tags_data *tags_data);
 void notify_set_offline (server * serv, char *nick, int quiet,
-								 const message_tags_data *tags_data);
-/* the MONITOR stuff */
+									 const message_tags_data *tags_data);
 void notify_set_online_list (server * serv, char *users,
 								const message_tags_data *tags_data);
 void notify_set_offline_list (server * serv, char *users, int quiet,
-								 const message_tags_data *tags_data);
+									 const message_tags_data *tags_data);
 void notify_send_watches (server * serv);
 
-/* the general stuff */
 void notify_adduser (char *name, char *networks);
 int notify_deluser (char *name);
 void notify_cleanup (void);
@@ -65,7 +62,6 @@ gboolean notify_is_in_list (server *serv, char *name);
 int notify_isnotify (session *sess, char *name);
 struct notify_per_server *notify_find_server_entry (struct notify *notify, struct server *serv);
 
-/* the old ISON stuff - remove me? */
 void notify_markonline (server *serv, char *word[], 
 								const message_tags_data *tags_data);
 int notify_checklist (void);

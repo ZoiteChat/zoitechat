@@ -169,13 +169,12 @@ errorstring (int err)
 					return tbuf;
 				}
 			}
-		}	/* ! if (osvi.dwMajorVersion >= 5) */
+		}
 
-		/* fallback to error number */
 		sprintf (tbuf, "%s %d", _("Error"), err);
 		return tbuf;
-	} /* ! if (err >= WSABASEERR) */
-#endif	/* ! WIN32 */
+	}
+#endif
 
 	return strerror (err);
 }

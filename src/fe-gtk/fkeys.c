@@ -1199,11 +1199,6 @@ corrupt_file:
 	return 5;
 }
 
-/* ***** Key actions start here *********** */
-
-/* See the NOTES above --AGL */
-
-/* "Run command" */
 static int
 key_action_handle_command (GtkWidget * wid, GdkEventKey * evt, char *d1,
 									char *d2, struct session *sess)
@@ -1224,7 +1219,6 @@ key_action_handle_command (GtkWidget * wid, GdkEventKey * evt, char *d1,
 /*
  * Check if the given session is inside the main window. This predicate
  * is passed to lastact_getfirst() as a way to filter out detached sessions.
- * XXX: Consider moving this in a different file?
  */
 static int
 session_check_is_tab(session *sess)
@@ -1806,7 +1800,7 @@ key_action_move_tab_left (GtkWidget * wid, GdkEventKey * ent, char *d1,
 								  char *d2, struct session *sess)
 {
 	mg_move_tab (sess, +1);
-	return 2;						  /* don't allow default action */
+	return 2;
 }
 
 static int
@@ -1814,7 +1808,7 @@ key_action_move_tab_right (GtkWidget * wid, GdkEventKey * ent, char *d1,
 									char *d2, struct session *sess)
 {
 	mg_move_tab (sess, -1);
-	return 2;						  /* -''- */
+	return 2;
 }
 
 static int
@@ -1822,7 +1816,7 @@ key_action_move_tab_family_left (GtkWidget * wid, GdkEventKey * ent, char *d1,
 								  char *d2, struct session *sess)
 {
 	mg_move_tab_family (sess, +1);
-	return 2;						  /* don't allow default action */
+	return 2;
 }
 
 static int
@@ -1830,7 +1824,7 @@ key_action_move_tab_family_right (GtkWidget * wid, GdkEventKey * ent, char *d1,
 									char *d2, struct session *sess)
 {
 	mg_move_tab_family (sess, -1);
-	return 2;						  /* -''- */
+	return 2;
 }
 
 static int
@@ -1839,11 +1833,8 @@ key_action_put_history (GtkWidget * wid, GdkEventKey * ent, char *d1,
 {
 	history_add (&sess->history, SPELL_ENTRY_GET_TEXT (wid));
 	SPELL_ENTRY_SET_TEXT (wid, "");
-	return 2;						  /* -''- */
+	return 2;
 }
-
-
-/* -------- */
 
 static void
 replace_handle (GtkWidget *t)

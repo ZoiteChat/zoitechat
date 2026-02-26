@@ -80,7 +80,6 @@ show_notification (const char *title, const char *text)
 {
 	char *stripped_title, *stripped_text;
 
-	/* Strip all colors */
 	stripped_title = zoitechat_strip (ph, title, -1, 7);
 	stripped_text = zoitechat_strip (ph, text, -1, 7);
 	
@@ -125,13 +124,10 @@ incoming_message_cb (char *word[], gpointer userdata)
 
 	flags = zoitechat_list_int(ph, NULL, "flags");
 
-	/* Let sure that can alert */
 	if (should_alert()) {
-		/* Follow the channel rules if set */
 		if (!(flags & CHANNEL_FLAG_BALLOON_UNSET)) {
 			alert = (flags & CHANNEL_FLAG_BALLOON);
 		} else {
-			/* Else follow global environment */
 			alert = (zoitechat_get_prefs(ph, "input_balloon_chans", NULL, &message) == 3 && message);
 		}
 	}
@@ -151,13 +147,10 @@ incoming_priv_cb (char *word[], gpointer userdata)
 
 	flags = zoitechat_list_int(ph, NULL, "flags");
 
-	/* Let sure that can alert */
 	if (should_alert()) {
-		/* Follow the private rules if set */
 		if (!(flags & CHANNEL_FLAG_BALLOON_UNSET)) {
 			alert = (flags & CHANNEL_FLAG_BALLOON);
 		} else {
-			/* Else follow global environment */
 			alert = (zoitechat_get_prefs(ph, "input_balloon_priv", NULL, &priv) == 3 && priv);
 		}
 	}
@@ -234,7 +227,6 @@ notification_plugin_init (zoitechat_plugin *plugin_handle, char **plugin_name, c
 	zoitechat_hook_print (ph, "Private Action", ZOITECHAT_PRI_LOWEST, incoming_priv_cb, NULL);
 	zoitechat_hook_print (ph, "Private Action to Dialog", ZOITECHAT_PRI_LOWEST, incoming_priv_cb, NULL);
 
-	/* Special events treated as priv */
 	zoitechat_hook_print (ph, "Notice", ZOITECHAT_PRI_LOWEST, incoming_priv_cb, GINT_TO_POINTER (1));
 	zoitechat_hook_print (ph, "Invited", ZOITECHAT_PRI_LOWEST, incoming_priv_cb, GINT_TO_POINTER (2));
 	zoitechat_hook_print (ph, "DCC Offer", ZOITECHAT_PRI_LOWEST, incoming_priv_cb, GINT_TO_POINTER (3));

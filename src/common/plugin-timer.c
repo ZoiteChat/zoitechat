@@ -30,7 +30,7 @@
 
 #define _(x) zoitechat_gettext(ph,x)
 
-static zoitechat_plugin *ph;	/* plugin handle */
+static zoitechat_plugin *ph;
 static GSList *timer_list = NULL;
 
 #define STATIC
@@ -146,7 +146,6 @@ timer_showlist (void)
 		zoitechat_print (ph, _(HELP));
 		return;
 	}
-							 /*  00000 00000000 0000000 abc */
 	zoitechat_print (ph, _("\026 Ref#  Seconds  Repeat  Command \026\n"));
 	list = timer_list;
 	while (list)
@@ -218,7 +217,6 @@ zoitechat_plugin_init
 				(zoitechat_plugin *plugin_handle, char **plugin_name,
 				char **plugin_desc, char **plugin_version, char *arg)
 {
-	/* we need to save this for use with any zoitechat_* functions */
 	ph = plugin_handle;
 
 	*plugin_name = "Timer";
@@ -227,5 +225,5 @@ zoitechat_plugin_init
 
 	zoitechat_hook_command (ph, "TIMER", ZOITECHAT_PRI_NORM, timer_cb, _(HELP), 0);
 
-	return 1;       /* return 1 for success */
+	return 1;
 }
