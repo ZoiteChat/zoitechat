@@ -954,8 +954,12 @@ fe_apply_windows_theme (gboolean dark)
 		 * Otherwise ZoiteChat's fallback dark/light window background CSS can
 		 * clash with theme widget colors (for example white buttons on a dark
 		 * window background).
+		 *
+		 * Use the active provider state (not only the configured preference): if
+		 * a configured theme fails to load we still want fallback palette CSS so
+		 * the app keeps a coherent dark/light appearance on Windows releases.
 		 */
-		if (prefs.hex_gui_gtk3_theme_name[0] != '\0')
+		if (gtk3_theme_provider != NULL)
 		{
 			if (win_theme_provider && screen)
 			{
