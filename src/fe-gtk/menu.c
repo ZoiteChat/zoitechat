@@ -1859,6 +1859,9 @@ static void
 menu_about (GtkWidget *wid, gpointer sess)
 {
 	GtkAboutDialog *dialog = GTK_ABOUT_DIALOG(gtk_about_dialog_new());
+	/* Window classes are required for GTK CSS selectors like
+	 * .zoitechat-dark/.zoitechat-light. */
+	fe_apply_theme_to_toplevel (GTK_WIDGET (dialog));
 	char comment[512];
 	char *license = "This program is free software; you can redistribute it and/or modify\n" \
 					"it under the terms of the GNU General Public License as published by\n" \

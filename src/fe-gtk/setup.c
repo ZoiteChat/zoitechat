@@ -1242,6 +1242,9 @@ setup_browsefont_cb (GtkWidget *button, GtkWidget *entry)
         const char *font_name;
 
         dialog = gtk_font_chooser_dialog_new (_("Select font"), GTK_WINDOW (setup_window));
+        /* Window classes are required for GTK CSS selectors like
+         * .zoitechat-dark/.zoitechat-light. */
+        fe_apply_theme_to_toplevel (dialog);
         font_dialog = dialog;      /* global var */
 
         gtk_window_set_modal (GTK_WINDOW (dialog), TRUE);
@@ -1697,6 +1700,9 @@ setup_color_cb (GtkWidget *button, gpointer userdata)
         color_index = GPOINTER_TO_INT (userdata);
 
         dialog = gtk_color_chooser_dialog_new (_("Select color"), GTK_WINDOW (setup_window));
+        /* Window classes are required for GTK CSS selectors like
+         * .zoitechat-dark/.zoitechat-light. */
+        fe_apply_theme_to_toplevel (dialog);
         if (setup_color_edit_source_colors && color_index >= 0 && color_index <= MAX_COL)
                 setup_rgba_from_palette (&setup_color_edit_source_colors[color_index], &rgba);
         else
