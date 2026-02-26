@@ -541,11 +541,13 @@ static gboolean
 fe_system_prefers_dark (void)
 {
 	GtkSettings *settings = gtk_settings_get_default ();
+	gboolean theme_name_prefers_dark = FALSE;
+	gboolean property_prefers_dark = FALSE;
 	gboolean prefer_dark = FALSE;
-	gboolean has_theme_name = FALSE;
 	char *theme_name = NULL;
 #ifdef G_OS_WIN32
 	gboolean have_win_pref = FALSE;
+	gboolean win_prefers_dark = FALSE;
 
 	if (fe_win32_high_contrast_is_enabled ())
 		return FALSE;
@@ -558,30 +560,29 @@ fe_system_prefers_dark (void)
 	if (theme_name)
 	{
 		char *lower = g_ascii_strdown (theme_name, -1);
-		has_theme_name = TRUE;
 		if (g_str_has_suffix (lower, "-dark") || g_strrstr (lower, "dark"))
-			prefer_dark = TRUE;
+			theme_name_prefers_dark = TRUE;
 		g_free (lower);
 		g_free (theme_name);
+	}
 
-		if (prefer_dark)
-			return TRUE;
+	if (g_object_class_find_property (G_OBJECT_GET_CLASS (settings),
+	                                  "gtk-application-prefer-dark-theme"))
+	{
+		/* Even if we last wrote this property, the toolkit or desktop can update
+		 * it later, so AUTO mode should keep reading it as a signal. */
+		g_object_get (settings, "gtk-application-prefer-dark-theme", &property_prefers_dark, NULL);
 	}
 
 #ifdef G_OS_WIN32
-	have_win_pref = fe_win32_try_get_system_dark (&prefer_dark);
-	if (have_win_pref)
-		return prefer_dark;
+	have_win_pref = fe_win32_try_get_system_dark (&win_prefers_dark);
 #endif
 
-	if (!has_theme_name
-		&& g_object_class_find_property (G_OBJECT_GET_CLASS (settings),
-		                                  "gtk-application-prefer-dark-theme"))
-	{
-		/* Even if we last wrote this property, the toolkit or desktop can update
-		 * it later, so AUTO mode should keep reading it as a fallback signal. */
-		g_object_get (settings, "gtk-application-prefer-dark-theme", &prefer_dark, NULL);
-	}
+	/* Deterministic precedence: any explicit dark signal wins. */
+	prefer_dark = theme_name_prefers_dark || property_prefers_dark;
+#ifdef G_OS_WIN32
+	prefer_dark = prefer_dark || (have_win_pref && win_prefers_dark);
+#endif
 
 	return prefer_dark;
 }
