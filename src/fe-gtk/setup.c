@@ -74,7 +74,23 @@ typedef struct
 	GtkWidget *gtk3_apply_button;
 	GtkWidget *gtk3_use_system_button;
 	GtkWidget *gtk3_status_label;
+	GPtrArray *gtk3_theme_paths;
 } setup_theme_ui;
+
+
+static void
+setup_theme_ui_free (gpointer data)
+{
+	setup_theme_ui *ui = data;
+
+	if (!ui)
+		return;
+
+	if (ui->gtk3_theme_paths)
+		g_ptr_array_free (ui->gtk3_theme_paths, TRUE);
+
+	g_free (ui);
+}
 
 enum
 {
@@ -2001,105 +2017,94 @@ cleanup:
 }
 
 static void
-setup_theme_populate_gtk3 (setup_theme_ui *ui)
+setup_gtk3_theme_populate (setup_theme_ui *ui)
 {
-	const char *theme_dirs[] = {
-		NULL,
-		g_get_home_dir (),
-		NULL,
-		"/usr/local/share/themes",
-		"/usr/share/themes",
-		NULL
-	};
-	GHashTable *seen;
-	GPtrArray *names;
+	char *themes_dir;
 	GtkTreeModel *model;
 	GtkTreeIter iter;
-	GtkSettings *settings;
-	char *current_theme = NULL;
+	GDir *dir;
+	const char *name;
+	gboolean have_valid_theme = FALSE;
+	gint active = -1;
 	guint i;
 
-	theme_dirs[1] = g_build_filename (g_get_home_dir (), ".local", "share", "themes", NULL);
-	theme_dirs[0] = g_build_filename (get_xdir (), "gtk3-themes", NULL);
+	themes_dir = g_build_filename (get_xdir (), "gtk3-themes", NULL);
+	g_mkdir_with_parents (themes_dir, 0700);
 
-	seen = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
-	names = g_ptr_array_new_with_free_func (g_free);
+	model = gtk_combo_box_get_model (GTK_COMBO_BOX (ui->gtk3_combo));
+	while (gtk_tree_model_get_iter_first (model, &iter))
+		gtk_combo_box_text_remove (GTK_COMBO_BOX_TEXT (ui->gtk3_combo), 0);
 
-	for (i = 0; i < G_N_ELEMENTS (theme_dirs); i++)
+	if (!ui->gtk3_theme_paths)
+		ui->gtk3_theme_paths = g_ptr_array_new_with_free_func (g_free);
+	else
+		g_ptr_array_set_size (ui->gtk3_theme_paths, 0);
+
+	dir = g_dir_open (themes_dir, 0, NULL);
+	if (dir)
 	{
-		const char *dir_path = theme_dirs[i];
-		GDir *dir;
-		const char *name;
-
-		if (!dir_path || !g_file_test (dir_path, G_FILE_TEST_IS_DIR))
-			continue;
-
-		dir = g_dir_open (dir_path, 0, NULL);
-		if (!dir)
-			continue;
-
 		while ((name = g_dir_read_name (dir)))
 		{
 			char *theme_path;
-			char *gtk3_path;
+			char *gtk_css_path;
 
-			theme_path = g_build_filename (dir_path, name, NULL);
-			gtk3_path = g_build_filename (theme_path, "gtk-3.0", NULL);
+			theme_path = g_build_filename (themes_dir, name, NULL);
+			gtk_css_path = g_build_filename (theme_path, "gtk-3.0", "gtk.css", NULL);
+
 			if (g_file_test (theme_path, G_FILE_TEST_IS_DIR)
-				&& g_file_test (gtk3_path, G_FILE_TEST_IS_DIR)
-				&& !g_hash_table_contains (seen, name))
+				&& g_file_test (gtk_css_path, G_FILE_TEST_IS_REGULAR))
 			{
-				g_hash_table_add (seen, g_strdup (name));
-				g_ptr_array_add (names, g_strdup (name));
+				gtk_combo_box_text_append_text (GTK_COMBO_BOX_TEXT (ui->gtk3_combo), name);
+				g_ptr_array_add (ui->gtk3_theme_paths, theme_path);
+				have_valid_theme = TRUE;
+				theme_path = NULL;
 			}
-			g_free (gtk3_path);
+
+			g_free (gtk_css_path);
 			g_free (theme_path);
 		}
 
 		g_dir_close (dir);
 	}
 
-	g_ptr_array_sort (names, (GCompareFunc) g_ascii_strcasecmp);
-
-	model = gtk_combo_box_get_model (GTK_COMBO_BOX (ui->gtk3_combo));
-	while (gtk_tree_model_get_iter_first (model, &iter))
-		gtk_combo_box_text_remove (GTK_COMBO_BOX_TEXT (ui->gtk3_combo), 0);
-
-	for (i = 0; i < names->len; i++)
-		gtk_combo_box_text_append_text (GTK_COMBO_BOX_TEXT (ui->gtk3_combo), g_ptr_array_index (names, i));
-
-	settings = gtk_settings_get_default ();
-	if (prefs.hex_gui_gtk3_theme_name[0] != '\0')
-		current_theme = g_strdup (prefs.hex_gui_gtk3_theme_name);
-	else if (settings)
-		g_object_get (settings, "gtk-theme-name", &current_theme, NULL);
-
-	if (names->len > 0)
+	if (!have_valid_theme)
 	{
-		gtk_combo_box_set_active (GTK_COMBO_BOX (ui->gtk3_combo), -1);
-		if (current_theme)
+		gtk_label_set_text (GTK_LABEL (ui->gtk3_status_label), _("No valid GTK3 themes found."));
+	}
+	else
+	{
+		for (i = 0; i < ui->gtk3_theme_paths->len; i++)
 		{
-			for (i = 0; i < names->len; i++)
+			const char *theme_path = g_ptr_array_index (ui->gtk3_theme_paths, i);
+			char *theme_name = g_path_get_basename (theme_path);
+
+			if (g_strcmp0 (prefs.hex_gui_gtk3_theme_name, theme_name) == 0)
 			{
-				if (g_strcmp0 (current_theme, g_ptr_array_index (names, i)) == 0)
-				{
-					gtk_combo_box_set_active (GTK_COMBO_BOX (ui->gtk3_combo), i);
-					break;
-				}
+				active = (gint) i;
+				g_free (theme_name);
+				break;
 			}
+
+			g_free (theme_name);
 		}
+
+		if (active >= 0)
+			gtk_combo_box_set_active (GTK_COMBO_BOX (ui->gtk3_combo), active);
+		else if (prefs.hex_gui_gtk3_theme_name[0] == '\0')
+			gtk_combo_box_set_active (GTK_COMBO_BOX (ui->gtk3_combo), 0);
+		else
+			gtk_combo_box_set_active (GTK_COMBO_BOX (ui->gtk3_combo), -1);
+
+		if (gtk_combo_box_get_active (GTK_COMBO_BOX (ui->gtk3_combo)) >= 0)
+			gtk_label_set_text (GTK_LABEL (ui->gtk3_status_label), _("Select a GTK3 theme to apply."));
+		else
+			gtk_label_set_text (GTK_LABEL (ui->gtk3_status_label), _("No valid GTK3 themes found."));
 	}
 
 	gtk_widget_set_sensitive (ui->gtk3_apply_button,
 		gtk_combo_box_get_active (GTK_COMBO_BOX (ui->gtk3_combo)) >= 0);
-	gtk_label_set_text (GTK_LABEL (ui->gtk3_status_label),
-								  names->len > 0 ? _("Select a GTK3 theme to activate from the dropdown, or use the system GTK theme.") : _("No GTK3 themes found."));
 
-	g_ptr_array_free (names, TRUE);
-	g_hash_table_destroy (seen);
-	g_free (current_theme);
-	g_free ((char *) theme_dirs[1]);
-	g_free ((char *) theme_dirs[0]);
+	g_free (themes_dir);
 }
 
 static void
@@ -2160,7 +2165,7 @@ setup_theme_gtk3_import_cb (GtkWidget *button, gpointer user_data)
 	}
 	else
 	{
-		setup_theme_populate_gtk3 (ui);
+		setup_gtk3_theme_populate (ui);
 		gtk_label_set_text (GTK_LABEL (ui->gtk3_status_label), _("GTK3 theme archive imported successfully."));
 		setup_theme_show_message (GTK_MESSAGE_INFO, _("GTK3 theme archive imported successfully."));
 	}
@@ -2170,15 +2175,25 @@ setup_theme_gtk3_import_cb (GtkWidget *button, gpointer user_data)
 
 
 static void
-setup_theme_gtk3_apply_cb (GtkWidget *button, gpointer user_data)
+setup_theme_apply_gtk3_cb (GtkWidget *button, gpointer user_data)
 {
 	setup_theme_ui *ui = user_data;
+	gint active;
+	const char *theme_path;
 	char *theme;
 	GError *error = NULL;
 
-	theme = gtk_combo_box_text_get_active_text (GTK_COMBO_BOX_TEXT (ui->gtk3_combo));
-	if (!theme)
+	active = gtk_combo_box_get_active (GTK_COMBO_BOX (ui->gtk3_combo));
+	if (active < 0 || !ui->gtk3_theme_paths || (guint) active >= ui->gtk3_theme_paths->len)
 		return;
+
+	theme_path = g_ptr_array_index (ui->gtk3_theme_paths, active);
+	theme = g_path_get_basename (theme_path);
+	if (!theme || !*theme)
+	{
+		g_free (theme);
+		return;
+	}
 
 	if (!fe_apply_gtk3_theme (theme, &error))
 	{
@@ -2301,7 +2316,7 @@ setup_create_theme_page (void)
 	ui->gtk3_apply_button = gtk_button_new_with_mnemonic (_("Apply GTK_3 Theme"));
 	gtk_box_pack_start (GTK_BOX (button_box), ui->gtk3_apply_button, FALSE, FALSE, 0);
 	g_signal_connect (G_OBJECT (ui->gtk3_apply_button), "clicked",
-								G_CALLBACK (setup_theme_gtk3_apply_cb), ui);
+								G_CALLBACK (setup_theme_apply_gtk3_cb), ui);
 
 	ui->gtk3_use_system_button = gtk_button_new_with_mnemonic (_("Use _System GTK Theme"));
 	gtk_box_pack_start (GTK_BOX (button_box), ui->gtk3_use_system_button, FALSE, FALSE, 0);
@@ -2314,9 +2329,9 @@ setup_create_theme_page (void)
 	gtk_box_pack_start (GTK_BOX (hbox), ui->gtk3_status_label, FALSE, FALSE, 0);
 
 	setup_theme_populate (ui);
-	setup_theme_populate_gtk3 (ui);
+	setup_gtk3_theme_populate (ui);
 
-        g_object_set_data_full (G_OBJECT (box), "setup-theme-ui", ui, g_free);
+        g_object_set_data_full (G_OBJECT (box), "setup-theme-ui", ui, setup_theme_ui_free);
 
         return box;
 }
