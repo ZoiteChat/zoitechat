@@ -2109,21 +2109,23 @@ setup_theme_gtk3_import_cb (GtkWidget *button, gpointer user_data)
 {
 	setup_theme_ui *ui = user_data;
 	GtkWidget *dialog;
+	GtkFileFilter *filter;
 	gint response;
 	char *archive_path;
-	char *basename;
-	char *dot;
-	char *dest_root;
-	char *dest_dir;
-	char *argv[] = {"unzip", "-o", NULL, "-d", NULL, NULL};
 	GError *error = NULL;
-	int status = 0;
 
-	dialog = gtk_file_chooser_dialog_new (_("Import GTK3 Theme"), GTK_WINDOW (setup_window),
+	dialog = gtk_file_chooser_dialog_new (_("Import GTK3 Theme ZIP"), GTK_WINDOW (setup_window),
 		GTK_FILE_CHOOSER_ACTION_OPEN,
 		_ ("_Cancel"), GTK_RESPONSE_CANCEL,
 		_ ("_Open"), GTK_RESPONSE_ACCEPT,
 		NULL);
+
+	filter = gtk_file_filter_new ();
+	gtk_file_filter_set_name (filter, _("ZIP archives"));
+	gtk_file_filter_add_pattern (filter, "*.zip");
+	gtk_file_filter_add_pattern (filter, "*.ZIP");
+	gtk_file_chooser_add_filter (GTK_FILE_CHOOSER (dialog), filter);
+	gtk_file_chooser_set_filter (GTK_FILE_CHOOSER (dialog), filter);
 
 	response = gtk_dialog_run (GTK_DIALOG (dialog));
 	if (response != GTK_RESPONSE_ACCEPT)
@@ -2138,37 +2140,22 @@ setup_theme_gtk3_import_cb (GtkWidget *button, gpointer user_data)
 	if (!archive_path)
 		return;
 
-	basename = g_path_get_basename (archive_path);
-	dot = strrchr (basename, '.');
-	if (dot)
-		*dot = '\0';
-
-	dest_root = g_build_filename (g_get_home_dir (), ".themes", NULL);
-	g_mkdir_with_parents (dest_root, 0700);
-	dest_dir = g_build_filename (dest_root, basename, NULL);
-	g_mkdir_with_parents (dest_dir, 0700);
-
-	argv[2] = archive_path;
-	argv[4] = dest_dir;
-	if (!g_spawn_sync (NULL, argv, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL,
-		NULL, NULL, &status, &error)
-		|| !g_spawn_check_exit_status (status, &error))
+	if (!zoitechat_import_gtk3_theme_archive (archive_path, &error))
 	{
 		setup_theme_show_message (GTK_MESSAGE_ERROR,
-			error ? error->message : _("Failed to import GTK3 theme archive."));
+			error ? error->message : _("Failed to import GTK3 theme ZIP archive."));
 		g_clear_error (&error);
 	}
 	else
 	{
-		gtk_label_set_text (GTK_LABEL (ui->gtk3_status_label), _("GTK3 theme imported. Select it and click Apply GTK3 Theme."));
 		setup_theme_populate_gtk3 (ui);
+		gtk_label_set_text (GTK_LABEL (ui->gtk3_status_label), _("GTK3 theme ZIP imported successfully."));
+		setup_theme_show_message (GTK_MESSAGE_INFO, _("GTK3 theme ZIP imported successfully."));
 	}
 
-	g_free (dest_dir);
-	g_free (dest_root);
-	g_free (basename);
 	g_free (archive_path);
 }
+
 
 static void
 setup_theme_gtk3_apply_cb (GtkWidget *button, gpointer user_data)
@@ -2280,7 +2267,7 @@ setup_create_theme_page (void)
 	g_signal_connect (G_OBJECT (ui->gtk3_combo), "changed",
 								G_CALLBACK (setup_theme_gtk3_selection_changed), ui);
 
-	ui->gtk3_import_button = gtk_button_new_with_mnemonic (_("_Import GTK3 Theme"));
+	ui->gtk3_import_button = gtk_button_new_with_mnemonic (_("_Import GTK3 Theme ZIP"));
 	gtk_box_pack_start (GTK_BOX (button_box), ui->gtk3_import_button, FALSE, FALSE, 0);
 	g_signal_connect (G_OBJECT (ui->gtk3_import_button), "clicked",
 								G_CALLBACK (setup_theme_gtk3_import_cb), ui);

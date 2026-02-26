@@ -331,6 +331,75 @@ cleanup:
 }
 
 gboolean
+zoitechat_import_gtk3_theme_archive (const char *archive_path, GError **error)
+{
+	char *theme_root;
+	char *basename;
+	char *dot;
+	char *dest_dir;
+	char *argv[] = {"unzip", "-o", (char *)archive_path, "-d", NULL, NULL};
+	int status = 0;
+	gboolean ok;
+
+	if (!archive_path)
+	{
+		g_set_error (error, G_IO_ERROR, G_IO_ERROR_INVALID_ARGUMENT,
+		             _("No GTK3 theme archive specified."));
+		return FALSE;
+	}
+
+	theme_root = g_build_filename (g_get_home_dir (), ".themes", NULL);
+	basename = g_path_get_basename (archive_path);
+	if (!basename || basename[0] == '\0')
+	{
+		g_free (theme_root);
+		g_free (basename);
+		g_set_error (error, G_IO_ERROR, G_IO_ERROR_INVALID_ARGUMENT,
+		             _("Failed to determine GTK3 theme name."));
+		return FALSE;
+	}
+
+	dot = strrchr (basename, '.');
+	if (dot)
+		*dot = '\0';
+
+	dest_dir = g_build_filename (theme_root, basename, NULL);
+	if (g_mkdir_with_parents (dest_dir, 0700) != 0)
+	{
+		g_set_error (error, G_FILE_ERROR, g_file_error_from_errno (errno),
+		             _("Failed to create GTK3 theme directory."));
+		g_free (dest_dir);
+		g_free (basename);
+		g_free (theme_root);
+		return FALSE;
+	}
+
+	argv[4] = dest_dir;
+	ok = g_spawn_sync (NULL, argv, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL,
+	                   NULL, NULL, &status, error);
+	if (!ok)
+	{
+		g_free (dest_dir);
+		g_free (basename);
+		g_free (theme_root);
+		return FALSE;
+	}
+
+	if (!g_spawn_check_exit_status (status, error))
+	{
+		g_free (dest_dir);
+		g_free (basename);
+		g_free (theme_root);
+		return FALSE;
+	}
+
+	g_free (dest_dir);
+	g_free (basename);
+	g_free (theme_root);
+	return TRUE;
+}
+
+gboolean
 zoitechat_import_theme (const char *path, GError **error)
 {
 	char *themes_dir;
