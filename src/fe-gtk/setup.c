@@ -1475,6 +1475,9 @@ setup_create_page (const setting *set)
 }
 
 static void
+setup_color_button_apply (GtkWidget *button, const PaletteColor *color);
+
+static void
 setup_color_selectors_set_sensitive (gboolean sensitive)
 {
         GSList *l = color_selector_widgets;
@@ -1488,9 +1491,46 @@ setup_color_selectors_set_sensitive (gboolean sensitive)
 }
 
 static void
+setup_refresh_color_selector_widgets (void)
+{
+	GSList *l = color_selector_widgets;
+
+	while (l)
+	{
+		GtkWidget *w = (GtkWidget *) l->data;
+		gpointer color_index_ptr;
+		int color_index;
+
+		if (!GTK_IS_WIDGET (w))
+		{
+			l = l->next;
+			continue;
+		}
+
+		color_index_ptr = g_object_get_data (G_OBJECT (w), "zoitechat-color-index");
+		if (!color_index_ptr)
+		{
+			l = l->next;
+			continue;
+		}
+
+		color_index = GPOINTER_TO_INT (color_index_ptr);
+		if (color_index >= 0 && color_index <= MAX_COL)
+			setup_color_button_apply (w, &colors[color_index]);
+
+		l = l->next;
+	}
+}
+
+static void
 setup_dark_mode_menu_cb (GtkWidget *cbox, const setting *set)
 {
+	gboolean dark_mode_enabled;
+
 	setup_menu_cb (cbox, set);
+	dark_mode_enabled = fe_dark_mode_is_enabled_for (setup_prefs.hex_gui_dark_mode);
+	palette_apply_dark_mode (dark_mode_enabled);
+	setup_refresh_color_selector_widgets ();
 	/* Keep color selectors usable even when dark mode is enabled. */
 	setup_color_selectors_set_sensitive (TRUE);
 }
@@ -1640,6 +1680,7 @@ setup_create_color_button (GtkWidget *table, int num, int row, int col)
         /* win32 build uses this to turn off themeing */
         g_object_set_data (G_OBJECT (but), "zoitechat-color", (gpointer)1);
         g_object_set_data (G_OBJECT (but), "zoitechat-color-box", box);
+        g_object_set_data (G_OBJECT (but), "zoitechat-color-index", GINT_TO_POINTER (num));
         setup_table_attach (table, but, col, col + 1, row, row + 1, FALSE, FALSE,
                             SETUP_ALIGN_CENTER, SETUP_ALIGN_CENTER, 0, 0);
         g_signal_connect (G_OBJECT (but), "clicked",
@@ -2486,7 +2527,7 @@ setup_apply_to_sess (session_gui *gui)
                 char buf[128];
                 char *color_string = gdk_rgba_to_string (&colors[COL_FG]);
 
-                g_snprintf (buf, sizeof (buf), ".zoitechat-inputbox { caret-color: %s; }",
+                g_snprintf (buf, sizeof (buf), "#zoitechat-inputbox { caret-color: %s; }",
                             color_string);
                 g_free (color_string);
 
