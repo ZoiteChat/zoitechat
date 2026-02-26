@@ -1588,6 +1588,9 @@ fe_ctrl_gui (session *sess, fe_gui_action action, int arg)
 		mg_detach (sess, arg);	/* arg: 0=toggle 1=detach 2=attach */
 		break;
 	case FE_GUI_APPLY:
+		/* Keep parity with Preferences -> Theme apply path (setup_theme_apply_cb). */
+		palette_load ();
+		palette_apply_dark_mode (fe_dark_mode_is_enabled ());
 		setup_apply_real (TRUE, TRUE, TRUE, FALSE);
 	}
 }
