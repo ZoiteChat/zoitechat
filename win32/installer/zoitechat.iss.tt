@@ -22,33 +22,21 @@ AppUpdatesURL=http://zoitechat.zoite.net/downloads.html
 LicenseFile=share\doc\zoitechat\COPYING
 UninstallDisplayIcon={app}\zoitechat.exe
 UninstallDisplayName=ZoiteChat
-#if APPARCH == "x64"
 DefaultDirName={pf64}\ZoiteChat
-#else
-DefaultDirName={pf32}\ZoiteChat
-#endif
 DefaultGroupName=ZoiteChat
 AllowNoIcons=yes
 SolidCompression=yes
 Compression=lzma2/ultra64
 SourceDir=..\rel
 OutputDir=..
-#if APPARCH == "x64"
 OutputBaseFilename={#APPNAM}-{#APPVER}_x64
-#else
-OutputBaseFilename={#APPNAM}-{#APPVER}_x86
-#endif
 FlatComponentsList=no
 PrivilegesRequired=none
 ShowComponentSizes=no
 CreateUninstallRegKey=not IsTaskSelected('portable')
 Uninstallable=not IsTaskSelected('portable')
-#if APPARCH == "x64"
 ArchitecturesAllowed=x64
 ArchitecturesInstallIn64BitMode=x64
-#else
-ArchitecturesAllowed=x86 x64
-#endif
 MinVersion=6.1
 WizardImageFile={#PROJECTDIR}wizardimage.bmp
 WizardSmallImageFile={#PROJECTDIR}wizardsmallimage.bmp
@@ -237,14 +225,7 @@ end;
 /////////////////////////////////////////////////////////////////////
 function GetSysDir(): String;
 begin
-#if APPARCH != "x64"
-	if IsWin64 then
-		Result := ExpandConstant('{syswow64}\')
-	else
-		Result := ExpandConstant('{sys}\');
-#else
 	Result := ExpandConstant('{sys}\');
-#endif
 end;
 
 /////////////////////////////////////////////////////////////////////
@@ -297,15 +278,9 @@ begin
 	if not IsTaskSelected('portable') then
 	begin
 
-#if APPARCH == "x64"
 		REDIST := 'https://github.com/zoitechat/gvsbuild/releases/download/zoitechat-2.16.2/vcredist_2015_x64.exe';
 		PERL := 'https://github.com/zoitechat/gvsbuild/releases/download/zoitechat-2.16.2/Perl.5.20.0.x64.msi';
 		PY3 := 'https://www.python.org/ftp/python/3.14.2/python-3.14.2-amd64.exe';
-#else
-		REDIST := 'https://github.com/zoitechat/gvsbuild/releases/download/zoitechat-2.16.2/vcredist_2015_x86.exe';
-		PERL := 'https://github.com/zoitechat/gvsbuild/releases/download/zoitechat-2.16.2/Perl.5.20.0.x86.msi';
-		PY3 := 'https://www.python.org/ftp/python/3.14.2/python-3.14.2.exe';
-#endif
 		SPELL := 'https://github.com/zoitechat/gvsbuild/releases/download/zoitechat-2.16.2/ZoiteChat.Spelling.Dictionaries.r2.exe';
 
 		if not CheckVCInstall() then
@@ -335,11 +310,7 @@ function NextButtonClick(CurPageID: Integer): Boolean;
 begin
 	if (CurPageID = wpSelectTasks) then
 		if (WizardForm.TasksList.Checked[1] = True) then
-#if APPARCH == "x64"
 			if (WizardDirValue() = ExpandConstant('{pf64}\ZoiteChat')) then
-#else
-			if (WizardDirValue() = ExpandConstant('{pf32}\ZoiteChat')) then
-#endif
 			begin
 				WizardForm.TasksList.Checked[1] := False
 				MsgBox('Portable mode is only intended for use on portable drives and has been disabled.', mbInformation, MB_OK)
@@ -356,11 +327,7 @@ var
 	sUnInstPath: String;
 	sUnInstallString: String;
 begin
-#if APPARCH == "x64"
 	sUnInstPath := ExpandConstant('Software\Microsoft\Windows\CurrentVersion\Uninstall\ZoiteChat (x64)_is1');
-#else
-	sUnInstPath := ExpandConstant('Software\Microsoft\Windows\CurrentVersion\Uninstall\ZoiteChat (x86)_is1');
-#endif
 	sUnInstallString := '';
 	if not RegQueryStringValue(HKLM, sUnInstPath, 'UninstallString', sUnInstallString) then
 		RegQueryStringValue(HKCU, sUnInstPath, 'UninstallString', sUnInstallString);
