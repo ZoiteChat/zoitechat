@@ -372,6 +372,16 @@ static const setting dark_mode_setting =
 	0
 };
 
+static const setting animation_setting =
+{
+	ST_TOGGLE,
+	N_("Enable interface animations"),
+	P_OFFINTNL(hex_gui_animations),
+	N_("Disable animations for snappier interface updates and less visual motion."),
+	0,
+	0
+};
+
 static const char *const dccaccept[] =
 {
         N_("Ask for confirmation"),
@@ -1734,6 +1744,7 @@ setup_create_color_page (void)
 	setup_create_other_color (_("Highlight:"), COL_HILIGHT, 11, tab);
 	setup_create_other_colorR (_("Spell checker:"), COL_SPELL, 11, tab);
 	setup_create_dark_mode_menu (tab, 13, &dark_mode_setting);
+	setup_create_toggleL (tab, 14, &animation_setting);
 	setup_color_selectors_set_sensitive (TRUE);
 	setup_create_header (tab, 15, N_("Color Stripping"));
 
@@ -2588,6 +2599,8 @@ setup_apply (struct zoitechatprefs *pr)
                 noapply = TRUE;
         if (DIFF (hex_gui_tab_icons))
                 noapply = TRUE;
+        if (DIFF (hex_gui_animations))
+                noapply = TRUE;
         if (DIFF (hex_gui_tab_server))
                 noapply = TRUE;
         if (DIFF (hex_gui_tab_small))
@@ -2637,6 +2650,7 @@ setup_apply (struct zoitechatprefs *pr)
         }
 
         memcpy (&prefs, pr, sizeof (prefs));
+        fe_apply_animations_setting ();
 
         /*
          * "Dark mode" applies ZoiteChat's built-in dark palette to the chat views.

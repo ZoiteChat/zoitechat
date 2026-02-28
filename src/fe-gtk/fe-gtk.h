@@ -191,6 +191,7 @@ gboolean fe_dark_mode_is_enabled (void);
 gboolean fe_dark_mode_is_enabled_for (unsigned int mode);
 void fe_set_auto_dark_mode_state (gboolean enabled);
 void fe_refresh_auto_dark_mode (void);
+void fe_apply_animations_setting (void);
 gboolean fe_apply_theme_for_mode (unsigned int mode, gboolean *palette_changed);
 void fe_apply_theme_to_toplevel (GtkWidget *window);
 

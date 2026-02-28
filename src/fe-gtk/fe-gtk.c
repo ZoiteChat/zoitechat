@@ -648,6 +648,18 @@ fe_refresh_auto_dark_mode (void)
 	fe_auto_dark_mode_changed (NULL, NULL, NULL);
 }
 
+void
+fe_apply_animations_setting (void)
+{
+	GtkSettings *settings = gtk_settings_get_default ();
+
+	if (!settings)
+		return;
+
+	if (g_object_class_find_property (G_OBJECT_GET_CLASS (settings), "gtk-enable-animations"))
+		g_object_set (settings, "gtk-enable-animations", prefs.hex_gui_animations ? TRUE : FALSE, NULL);
+}
+
 gboolean
 fe_apply_theme_for_mode (unsigned int mode, gboolean *palette_changed)
 {
@@ -879,6 +891,7 @@ fe_init (void)
 		auto_dark_mode_enabled = fe_system_prefers_dark ();
 
 	fe_apply_theme_for_mode (prefs.hex_gui_dark_mode, NULL);
+	fe_apply_animations_setting ();
 	key_init ();
 	pixmaps_init ();
 

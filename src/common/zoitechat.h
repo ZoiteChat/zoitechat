@@ -120,6 +120,7 @@ struct zoitechatprefs
 	unsigned int hex_gui_autoopen_dialog;
 	unsigned int hex_gui_autoopen_recv;
 	unsigned int hex_gui_autoopen_send;
+	unsigned int hex_gui_animations;
 	unsigned int hex_gui_compact;
 	unsigned int hex_gui_filesize_iec;
 	unsigned int hex_gui_focus_omitalerts;
