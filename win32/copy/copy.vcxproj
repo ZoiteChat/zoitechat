@@ -30,7 +30,7 @@
     <None Include="changelog.url" />
     <None Include="readme.url" />
 
-    <None Include="$(DepsRoot)\bin\lua51.dll" />
+    <None Include="$(DepsRoot)\bin\$(LuaRuntimeDll)" Condition="'$(LuaEnabled)'=='true' and '$(LuaRuntimeDll)'!=''" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <Target Name="Build">
@@ -67,17 +67,15 @@
       <None Include="$(DepsRoot)\bin\*pangocairo-1.0-0.dll" />
       <None Include="$(DepsRoot)\bin\*pangoft2-1.0-0.dll" />
       <None Include="$(DepsRoot)\bin\*pangowin32-1.0-0.dll" />
-      <None Include="$(DepsRoot)\bin\*rsvg*.dll" />
       <None Include="$(DepsRoot)\bin\*zlib*.dll" />
-      <None Include="$(DepsRoot)\bin\luajit*.dll" />
-      <None Include="$(DepsRoot)\bin\*girepository*.dll" />
-      <None Include="$(Python3Path)\Lib\site-packages\_cffi_backend.*.pyd" />
+      <None Include="$(DepsRoot)\bin\*girepository*.dll" Condition="'$(LuaEnabled)'=='true' and '$(LuaLibDir)'!=''" />
+      <None Include="$(Python3Path)\Lib\site-packages\_cffi_backend.*.pyd" Condition="'$(Python3Enabled)'=='true'" />
 
-      <LuaLib Include="$(DepsRoot)\lib\lua\**\*.dll" />
-      <LuaShare Include="$(DepsRoot)\share\lua\*.lua" />
-      <LuaShare Include="$(DepsRoot)\share\lua\**\*.lua" />
-      <LuaShare Include="$(DepsRoot)\share\lua\**\**\*.lua" />
-      <Typelib Include="$(DepsRoot)\lib\girepository-1.0\*.typelib" />
+      <LuaLib Include="$(LuaLibDir)\**\*.dll" Condition="'$(LuaEnabled)'=='true' and '$(LuaLibDir)'!=''" />
+      <LuaShare Include="$(LuaShareDir)\*.lua" Condition="'$(LuaEnabled)'=='true' and '$(LuaShareDir)'!=''" />
+      <LuaShare Include="$(LuaShareDir)\**\*.lua" Condition="'$(LuaEnabled)'=='true' and '$(LuaShareDir)'!=''" />
+      <Typelib Include="$(DepsRoot)\lib\girepository-1.0\*.typelib" Condition="'$(LuaEnabled)'=='true' and '$(LuaLibDir)'!=''" />
+
       <EnchantProviders Include="$(DepsRoot)\lib\enchant\*.dll" />
 
       <Gtk3Immodules Include="$(DepsRoot)\lib\gtk-3.0\3.0.0\immodules\**\*" />
@@ -88,8 +86,6 @@
 
       <FontConfig Include="$(DepsRoot)\etc\fonts\*" />
       <Share Include="share\**\*" />
-      <DepsRootDocs Include="$(DepsRoot)\share\doc\**\*" />
-      <DepsRootIcons Include="$(DepsRoot)\share\icons\**\*" />
       <ZoiteChatMenuIcons Include="..\..\data\icons\menu\**\*" />
       <Locale Include="$(ZoiteChatBin)locale\**\*;$(DepsRoot)\share\locale\**\*" />
       <MSWindowsTheme Include="$(DepsRoot)\share\themes\MS-Windows\**\*" />
@@ -103,7 +99,6 @@
     <Copy SourceFiles="@(GdkPixbufLoaderCache)" DestinationFiles="@(GdkPixbufLoaderCache->'$(ZoiteChatRel)\lib\gdk-pixbuf-2.0\%(RecursiveDir)%(Filename)%(Extension)')" />
     <Copy SourceFiles="@(GSettingsSchemas)" DestinationFiles="@(GSettingsSchemas->'$(ZoiteChatRel)\share\glib-2.0\schemas\%(Filename)%(Extension)')" />
     <Copy SourceFiles="@(Share)" DestinationFiles="@(Share->'$(ZoiteChatRel)\share\%(RecursiveDir)%(Filename)%(Extension)')" />
-    <Copy SourceFiles="@(DepsRootIcons)" DestinationFiles="@(DepsRootIcons->'$(ZoiteChatRel)\share\icons\%(RecursiveDir)%(Filename)%(Extension)')" />
     <Copy SourceFiles="@(ZoiteChatMenuIcons)" DestinationFiles="@(ZoiteChatMenuIcons->'$(ZoiteChatRel)\share\icons\menu\%(RecursiveDir)%(Filename)%(Extension)')" />
     <Copy SourceFiles="..\..\COPYING" DestinationFolder="$(ZoiteChatRel)\share\doc\zoitechat" />
     <Copy SourceFiles="$(WinSparklePath)\COPYING" DestinationFolder="$(ZoiteChatRel)\share\doc\WinSparkle" />
@@ -113,13 +108,12 @@
     <Copy SourceFiles="@(LuaShare)" DestinationFiles="@(LuaShare->'$(ZoiteChatRel)\share\lua\%(RecursiveDir)%(Filename)%(Extension)')" />
     <Copy SourceFiles="@(LuaLib)" DestinationFiles="@(LuaLib->'$(ZoiteChatRel)\lib\lua\%(RecursiveDir)%(Filename)%(Extension)')" />
     <Copy SourceFiles="@(Typelib)" DestinationFiles="@(Typelib->'$(ZoiteChatRel)\lib\girepository-1.0\%(Filename)%(Extension)')" />
-    <Copy SourceFiles="..\..\plugins\python\xchat.py" DestinationFolder="$(ZoiteChatRel)\python" />
-    <Copy SourceFiles="..\..\plugins\python\hexchat.py" DestinationFolder="$(ZoiteChatRel)\python" />
-    <Copy SourceFiles="..\..\plugins\python\zoitechat.py" DestinationFolder="$(ZoiteChatRel)\python" />
-    <Copy SourceFiles="..\..\plugins\python\_zoitechat.py" DestinationFolder="$(ZoiteChatRel)\python" />
+    <Copy SourceFiles="..\..\plugins\python\xchat.py" DestinationFolder="$(ZoiteChatRel)\python" Condition="'$(Python3Enabled)'=='true'" />
+    <Copy SourceFiles="..\..\plugins\python\hexchat.py" DestinationFolder="$(ZoiteChatRel)\python" Condition="'$(Python3Enabled)'=='true'" />
+    <Copy SourceFiles="..\..\plugins\python\zoitechat.py" DestinationFolder="$(ZoiteChatRel)\python" Condition="'$(Python3Enabled)'=='true'" />
+    <Copy SourceFiles="..\..\plugins\python\_zoitechat.py" DestinationFolder="$(ZoiteChatRel)\python" Condition="'$(Python3Enabled)'=='true'" />
 
     <WriteLinesToFile File="$(ZoiteChatRel)portable-mode" Lines="2" Overwrite="true" />
 
-    <Copy SourceFiles="@(DepsRootDocs)" DestinationFiles="@(DepsRootDocs->'$(ZoiteChatRel)\share\doc\%(RecursiveDir)%(Filename)%(Extension)')" />
   </Target>
 </Project>

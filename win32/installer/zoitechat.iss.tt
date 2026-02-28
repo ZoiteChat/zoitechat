@@ -99,7 +99,6 @@ Root: HKCR; Subkey: "ZoiteChat.Theme\shell\open\command"; ValueType: string; Val
 Filename: "{app}\zoitechat.exe"; Description: "Run ZoiteChat after closing the Wizard"; Flags: nowait postinstall skipifsilent
 Filename: "http://docs.zoitechat.org/en/latest/changelog.html"; Description: "See what's changed"; Flags: shellexec runasoriginaluser postinstall skipifsilent unchecked
 Filename: "{tmp}\vcredist.exe"; Parameters: "/install /quiet /norestart"; StatusMsg: "Installing Visual C++ Redistributable"; Flags: skipifdoesntexist; Tasks: not portable
-Filename: "{tmp}\vcredist2013.exe"; Parameters: "/install /quiet /norestart"; StatusMsg: "Installing Visual C++ Redistributable"; Flags: skipifdoesntexist; Tasks: not portable
 Filename: "{tmp}\perl.msi"; StatusMsg: "Installing Perl"; Components: langs\perl; Flags: shellexec skipifdoesntexist; Tasks: not portable
 Filename: "{tmp}\python.msi"; StatusMsg: "Installing Python"; Components: langs\python; Flags: shellexec skipifdoesntexist; Tasks: not portable
 Filename: "{tmp}\python.exe"; Parameters: "InstallAllUsers=1 PrependPath=1"; StatusMsg: "Installing Python"; Components: langs\python; Flags: shellexec skipifdoesntexist; Tasks: not portable
@@ -112,8 +111,9 @@ Source: "changelog.url"; DestDir: "{app}"; Flags: ignoreversion; Components: lib
 Source: "readme.url"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 Source: "cert.pem"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 Source: "share\xml\*"; DestDir: "{app}\share\xml"; Flags: ignoreversion createallsubdirs recursesubdirs; Components: libs
-Source: "share\doc\*"; DestDir: "{app}\share\doc"; Flags: ignoreversion createallsubdirs recursesubdirs; Components: libs
-Source: "share\icons\*"; DestDir: "{app}\share\icons"; Flags: ignoreversion createallsubdirs recursesubdirs; Components: libs
+Source: "share\doc\zoitechat\*"; DestDir: "{app}\share\doc\zoitechat"; Flags: ignoreversion createallsubdirs recursesubdirs; Components: libs
+Source: "share\doc\WinSparkle\*"; DestDir: "{app}\share\doc\WinSparkle"; Flags: ignoreversion createallsubdirs recursesubdirs; Components: libs
+Source: "share\icons\menu\*"; DestDir: "{app}\share\icons\menu"; Flags: ignoreversion createallsubdirs recursesubdirs; Components: libs
 Source: "share\themes\MS-Windows\*"; DestDir: "{app}\share\themes\MS-Windows"; Flags: ignoreversion createallsubdirs recursesubdirs skipifsourcedoesntexist; Components: libs
 Source: "share\glib-2.0\schemas\*"; DestDir: "{app}\share\glib-2.0\schemas"; Flags: ignoreversion createallsubdirs recursesubdirs skipifsourcedoesntexist; Components: libs
 Source: "share\locale\*"; DestDir: "{app}\share\locale"; Flags: ignoreversion createallsubdirs recursesubdirs; Components: translations
@@ -160,13 +160,19 @@ Source: "plugins\hcnotifications-winrt.dll"; DestDir: "{app}\plugins"; Flags: ig
 
 Source: "lib\enchant\*"; DestDir: "{app}\lib\enchant"; Flags: ignoreversion; Components: libs
 
-Source: "girepository-2.0-0.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: langs\lua
-Source: "lua51.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: langs\lua
-Source: "lib\lua\2.1\lgi\*.dll"; DestDir: "{app}\lib\lua\lgi"; Flags: ignoreversion; Components: langs\lua
-Source: "lib\girepository-1.0\*.typelib"; DestDir: "{app}\lib\girepository-1.0"; Flags: ignoreversion; Components: langs\lua
-Source: "share\lua\2.1\*.lua"; DestDir: "{app}\share\lua"; Flags: ignoreversion; Components: langs\lua
-Source: "share\lua\2.1\lgi\*.lua"; DestDir: "{app}\share\lua\lgi"; Flags: ignoreversion; Components: langs\lua
-Source: "share\lua\2.1\lgi\override\*.lua"; DestDir: "{app}\share\lua\lgi\override"; Flags: ignoreversion; Components: langs\lua
+Source: "girepository-2.0-0.dll"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist; Components: langs\lua
+Source: "lua51.dll"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist; Components: langs\lua
+Source: "luajit-5.1.dll"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist; Components: langs\lua
+Source: "luajit.dll"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist; Components: langs\lua
+Source: "lib\lua\2.1\lgi\*.dll"; DestDir: "{app}\lib\lua\lgi"; Flags: ignoreversion skipifsourcedoesntexist; Components: langs\lua
+Source: "lib\lua\5.1\lgi\*.dll"; DestDir: "{app}\lib\lua\lgi"; Flags: ignoreversion skipifsourcedoesntexist; Components: langs\lua
+Source: "lib\girepository-1.0\*.typelib"; DestDir: "{app}\lib\girepository-1.0"; Flags: ignoreversion skipifsourcedoesntexist; Components: langs\lua
+Source: "share\lua\2.1\*.lua"; DestDir: "{app}\share\lua"; Flags: ignoreversion skipifsourcedoesntexist; Components: langs\lua
+Source: "share\lua\2.1\lgi\*.lua"; DestDir: "{app}\share\lua\lgi"; Flags: ignoreversion skipifsourcedoesntexist; Components: langs\lua
+Source: "share\lua\2.1\lgi\override\*.lua"; DestDir: "{app}\share\lua\lgi\override"; Flags: ignoreversion skipifsourcedoesntexist; Components: langs\lua
+Source: "share\lua\5.1\*.lua"; DestDir: "{app}\share\lua"; Flags: ignoreversion skipifsourcedoesntexist; Components: langs\lua
+Source: "share\lua\5.1\lgi\*.lua"; DestDir: "{app}\share\lua\lgi"; Flags: ignoreversion skipifsourcedoesntexist; Components: langs\lua
+Source: "share\lua\5.1\lgi\override\*.lua"; DestDir: "{app}\share\lua\lgi\override"; Flags: ignoreversion skipifsourcedoesntexist; Components: langs\lua
 Source: "plugins\hclua.dll"; DestDir: "{app}\plugins"; Flags: ignoreversion; Components: langs\lua
 
 Source: "plugins\hcchecksum.dll"; DestDir: "{app}\plugins"; Flags: ignoreversion; Components: plugins\checksum
@@ -259,11 +265,6 @@ begin
 	Result := FileExists(GetSysDir() + 'vcruntime140.dll');;
 end;
 
-function CheckVC2013Install(): Boolean;
-begin
-	Result := FileExists(GetSysDir() + 'msvcr120.dll');;
-end;
-
 
 /////////////////////////////////////////////////////////////////////
 function CheckSpellInstall(): Boolean;
@@ -285,9 +286,7 @@ end;
 procedure CurPageChanged(CurPageID: Integer);
 var
 	REDIST: String;
-	REDIST_2013: String;
 	PERL: String;
-	PY2: String;
 	PY3: String;
 	SPELL: String;
 begin
@@ -300,12 +299,10 @@ begin
 
 #if APPARCH == "x64"
 		REDIST := 'https://github.com/zoitechat/gvsbuild/releases/download/zoitechat-2.16.2/vcredist_2015_x64.exe';
-		REDIST_2013 := 'https://github.com/zoitechat/gvsbuild/releases/download/zoitechat-2.16.2/vcredist_2013_x64.exe';
 		PERL := 'https://github.com/zoitechat/gvsbuild/releases/download/zoitechat-2.16.2/Perl.5.20.0.x64.msi';
 		PY3 := 'https://www.python.org/ftp/python/3.14.2/python-3.14.2-amd64.exe';
 #else
 		REDIST := 'https://github.com/zoitechat/gvsbuild/releases/download/zoitechat-2.16.2/vcredist_2015_x86.exe';
-		REDIST_2013 := 'https://github.com/zoitechat/gvsbuild/releases/download/zoitechat-2.16.2/vcredist_2013_x86.exe';
 		PERL := 'https://github.com/zoitechat/gvsbuild/releases/download/zoitechat-2.16.2/Perl.5.20.0.x86.msi';
 		PY3 := 'https://www.python.org/ftp/python/3.14.2/python-3.14.2.exe';
 #endif
@@ -321,9 +318,6 @@ begin
 		begin
 			if IsComponentSelected('langs\perl') and not CheckDLL('perl520.dll') then
 			begin
-				if not CheckVC2013Install() then
-					idpAddFile(REDIST_2013, ExpandConstant('{tmp}\vcredist2013.exe'));
-
 				idpAddFile(PERL, ExpandConstant('{tmp}\perl.msi'))
 			end;
 

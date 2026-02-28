@@ -35,7 +35,7 @@
     </ClCompile>
     <Link>
       <AdditionalLibraryDirectories>$(DepsRoot)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>$(DepLibs);$(ZoiteChatLib)common.lib;wbemuuid.lib;comsupp.lib;dwmapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(DepLibs);$(ZoiteChatLib)common.lib;wbemuuid.lib;dwmapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
     </Link>
   </ItemDefinitionGroup>
@@ -47,7 +47,7 @@
     </ClCompile>
     <Link>
       <AdditionalLibraryDirectories>$(DepsRoot)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>$(DepLibs);$(ZoiteChatLib)common.lib;wbemuuid.lib;comsupp.lib;dwmapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(DepLibs);$(ZoiteChatLib)common.lib;wbemuuid.lib;dwmapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
     </Link>
   </ItemDefinitionGroup>

@@ -36,8 +36,7 @@
     </ClCompile>
     <Link>
       <AdditionalLibraryDirectories>$(DepsRoot)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>$(ZoiteChatLib)common.lib;wbemuuid.lib;comsupp.lib;$(DepLibs);%(AdditionalDependencies)</AdditionalDependencies>
-      <IgnoreSpecificDefaultLibraries>comsupp.lib</IgnoreSpecificDefaultLibraries>
+      <AdditionalDependencies>$(ZoiteChatLib)common.lib;wbemuuid.lib;$(DepLibs);%(AdditionalDependencies)</AdditionalDependencies>
       <ModuleDefinitionFile>sysinfo.def</ModuleDefinitionFile>
     </Link>
   </ItemDefinitionGroup>
@@ -49,8 +48,7 @@
     </ClCompile>
     <Link>
       <AdditionalLibraryDirectories>$(DepsRoot)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>$(ZoiteChatLib)common.lib;wbemuuid.lib;comsupp.lib;$(DepLibs);%(AdditionalDependencies)</AdditionalDependencies>
-      <IgnoreSpecificDefaultLibraries>comsupp.lib</IgnoreSpecificDefaultLibraries>
+      <AdditionalDependencies>$(ZoiteChatLib)common.lib;wbemuuid.lib;$(DepLibs);%(AdditionalDependencies)</AdditionalDependencies>
       <ModuleDefinitionFile>sysinfo.def</ModuleDefinitionFile>
     </Link>
   </ItemDefinitionGroup>
