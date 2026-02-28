@@ -531,6 +531,12 @@ gtkutil_apply_palette (GtkWidget *widget, const GdkRGBA *bg, const GdkRGBA *fg,
 		}
 		gtkutil_append_font_css (css, font_desc);
 		g_string_append (css, " }");
+		g_string_append_printf (css, ".%s *:selected {", class_name);
+		if (bg)
+			g_string_append (css, " background-color: @theme_selected_bg_color;");
+		if (fg)
+			g_string_append (css, " color: @theme_selected_fg_color;");
+		g_string_append (css, " }");
 
 		gtk_css_provider_load_from_data (provider, css->str, -1, NULL);
 		if (new_provider)
