@@ -25,6 +25,7 @@
 #include "../common/zoitechat.h"
 #include "../common/fe.h"
 #include "resources.h"
+#include "icon-resolver.h"
 
 #include <gio/gio.h>
 #include <gdk-pixbuf/gdk-pixbuf.h>
@@ -151,25 +152,42 @@ pixmap_load_from_file (char *filename)
 
 /* load custom icons from <config>/icons, don't mess in system folders */
 static GdkPixbuf *
-load_pixmap (const char *filename)
+load_pixmap (IconResolverRole role, int item, const char *fallback_name)
 {
-	GdkPixbuf *pixbuf, *scaledpixbuf;
+	GdkPixbuf *pixbuf = NULL;
+	GdkPixbuf *scaledpixbuf;
 	const char *scale;
 	int iscale;
+	char *path;
+	const char *system_icon_name = NULL;
 
-	gchar *path = g_strdup_printf ("%s" G_DIR_SEPARATOR_S "icons" G_DIR_SEPARATOR_S "%s.png", get_xdir (), filename);
-	pixbuf = gdk_pixbuf_new_from_file (path, 0);
-	g_free (path);
-
-	if (!pixbuf)
+	path = icon_resolver_resolve_path (role, item, GTK_ICON_SIZE_MENU, "pixmap",
+	                                   ICON_RESOLVER_THEME_SYSTEM, &system_icon_name);
+	if (path)
 	{
-		path = g_strdup_printf ("/icons/%s.png", filename);
-		pixbuf = gdk_pixbuf_new_from_resource (path, NULL);
+		if (g_str_has_prefix (path, "/icons/"))
+			pixbuf = gdk_pixbuf_new_from_resource (path, NULL);
+		else
+			pixbuf = gdk_pixbuf_new_from_file (path, 0);
 		g_free (path);
 	}
 
+	if (!pixbuf && system_icon_name)
+	{
+		GtkIconTheme *theme = gtk_icon_theme_get_default ();
+		if (theme)
+			pixbuf = gtk_icon_theme_load_icon (theme, system_icon_name, 16, GTK_ICON_LOOKUP_FORCE_SIZE, NULL);
+	}
+
+	if (!pixbuf && fallback_name)
+	{
+		char *resource_path = g_strdup_printf ("/icons/%s.png", fallback_name);
+		pixbuf = gdk_pixbuf_new_from_resource (resource_path, NULL);
+		g_free (resource_path);
+	}
+
 	scale = g_getenv ("GDK_SCALE");
-	if (scale)
+	if (scale && pixbuf)
 	{
 		iscale = atoi (scale);
 		if (iscale > 0)
@@ -195,26 +213,26 @@ pixmaps_init (void)
 {
 	zoitechat_register_resource();
 
-	pix_ulist_voice = load_pixmap ("ulist_voice");
-	pix_ulist_halfop = load_pixmap ("ulist_halfop");
-	pix_ulist_op = load_pixmap ("ulist_op");
-	pix_ulist_owner = load_pixmap ("ulist_owner");
-	pix_ulist_founder = load_pixmap ("ulist_founder");
-	pix_ulist_netop = load_pixmap ("ulist_netop");
+	pix_ulist_voice = load_pixmap (ICON_RESOLVER_ROLE_USERLIST_RANK, ICON_RESOLVER_USERLIST_RANK_VOICE, "ulist_voice");
+	pix_ulist_halfop = load_pixmap (ICON_RESOLVER_ROLE_USERLIST_RANK, ICON_RESOLVER_USERLIST_RANK_HALFOP, "ulist_halfop");
+	pix_ulist_op = load_pixmap (ICON_RESOLVER_ROLE_USERLIST_RANK, ICON_RESOLVER_USERLIST_RANK_OP, "ulist_op");
+	pix_ulist_owner = load_pixmap (ICON_RESOLVER_ROLE_USERLIST_RANK, ICON_RESOLVER_USERLIST_RANK_OWNER, "ulist_owner");
+	pix_ulist_founder = load_pixmap (ICON_RESOLVER_ROLE_USERLIST_RANK, ICON_RESOLVER_USERLIST_RANK_FOUNDER, "ulist_founder");
+	pix_ulist_netop = load_pixmap (ICON_RESOLVER_ROLE_USERLIST_RANK, ICON_RESOLVER_USERLIST_RANK_NETOP, "ulist_netop");
 
-	pix_tray_normal = load_pixmap ("tray_normal");
-	pix_tray_fileoffer = load_pixmap ("tray_fileoffer");
-	pix_tray_highlight = load_pixmap ("tray_highlight");
-	pix_tray_message = load_pixmap ("tray_message");
+	pix_tray_normal = load_pixmap (ICON_RESOLVER_ROLE_TRAY_STATE, ICON_RESOLVER_TRAY_STATE_NORMAL, "tray_normal");
+	pix_tray_fileoffer = load_pixmap (ICON_RESOLVER_ROLE_TRAY_STATE, ICON_RESOLVER_TRAY_STATE_FILEOFFER, "tray_fileoffer");
+	pix_tray_highlight = load_pixmap (ICON_RESOLVER_ROLE_TRAY_STATE, ICON_RESOLVER_TRAY_STATE_HIGHLIGHT, "tray_highlight");
+	pix_tray_message = load_pixmap (ICON_RESOLVER_ROLE_TRAY_STATE, ICON_RESOLVER_TRAY_STATE_MESSAGE, "tray_message");
 
-	pix_tree_channel = load_pixmap ("tree_channel");
-	pix_tree_dialog = load_pixmap ("tree_dialog");
-	pix_tree_server = load_pixmap ("tree_server");
-	pix_tree_util = load_pixmap ("tree_util");
+	pix_tree_channel = load_pixmap (ICON_RESOLVER_ROLE_TREE_TYPE, ICON_RESOLVER_TREE_TYPE_CHANNEL, "tree_channel");
+	pix_tree_dialog = load_pixmap (ICON_RESOLVER_ROLE_TREE_TYPE, ICON_RESOLVER_TREE_TYPE_DIALOG, "tree_dialog");
+	pix_tree_server = load_pixmap (ICON_RESOLVER_ROLE_TREE_TYPE, ICON_RESOLVER_TREE_TYPE_SERVER, "tree_server");
+	pix_tree_util = load_pixmap (ICON_RESOLVER_ROLE_TREE_TYPE, ICON_RESOLVER_TREE_TYPE_UTIL, "tree_util");
 
 	/* non-replaceable book pixmap */
 	pix_book = gdk_pixbuf_new_from_resource ("/icons/book.png", NULL);
 
 	/* used in About window, tray icon and WindowManager icon. */
-	pix_zoitechat = load_pixmap ("zoitechat");
+	pix_zoitechat = gdk_pixbuf_new_from_resource ("/icons/zoitechat.png", NULL);
 }
