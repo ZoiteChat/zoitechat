@@ -338,8 +338,8 @@ static const struct defaultserver def[] =
 
 	{"Zoite", 0, 0, 0, LOGIN_SASL, 0, TRUE},
 	{0,			"irc.zoite.net"},
-    {0,			"penumbra.newnet.net"},
-    {0,			"hedy.newnet.net"},
+    {0,			"penumbra.zoite.net"},
+    {0,			"hedy.zoite.net"},
 
 	{0,0}
 };
