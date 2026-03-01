@@ -9,6 +9,7 @@ zoitechat_gtk_sources = [
   'fe-gtk.c',
   'fkeys.c',
   'gtkutil.c',
+  'icon-resolver.c',
   'ignoregui.c',
   'joind.c',
   'menu.c',

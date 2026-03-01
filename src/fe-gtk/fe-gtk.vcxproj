@@ -58,6 +58,7 @@ powershell "Get-Content -Encoding UTF8 '$(ZoiteChatLib)zoitechat.rc.utf8' | Out-
     <ClInclude Include="fe-gtk.h" />
     <ClInclude Include="fkeys.h" />
     <ClInclude Include="gtkutil.h" />
+    <ClInclude Include="icon-resolver.h" />
     <ClInclude Include="joind.h" />
     <ClInclude Include="maingui.h" />
     <ClInclude Include="menu.h" />
@@ -88,6 +89,7 @@ powershell "Get-Content -Encoding UTF8 '$(ZoiteChatLib)zoitechat.rc.utf8' | Out-
     <ClCompile Include="fe-gtk.c" />
     <ClCompile Include="fkeys.c" />
     <ClCompile Include="gtkutil.c" />
+    <ClCompile Include="icon-resolver.c" />
     <ClCompile Include="ignoregui.c" />
     <ClCompile Include="joind.c" />
     <ClCompile Include="maingui.c" />

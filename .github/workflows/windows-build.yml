@@ -45,6 +45,14 @@ jobs:
           Invoke-WebRequest https://github.com/ZoiteChat/gvsbuild/releases/download/zoitechat-2.18.0-pre1/GTK3_Gvsbuild_zoitechat-2.18.0-pre1_${{ matrix.platform }}.7z -OutFile deps\gtk-${{ matrix.arch }}.7z
           & 7z.exe x deps\gtk-${{ matrix.arch }}.7z -oC:\gtk-build\gtk\x64\release
 
+          Invoke-WebRequest https://repo.msys2.org/mingw/x86_64/mingw-w64-x86_64-hicolor-icon-theme-0.18-1-any.pkg.tar.zst -OutFile deps\hicolor-icon-theme.pkg.tar.zst
+          python -c "import tarfile,zstandard,pathlib;archive=pathlib.Path(r'deps\\hicolor-icon-theme.pkg.tar.zst');target=pathlib.Path(r'C:\\gtk-build\\gtk\\x64\\release');dctx=zstandard.ZstdDecompressor();f=archive.open('rb');reader=dctx.stream_reader(f);tf=tarfile.open(fileobj=reader,mode='r|');[tf.extract(m,path=target) for m in tf if m.name.startswith('mingw64/share/icons/hicolor/')];tf.close();reader.close();f.close()"
+          if (Test-Path C:\gtk-build\gtk\x64\release\mingw64\share\icons\hicolor) {
+            New-Item -Path C:\gtk-build\gtk\x64\release\share\icons -ItemType Directory -Force | Out-Null
+            Copy-Item -Path C:\gtk-build\gtk\x64\release\mingw64\share\icons\hicolor -Destination C:\gtk-build\gtk\x64\release\share\icons\hicolor -Recurse -Force
+            Remove-Item -Path C:\gtk-build\gtk\x64\release\mingw64 -Recurse -Force
+          }
+
           Invoke-WebRequest https://github.com/zoitechat/gvsbuild/releases/download/zoitechat-2.17.0/gendef-20111031.7z -OutFile deps\gendef.7z
           & 7z.exe x deps\gendef.7z -oC:\gtk-build
 
@@ -66,6 +74,7 @@ jobs:
 
           python -m pip install --upgrade pip
           python -m pip install cffi
+          python -m pip install zstandard
 
       - name: Build
         run: |

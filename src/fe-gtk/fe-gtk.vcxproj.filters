@@ -42,6 +42,9 @@
     <ClInclude Include="gtkutil.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="icon-resolver.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="joind.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -126,6 +129,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="gtkutil.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="icon-resolver.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="ignoregui.c">

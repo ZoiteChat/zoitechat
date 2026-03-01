@@ -82,9 +82,10 @@
 
       <FontConfig Include="$(DepsRoot)\etc\fonts\*" />
       <Share Include="share\**\*" />
-      <ZoiteChatMenuIcons Include="..\..\data\icons\menu\**\*" />
       <Locale Include="$(ZoiteChatBin)locale\**\*;$(DepsRoot)\share\locale\**\*" />
       <MSWindowsTheme Include="$(DepsRoot)\share\themes\MS-Windows\**\*" />
+      <HicolorIcons Include="$(DepsRoot)\share\icons\hicolor\index.theme" />
+      <HicolorIcons Include="$(DepsRoot)\share\icons\hicolor\**\*.*" />
     </ItemGroup>
 
     <Copy SourceFiles="@(None)" DestinationFolder="$(ZoiteChatRel)" />
@@ -95,12 +96,12 @@
     <Copy SourceFiles="@(GdkPixbufLoaderCache)" DestinationFiles="@(GdkPixbufLoaderCache->'$(ZoiteChatRel)\lib\gdk-pixbuf-2.0\%(RecursiveDir)%(Filename)%(Extension)')" />
     <Copy SourceFiles="@(GSettingsSchemas)" DestinationFiles="@(GSettingsSchemas->'$(ZoiteChatRel)\share\glib-2.0\schemas\%(Filename)%(Extension)')" />
     <Copy SourceFiles="@(Share)" DestinationFiles="@(Share->'$(ZoiteChatRel)\share\%(RecursiveDir)%(Filename)%(Extension)')" />
-    <Copy SourceFiles="@(ZoiteChatMenuIcons)" DestinationFiles="@(ZoiteChatMenuIcons->'$(ZoiteChatRel)\share\icons\menu\%(RecursiveDir)%(Filename)%(Extension)')" />
     <Copy SourceFiles="..\..\COPYING" DestinationFolder="$(ZoiteChatRel)\share\doc\zoitechat" />
     <Copy SourceFiles="$(WinSparklePath)\COPYING" DestinationFolder="$(ZoiteChatRel)\share\doc\WinSparkle" />
     <Copy SourceFiles="@(EnchantProviders)" DestinationFolder="$(ZoiteChatRel)\lib\enchant" />
     <Copy SourceFiles="@(Locale)" DestinationFiles="@(Locale->'$(ZoiteChatRel)\share\locale\%(RecursiveDir)%(Filename)%(Extension)')" />
     <Copy SourceFiles="@(MSWindowsTheme)" DestinationFiles="@(MSWindowsTheme->'$(ZoiteChatRel)\share\themes\MS-Windows\%(RecursiveDir)%(Filename)%(Extension)')" />
+    <Copy SourceFiles="@(HicolorIcons)" DestinationFiles="@(HicolorIcons->'$(ZoiteChatRel)\share\icons\hicolor\%(RecursiveDir)%(Filename)%(Extension)')" />
     <Copy SourceFiles="@(LuaShare)" DestinationFiles="@(LuaShare->'$(ZoiteChatRel)\share\lua\%(RecursiveDir)%(Filename)%(Extension)')" />
     <Copy SourceFiles="@(LuaLib)" DestinationFiles="@(LuaLib->'$(ZoiteChatRel)\lib\lua\%(RecursiveDir)%(Filename)%(Extension)')" />
     <Copy SourceFiles="@(Typelib)" DestinationFiles="@(Typelib->'$(ZoiteChatRel)\lib\girepository-1.0\%(Filename)%(Extension)')" />
