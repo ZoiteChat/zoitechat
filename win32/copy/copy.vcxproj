@@ -82,7 +82,6 @@
 
       <FontConfig Include="$(DepsRoot)\etc\fonts\*" />
       <Share Include="share\**\*" />
-      <ZoiteChatMenuIcons Include="..\..\data\icons\menu\**\*" />
       <Locale Include="$(ZoiteChatBin)locale\**\*;$(DepsRoot)\share\locale\**\*" />
       <MSWindowsTheme Include="$(DepsRoot)\share\themes\MS-Windows\**\*" />
     </ItemGroup>
@@ -95,7 +94,6 @@
     <Copy SourceFiles="@(GdkPixbufLoaderCache)" DestinationFiles="@(GdkPixbufLoaderCache->'$(ZoiteChatRel)\lib\gdk-pixbuf-2.0\%(RecursiveDir)%(Filename)%(Extension)')" />
     <Copy SourceFiles="@(GSettingsSchemas)" DestinationFiles="@(GSettingsSchemas->'$(ZoiteChatRel)\share\glib-2.0\schemas\%(Filename)%(Extension)')" />
     <Copy SourceFiles="@(Share)" DestinationFiles="@(Share->'$(ZoiteChatRel)\share\%(RecursiveDir)%(Filename)%(Extension)')" />
-    <Copy SourceFiles="@(ZoiteChatMenuIcons)" DestinationFiles="@(ZoiteChatMenuIcons->'$(ZoiteChatRel)\share\icons\menu\%(RecursiveDir)%(Filename)%(Extension)')" />
     <Copy SourceFiles="..\..\COPYING" DestinationFolder="$(ZoiteChatRel)\share\doc\zoitechat" />
     <Copy SourceFiles="$(WinSparklePath)\COPYING" DestinationFolder="$(ZoiteChatRel)\share\doc\WinSparkle" />
     <Copy SourceFiles="@(EnchantProviders)" DestinationFolder="$(ZoiteChatRel)\lib\enchant" />

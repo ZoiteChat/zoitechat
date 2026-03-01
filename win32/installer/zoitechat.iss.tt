@@ -101,7 +101,6 @@ Source: "cert.pem"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 Source: "share\xml\*"; DestDir: "{app}\share\xml"; Flags: ignoreversion createallsubdirs recursesubdirs; Components: libs
 Source: "share\doc\zoitechat\*"; DestDir: "{app}\share\doc\zoitechat"; Flags: ignoreversion createallsubdirs recursesubdirs; Components: libs
 Source: "share\doc\WinSparkle\*"; DestDir: "{app}\share\doc\WinSparkle"; Flags: ignoreversion createallsubdirs recursesubdirs; Components: libs
-Source: "share\icons\menu\*"; DestDir: "{app}\share\icons\menu"; Flags: ignoreversion createallsubdirs recursesubdirs; Components: libs
 Source: "share\themes\MS-Windows\*"; DestDir: "{app}\share\themes\MS-Windows"; Flags: ignoreversion createallsubdirs recursesubdirs skipifsourcedoesntexist; Components: libs
 Source: "share\glib-2.0\schemas\*"; DestDir: "{app}\share\glib-2.0\schemas"; Flags: ignoreversion createallsubdirs recursesubdirs skipifsourcedoesntexist; Components: libs
 Source: "share\locale\*"; DestDir: "{app}\share\locale"; Flags: ignoreversion createallsubdirs recursesubdirs; Components: translations
