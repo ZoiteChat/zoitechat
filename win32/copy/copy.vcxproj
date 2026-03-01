@@ -84,7 +84,8 @@
       <Share Include="share\**\*" />
       <Locale Include="$(ZoiteChatBin)locale\**\*;$(DepsRoot)\share\locale\**\*" />
       <MSWindowsTheme Include="$(DepsRoot)\share\themes\MS-Windows\**\*" />
-      <HicolorIcons Include="$(DepsRoot)\share\icons\hicolor\**\*" />
+      <HicolorIcons Include="$(DepsRoot)\share\icons\hicolor\index.theme" />
+      <HicolorIcons Include="$(DepsRoot)\share\icons\hicolor\**\*.*" />
     </ItemGroup>
 
     <Copy SourceFiles="@(None)" DestinationFolder="$(ZoiteChatRel)" />
