@@ -84,6 +84,7 @@
       <Share Include="share\**\*" />
       <Locale Include="$(ZoiteChatBin)locale\**\*;$(DepsRoot)\share\locale\**\*" />
       <MSWindowsTheme Include="$(DepsRoot)\share\themes\MS-Windows\**\*" />
+      <HicolorIcons Include="$(DepsRoot)\share\icons\hicolor\**\*" />
     </ItemGroup>
 
     <Copy SourceFiles="@(None)" DestinationFolder="$(ZoiteChatRel)" />
@@ -99,6 +100,7 @@
     <Copy SourceFiles="@(EnchantProviders)" DestinationFolder="$(ZoiteChatRel)\lib\enchant" />
     <Copy SourceFiles="@(Locale)" DestinationFiles="@(Locale->'$(ZoiteChatRel)\share\locale\%(RecursiveDir)%(Filename)%(Extension)')" />
     <Copy SourceFiles="@(MSWindowsTheme)" DestinationFiles="@(MSWindowsTheme->'$(ZoiteChatRel)\share\themes\MS-Windows\%(RecursiveDir)%(Filename)%(Extension)')" />
+    <Copy SourceFiles="@(HicolorIcons)" DestinationFiles="@(HicolorIcons->'$(ZoiteChatRel)\share\icons\hicolor\%(RecursiveDir)%(Filename)%(Extension)')" />
     <Copy SourceFiles="@(LuaShare)" DestinationFiles="@(LuaShare->'$(ZoiteChatRel)\share\lua\%(RecursiveDir)%(Filename)%(Extension)')" />
     <Copy SourceFiles="@(LuaLib)" DestinationFiles="@(LuaLib->'$(ZoiteChatRel)\lib\lua\%(RecursiveDir)%(Filename)%(Extension)')" />
     <Copy SourceFiles="@(Typelib)" DestinationFiles="@(Typelib->'$(ZoiteChatRel)\lib\girepository-1.0\%(Filename)%(Extension)')" />
