@@ -80,6 +80,7 @@ const char *icon_resolver_icon_name_from_stock (const char *stock_name);
 const char *icon_resolver_icon_name_for_menu_custom (const char *custom_icon_name);
 gboolean icon_resolver_menu_action_from_custom (const char *custom_icon_name, int *action_out);
 gboolean icon_resolver_menu_action_from_name (const char *name, int *action_out);
+const char *icon_resolver_system_icon_name (IconResolverRole role, int item);
 IconResolverThemeVariant icon_resolver_detect_theme_variant (void);
 char *icon_resolver_resolve_path (IconResolverRole role, int item, GtkIconSize size,
                                   const char *context, IconResolverThemeVariant variant,

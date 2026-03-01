@@ -122,6 +122,8 @@ gtkutil_image_new_from_stock (const char *stock, GtkIconSize size)
 {
 	GtkWidget *image;
 	const char *icon_name;
+	const char *resolved_icon_name = NULL;
+	int action;
 
 	icon_name = gtkutil_icon_name_from_stock (stock);
 	if (!icon_name && stock && g_str_has_prefix (stock, "zc-menu-"))
@@ -131,14 +133,13 @@ gtkutil_image_new_from_stock (const char *stock, GtkIconSize size)
 	if (image)
 		return image;
 
-	if (icon_name && g_str_has_prefix (icon_name, "zc-menu-"))
-	{
-		const char *fallback_icon = icon_resolver_icon_name_for_menu_custom (icon_name);
-		if (fallback_icon)
-			icon_name = fallback_icon;
-	}
+	if (icon_resolver_menu_action_from_name (icon_name, &action))
+		resolved_icon_name = icon_resolver_system_icon_name (ICON_RESOLVER_ROLE_MENU_ACTION, action);
 
-	return gtk_image_new_from_icon_name (icon_name, size);
+	if (!resolved_icon_name)
+		resolved_icon_name = icon_name;
+
+	return gtk_image_new_from_icon_name (resolved_icon_name, size);
 }
 
 GtkWidget *

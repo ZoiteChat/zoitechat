@@ -235,6 +235,17 @@ icon_resolver_menu_action_from_custom (const char *custom_icon_name, int *action
 	return TRUE;
 }
 
+const char *
+icon_resolver_system_icon_name (IconResolverRole role, int item)
+{
+	const IconRegistryEntry *entry = icon_registry_find (role, item);
+
+	if (!entry)
+		return NULL;
+
+	return entry->system_icon_name;
+}
+
 IconResolverThemeVariant
 icon_resolver_detect_theme_variant (void)
 {
