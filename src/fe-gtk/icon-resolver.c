@@ -19,12 +19,6 @@ typedef struct
 	const char *system_icon_name;
 } StockIconMap;
 
-typedef struct
-{
-	const char *key;
-	const char *custom_icon_name;
-} MenuMap;
-
 static const IconRegistryEntry icon_registry[] = {
 	{ ICON_RESOLVER_ROLE_MENU_ACTION, ICON_RESOLVER_MENU_ACTION_NEW, "zc-menu-new", "document-new", "new" },
 	{ ICON_RESOLVER_ROLE_MENU_ACTION, ICON_RESOLVER_MENU_ACTION_NETWORK_LIST, "zc-menu-network-list", "view-list", "network-list" },
@@ -107,65 +101,26 @@ static const StockIconMap stock_icon_map[] = {
 	{ "gtk-spell-check", "tools-check-spelling" }
 };
 
-static const MenuMap stock_menu_map[] = {
-	{ "gtk-new", "zc-menu-new" },
-	{ "gtk-index", "zc-menu-network-list" },
-	{ "gtk-revert-to-saved", "zc-menu-load-plugin" },
-	{ "gtk-redo", "zc-menu-detach" },
-	{ "gtk-close", "zc-menu-close" },
-	{ "gtk-quit", "zc-menu-quit" },
-	{ "gtk-disconnect", "zc-menu-disconnect" },
-	{ "gtk-connect", "zc-menu-connect" },
-	{ "gtk-jump-to", "zc-menu-join" },
-	{ "gtk-preferences", "zc-menu-preferences" },
-	{ "gtk-clear", "zc-menu-clear" },
-	{ "gtk-copy", "zc-menu-copy" },
-	{ "gtk-delete", "zc-menu-delete" },
-	{ "gtk-add", "zc-menu-add" },
-	{ "gtk-remove", "zc-menu-remove" },
-	{ "gtk-spell-check", "zc-menu-spell-check" },
-	{ "gtk-save", "zc-menu-save" },
-	{ "gtk-save-as", "zc-menu-save-as" },
-	{ "gtk-refresh", "zc-menu-refresh" },
-	{ "gtk-justify-left", "zc-menu-search" },
-	{ "gtk-find", "zc-menu-find" },
-	{ "gtk-go-back", "zc-menu-previous" },
-	{ "gtk-go-forward", "zc-menu-next" },
-	{ "gtk-help", "zc-menu-help" },
-	{ "gtk-about", "zc-menu-about" },
-	{ "gtk-convert", "zc-menu-emoji" }
-};
 
-static const MenuMap icon_menu_map[] = {
-	{ "document-new", "zc-menu-new" },
-	{ "view-list", "zc-menu-network-list" },
-	{ "document-open", "zc-menu-load-plugin" },
-	{ "edit-redo", "zc-menu-detach" },
-	{ "window-close", "zc-menu-close" },
-	{ "application-exit", "zc-menu-quit" },
-	{ "network-disconnect", "zc-menu-disconnect" },
-	{ "network-connect", "zc-menu-connect" },
-	{ "go-jump", "zc-menu-join" },
-	{ "preferences-system", "zc-menu-preferences" },
-	{ "edit-clear", "zc-menu-clear" },
-	{ "edit-copy", "zc-menu-copy" },
-	{ "edit-delete", "zc-menu-delete" },
-	{ "list-add", "zc-menu-add" },
-	{ "list-remove", "zc-menu-remove" },
-	{ "tools-check-spelling", "zc-menu-spell-check" },
-	{ "document-save", "zc-menu-save" },
-	{ "document-save-as", "zc-menu-save-as" },
-	{ "view-refresh", "zc-menu-refresh" },
-	{ "edit-find", "zc-menu-find" },
-	{ "go-previous", "zc-menu-previous" },
-	{ "go-next", "zc-menu-next" },
-	{ "help-browser", "zc-menu-help" },
-	{ "help-about", "zc-menu-about" },
-	{ "face-smile", "zc-menu-emoji" },
-	{ "insert-emoticon", "zc-menu-emoji" },
-	{ "software-update-available", "zc-menu-update" },
-	{ "network-workgroup", "zc-menu-chanlist" }
-};
+static int
+menu_action_from_icon_name (const char *icon_name)
+{
+	size_t i;
+
+	if (!icon_name)
+		return -1;
+
+	for (i = 0; i < G_N_ELEMENTS (icon_registry); i++)
+	{
+		if (icon_registry[i].role != ICON_RESOLVER_ROLE_MENU_ACTION)
+			continue;
+
+		if (icon_registry[i].system_icon_name && strcmp (icon_name, icon_registry[i].system_icon_name) == 0)
+			return icon_registry[i].item;
+	}
+
+	return -1;
+}
 
 static const IconRegistryEntry *
 icon_registry_find (IconResolverRole role, int item)
@@ -198,23 +153,6 @@ icon_registry_find_custom (const char *custom_icon_name)
 	return NULL;
 }
 
-static const char *
-menu_map_lookup (const MenuMap *map, size_t map_len, const char *key)
-{
-	size_t i;
-
-	if (!key)
-		return NULL;
-
-	for (i = 0; i < map_len; i++)
-	{
-		if (strcmp (key, map[i].key) == 0)
-			return map[i].custom_icon_name;
-	}
-
-	return NULL;
-}
-
 const char *
 icon_resolver_icon_name_from_stock (const char *stock_name)
 {
@@ -232,16 +170,44 @@ icon_resolver_icon_name_from_stock (const char *stock_name)
 	return stock_name;
 }
 
-const char *
-icon_resolver_menu_custom_icon_from_stock (const char *stock_name)
+gboolean
+icon_resolver_menu_action_from_name (const char *name, int *action_out)
 {
-	return menu_map_lookup (stock_menu_map, G_N_ELEMENTS (stock_menu_map), stock_name);
-}
+	size_t i;
 
-const char *
-icon_resolver_menu_custom_icon_from_icon_name (const char *icon_name)
-{
-	return menu_map_lookup (icon_menu_map, G_N_ELEMENTS (icon_menu_map), icon_name);
+	if (!name)
+		return FALSE;
+
+	for (i = 0; i < G_N_ELEMENTS (icon_registry); i++)
+	{
+		if (icon_registry[i].role != ICON_RESOLVER_ROLE_MENU_ACTION)
+			continue;
+
+		if ((icon_registry[i].custom_icon_name && strcmp (name, icon_registry[i].custom_icon_name) == 0) ||
+		    (icon_registry[i].system_icon_name && strcmp (name, icon_registry[i].system_icon_name) == 0))
+		{
+			if (action_out)
+				*action_out = icon_registry[i].item;
+			return TRUE;
+		}
+	}
+
+	for (i = 0; i < G_N_ELEMENTS (stock_icon_map); i++)
+	{
+		if (strcmp (name, stock_icon_map[i].stock_name) == 0)
+		{
+			int action = menu_action_from_icon_name (stock_icon_map[i].system_icon_name);
+
+			if (action >= 0)
+			{
+				if (action_out)
+					*action_out = action;
+				return TRUE;
+			}
+		}
+	}
+
+	return FALSE;
 }
 
 const char *

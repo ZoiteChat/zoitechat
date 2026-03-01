@@ -71,7 +71,7 @@ gtkutil_menu_icon_pixbuf_new (const char *icon_name)
 	const char *system_icon_name = NULL;
 	int action;
 
-	if (!icon_name || !icon_resolver_menu_action_from_custom (icon_name, &action))
+	if (!icon_name || !icon_resolver_menu_action_from_name (icon_name, &action))
 		return NULL;
 
 	resource_path = icon_resolver_resolve_path (ICON_RESOLVER_ROLE_MENU_ACTION, action,
@@ -126,16 +126,6 @@ gtkutil_image_new_from_stock (const char *stock, GtkIconSize size)
 	icon_name = gtkutil_icon_name_from_stock (stock);
 	if (!icon_name && stock && g_str_has_prefix (stock, "zc-menu-"))
 		icon_name = stock;
-	if (size == GTK_ICON_SIZE_MENU)
-	{
-		const char *menu_icon_name = icon_resolver_menu_custom_icon_from_stock (stock);
-
-		if (!menu_icon_name)
-			menu_icon_name = icon_resolver_menu_custom_icon_from_icon_name (icon_name);
-
-		if (menu_icon_name)
-			icon_name = menu_icon_name;
-	}
 
 	image = gtkutil_menu_icon_image_new (icon_name, size);
 	if (image)

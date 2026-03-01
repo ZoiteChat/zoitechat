@@ -152,7 +152,7 @@ pixmap_load_from_file (char *filename)
 
 /* load custom icons from <config>/icons, don't mess in system folders */
 static GdkPixbuf *
-load_pixmap (IconResolverRole role, int item, const char *fallback_name)
+load_pixmap (IconResolverRole role, int item)
 {
 	GdkPixbuf *pixbuf = NULL;
 	GdkPixbuf *scaledpixbuf;
@@ -179,12 +179,6 @@ load_pixmap (IconResolverRole role, int item, const char *fallback_name)
 			pixbuf = gtk_icon_theme_load_icon (theme, system_icon_name, 16, GTK_ICON_LOOKUP_FORCE_SIZE, NULL);
 	}
 
-	if (!pixbuf && fallback_name)
-	{
-		char *resource_path = g_strdup_printf ("/icons/%s.png", fallback_name);
-		pixbuf = gdk_pixbuf_new_from_resource (resource_path, NULL);
-		g_free (resource_path);
-	}
 
 	scale = g_getenv ("GDK_SCALE");
 	if (scale && pixbuf)
@@ -213,22 +207,22 @@ pixmaps_init (void)
 {
 	zoitechat_register_resource();
 
-	pix_ulist_voice = load_pixmap (ICON_RESOLVER_ROLE_USERLIST_RANK, ICON_RESOLVER_USERLIST_RANK_VOICE, "ulist_voice");
-	pix_ulist_halfop = load_pixmap (ICON_RESOLVER_ROLE_USERLIST_RANK, ICON_RESOLVER_USERLIST_RANK_HALFOP, "ulist_halfop");
-	pix_ulist_op = load_pixmap (ICON_RESOLVER_ROLE_USERLIST_RANK, ICON_RESOLVER_USERLIST_RANK_OP, "ulist_op");
-	pix_ulist_owner = load_pixmap (ICON_RESOLVER_ROLE_USERLIST_RANK, ICON_RESOLVER_USERLIST_RANK_OWNER, "ulist_owner");
-	pix_ulist_founder = load_pixmap (ICON_RESOLVER_ROLE_USERLIST_RANK, ICON_RESOLVER_USERLIST_RANK_FOUNDER, "ulist_founder");
-	pix_ulist_netop = load_pixmap (ICON_RESOLVER_ROLE_USERLIST_RANK, ICON_RESOLVER_USERLIST_RANK_NETOP, "ulist_netop");
+	pix_ulist_voice = load_pixmap (ICON_RESOLVER_ROLE_USERLIST_RANK, ICON_RESOLVER_USERLIST_RANK_VOICE);
+	pix_ulist_halfop = load_pixmap (ICON_RESOLVER_ROLE_USERLIST_RANK, ICON_RESOLVER_USERLIST_RANK_HALFOP);
+	pix_ulist_op = load_pixmap (ICON_RESOLVER_ROLE_USERLIST_RANK, ICON_RESOLVER_USERLIST_RANK_OP);
+	pix_ulist_owner = load_pixmap (ICON_RESOLVER_ROLE_USERLIST_RANK, ICON_RESOLVER_USERLIST_RANK_OWNER);
+	pix_ulist_founder = load_pixmap (ICON_RESOLVER_ROLE_USERLIST_RANK, ICON_RESOLVER_USERLIST_RANK_FOUNDER);
+	pix_ulist_netop = load_pixmap (ICON_RESOLVER_ROLE_USERLIST_RANK, ICON_RESOLVER_USERLIST_RANK_NETOP);
 
-	pix_tray_normal = load_pixmap (ICON_RESOLVER_ROLE_TRAY_STATE, ICON_RESOLVER_TRAY_STATE_NORMAL, "tray_normal");
-	pix_tray_fileoffer = load_pixmap (ICON_RESOLVER_ROLE_TRAY_STATE, ICON_RESOLVER_TRAY_STATE_FILEOFFER, "tray_fileoffer");
-	pix_tray_highlight = load_pixmap (ICON_RESOLVER_ROLE_TRAY_STATE, ICON_RESOLVER_TRAY_STATE_HIGHLIGHT, "tray_highlight");
-	pix_tray_message = load_pixmap (ICON_RESOLVER_ROLE_TRAY_STATE, ICON_RESOLVER_TRAY_STATE_MESSAGE, "tray_message");
+	pix_tray_normal = load_pixmap (ICON_RESOLVER_ROLE_TRAY_STATE, ICON_RESOLVER_TRAY_STATE_NORMAL);
+	pix_tray_fileoffer = load_pixmap (ICON_RESOLVER_ROLE_TRAY_STATE, ICON_RESOLVER_TRAY_STATE_FILEOFFER);
+	pix_tray_highlight = load_pixmap (ICON_RESOLVER_ROLE_TRAY_STATE, ICON_RESOLVER_TRAY_STATE_HIGHLIGHT);
+	pix_tray_message = load_pixmap (ICON_RESOLVER_ROLE_TRAY_STATE, ICON_RESOLVER_TRAY_STATE_MESSAGE);
 
-	pix_tree_channel = load_pixmap (ICON_RESOLVER_ROLE_TREE_TYPE, ICON_RESOLVER_TREE_TYPE_CHANNEL, "tree_channel");
-	pix_tree_dialog = load_pixmap (ICON_RESOLVER_ROLE_TREE_TYPE, ICON_RESOLVER_TREE_TYPE_DIALOG, "tree_dialog");
-	pix_tree_server = load_pixmap (ICON_RESOLVER_ROLE_TREE_TYPE, ICON_RESOLVER_TREE_TYPE_SERVER, "tree_server");
-	pix_tree_util = load_pixmap (ICON_RESOLVER_ROLE_TREE_TYPE, ICON_RESOLVER_TREE_TYPE_UTIL, "tree_util");
+	pix_tree_channel = load_pixmap (ICON_RESOLVER_ROLE_TREE_TYPE, ICON_RESOLVER_TREE_TYPE_CHANNEL);
+	pix_tree_dialog = load_pixmap (ICON_RESOLVER_ROLE_TREE_TYPE, ICON_RESOLVER_TREE_TYPE_DIALOG);
+	pix_tree_server = load_pixmap (ICON_RESOLVER_ROLE_TREE_TYPE, ICON_RESOLVER_TREE_TYPE_SERVER);
+	pix_tree_util = load_pixmap (ICON_RESOLVER_ROLE_TREE_TYPE, ICON_RESOLVER_TREE_TYPE_UTIL);
 
 	/* non-replaceable book pixmap */
 	pix_book = gdk_pixbuf_new_from_resource ("/icons/book.png", NULL);
