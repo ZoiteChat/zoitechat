@@ -33,10 +33,11 @@
 #include "../common/zoitechatc.h"
 #include "../common/fe.h"
 #include "gtkutil.h"
-#include "palette.h"
+#include "theme/theme-gtk.h"
 #include "maingui.h"
 #include "menu.h"
 #include "pixmaps.h"
+#include "theme/theme-access.h"
 #include "userlistgui.h"
 #include "fkeys.h"
 
@@ -46,10 +47,10 @@ enum
 	COL_NICK=1,		/* char * */
 	COL_HOST=2,		/* char * */
 	COL_USER=3,		/* struct User * */
-	COL_GDKCOLOR=4	/* PaletteColor */
+	COL_GDKCOLOR=4	/* GdkRGBA */
 };
 
-static void userlist_store_color (GtkListStore *store, GtkTreeIter *iter, int color_index);
+static void userlist_store_color (GtkListStore *store, GtkTreeIter *iter, ThemeSemanticToken token, gboolean has_token);
 
 GdkPixbuf *
 get_user_icon (server *serv, struct User *user)
@@ -130,6 +131,81 @@ scroll_to_iter (GtkTreeIter *iter, GtkTreeView *treeview, GtkTreeModel *model)
 	}
 }
 
+static GHashTable *
+userlist_row_map_ensure (session *sess)
+{
+	if (!sess->res->user_row_refs)
+		sess->res->user_row_refs = g_hash_table_new_full (g_direct_hash, g_direct_equal, NULL, (GDestroyNotify) gtk_tree_row_reference_free);
+
+	return sess->res->user_row_refs;
+}
+
+static void
+userlist_row_map_remove (session *sess, struct User *user)
+{
+	if (!sess->res->user_row_refs)
+		return;
+
+	g_hash_table_remove (sess->res->user_row_refs, user);
+}
+
+static void
+userlist_row_map_set (session *sess, GtkTreeModel *model, struct User *user, GtkTreeIter *iter)
+{
+	GtkTreePath *path;
+	GtkTreeRowReference *ref;
+
+	path = gtk_tree_model_get_path (model, iter);
+	if (!path)
+		return;
+
+	ref = gtk_tree_row_reference_new (model, path);
+	gtk_tree_path_free (path);
+	if (!ref)
+		return;
+
+	g_hash_table_replace (userlist_row_map_ensure (sess), user, ref);
+}
+
+static gboolean
+userlist_row_map_get_iter (session *sess, GtkTreeModel *model, struct User *user, GtkTreeIter *iter)
+{
+	GtkTreeRowReference *ref;
+	GtkTreePath *path;
+	struct User *row_user;
+
+	if (!sess->res->user_row_refs)
+		return FALSE;
+
+	ref = g_hash_table_lookup (sess->res->user_row_refs, user);
+	if (!ref)
+		return FALSE;
+
+	path = gtk_tree_row_reference_get_path (ref);
+	if (!path)
+	{
+		g_hash_table_remove (sess->res->user_row_refs, user);
+		return FALSE;
+	}
+
+	if (!gtk_tree_model_get_iter (model, iter, path))
+	{
+		gtk_tree_path_free (path);
+		g_hash_table_remove (sess->res->user_row_refs, user);
+		return FALSE;
+	}
+	gtk_tree_path_free (path);
+
+	gtk_tree_model_get (model, iter, COL_USER, &row_user, -1);
+	if (row_user != user)
+	{
+		g_hash_table_remove (sess->res->user_row_refs, user);
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
 /* select a row in the userlist by nick-name */
 
 void
@@ -139,7 +215,19 @@ userlist_select (session *sess, char *name)
 	GtkTreeView *treeview = GTK_TREE_VIEW (sess->gui->user_tree);
 	GtkTreeModel *model = gtk_tree_view_get_model (treeview);
 	GtkTreeSelection *selection = gtk_tree_view_get_selection (treeview);
+	struct User *user = userlist_find (sess, name);
 	struct User *row_user;
+
+	if (user && userlist_row_map_get_iter (sess, model, user, &iter))
+	{
+		if (gtk_tree_selection_iter_is_selected (selection, &iter))
+			gtk_tree_selection_unselect_iter (selection, &iter);
+		else
+			gtk_tree_selection_select_iter (selection, &iter);
+
+		scroll_to_iter (&iter, treeview, model);
+		return;
+	}
 
 	if (gtk_tree_model_get_iter_first (model, &iter))
 	{
@@ -148,6 +236,7 @@ userlist_select (session *sess, char *name)
 			gtk_tree_model_get (model, &iter, COL_USER, &row_user, -1);
 			if (sess->server->p_cmp (row_user->nick, name) == 0)
 			{
+				userlist_row_map_set (sess, model, row_user, &iter);
 				if (gtk_tree_selection_iter_is_selected (selection, &iter))
 					gtk_tree_selection_unselect_iter (selection, &iter);
 				else
@@ -237,13 +326,23 @@ fe_userlist_set_selected (struct session *sess)
 }
 
 static GtkTreeIter *
-find_row (GtkTreeView *treeview, GtkTreeModel *model, struct User *user,
+find_row (session *sess, GtkTreeView *treeview, GtkTreeModel *model, struct User *user,
 			 int *selected)
 {
 	static GtkTreeIter iter;
 	struct User *row_user;
 
 	*selected = FALSE;
+	if (userlist_row_map_get_iter (sess, model, user, &iter))
+	{
+		if (gtk_tree_view_get_model (treeview) == model)
+		{
+			if (gtk_tree_selection_iter_is_selected (gtk_tree_view_get_selection (treeview), &iter))
+				*selected = TRUE;
+		}
+		return &iter;
+	}
+
 	if (gtk_tree_model_get_iter_first (model, &iter))
 	{
 		do
@@ -251,6 +350,7 @@ find_row (GtkTreeView *treeview, GtkTreeModel *model, struct User *user,
 			gtk_tree_model_get (model, &iter, COL_USER, &row_user, -1);
 			if (row_user == user)
 			{
+				userlist_row_map_set (sess, model, row_user, &iter);
 				if (gtk_tree_view_get_model (treeview) == model)
 				{
 					if (gtk_tree_selection_iter_is_selected (gtk_tree_view_get_selection (treeview), &iter))
@@ -286,10 +386,11 @@ fe_userlist_remove (session *sess, struct User *user)
 	gfloat val, end;*/
 	int sel;
 
-	iter = find_row (GTK_TREE_VIEW (sess->gui->user_tree),
-						  GTK_TREE_MODEL(sess->res->user_model), user, &sel);
+	iter = find_row (sess, GTK_TREE_VIEW (sess->gui->user_tree),
+					  GTK_TREE_MODEL(sess->res->user_model), user, &sel);
 	if (!iter)
 		return 0;
+	userlist_row_map_remove (sess, user);
 
 /*	adj = gtk_tree_view_get_vadjustment (GTK_TREE_VIEW (sess->gui->user_tree));
 	val = adj->value;*/
@@ -314,22 +415,35 @@ fe_userlist_rehash (session *sess, struct User *user)
 {
 	GtkTreeIter *iter;
 	int sel;
-	int nick_color = 0;
+	ThemeSemanticToken nick_token = THEME_TOKEN_TEXT_FOREGROUND;
+	gboolean have_nick_token = FALSE;
 
-	iter = find_row (GTK_TREE_VIEW (sess->gui->user_tree),
-						  GTK_TREE_MODEL(sess->res->user_model), user, &sel);
+	iter = find_row (sess, GTK_TREE_VIEW (sess->gui->user_tree),
+					  GTK_TREE_MODEL(sess->res->user_model), user, &sel);
 	if (!iter)
 		return;
+	userlist_row_map_set (sess, GTK_TREE_MODEL (sess->res->user_model), user, iter);
 
 	if (prefs.hex_away_track && user->away)
-		nick_color = COL_AWAY;
+	{
+		nick_token = THEME_TOKEN_TAB_AWAY;
+		have_nick_token = TRUE;
+	}
 	else if (prefs.hex_gui_ulist_color)
-		nick_color = text_color_of(user->nick);
+	{
+		int mirc_index = text_color_of (user->nick);
+
+		if (mirc_index >= 0 && mirc_index < 32)
+		{
+			nick_token = (ThemeSemanticToken) (THEME_TOKEN_MIRC_0 + mirc_index);
+			have_nick_token = TRUE;
+		}
+	}
 
 	gtk_list_store_set (GTK_LIST_STORE (sess->res->user_model), iter,
 							  COL_HOST, user->hostname,
 							  -1);
-	userlist_store_color (GTK_LIST_STORE (sess->res->user_model), iter, nick_color);
+	userlist_store_color (GTK_LIST_STORE (sess->res->user_model), iter, nick_token, have_nick_token);
 }
 
 void
@@ -339,12 +453,24 @@ fe_userlist_insert (session *sess, struct User *newuser, gboolean sel)
 	GdkPixbuf *pix = get_user_icon (sess->server, newuser);
 	GtkTreeIter iter;
 	char *nick;
-	int nick_color = 0;
+	ThemeSemanticToken nick_token = THEME_TOKEN_TEXT_FOREGROUND;
+	gboolean have_nick_token = FALSE;
 
 	if (prefs.hex_away_track && newuser->away)
-		nick_color = COL_AWAY;
+	{
+		nick_token = THEME_TOKEN_TAB_AWAY;
+		have_nick_token = TRUE;
+	}
 	else if (prefs.hex_gui_ulist_color)
-		nick_color = text_color_of(newuser->nick);
+	{
+		int mirc_index = text_color_of (newuser->nick);
+
+		if (mirc_index >= 0 && mirc_index < 32)
+		{
+			nick_token = (ThemeSemanticToken) (THEME_TOKEN_MIRC_0 + mirc_index);
+			have_nick_token = TRUE;
+		}
+	}
 
 	nick = newuser->nick;
 	if (!prefs.hex_gui_ulist_icons)
@@ -364,12 +490,14 @@ fe_userlist_insert (session *sess, struct User *newuser, gboolean sel)
 									COL_HOST, newuser->hostname,
 									COL_USER, newuser,
 								  -1);
-	userlist_store_color (GTK_LIST_STORE (model), &iter, nick_color);
+	userlist_store_color (GTK_LIST_STORE (model), &iter, nick_token, have_nick_token);
 
 	if (!prefs.hex_gui_ulist_icons)
 	{
 		g_free (nick);
 	}
+
+	userlist_row_map_set (sess, model, newuser, &iter);
 
 	/* is it me? */
 	if (newuser->me && sess->gui->nick_box)
@@ -391,6 +519,8 @@ fe_userlist_insert (session *sess, struct User *newuser, gboolean sel)
 void
 fe_userlist_clear (session *sess)
 {
+	if (sess->res->user_row_refs)
+		g_hash_table_remove_all (sess->res->user_row_refs);
 	gtk_list_store_clear (sess->res->user_model);
 }
 
@@ -469,14 +599,17 @@ userlist_ops_cmp (GtkTreeModel *model, GtkTreeIter *iter_a, GtkTreeIter *iter_b,
 }
 
 static void
-userlist_store_color (GtkListStore *store, GtkTreeIter *iter, int color_index)
+userlist_store_color (GtkListStore *store, GtkTreeIter *iter, ThemeSemanticToken token, gboolean has_token)
 {
-	const PaletteColor *color = color_index ? &colors[color_index] : NULL;
+	GdkRGBA rgba;
+	const GdkRGBA *color = NULL;
+
+	if (has_token && theme_get_color (token, &rgba))
+		color = &rgba;
 
 	if (color)
 	{
-		GdkRGBA rgba = *color;
-		gtk_list_store_set (store, iter, COL_GDKCOLOR, &rgba, -1);
+		gtk_list_store_set (store, iter, COL_GDKCOLOR, color, -1);
 	}
 	else
 	{
@@ -492,7 +625,7 @@ userlist_create_model (session *sess)
 	GtkSortType sort_type;
 
 	store = gtk_list_store_new (5, GDK_TYPE_PIXBUF, G_TYPE_STRING, G_TYPE_STRING,
-										G_TYPE_POINTER, PALETTE_GDK_TYPE);
+										G_TYPE_POINTER, THEME_GTK_COLOR_TYPE);
 
 	switch (prefs.hex_gui_ulist_sort)
 	{
@@ -545,7 +678,7 @@ userlist_add_columns (GtkTreeView * treeview)
 	gtk_cell_renderer_text_set_fixed_height_from_font (GTK_CELL_RENDERER_TEXT (renderer), 1);
 	gtk_tree_view_insert_column_with_attributes (GTK_TREE_VIEW (treeview),
 																-1, NULL, renderer,
-													"text", 1, PALETTE_FOREGROUND_PROPERTY, 4, NULL);
+													"text", 1, THEME_GTK_FOREGROUND_PROPERTY, 4, NULL);
 
 	if (prefs.hex_gui_ulist_show_hosts)
 	{
@@ -734,38 +867,48 @@ userlist_show (session *sess)
 void
 fe_uselect (session *sess, char *word[], int do_clear, int scroll_to)
 {
-	int thisname;
 	char *name;
+	int thisname;
 	GtkTreeIter iter;
 	GtkTreeView *treeview = GTK_TREE_VIEW (sess->gui->user_tree);
 	GtkTreeModel *model = gtk_tree_view_get_model (treeview);
 	GtkTreeSelection *selection = gtk_tree_view_get_selection (treeview);
+	struct User *user;
 	struct User *row_user;
 
-	if (gtk_tree_model_get_iter_first (model, &iter))
-	{
-		if (do_clear)
-			gtk_tree_selection_unselect_all (selection);
+	if (do_clear)
+		gtk_tree_selection_unselect_all (selection);
 
-		do
+	thisname = 0;
+	while (*(name = word[thisname++]))
+	{
+		user = userlist_find (sess, name);
+		if (!user)
+			continue;
+
+		if (userlist_row_map_get_iter (sess, model, user, &iter))
 		{
-			if (*word[0])
+			gtk_tree_selection_select_iter (selection, &iter);
+			if (scroll_to)
+				scroll_to_iter (&iter, treeview, model);
+			continue;
+		}
+
+		if (gtk_tree_model_get_iter_first (model, &iter))
+		{
+			do
 			{
 				gtk_tree_model_get (model, &iter, COL_USER, &row_user, -1);
-				thisname = 0;
-				while ( *(name = word[thisname++]) )
+				if (row_user == user)
 				{
-					if (sess->server->p_cmp (row_user->nick, name) == 0)
-					{
-						gtk_tree_selection_select_iter (selection, &iter);
-						if (scroll_to)
-							scroll_to_iter (&iter, treeview, model);
-						break;
-					}
+					userlist_row_map_set (sess, model, row_user, &iter);
+					gtk_tree_selection_select_iter (selection, &iter);
+					if (scroll_to)
+						scroll_to_iter (&iter, treeview, model);
+					break;
 				}
 			}
-
+			while (gtk_tree_model_iter_next (model, &iter));
 		}
-		while (gtk_tree_model_iter_next (model, &iter));
 	}
 }

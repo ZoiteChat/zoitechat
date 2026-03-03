@@ -27,6 +27,8 @@ typedef struct
 
 #include <gdk/gdk.h>
 
+#include "theme/theme-access.h"
+
 static void 	/* row-activated, when a row is double clicked */
 cv_tree_activated_cb (GtkTreeView *view, GtkTreePath *path,
 							 GtkTreeViewColumn *column, gpointer data)
@@ -140,10 +142,19 @@ cv_tree_init (chanview *cv)
 		cv->font_desc
 	)
 	{
-		gtkutil_apply_palette (view, &colors[COL_BG], &colors[COL_FG],
+		GdkRGBA bg;
+		GdkRGBA fg;
+		const GdkRGBA *bg_color = NULL;
+		const GdkRGBA *fg_color = NULL;
+
+		if (theme_get_color (THEME_TOKEN_TEXT_BACKGROUND, &bg))
+			bg_color = &bg;
+		if (theme_get_color (THEME_TOKEN_TEXT_FOREGROUND, &fg))
+			fg_color = &fg;
+		gtkutil_apply_palette (view, bg_color, fg_color,
 		                       cv->font_desc);
 	}
-	/*gtk_widget_modify_base (view, GTK_STATE_NORMAL, &colors[COL_BG]);*/
+	/*gtk_widget_modify_base (view, GTK_STATE_NORMAL, &colors[THEME_LEGACY_TEXT_BACKGROUND]);*/
 	gtk_widget_set_can_focus (view, FALSE);
 	gtk_tree_view_set_headers_visible (GTK_TREE_VIEW (view), FALSE);
 

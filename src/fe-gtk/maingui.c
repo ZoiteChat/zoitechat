@@ -41,10 +41,13 @@
 #include "../common/cfgfiles.h"
 
 #include "fe-gtk.h"
+#include "theme/theme-manager.h"
+#include "theme/theme-css.h"
 #include "banlist.h"
 #include "gtkutil.h"
 #include "joind.h"
-#include "palette.h"
+#include "theme/theme-access.h"
+#include "theme/theme-palette.h"
 #include "maingui.h"
 #include "menu.h"
 #include "fkeys.h"
@@ -216,8 +219,7 @@ mg_apply_font_css (GtkWidget *widget, const PangoFontDescription *desc,
 	g_string_free (css, TRUE);
 
 	gtk_style_context_add_class (context, class_name);
-	gtk_style_context_add_provider (context, GTK_STYLE_PROVIDER (provider),
-	                                GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+	theme_css_apply_widget_provider (widget, GTK_STYLE_PROVIDER (provider));
 }
 
 static void
@@ -405,7 +407,7 @@ mg_attr_list_create (const XTextColor *col, int size)
 static void
 mg_create_tab_colors (void)
 {
-        XTextColor gui_palette[MAX_COL + 1];
+        XTextColor gui_palette[XTEXT_COLS];
 
         if (plain_list)
         {
@@ -416,12 +418,12 @@ mg_create_tab_colors (void)
                 pango_attr_list_unref (away_list);
         }
 
-        palette_get_xtext_colors (gui_palette, G_N_ELEMENTS (gui_palette));
+        theme_get_xtext_colors (gui_palette, G_N_ELEMENTS (gui_palette));
         plain_list = mg_attr_list_create (NULL, prefs.hex_gui_tab_small);
-        newdata_list = mg_attr_list_create (&gui_palette[COL_NEW_DATA], prefs.hex_gui_tab_small);
-        nickseen_list = mg_attr_list_create (&gui_palette[COL_HILIGHT], prefs.hex_gui_tab_small);
-        newmsg_list = mg_attr_list_create (&gui_palette[COL_NEW_MSG], prefs.hex_gui_tab_small);
-        away_list = mg_attr_list_create (&gui_palette[COL_AWAY], FALSE);
+        newdata_list = mg_attr_list_create (&gui_palette[THEME_TOKEN_TAB_NEW_DATA], prefs.hex_gui_tab_small);
+        nickseen_list = mg_attr_list_create (&gui_palette[THEME_TOKEN_TAB_HIGHLIGHT], prefs.hex_gui_tab_small);
+        newmsg_list = mg_attr_list_create (&gui_palette[THEME_TOKEN_TAB_NEW_MESSAGE], prefs.hex_gui_tab_small);
+        away_list = mg_attr_list_create (&gui_palette[THEME_TOKEN_TAB_AWAY], FALSE);
 }
 
 static void
@@ -1751,7 +1753,13 @@ mg_create_color_menu (GtkWidget *menu, session *sess)
                 guint16 green;
                 guint16 blue;
 
-                palette_color_get_rgb16 (&colors[i], &red, &green, &blue);
+                GdkRGBA color;
+
+                if (!theme_get_mirc_color ((unsigned int) i, &color))
+                        continue;
+                red = (guint16) CLAMP (color.red * 65535.0 + 0.5, 0.0, 65535.0);
+                green = (guint16) CLAMP (color.green * 65535.0 + 0.5, 0.0, 65535.0);
+                blue = (guint16) CLAMP (color.blue * 65535.0 + 0.5, 0.0, 65535.0);
                 sprintf (buf, "<tt><sup>%02d</sup> <span background=\"#%02x%02x%02x\">"
                                         "   </span></tt>",
                                 i, red >> 8, green >> 8, blue >> 8);
@@ -1766,7 +1774,13 @@ mg_create_color_menu (GtkWidget *menu, session *sess)
                 guint16 green;
                 guint16 blue;
 
-                palette_color_get_rgb16 (&colors[i], &red, &green, &blue);
+                GdkRGBA color;
+
+                if (!theme_get_mirc_color ((unsigned int) i, &color))
+                        continue;
+                red = (guint16) CLAMP (color.red * 65535.0 + 0.5, 0.0, 65535.0);
+                green = (guint16) CLAMP (color.green * 65535.0 + 0.5, 0.0, 65535.0);
+                blue = (guint16) CLAMP (color.blue * 65535.0 + 0.5, 0.0, 65535.0);
                 sprintf (buf, "<tt><sup>%02d</sup> <span background=\"#%02x%02x%02x\">"
                                         "   </span></tt>",
                                 i, red >> 8, green >> 8, blue >> 8);
@@ -2359,8 +2373,7 @@ mg_limit_entry_cb (GtkWidget * igad, gpointer userdata)
 static void
 mg_apply_entry_style (GtkWidget *entry)
 {
-        gtkutil_apply_palette (entry, &colors[COL_BG], &colors[COL_FG],
-                               input_style->font_desc);
+	theme_manager_apply_entry_palette (entry, input_style->font_desc);
 }
 
 static void
@@ -2604,7 +2617,7 @@ mg_update_xtext (GtkWidget *wid)
         const gchar *font_name;
         XTextColor xtext_palette[XTEXT_COLS];
 
-        palette_get_xtext_colors (xtext_palette, XTEXT_COLS);
+        theme_get_xtext_colors (xtext_palette, XTEXT_COLS);
         gtk_xtext_set_palette (xtext, xtext_palette);
         gtk_xtext_set_max_lines (xtext, prefs.hex_text_max_lines);
         gtk_xtext_set_background (xtext, channelwin_pix);
@@ -2651,7 +2664,7 @@ mg_create_textarea (session *sess, GtkWidget *box)
         gtk_frame_set_shadow_type (GTK_FRAME (frame), GTK_SHADOW_IN);
         gtk_box_pack_start (GTK_BOX (inbox), frame, TRUE, TRUE, 0);
 
-        palette_get_xtext_colors (xtext_palette, XTEXT_COLS);
+        theme_get_xtext_colors (xtext_palette, XTEXT_COLS);
         gui->xtext = gtk_xtext_new (xtext_palette, TRUE);
         xtext = GTK_XTEXT (gui->xtext);
         gtk_xtext_set_max_indent (xtext, prefs.hex_text_max_indent);
@@ -2771,6 +2784,81 @@ mg_update_meters (session_gui *gui)
 }
 
 static void
+mg_theme_apply_userlist_style (session_gui *gui)
+{
+	const PangoFontDescription *font = NULL;
+
+	if (!gui || !gui->user_tree)
+		return;
+
+	if (input_style)
+		font = input_style->font_desc;
+
+	theme_manager_apply_userlist_style (gui->user_tree,
+			theme_manager_get_userlist_palette_behavior (font));
+}
+
+static void
+mg_theme_userlist_changed (const ThemeChangedEvent *event, gpointer userdata)
+{
+	session_gui *gui = userdata;
+
+	if (!theme_changed_event_has_reason (event, THEME_CHANGED_REASON_USERLIST) &&
+	    !theme_changed_event_has_reason (event, THEME_CHANGED_REASON_PALETTE) &&
+	    !theme_changed_event_has_reason (event, THEME_CHANGED_REASON_WIDGET_STYLE) &&
+	    !theme_changed_event_has_reason (event, THEME_CHANGED_REASON_MODE) &&
+	    !theme_changed_event_has_reason (event, THEME_CHANGED_REASON_THEME_PACK))
+		return;
+
+	mg_theme_apply_userlist_style (gui);
+}
+
+static void
+mg_theme_window_changed (const ThemeChangedEvent *event, gpointer userdata)
+{
+	session_gui *gui = userdata;
+
+	if (!theme_changed_event_has_reason (event, THEME_CHANGED_REASON_MODE) &&
+	    !theme_changed_event_has_reason (event, THEME_CHANGED_REASON_THEME_PACK) &&
+	    !theme_changed_event_has_reason (event, THEME_CHANGED_REASON_WIDGET_STYLE))
+		return;
+
+	if (gui)
+		theme_manager_apply_to_window (gui->window);
+}
+
+static void
+mg_theme_userlist_destroy_cb (GtkWidget *widget, gpointer userdata)
+{
+	session_gui *gui = userdata;
+
+	(void) widget;
+	if (!gui)
+		return;
+	if (gui->theme_userlist_listener_id)
+	{
+		theme_listener_unregister (gui->theme_userlist_listener_id);
+		gui->theme_userlist_listener_id = 0;
+	}
+}
+
+static void
+mg_theme_window_destroy_cb (GtkWidget *widget, gpointer userdata)
+{
+	session_gui *gui = userdata;
+
+	(void) widget;
+	if (!gui)
+		return;
+	theme_manager_detach_window (gui->window);
+	if (gui->theme_window_listener_id)
+	{
+		theme_listener_unregister (gui->theme_window_listener_id);
+		gui->theme_window_listener_id = 0;
+	}
+}
+
+static void
 mg_create_userlist (session_gui *gui, GtkWidget *box)
 {
         GtkWidget *frame, *ulist, *vbox;
@@ -2787,19 +2875,10 @@ mg_create_userlist (session_gui *gui, GtkWidget *box)
 
         gui->user_tree = ulist = userlist_create (vbox);
 
-        /*
-         * Keep the user list in sync with the chat palette.
-         *
-         * - When "Use the text box font and colors" is enabled, we already want the
-         *   palette background.
-         * - When "Dark mode" is enabled, we also force the user list to use the
-         *   palette colors so it doesn't stay blindingly white on dark themes.
-         */
-        if (prefs.hex_gui_ulist_style || fe_dark_mode_is_enabled ())
-        {
-                gtkutil_apply_palette (ulist, &colors[COL_BG], &colors[COL_FG],
-                                       input_style ? input_style->font_desc : NULL);
-        }
+        if (!gui->theme_userlist_listener_id)
+                gui->theme_userlist_listener_id = theme_listener_register ("maingui.userlist", mg_theme_userlist_changed, gui);
+        g_signal_connect (G_OBJECT (ulist), "destroy", G_CALLBACK (mg_theme_userlist_destroy_cb), gui);
+        mg_theme_apply_userlist_style (gui);
 
         mg_create_meters (gui, vbox);
 
@@ -3626,7 +3705,6 @@ mg_create_topwindow (session *sess)
         g_signal_connect (G_OBJECT (win), "configure_event",
                                                         G_CALLBACK (mg_configure_cb), sess);
 
-        palette_alloc (win);
 
         table = gtk_grid_new ();
         /* spacing under the menubar */
@@ -3681,7 +3759,10 @@ mg_create_topwindow (session *sess)
         mg_place_userlist_and_chanview (sess->gui);
 
 	gtk_widget_show (win);
-	fe_apply_theme_to_toplevel (win);
+	if (!sess->gui->theme_window_listener_id)
+		sess->gui->theme_window_listener_id = theme_listener_register ("maingui.window", mg_theme_window_changed, sess->gui);
+	g_signal_connect (G_OBJECT (win), "destroy", G_CALLBACK (mg_theme_window_destroy_cb), sess->gui);
+	theme_manager_attach_window (win);
 
 #ifdef G_OS_WIN32
 	parent_win = gtk_widget_get_window (win);
@@ -3730,7 +3811,7 @@ mg_win32_filter (GdkXEvent *xevent, GdkEvent *event, gpointer data)
 
 	if (msg->message == WM_SETTINGCHANGE || msg->message == WM_THEMECHANGED)
 	{
-		fe_refresh_auto_dark_mode ();
+		theme_manager_refresh_auto_mode ();
 		return GDK_FILTER_CONTINUE;
 	}
 
@@ -3818,7 +3899,6 @@ mg_create_tabwindow (session *sess)
         g_signal_connect (G_OBJECT (win), "window_state_event",
                                                         G_CALLBACK (mg_windowstate_cb), NULL);
 
-        palette_alloc (win);
 
         sess->gui->main_table = table = gtk_grid_new ();
         /* spacing under the menubar */
@@ -3857,7 +3937,10 @@ mg_create_tabwindow (session *sess)
         mg_place_userlist_and_chanview (sess->gui);
 
         gtk_widget_show (win);
-        fe_apply_theme_to_toplevel (win);
+        if (!sess->gui->theme_window_listener_id)
+                sess->gui->theme_window_listener_id = theme_listener_register ("maingui.window", mg_theme_window_changed, sess->gui);
+        g_signal_connect (G_OBJECT (win), "destroy", G_CALLBACK (mg_theme_window_destroy_cb), sess->gui);
+        theme_manager_attach_window (win);
 
 #ifdef G_OS_WIN32
 	parent_win = gtk_widget_get_window (win);
@@ -3881,8 +3964,6 @@ mg_apply_setup (void)
                 ((xtext_buffer *)sess->res->buffer)->needs_recalc = TRUE;
                 if (!sess->gui->is_tab || !done_main)
                         mg_place_userlist_and_chanview (sess->gui);
-                if (sess->gui->window)
-                        fe_apply_theme_to_toplevel (sess->gui->window);
                 if (sess->gui->is_tab)
                         done_main = TRUE;
                 list = list->next;
@@ -4218,6 +4299,8 @@ fe_session_callback (session *sess)
 {
         gtk_xtext_buffer_free (sess->res->buffer);
         g_object_unref (G_OBJECT (sess->res->user_model));
+        if (sess->res->user_row_refs)
+                g_hash_table_destroy (sess->res->user_row_refs);
 
         if (sess->res->banlist && sess->res->banlist->window)
                 mg_close_gen (NULL, sess->res->banlist->window);

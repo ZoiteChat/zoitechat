@@ -36,7 +36,8 @@
 #include "../common/cfgfiles.h"
 #include "../common/server.h"
 #include "gtkutil.h"
-#include "palette.h"
+#include "theme/theme-access.h"
+#include "theme/theme-manager.h"
 #include "maingui.h"
 #include "rawlog.h"
 #include "xtext.h"
@@ -44,6 +45,53 @@
 
 #define ICON_RAWLOG_CLEAR "zc-menu-clear"
 #define ICON_RAWLOG_SAVE_AS "zc-menu-save-as"
+
+#define RAWLOG_THEME_LISTENER_ID_KEY "rawlog.theme-listener-id"
+
+static void
+rawlog_theme_apply (GtkWidget *window)
+{
+	GtkWidget *xtext_widget;
+	XTextColor xtext_palette[XTEXT_COLS];
+
+	if (!window)
+		return;
+
+	xtext_widget = g_object_get_data (G_OBJECT (window), "rawlog-xtext");
+	if (!xtext_widget)
+		return;
+
+	theme_get_xtext_colors (xtext_palette, XTEXT_COLS);
+	gtk_xtext_set_palette (GTK_XTEXT (xtext_widget), xtext_palette);
+}
+
+static void
+rawlog_theme_changed (const ThemeChangedEvent *event, gpointer userdata)
+{
+	GtkWidget *window = userdata;
+
+	if (!theme_changed_event_has_reason (event, THEME_CHANGED_REASON_PALETTE) &&
+	    !theme_changed_event_has_reason (event, THEME_CHANGED_REASON_THEME_PACK) &&
+	    !theme_changed_event_has_reason (event, THEME_CHANGED_REASON_MODE))
+		return;
+
+	rawlog_theme_apply (window);
+}
+
+static void
+rawlog_theme_destroy_cb (GtkWidget *widget, gpointer userdata)
+{
+	guint listener_id;
+
+	(void) userdata;
+
+	listener_id = GPOINTER_TO_UINT (g_object_get_data (G_OBJECT (widget), RAWLOG_THEME_LISTENER_ID_KEY));
+	if (listener_id)
+	{
+		theme_listener_unregister (listener_id);
+		g_object_set_data (G_OBJECT (widget), RAWLOG_THEME_LISTENER_ID_KEY, NULL);
+	}
+}
 
 static void
 close_rawlog (GtkWidget *wid, server *serv)
@@ -126,11 +174,12 @@ open_rawlog (struct server *serv)
 	gtk_widget_set_vexpand (scrolledwindow, TRUE);
 	gtk_box_pack_start (GTK_BOX (vbox), scrolledwindow, TRUE, TRUE, 0);
 
-	palette_get_xtext_colors (xtext_palette, XTEXT_COLS);
+	theme_get_xtext_colors (xtext_palette, XTEXT_COLS);
 	serv->gui->rawlog_textlist = gtk_xtext_new (xtext_palette, 0);
 	gtk_container_add (GTK_CONTAINER (scrolledwindow), serv->gui->rawlog_textlist);
 	gtk_xtext_set_font (GTK_XTEXT (serv->gui->rawlog_textlist), prefs.hex_text_font);
 	GTK_XTEXT (serv->gui->rawlog_textlist)->ignore_hidden = 1;
+	g_object_set_data (G_OBJECT (serv->gui->rawlog_window), "rawlog-xtext", serv->gui->rawlog_textlist);
 
 	bbox = gtk_button_box_new (GTK_ORIENTATION_HORIZONTAL);
 	gtk_button_box_set_layout (GTK_BUTTON_BOX (bbox), GTK_BUTTONBOX_SPREAD);
@@ -144,6 +193,9 @@ open_rawlog (struct server *serv)
 
 	/* Copy selection to clipboard when Ctrl+Shift+C is pressed AND text auto-copy is disabled */
 	g_signal_connect (G_OBJECT (serv->gui->rawlog_window), "key_press_event", G_CALLBACK (rawlog_key_cb), serv->gui->rawlog_textlist);
+	g_object_set_data (G_OBJECT (serv->gui->rawlog_window), RAWLOG_THEME_LISTENER_ID_KEY,
+				   GUINT_TO_POINTER (theme_listener_register ("rawlog.window", rawlog_theme_changed, serv->gui->rawlog_window)));
+	g_signal_connect (G_OBJECT (serv->gui->rawlog_window), "destroy", G_CALLBACK (rawlog_theme_destroy_cb), NULL);
 
 	gtk_widget_show_all (serv->gui->rawlog_window);
 }

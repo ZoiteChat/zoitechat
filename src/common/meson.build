@@ -3,6 +3,7 @@ common_sources = [
   'chanopt.c',
   'ctcp.c',
   'dcc.c',
+  'theme-service.c',
   'zoitechat.c',
   'history.c',
   'ignore.c',

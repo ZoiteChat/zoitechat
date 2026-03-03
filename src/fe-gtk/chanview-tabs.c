@@ -36,6 +36,21 @@ static int ignore_toggle = FALSE;
 static int tab_left_is_moving = 0;
 static int tab_right_is_moving = 0;
 
+typedef struct
+{
+	GtkAdjustment *adj;
+	gdouble current_value;
+	gdouble target_value;
+	gint direction;
+	gdouble step_size;
+	guint source_id;
+	int *moving_flag;
+	gboolean is_left;
+} tab_scroll_animation;
+
+static tab_scroll_animation *tab_left_animation;
+static tab_scroll_animation *tab_right_animation;
+
 /* userdata for gobjects used here:
  *
  * tab (togglebuttons inside boxes):
@@ -149,6 +164,92 @@ tab_search_offset (GtkWidget *inner, gint start_offset,
 	return 0;
 }
 
+static gboolean
+tab_scroll_animation_tick (gpointer userdata)
+{
+	tab_scroll_animation *animation = userdata;
+	gboolean reached_target;
+
+	animation->current_value += animation->step_size * animation->direction;
+
+	if (animation->direction < 0)
+		reached_target = animation->current_value <= animation->target_value;
+	else
+		reached_target = animation->current_value >= animation->target_value;
+
+	if (reached_target)
+		animation->current_value = animation->target_value;
+
+	gtk_adjustment_set_value (animation->adj, animation->current_value);
+
+	if (!reached_target)
+		return G_SOURCE_CONTINUE;
+
+	*animation->moving_flag = 0;
+	animation->source_id = 0;
+
+	if (animation->is_left)
+		tab_left_animation = NULL;
+	else
+		tab_right_animation = NULL;
+
+	g_object_unref (animation->adj);
+	g_free (animation);
+
+	return G_SOURCE_REMOVE;
+}
+
+static void
+tab_scroll_animation_cancel (tab_scroll_animation **animation)
+{
+	if (*animation == NULL)
+		return;
+
+	if ((*animation)->source_id != 0)
+		g_source_remove ((*animation)->source_id);
+
+	*(*animation)->moving_flag = 0;
+	g_object_unref ((*animation)->adj);
+	g_free (*animation);
+	*animation = NULL;
+}
+
+static void
+tab_scroll_animation_start (tab_scroll_animation **slot, GtkAdjustment *adj,
+							gdouble current_value, gdouble target_value,
+							gint direction, int *moving_flag,
+							gboolean is_left)
+{
+	tab_scroll_animation *animation;
+	gdouble distance;
+	gdouble frames;
+
+	distance = target_value - current_value;
+	if (distance < 0.0)
+		distance = -distance;
+
+	if (distance <= 0.0)
+	{
+		gtk_adjustment_set_value (adj, target_value);
+		*moving_flag = 0;
+		return;
+	}
+
+	animation = g_new0 (tab_scroll_animation, 1);
+	animation->adj = g_object_ref (adj);
+	animation->current_value = current_value;
+	animation->target_value = target_value;
+	animation->direction = direction;
+	frames = 12.0;
+	animation->step_size = distance / MAX (1.0, frames);
+	animation->moving_flag = moving_flag;
+	animation->is_left = is_left;
+
+	*moving_flag = 1;
+	animation->source_id = g_timeout_add (16, tab_scroll_animation_tick, animation);
+	*slot = animation;
+}
+
 static void
 tab_scroll_left_up_clicked (GtkWidget *widget, chanview *cv)
 {
@@ -157,7 +258,6 @@ tab_scroll_left_up_clicked (GtkWidget *widget, chanview *cv)
 	gfloat new_value;
 	GtkWidget *inner;
 	GdkWindow *parent_win;
-	gdouble i;
 
 	inner = ((tabview *)cv)->inner;
 	parent_win = gtk_widget_get_window (gtk_widget_get_parent (inner));
@@ -177,25 +277,15 @@ tab_scroll_left_up_clicked (GtkWidget *widget, chanview *cv)
 	if (new_value + viewport_size > gtk_adjustment_get_upper (adj))
 		new_value = gtk_adjustment_get_upper (adj) - viewport_size;
 
-	if (!tab_left_is_moving)
+	if (tab_left_is_moving)
 	{
-		tab_left_is_moving = 1;
-
-		for (i = gtk_adjustment_get_value (adj); ((i > new_value) && (tab_left_is_moving)); i -= 0.1)
-		{
-			gtk_adjustment_set_value (adj, i);
-			while (g_main_context_pending (NULL))
-				g_main_context_iteration (NULL, TRUE);
-		}
-
-		gtk_adjustment_set_value (adj, new_value);
-
-		tab_left_is_moving = 0;
+		tab_scroll_animation_cancel (&tab_left_animation);
+		return;
 	}
-	else
-	{
-		tab_left_is_moving = 0;
-	}
+
+	tab_scroll_animation_start (&tab_left_animation, adj,
+							gtk_adjustment_get_value (adj), new_value,
+							-1, &tab_left_is_moving, TRUE);
 }
 
 static void
@@ -206,7 +296,6 @@ tab_scroll_right_down_clicked (GtkWidget *widget, chanview *cv)
 	gfloat new_value;
 	GtkWidget *inner;
 	GdkWindow *parent_win;
-	gdouble i;
 
 	inner = ((tabview *)cv)->inner;
 	parent_win = gtk_widget_get_window (gtk_widget_get_parent (inner));
@@ -226,25 +315,15 @@ tab_scroll_right_down_clicked (GtkWidget *widget, chanview *cv)
 	if (new_value == 0 || new_value + viewport_size > gtk_adjustment_get_upper (adj))
 		new_value = gtk_adjustment_get_upper (adj) - viewport_size;
 
-	if (!tab_right_is_moving)
+	if (tab_right_is_moving)
 	{
-		tab_right_is_moving = 1;
-
-		for (i = gtk_adjustment_get_value (adj); ((i < new_value) && (tab_right_is_moving)); i += 0.1)
-		{
-			gtk_adjustment_set_value (adj, i);
-			while (g_main_context_pending (NULL))
-				g_main_context_iteration (NULL, TRUE);
-		}
-
-		gtk_adjustment_set_value (adj, new_value);
-
-		tab_right_is_moving = 0;
+		tab_scroll_animation_cancel (&tab_right_animation);
+		return;
 	}
-	else
-	{
-		tab_right_is_moving = 0;
-	}
+
+	tab_scroll_animation_start (&tab_right_animation, adj,
+							gtk_adjustment_get_value (adj), new_value,
+							1, &tab_right_is_moving, FALSE);
 }
 
 static gboolean

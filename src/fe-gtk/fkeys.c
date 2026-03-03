@@ -48,7 +48,9 @@
 #include "gtkutil.h"
 #include "menu.h"
 #include "xtext.h"
-#include "palette.h"
+#include "theme/theme-access.h"
+#include "theme/theme-manager.h"
+#include "theme/theme-css.h"
 #include "maingui.h"
 #include "textgui.h"
 #include "fkeys.h"
@@ -141,6 +143,53 @@ static int key_action_put_history (GtkWidget * wid, GdkEventKey * evt,
 												  struct session *sess);
 
 static GSList *keybind_list = NULL;
+
+#define KEY_DIALOG_THEME_LISTENER_ID_KEY "fkeys.theme-listener-id"
+
+static void
+key_dialog_theme_apply (GtkWidget *window)
+{
+	GtkWidget *xtext;
+	XTextColor xtext_palette[XTEXT_COLS];
+
+	if (!window)
+		return;
+
+	xtext = g_object_get_data (G_OBJECT (window), "xtext");
+	if (!xtext)
+		return;
+
+	theme_get_xtext_colors (xtext_palette, XTEXT_COLS);
+	gtk_xtext_set_palette (GTK_XTEXT (xtext), xtext_palette);
+}
+
+static void
+key_dialog_theme_changed (const ThemeChangedEvent *event, gpointer userdata)
+{
+	GtkWidget *window = userdata;
+
+	if (!theme_changed_event_has_reason (event, THEME_CHANGED_REASON_PALETTE) &&
+	    !theme_changed_event_has_reason (event, THEME_CHANGED_REASON_THEME_PACK) &&
+	    !theme_changed_event_has_reason (event, THEME_CHANGED_REASON_MODE))
+		return;
+
+	key_dialog_theme_apply (window);
+}
+
+static void
+key_dialog_theme_destroy_cb (GtkWidget *widget, gpointer userdata)
+{
+	guint listener_id;
+
+	(void) userdata;
+
+	listener_id = GPOINTER_TO_UINT (g_object_get_data (G_OBJECT (widget), KEY_DIALOG_THEME_LISTENER_ID_KEY));
+	if (listener_id)
+	{
+		theme_listener_unregister (listener_id);
+		g_object_set_data (G_OBJECT (widget), KEY_DIALOG_THEME_LISTENER_ID_KEY, NULL);
+	}
+}
 
 static gsize
 key_action_decode_escapes (const char *input, char *output)
@@ -748,7 +797,6 @@ key_dialog_treeview_new (GtkWidget *box)
 	gtk_widget_set_name (view, "fkeys-treeview");
 	{
 		GtkCssProvider *provider = gtk_css_provider_new ();
-		GtkStyleContext *context = gtk_widget_get_style_context (view);
 
 		gtk_css_provider_load_from_data (
 			provider,
@@ -760,8 +808,7 @@ key_dialog_treeview_new (GtkWidget *box)
 			"}",
 			-1,
 			NULL);
-		gtk_style_context_add_provider (context, GTK_STYLE_PROVIDER (provider),
-										GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+		theme_css_apply_widget_provider (view, GTK_STYLE_PROVIDER (provider));
 		g_object_unref (provider);
 	}
 
@@ -904,13 +951,16 @@ key_dialog_show ()
 									NULL, 600, 360, &vbox, 0);
 
 	view = key_dialog_treeview_new (vbox);
-	palette_get_xtext_colors (xtext_palette, XTEXT_COLS);
+	theme_get_xtext_colors (xtext_palette, XTEXT_COLS);
 	xtext = gtk_xtext_new (xtext_palette, 0);
 	gtk_box_pack_start (GTK_BOX (vbox), xtext, FALSE, TRUE, 2);
 	gtk_xtext_set_font (GTK_XTEXT (xtext), prefs.hex_text_font);
 
 	g_object_set_data (G_OBJECT (key_dialog), "view", view);
 	g_object_set_data (G_OBJECT (key_dialog), "xtext", xtext);
+	g_object_set_data (G_OBJECT (key_dialog), KEY_DIALOG_THEME_LISTENER_ID_KEY,
+				   GUINT_TO_POINTER (theme_listener_register ("fkeys.window", key_dialog_theme_changed, key_dialog)));
+	g_signal_connect (G_OBJECT (key_dialog), "destroy", G_CALLBACK (key_dialog_theme_destroy_cb), NULL);
 
 	box = gtk_button_box_new (GTK_ORIENTATION_HORIZONTAL);
 	gtk_button_box_set_layout (GTK_BUTTON_BOX (box), GTK_BUTTONBOX_SPREAD);

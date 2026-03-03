@@ -54,7 +54,7 @@
 #include "notifygui.h"
 #include "pixmaps.h"
 #include "rawlog.h"
-#include "palette.h"
+#include "theme/theme-gtk.h"
 #include "plugingui.h"
 #include "search.h"
 #include "textgui.h"

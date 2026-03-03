@@ -119,6 +119,9 @@
     <ClInclude Include="sysinfo\sysinfo.h">
       <Filter>Source Files\sysinfo</Filter>
     </ClInclude>
+    <ClInclude Include="theme-service.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="cfgfiles.c">
@@ -201,6 +204,9 @@
     </ClCompile>
     <ClCompile Include="sysinfo\win32\backend.c">
       <Filter>Source Files\sysinfo\win32</Filter>
+    </ClCompile>
+    <ClCompile Include="theme-service.c">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

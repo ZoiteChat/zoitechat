@@ -47,7 +47,8 @@
 
 #include "../common/cfgfiles.h"
 #include "../common/zoitechatc.h"
-#include "palette.h"
+#include "theme/theme-access.h"
+#include "theme/theme-palette.h"
 #include "xtext.h"
 #include "gtkutil.h"
 
@@ -55,6 +56,34 @@
 #define ICON_ADD "zc-menu-add"
 #define ICON_REMOVE "zc-menu-remove"
 #define ICON_SPELL_CHECK "zc-menu-spell-check"
+
+static void
+color_to_rgb16 (const GdkRGBA *color, guint16 *red, guint16 *green, guint16 *blue)
+{
+	*red = (guint16) CLAMP (color->red * 65535.0 + 0.5, 0.0, 65535.0);
+	*green = (guint16) CLAMP (color->green * 65535.0 + 0.5, 0.0, 65535.0);
+	*blue = (guint16) CLAMP (color->blue * 65535.0 + 0.5, 0.0, 65535.0);
+}
+
+static void
+theme_token_color_rgb16 (ThemeSemanticToken token, guint16 *red, guint16 *green, guint16 *blue)
+{
+	GdkRGBA color = { 0 };
+
+	if (!theme_get_color (token, &color))
+		return;
+	color_to_rgb16 (&color, red, green, blue);
+}
+
+static void
+theme_mirc_color_rgb16 (int mirc_idx, guint16 *red, guint16 *green, guint16 *blue)
+{
+	GdkRGBA color = { 0 };
+
+	if (!theme_get_mirc_color ((unsigned int) mirc_idx, &color))
+		return;
+	color_to_rgb16 (&color, red, green, blue);
+}
 
 /*
  * Bunch of poop to make enchant into a runtime dependency rather than a
@@ -353,7 +382,7 @@ insert_underline_error (SexySpellEntry *entry, guint start, guint end)
 	guint16 green;
 	guint16 blue;
 
-	palette_color_get_rgb16 (&colors[COL_SPELL], &red, &green, &blue);
+	theme_token_color_rgb16 (THEME_TOKEN_SPELL, &red, &green, &blue);
 	ucolor = pango_attr_underline_color_new (red, green, blue);
 	unline = pango_attr_underline_new (PANGO_UNDERLINE_ERROR);
 
@@ -421,27 +450,27 @@ insert_color (SexySpellEntry *entry, guint start, int fgcolor, int bgcolor)
 	guint16 green;
 	guint16 blue;
 
-	if (fgcolor < 0 || fgcolor > MAX_COL)
+	if (fgcolor < 0)
 	{
-		palette_color_get_rgb16 (&colors[COL_FG], &red, &green, &blue);
+		theme_token_color_rgb16 (THEME_TOKEN_TEXT_FOREGROUND, &red, &green, &blue);
 		fgattr = pango_attr_foreground_new (red, green, blue);
 		ulattr = pango_attr_underline_color_new (red, green, blue);
 	}
 	else
 	{
-		palette_color_get_rgb16 (&colors[fgcolor], &red, &green, &blue);
+		theme_mirc_color_rgb16 (fgcolor, &red, &green, &blue);
 		fgattr = pango_attr_foreground_new (red, green, blue);
 		ulattr = pango_attr_underline_color_new (red, green, blue);
 	}
 
-	if (bgcolor < 0 || bgcolor > MAX_COL)
+	if (bgcolor < 0)
 	{
-		palette_color_get_rgb16 (&colors[COL_BG], &red, &green, &blue);
+		theme_token_color_rgb16 (THEME_TOKEN_TEXT_BACKGROUND, &red, &green, &blue);
 		bgattr = pango_attr_background_new (red, green, blue);
 	}
 	else
 	{
-		palette_color_get_rgb16 (&colors[bgcolor], &red, &green, &blue);
+		theme_mirc_color_rgb16 (bgcolor, &red, &green, &blue);
 		bgattr = pango_attr_background_new (red, green, blue);
 	}
 
@@ -1053,7 +1082,7 @@ check_attributes (SexySpellEntry *entry, const char *text, int len)
 
 		case ATTR_REVERSE:
 			insert_hiddenchar (entry, i, i + 1);
-			insert_color (entry, i, COL_BG, COL_FG);
+			insert_color (entry, i, THEME_TOKEN_TEXT_BACKGROUND, THEME_TOKEN_TEXT_FOREGROUND);
 			goto check_color;
 
 		case '\n':

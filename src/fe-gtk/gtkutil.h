@@ -22,7 +22,7 @@
 
 #include <gtk/gtk.h>
 #include "../common/fe.h"
-#include "palette.h"
+#include "theme/theme-gtk.h"
 
 typedef void (*filereqcallback) (void *, char *file);
 

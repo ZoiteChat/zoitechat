@@ -258,12 +258,13 @@ int
 cfg_get_color (char *cfg, char *var, guint16 *r, guint16 *g, guint16 *b)
 {
 	char str[128];
+	int matched;
 
 	if (!cfg_get_str (cfg, var, str, sizeof (str)))
 		return 0;
 
-	sscanf (str, "%04hx %04hx %04hx", r, g, b);
-	return 1;
+	matched = sscanf (str, "%04hx %04hx %04hx", r, g, b);
+	return matched == 3;
 }
 
 int

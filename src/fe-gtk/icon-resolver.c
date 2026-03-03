@@ -2,6 +2,7 @@
 
 #include "fe-gtk.h"
 #include "icon-resolver.h"
+#include "theme/theme-policy.h"
 #include "../common/cfgfiles.h"
 
 typedef struct
@@ -249,28 +250,10 @@ icon_resolver_system_icon_name (IconResolverRole role, int item)
 IconResolverThemeVariant
 icon_resolver_detect_theme_variant (void)
 {
-	GtkSettings *settings;
-	gboolean prefer_dark = FALSE;
-	char *theme_name = NULL;
-	char *theme_name_lower = NULL;
-	IconResolverThemeVariant theme_variant = ICON_RESOLVER_THEME_LIGHT;
+	if (theme_policy_is_app_dark_mode_active ())
+		return ICON_RESOLVER_THEME_DARK;
 
-	settings = gtk_settings_get_default ();
-	if (settings)
-	{
-		g_object_get (G_OBJECT (settings), "gtk-application-prefer-dark-theme", &prefer_dark, NULL);
-		g_object_get (G_OBJECT (settings), "gtk-theme-name", &theme_name, NULL);
-	}
-
-	if (theme_name)
-		theme_name_lower = g_ascii_strdown (theme_name, -1);
-	if (prefer_dark || (theme_name_lower && g_strrstr (theme_name_lower, "dark")))
-		theme_variant = ICON_RESOLVER_THEME_DARK;
-
-	g_free (theme_name_lower);
-	g_free (theme_name);
-
-	return theme_variant;
+	return ICON_RESOLVER_THEME_LIGHT;
 }
 
 static gboolean

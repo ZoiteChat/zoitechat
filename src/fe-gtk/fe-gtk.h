@@ -114,6 +114,7 @@ typedef struct restore_gui
 
 	/* information stored when this tab isn't front-most */
 	GtkListStore *user_model;	/* for filling the GtkTreeView */
+	GHashTable *user_row_refs;
 	void *buffer;		/* xtext_Buffer */
 	char *input_text;	/* input text buffer (while not-front tab) */
 	char *topic_text;	/* topic GtkEntry buffer */
@@ -178,6 +179,8 @@ typedef struct session_gui
 
 	int pane_left_size;	/*last position of the pane*/
 	int pane_right_size;
+	guint theme_window_listener_id;
+	guint theme_userlist_listener_id;
 
 	guint16 is_tab;	/* is tab or toplevel? */
 	guint16 ul_hidden;	/* userlist hidden? */
@@ -190,9 +193,12 @@ extern cairo_surface_t *dialogwin_pix;
 gboolean fe_dark_mode_is_enabled (void);
 gboolean fe_dark_mode_is_enabled_for (unsigned int mode);
 void fe_set_auto_dark_mode_state (gboolean enabled);
-void fe_refresh_auto_dark_mode (void);
-gboolean fe_apply_theme_for_mode (unsigned int mode, gboolean *palette_changed);
-void fe_apply_theme_to_toplevel (GtkWidget *window);
+
+#ifdef G_OS_WIN32
+gboolean fe_win32_high_contrast_is_enabled (void);
+gboolean fe_win32_try_get_system_dark (gboolean *prefer_dark);
+#endif
+void fe_win32_apply_native_titlebar (GtkWidget *window, gboolean dark_mode);
 
 #define SPELL_ENTRY_GET_TEXT(e) ((char *)(gtk_entry_get_text (GTK_ENTRY(e))))
 #define SPELL_ENTRY_SET_TEXT(e,txt) gtk_entry_set_text(GTK_ENTRY(e),txt)

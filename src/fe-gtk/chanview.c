@@ -28,7 +28,7 @@
 #include "maingui.h"
 #include "gtkutil.h"
 #include "chanview.h"
-#include "palette.h"
+#include "theme/theme-manager.h"
 
 /* treeStore columns */
 #define COL_NAME 0		/* (char *) */
@@ -75,6 +75,7 @@ struct _chanview
 	unsigned int sorted:1;
 	unsigned int vertical:1;
 	unsigned int use_icons:1;
+	guint theme_listener_id;
 };
 
 struct _chan
@@ -91,6 +92,7 @@ struct _chan
 
 static chan *cv_find_chan_by_number (chanview *cv, int num);
 static int cv_find_number_of_chan (chanview *cv, chan *find_ch);
+static void cv_find_neighbors_for_removal (chanview *cv, chan *find_ch, chan **left_ch, chan **first_ch);
 
 
 /* ======= TABS ======= */
@@ -127,15 +129,17 @@ chanview_apply_theme (chanview *cv)
 	if (input_style)
 		font = input_style->font_desc;
 
-	if (fe_dark_mode_is_enabled () || prefs.hex_gui_dark_mode == ZOITECHAT_DARK_MODE_LIGHT)
-	{
-		gtkutil_apply_palette (w, &colors[COL_BG], &colors[COL_FG], font);
-	}
-	else
-	{
-		/* Keep list font in sync while reverting colors to theme defaults. */
-		gtkutil_apply_palette (w, NULL, NULL, font);
-	}
+	theme_manager_apply_channel_tree_style (w,
+			theme_manager_get_channel_tree_palette_behavior (font));
+}
+
+static void
+chanview_theme_changed (const ThemeChangedEvent *event, gpointer userdata)
+{
+	chanview *cv = userdata;
+
+	(void) event;
+	chanview_apply_theme (cv);
 }
 
 static char *
@@ -278,6 +282,12 @@ chanview_destroy_store (chanview *cv)	/* free every (chan *) in the store */
 static void
 chanview_destroy (chanview *cv)
 {
+	if (cv->theme_listener_id)
+	{
+		theme_listener_unregister (cv->theme_listener_id);
+		cv->theme_listener_id = 0;
+	}
+
 	if (cv->func_cleanup)
 		cv->func_cleanup (cv);
 
@@ -312,6 +322,7 @@ chanview_new (int type, int trunc_len, gboolean sort, gboolean use_icons,
 	cv->use_icons = use_icons;
 	gtk_widget_show (cv->box);
 	chanview_set_impl (cv, type);
+	cv->theme_listener_id = theme_listener_register ("chanview", chanview_theme_changed, cv);
 
 	g_signal_connect (G_OBJECT (cv->box), "destroy",
 							G_CALLBACK (chanview_box_destroy_cb), cv);
@@ -609,6 +620,45 @@ cv_find_chan_by_number (chanview *cv, int num)
 }
 
 static void
+cv_find_neighbors_for_removal (chanview *cv, chan *find_ch, chan **left_ch, chan **first_ch)
+{
+	GtkTreeIter iter, inner;
+	chan *ch;
+	chan *prev = NULL;
+
+	*left_ch = NULL;
+	*first_ch = NULL;
+
+	if (gtk_tree_model_get_iter_first (GTK_TREE_MODEL (cv->store), &iter))
+	{
+		do
+		{
+			gtk_tree_model_get (GTK_TREE_MODEL (cv->store), &iter, COL_CHAN, &ch, -1);
+			if (ch == find_ch)
+				*left_ch = prev;
+			else if (*first_ch == NULL)
+				*first_ch = ch;
+			prev = ch;
+
+			if (gtk_tree_model_iter_children (GTK_TREE_MODEL (cv->store), &inner, &iter))
+			{
+				do
+				{
+					gtk_tree_model_get (GTK_TREE_MODEL (cv->store), &inner, COL_CHAN, &ch, -1);
+					if (ch == find_ch)
+						*left_ch = prev;
+					else if (*first_ch == NULL)
+						*first_ch = ch;
+					prev = ch;
+				}
+				while (gtk_tree_model_iter_next (GTK_TREE_MODEL (cv->store), &inner));
+			}
+		}
+		while (gtk_tree_model_iter_next (GTK_TREE_MODEL (cv->store), &iter));
+	}
+}
+
+static void
 chan_emancipate_children (chan *ch)
 {
 	char *name;
@@ -638,7 +688,7 @@ gboolean
 chan_remove (chan *ch, gboolean force)
 {
 	chan *new_ch;
-	int i, num;
+	chan *first_ch;
 	extern int zoitechat_is_quitting;
 
 	if (zoitechat_is_quitting)	/* avoid lots of looping on exit */
@@ -658,25 +708,14 @@ chan_remove (chan *ch, gboolean force)
 	{
 		ch->cv->focused = NULL;
 
-		/* try to move the focus to some other valid channel */
-		num = cv_find_number_of_chan (ch->cv, ch);
-		/* move to the one left of the closing tab */
-		new_ch = cv_find_chan_by_number (ch->cv, num - 1);
+		cv_find_neighbors_for_removal (ch->cv, ch, &new_ch, &first_ch);
 		if (new_ch && new_ch != ch)
 		{
-			chan_focus (new_ch);	/* this'll will set ch->cv->focused for us too */
-		} else
+			chan_focus (new_ch);
+		}
+		else if (first_ch && first_ch != ch)
 		{
-			/* if it fails, try focus from tab 0 and up */
-			for (i = 0; i < ch->cv->size; i++)
-			{
-				new_ch = cv_find_chan_by_number (ch->cv, i);
-				if (new_ch && new_ch != ch)
-				{
-					chan_focus (new_ch);	/* this'll will set ch->cv->focused for us too */
-					break;
-				}
-			}
+			chan_focus (first_ch);
 		}
 	}
 

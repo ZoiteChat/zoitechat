@@ -45,6 +45,7 @@
     <ClInclude Include="zoitechat-plugin.h" />
     <ClInclude Include="zoitechat.h" />
     <ClInclude Include="zoitechatc.h" />
+    <ClInclude Include="theme-service.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="cfgfiles.c" />
@@ -75,6 +76,7 @@
     <ClCompile Include="userlist.c" />
     <ClCompile Include="util.c" />
     <ClCompile Include="zoitechat.c" />
+    <ClCompile Include="theme-service.c" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\win32\config.h.tt" />

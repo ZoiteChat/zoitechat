@@ -34,8 +34,9 @@
 #include "../common/outbound.h"
 #include "gtkutil.h"
 #include "maingui.h"
-#include "palette.h"
+#include "theme/theme-gtk.h"
 #include "notifygui.h"
+#include "theme/theme-access.h"
 
 #define ICON_NOTIFY_NEW "document-new"
 #define ICON_NOTIFY_DELETE "edit-delete"
@@ -69,7 +70,7 @@ notify_closegui (void)
 }
 
 /* Need this to be able to set the foreground colour property of a row
- * from a PaletteColor * in the model  -Vince
+ * from a GdkRGBA * in the model  -Vince
  */
 static void
 notify_treecell_property_mapper (GtkTreeViewColumn *col, GtkCellRenderer *cell,
@@ -77,21 +78,21 @@ notify_treecell_property_mapper (GtkTreeViewColumn *col, GtkCellRenderer *cell,
                                  gpointer data)
 {
 	gchar *text;
-	PaletteColor *colour;
+	GdkRGBA *colour;
 	int model_column = GPOINTER_TO_INT (data);
 
 	gtk_tree_model_get (GTK_TREE_MODEL (model), iter, 
 	                    COLOUR_COLUMN, &colour,
 	                    model_column, &text, -1);
 	g_object_set (G_OBJECT (cell), "text", text,
-	              PALETTE_FOREGROUND_PROPERTY, colour, NULL);
+	              THEME_GTK_FOREGROUND_PROPERTY, colour, NULL);
 	if (colour)
 		gdk_rgba_free (colour);
 	g_free (text);
 }
 
 static void
-notify_store_color (GtkListStore *store, GtkTreeIter *iter, const PaletteColor *color)
+notify_store_color (GtkListStore *store, GtkTreeIter *iter, const GdkRGBA *color)
 {
 	if (color)
 	{
@@ -135,7 +136,7 @@ notify_treeview_new (GtkWidget *box)
 	                            G_TYPE_STRING,
 	                            G_TYPE_STRING,
 	                            G_TYPE_STRING,
-	                            PALETTE_GDK_TYPE,
+	                            THEME_GTK_COLOR_TYPE,
 										 G_TYPE_POINTER
 	                           );
 	g_return_val_if_fail (store != NULL, NULL);
@@ -170,6 +171,7 @@ notify_gui_update (void)
 	GSList *slist;
 	gchar *name, *status, *server, *seen;
 	int online, servcount, lastseenminutes;
+	GdkRGBA color;
 	time_t lastseen;
 	char agobuf[128];
 
@@ -225,7 +227,10 @@ notify_gui_update (void)
 				gtk_list_store_append (store, &iter);
 			gtk_list_store_set (store, &iter, 0, name, 1, status,
 			                    2, server, 3, seen, 5, NULL, -1);
-			notify_store_color (store, &iter, &colors[4]);
+			if (theme_get_color (THEME_TOKEN_MIRC_4, &color))
+				notify_store_color (store, &iter, &color);
+			else
+				notify_store_color (store, &iter, NULL);
 			if (valid)
 				valid = gtk_tree_model_iter_next (GTK_TREE_MODEL (store), &iter);
 
@@ -251,7 +256,10 @@ notify_gui_update (void)
 						gtk_list_store_append (store, &iter);
 					gtk_list_store_set (store, &iter, 0, name, 1, status,
 					                    2, server, 3, seen, 5, servnot, -1);
-					notify_store_color (store, &iter, &colors[3]);
+					if (theme_get_color (THEME_TOKEN_MIRC_3, &color))
+						notify_store_color (store, &iter, &color);
+					else
+						notify_store_color (store, &iter, NULL);
 					if (valid)
 						valid = gtk_tree_model_iter_next (GTK_TREE_MODEL (store), &iter);
 

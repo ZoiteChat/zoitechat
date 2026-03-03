@@ -44,6 +44,7 @@
 #include "gtkutil.h"
 #include "icon-resolver.h"
 #include "pixmaps.h"
+#include "theme/theme-manager.h"
 
 #ifdef WIN32
 #include <io.h>
@@ -277,72 +278,7 @@ void
 gtkutil_apply_palette (GtkWidget *widget, const GdkRGBA *bg, const GdkRGBA *fg,
                        const PangoFontDescription *font_desc)
 {
-	if (!widget)
-		return;
-
-	{
-		static const char *class_name = "zoitechat-palette";
-		GtkStyleContext *context = gtk_widget_get_style_context (widget);
-		GtkCssProvider *provider = g_object_get_data (G_OBJECT (widget),
-		                                             "zoitechat-palette-provider");
-		gboolean new_provider = FALSE;
-		GString *css;
-		gchar *bg_color = NULL;
-		gchar *fg_color = NULL;
-
-		if (!bg && !fg && !font_desc)
-		{
-			gtk_style_context_remove_class (context, class_name);
-			if (provider)
-			{
-				gtk_style_context_remove_provider (context, GTK_STYLE_PROVIDER (provider));
-				g_object_set_data (G_OBJECT (widget), "zoitechat-palette-provider", NULL);
-			}
-			return;
-		}
-
-		if (!provider)
-		{
-			provider = gtk_css_provider_new ();
-			g_object_set_data_full (G_OBJECT (widget), "zoitechat-palette-provider",
-			                        provider, g_object_unref);
-			new_provider = TRUE;
-		}
-
-		css = g_string_new (".");
-		g_string_append (css, class_name);
-		g_string_append (css, " {");
-		if (bg)
-		{
-			bg_color = gdk_rgba_to_string (bg);
-			g_string_append_printf (css, " background-color: %s;", bg_color);
-		}
-		if (fg)
-		{
-			fg_color = gdk_rgba_to_string (fg);
-			g_string_append_printf (css, " color: %s;", fg_color);
-		}
-		gtkutil_append_font_css (css, font_desc);
-		g_string_append (css, " }");
-		g_string_append_printf (css, ".%s *:selected {", class_name);
-		if (bg)
-			g_string_append (css, " background-color: @theme_selected_bg_color;");
-		if (fg)
-			g_string_append (css, " color: @theme_selected_fg_color;");
-		g_string_append (css, " }");
-
-		gtk_css_provider_load_from_data (provider, css->str, -1, NULL);
-		if (new_provider)
-		{
-			gtk_style_context_add_provider (context, GTK_STYLE_PROVIDER (provider),
-			                                GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
-		}
-		gtk_style_context_add_class (context, class_name);
-
-		g_string_free (css, TRUE);
-		g_free (bg_color);
-		g_free (fg_color);
-	}
+	theme_manager_apply_palette_widget (widget, bg, fg, font_desc);
 }
 
 static void

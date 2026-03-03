@@ -54,6 +54,7 @@
 #include "text.h"
 #include "url.h"
 #include "zoitechatc.h"
+#include "theme-service.h"
 
 #if ! GLIB_CHECK_VERSION (2, 36, 0)
 #include <glib-object.h>			/* for g_type_init() */
@@ -251,83 +252,22 @@ zoitechat_remote_win32 (void)
 }
 #endif
 
-
-static gboolean
-zoitechat_copy_theme_file (const char *src, const char *dest, GError **error)
+void
+zoitechat_set_theme_post_apply_callback (zoitechat_theme_post_apply_callback callback)
 {
-	char *data = NULL;
-	gsize len = 0;
+	zoitechat_theme_service_set_post_apply_callback (callback);
+}
 
-	if (!g_file_get_contents (src, &data, &len, error))
-		return FALSE;
-
-	if (!g_file_set_contents (dest, data, len, error))
-	{
-		g_free (data);
-		return FALSE;
-	}
-
-	g_free (data);
-	return TRUE;
+void
+zoitechat_run_theme_post_apply_callback (void)
+{
+	zoitechat_theme_service_run_post_apply_callback ();
 }
 
 gboolean
 zoitechat_apply_theme (const char *theme_name, GError **error)
 {
-	char *theme_dir;
-	char *colors_src;
-	char *colors_dest;
-	char *events_src;
-	char *events_dest;
-	gboolean ok = FALSE;
-
-	if (!theme_name || !*theme_name)
-	{
-		g_set_error (error, G_IO_ERROR, G_IO_ERROR_INVALID_ARGUMENT,
-		             _("No theme name specified."));
-		return FALSE;
-	}
-
-	theme_dir = g_build_filename (get_xdir (), "themes", theme_name, NULL);
-	colors_src = g_build_filename (theme_dir, "colors.conf", NULL);
-	colors_dest = g_build_filename (get_xdir (), "colors.conf", NULL);
-	events_src = g_build_filename (theme_dir, "pevents.conf", NULL);
-	events_dest = g_build_filename (get_xdir (), "pevents.conf", NULL);
-
-	if (!g_file_test (colors_src, G_FILE_TEST_IS_REGULAR))
-	{
-		g_set_error (error, G_IO_ERROR, G_IO_ERROR_NOT_FOUND,
-		             _("This theme is missing a colors.conf file."));
-		goto cleanup;
-	}
-
-	if (!zoitechat_copy_theme_file (colors_src, colors_dest, error))
-		goto cleanup;
-
-	if (g_file_test (events_src, G_FILE_TEST_IS_REGULAR))
-	{
-		if (!zoitechat_copy_theme_file (events_src, events_dest, error))
-			goto cleanup;
-	}
-	else if (g_file_test (events_dest, G_FILE_TEST_EXISTS))
-	{
-		if (g_unlink (events_dest) != 0)
-		{
-			g_set_error (error, G_FILE_ERROR, g_file_error_from_errno (errno),
-			             _("Failed to remove existing event settings."));
-			goto cleanup;
-		}
-	}
-
-	ok = TRUE;
-
-cleanup:
-	g_free (events_dest);
-	g_free (events_src);
-	g_free (colors_dest);
-	g_free (colors_src);
-	g_free (theme_dir);
-	return ok;
+	return zoitechat_theme_service_apply (theme_name, error);
 }
 
 gboolean
@@ -352,7 +292,7 @@ zoitechat_import_theme (const char *path, GError **error)
 		return FALSE;
 	}
 
-	themes_dir = g_build_filename (get_xdir (), "themes", NULL);
+	themes_dir = zoitechat_theme_service_get_themes_dir ();
 	basename = g_path_get_basename (path);
 	if (!basename || basename[0] == '\0')
 	{
@@ -825,7 +765,6 @@ irc_init (session *sess)
 				{
 					message = g_strdup_printf (_("Theme \"%s\" imported and applied."), basename);
 					fe_message (message, FE_MSG_INFO);
-					handle_command (sess, "gui apply", FALSE);
 					g_free (message);
 				}
 				else
@@ -877,8 +816,7 @@ irc_init (session *sess)
 					{
 						message = g_strdup_printf (_("Theme \"%s\" imported and applied."), basename);
 						fe_message (message, FE_MSG_INFO);
-						handle_command (sess, "gui apply", FALSE);
-						g_free (message);
+							g_free (message);
 					}
 					else
 					{

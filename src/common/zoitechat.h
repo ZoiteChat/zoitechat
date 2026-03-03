@@ -32,6 +32,9 @@
 gboolean zoitechat_theme_path_from_arg (const char *arg, char **path_out);
 gboolean zoitechat_import_theme (const char *path, GError **error);
 gboolean zoitechat_apply_theme (const char *theme_name, GError **error);
+typedef void (*zoitechat_theme_post_apply_callback) (void);
+void zoitechat_set_theme_post_apply_callback (zoitechat_theme_post_apply_callback callback);
+void zoitechat_run_theme_post_apply_callback (void);
 
 #ifdef USE_OPENSSL
 #ifdef __APPLE__

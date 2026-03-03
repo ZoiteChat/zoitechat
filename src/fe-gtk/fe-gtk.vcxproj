@@ -77,6 +77,15 @@ powershell "Get-Content -Encoding UTF8 '$(ZoiteChatLib)zoitechat.rc.utf8' | Out-
     <ClInclude Include="urlgrab.h" />
     <ClInclude Include="userlistgui.h" />
     <ClInclude Include="xtext.h" />
+    <ClInclude Include="theme\theme-manager.h" />
+    <ClInclude Include="theme\theme-palette.h" />
+    <ClInclude Include="theme\theme-application.h" />
+    <ClInclude Include="theme\theme-policy.h" />
+    <ClInclude Include="theme\theme-css.h" />
+    <ClInclude Include="theme\theme-runtime.h" />
+    <ClInclude Include="theme\theme-access.h" />
+    <ClInclude Include="theme\theme-gtk.h" />
+    <ClInclude Include="theme\theme-preferences.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ascii.c" />
@@ -96,7 +105,6 @@ powershell "Get-Content -Encoding UTF8 '$(ZoiteChatLib)zoitechat.rc.utf8' | Out-
     <ClCompile Include="menu.c" />
     <ClCompile Include="notifications\notification-windows.c" />
     <ClCompile Include="notifygui.c" />
-    <ClCompile Include="palette.c" />
     <ClCompile Include="pixmaps.c" />
     <ClCompile Include="plugin-notification.c" />
     <ClCompile Include="plugin-tray.c" />
@@ -111,6 +119,14 @@ powershell "Get-Content -Encoding UTF8 '$(ZoiteChatLib)zoitechat.rc.utf8' | Out-
     <ClCompile Include="urlgrab.c" />
     <ClCompile Include="userlistgui.c" />
     <ClCompile Include="xtext.c" />
+    <ClCompile Include="theme\theme-manager.c" />
+    <ClCompile Include="theme\theme-palette.c" />
+    <ClCompile Include="theme\theme-application.c" />
+    <ClCompile Include="theme\theme-policy.c" />
+    <ClCompile Include="theme\theme-css.c" />
+    <ClCompile Include="theme\theme-runtime.c" />
+    <ClCompile Include="theme\theme-access.c" />
+    <ClCompile Include="theme\theme-preferences.c" />
   </ItemGroup>
   <ItemGroup>
     <Manifest Include="..\..\win32\zoitechat.exe.manifest" />
@@ -121,6 +137,12 @@ powershell "Get-Content -Encoding UTF8 '$(ZoiteChatLib)zoitechat.rc.utf8' | Out-
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\data\icons\zoitechat.ico" />
+    <None Include="theme\tests\test-theme-manager-policy.c" />
+    <None Include="theme\tests\test-theme-runtime-persistence.c" />
+    <None Include="theme\tests\test-theme-access-routing.c" />
+    <None Include="theme\tests\src/fe-gtk/theme/tests/test-theme-manager-auto-refresh.c" />
+    <None Include="theme\tests\src/fe-gtk/theme/tests/test-theme-manager-dispatch-routing.c" />
+    <None Include="theme\tests\src/fe-gtk/theme/tests/test-theme-application-input-style.c" />
   </ItemGroup>
   <ItemGroup>
     <Xml Include="..\..\data\zoitechat.gresource.xml" />

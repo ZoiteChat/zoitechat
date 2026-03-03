@@ -1,3 +1,14 @@
+zoitechat_theme_sources = [
+  'theme/theme-access.c',
+  'theme/theme-application.c',
+  'theme/theme-css.c',
+  'theme/theme-manager.c',
+  'theme/theme-palette.c',
+  'theme/theme-preferences.c',
+  'theme/theme-policy.c',
+  'theme/theme-runtime.c',
+]
+
 zoitechat_gtk_sources = [
   'ascii.c',
   'banlist.c',
@@ -15,7 +26,6 @@ zoitechat_gtk_sources = [
   'menu.c',
   'maingui.c',
   'notifygui.c',
-  'palette.c',
   'pixmaps.c',
   'plugin-tray.c',
   'plugin-notification.c',
@@ -37,6 +47,8 @@ zoitechat_gtk_deps = [
 ]
 
 gtk_dep = dependency('gtk+-3.0', version: '>= 3.22')
+
+zoitechat_theme_deps = [gtk_dep]
 
 if host_machine.system() != 'windows'
   appindicator_opt = get_option('appindicator')
@@ -77,10 +89,18 @@ zoitechat_gtk_ldflags = []
 if host_machine.system() == 'windows'
   zoitechat_gtk_sources += 'notifications/notification-windows.c'
   zoitechat_gtk_deps += cc.find_library('dwmapi', required: true)
+  zoitechat_theme_deps += cc.find_library('dwmapi', required: true)
 
 else
   zoitechat_gtk_sources += 'notifications/notification-freedesktop.c'
 endif
+
+zoitechat_theme_lib = static_library('zoitechat_theme',
+  sources: zoitechat_theme_sources,
+  include_directories: [config_h_include],
+  dependencies: zoitechat_theme_deps,
+  install: false,
+)
 
 iso_codes = dependency('iso-codes', required: false)
 if iso_codes.found()
@@ -109,9 +129,94 @@ endif
 executable('zoitechat',
   sources:  resources + zoitechat_gtk_sources,
   dependencies: zoitechat_gtk_deps,
+  link_with: zoitechat_theme_lib,
   c_args: zoitechat_gtk_cflags,
   link_args: zoitechat_gtk_ldflags,
   pie: true,
   install: true,
   gui_app: true,
+)
+
+theme_manager_policy_tests = executable('theme_manager_policy_tests',
+  [
+    'theme/tests/test-theme-manager-policy.c',
+    'theme/theme-manager.c',
+    'theme/theme-palette.c',
+  ],
+  include_directories: [config_h_include],
+  dependencies: [gtk_dep],
+)
+
+test('Theme Manager/Policy Tests', theme_manager_policy_tests,
+  protocol: 'tap',
+  timeout: 120,
+)
+
+
+theme_manager_dispatch_tests = executable('theme_manager_dispatch_routing_tests',
+  [
+    'theme/tests/test-theme-manager-dispatch-routing.c',
+    'theme/theme-manager.c',
+    'theme/theme-palette.c',
+  ],
+  include_directories: [config_h_include],
+  dependencies: [gtk_dep],
+)
+
+test('Theme Manager Dispatch Routing Tests', theme_manager_dispatch_tests,
+  protocol: 'tap',
+  timeout: 120,
+)
+
+theme_manager_auto_refresh_tests = executable('theme_manager_auto_refresh_tests',
+  [
+    'theme/tests/test-theme-manager-auto-refresh.c',
+    'theme/theme-manager.c',
+    'theme/theme-palette.c',
+  ],
+  include_directories: [config_h_include],
+  dependencies: [gtk_dep],
+)
+
+test('Theme Manager Auto Refresh Tests', theme_manager_auto_refresh_tests,
+  protocol: 'tap',
+  timeout: 120,
+)
+
+theme_application_input_style_tests = executable('theme_application_input_style_tests',
+  [
+    'theme/tests/test-theme-application-input-style.c',
+    'theme/theme-application.c',
+  ],
+  include_directories: [config_h_include],
+  dependencies: [gtk_dep],
+)
+
+test('Theme Application Input Style Tests', theme_application_input_style_tests,
+  protocol: 'tap',
+  timeout: 120,
+)
+
+theme_runtime_tests = executable('theme_runtime_persistence_tests',
+  'theme/tests/test-theme-runtime-persistence.c',
+  include_directories: [config_h_include],
+  dependencies: [gtk_dep],
+  link_with: zoitechat_theme_lib,
+)
+
+test('Theme Runtime Persistence Tests', theme_runtime_tests,
+  protocol: 'tap',
+  timeout: 120,
+)
+
+theme_access_tests = executable('theme_access_routing_tests',
+  'theme/tests/test-theme-access-routing.c',
+  include_directories: [config_h_include],
+  dependencies: [gtk_dep],
+  link_with: zoitechat_theme_lib,
+)
+
+test('Theme Access Routing Tests', theme_access_tests,
+  protocol: 'tap',
+  timeout: 120,
 )

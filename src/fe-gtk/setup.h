@@ -20,6 +20,8 @@
 #ifndef ZOITECHAT_SETUP_H
 #define ZOITECHAT_SETUP_H
 
-void setup_apply_real (int new_pix, int do_ulist, int do_layout, int do_identd);
+#include "theme/theme-manager.h"
+
+void setup_apply_real (const ThemeChangedEvent *event);
 
 #endif

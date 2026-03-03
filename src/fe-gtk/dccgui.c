@@ -34,8 +34,9 @@
 #include "../common/util.h"
 #include "../common/network.h"
 #include "gtkutil.h"
-#include "palette.h"
+#include "theme/theme-gtk.h"
 #include "maingui.h"
+#include "theme/theme-access.h"
 
 #define ICON_DCC_CANCEL "dialog-cancel"
 #define ICON_DCC_ACCEPT "dialog-apply"
@@ -55,7 +56,7 @@ enum	/* DCC SEND/RECV */
 	COL_ETA,
 	COL_NICK,
 	COL_DCC, /* struct DCC * */
-	COL_COLOR,	/* PaletteColor */
+	COL_COLOR,	/* GdkRGBA */
 	N_COLUMNS
 };
 
@@ -67,7 +68,7 @@ enum	/* DCC CHAT */
 	CCOL_SENT,
 	CCOL_START,
 	CCOL_DCC,	/* struct DCC * */
-	CCOL_COLOR,	/* PaletteColor * */
+	CCOL_COLOR,	/* GdkRGBA * */
 	CN_COLUMNS
 };
 
@@ -177,15 +178,15 @@ fe_dcc_send_filereq (struct session *sess, char *nick, int maxcps, int passive)
 static void
 dcc_store_color (GtkListStore *store, GtkTreeIter *iter, int column, int color_index)
 {
-	const PaletteColor *color = NULL;
+	GdkRGBA rgba;
+	const GdkRGBA *color = NULL;
 
-	if (color_index != 1)
-		color = &colors[color_index];
+	if (color_index != 1 && theme_get_mirc_color ((unsigned int) color_index, &rgba))
+		color = &rgba;
 
 	if (color)
 	{
-		GdkRGBA rgba = *color;
-		gtk_list_store_set (store, iter, column, &rgba, -1);
+		gtk_list_store_set (store, iter, column, color, -1);
 	}
 	else
 	{
@@ -753,7 +754,7 @@ dcc_add_column (GtkWidget *tree, int textcol, int colorcol, char *title, gboolea
 	if (right_justified)
 		g_object_set (G_OBJECT (renderer), "xalign", (float) 1.0, NULL);
 	gtk_tree_view_insert_column_with_attributes (GTK_TREE_VIEW (tree), -1, title, renderer,
-																"text", textcol, PALETTE_FOREGROUND_PROPERTY, colorcol,
+																"text", textcol, THEME_GTK_FOREGROUND_PROPERTY, colorcol,
 																NULL);
 	gtk_cell_renderer_text_set_fixed_height_from_font (GTK_CELL_RENDERER_TEXT (renderer), 1);
 }
@@ -839,7 +840,7 @@ fe_dcc_open_recv_win (int passive)
 	store = gtk_list_store_new (N_COLUMNS, GDK_TYPE_PIXBUF, G_TYPE_STRING,
 										 G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING,
 										 G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING,
-										 G_TYPE_STRING, G_TYPE_POINTER, PALETTE_GDK_TYPE);
+										 G_TYPE_STRING, G_TYPE_POINTER, THEME_GTK_COLOR_TYPE);
 	view = gtkutil_treeview_new (vbox, GTK_TREE_MODEL (store), NULL, -1);
 	view_scrolled = gtk_widget_get_parent (view);
 	gtk_widget_set_hexpand (view_scrolled, TRUE);
@@ -1111,7 +1112,7 @@ fe_dcc_open_chat_win (int passive)
 
 	store = gtk_list_store_new (CN_COLUMNS, G_TYPE_STRING, G_TYPE_STRING,
 									 G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING,
-									 G_TYPE_POINTER, PALETTE_GDK_TYPE);
+									 G_TYPE_POINTER, THEME_GTK_COLOR_TYPE);
 	view = gtkutil_treeview_new (vbox, GTK_TREE_MODEL (store), NULL, -1);
 	scroll = gtk_widget_get_parent (view);
 	gtk_box_set_child_packing (GTK_BOX (vbox), scroll, TRUE, TRUE, 0, GTK_PACK_START);

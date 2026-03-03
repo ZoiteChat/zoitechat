@@ -48,7 +48,7 @@
 #include "chanlist.h"
 #include "joind.h"
 #include "xtext.h"
-#include "palette.h"
+#include "theme/theme-gtk.h"
 #include "menu.h"
 #include "notifygui.h"
 #include "textgui.h"
@@ -57,6 +57,8 @@
 #include "urlgrab.h"
 #include "setup.h"
 #include "plugin-notification.h"
+#include "theme/theme-manager.h"
+#include "theme/theme-application.h"
 
 #ifdef USE_LIBCANBERRA
 #include <canberra.h>
@@ -429,37 +431,12 @@ fe_args (int argc, char *argv[])
 	return -1;
 }
 
-const char cursor_color_rc[] =
-	"style \"xc-ib-st\""
-	"{"
-		"GtkEntry::cursor-color=\"#%02x%02x%02x\""
-	"}"
-	"widget \"*.zoitechat-inputbox\" style : application \"xc-ib-st\"";
-
-InputStyle *create_input_style (InputStyle *style);
-
-static const char adwaita_workaround_rc[] =
-	"style \"zoitechat-input-workaround\""
-	"{"
-		"engine \"pixmap\" {"
-			"image {"
-				"function = FLAT_BOX\n"
-				"state    = NORMAL\n"
-			"}"
-			"image {"
-				"function = FLAT_BOX\n"
-				"state    = ACTIVE\n"
-			"}"
-		"}"
-	"}"
-	"widget \"*.zoitechat-inputbox\" style \"zoitechat-input-workaround\"";
-
 #ifdef G_OS_WIN32
 #ifndef DWMWA_USE_IMMERSIVE_DARK_MODE
 #define DWMWA_USE_IMMERSIVE_DARK_MODE 20
 #endif
 
-static gboolean
+gboolean
 fe_win32_high_contrast_is_enabled (void)
 {
 	HIGHCONTRASTW hc;
@@ -472,7 +449,7 @@ fe_win32_high_contrast_is_enabled (void)
 	return (hc.dwFlags & HCF_HIGHCONTRASTON) != 0;
 }
 
-static gboolean
+gboolean
 fe_win32_try_get_system_dark (gboolean *prefer_dark)
 {
 	DWORD value = 1;
@@ -502,7 +479,7 @@ fe_win32_try_get_system_dark (gboolean *prefer_dark)
 	return TRUE;
 }
 
-static void
+void
 fe_win32_apply_native_titlebar (GtkWidget *window, gboolean dark_mode)
 {
 	HWND hwnd;
@@ -525,7 +502,7 @@ fe_win32_apply_native_titlebar (GtkWidget *window, gboolean dark_mode)
 	                       sizeof (use_dark));
 }
 #else
-static void
+void
 fe_win32_apply_native_titlebar (GtkWidget *window, gboolean dark_mode)
 {
 	(void) window;
@@ -533,161 +510,12 @@ fe_win32_apply_native_titlebar (GtkWidget *window, gboolean dark_mode)
 }
 #endif
 
-static gboolean
-fe_system_prefers_dark (void)
-{
-	GtkSettings *settings = gtk_settings_get_default ();
-	gboolean prefer_dark = FALSE;
-	char *theme_name = NULL;
-#ifdef G_OS_WIN32
-	gboolean have_win_pref = FALSE;
-
-	if (fe_win32_high_contrast_is_enabled ())
-		return FALSE;
-#endif
-
-	if (!settings)
-		return FALSE;
-
-#ifdef G_OS_WIN32
-	have_win_pref = fe_win32_try_get_system_dark (&prefer_dark);
-	if (!have_win_pref)
-#endif
-	if (g_object_class_find_property (G_OBJECT_GET_CLASS (settings),
-	                                  "gtk-application-prefer-dark-theme"))
-	{
-		g_object_get (settings, "gtk-application-prefer-dark-theme", &prefer_dark, NULL);
-	}
-
-	if (!prefer_dark)
-	{
-		g_object_get (settings, "gtk-theme-name", &theme_name, NULL);
-		if (theme_name)
-		{
-			char *lower = g_ascii_strdown (theme_name, -1);
-			if (g_str_has_suffix (lower, "-dark") || g_strrstr (lower, "dark"))
-				prefer_dark = TRUE;
-			g_free (lower);
-			g_free (theme_name);
-		}
-	}
-
-	return prefer_dark;
-}
-
 static gboolean auto_dark_mode_enabled = FALSE;
-
-#ifdef G_OS_WIN32
-static void
-fe_apply_windows_theme (gboolean dark)
-{
-	GtkSettings *settings = gtk_settings_get_default ();
-
-	if (settings && g_object_class_find_property (G_OBJECT_GET_CLASS (settings),
-	                                              "gtk-application-prefer-dark-theme"))
-	{
-		g_object_set (settings, "gtk-application-prefer-dark-theme", dark, NULL);
-	}
-
-	{
-		static GtkCssProvider *win_theme_provider = NULL;
-		GdkScreen *screen = gdk_screen_get_default ();
-		const char *css =
-			"window.zoitechat-dark, .zoitechat-dark {"
-			"background-color: #202020;"
-			"color: #f0f0f0;"
-			"}"
-			"window.zoitechat-light, .zoitechat-light {"
-			"background-color: #f6f6f6;"
-			"color: #101010;"
-			"}";
-
-		if (!win_theme_provider)
-			win_theme_provider = gtk_css_provider_new ();
-
-		gtk_css_provider_load_from_data (win_theme_provider, css, -1, NULL);
-		if (screen)
-			gtk_style_context_add_provider_for_screen (
-				screen,
-				GTK_STYLE_PROVIDER (win_theme_provider),
-				GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
-	}
-}
-#endif
-
-static void
-fe_auto_dark_mode_changed (GtkSettings *settings, GParamSpec *pspec, gpointer data)
-{
-	gboolean enabled;
-
-	(void) settings;
-	(void) pspec;
-	(void) data;
-
-	if (prefs.hex_gui_dark_mode != ZOITECHAT_DARK_MODE_AUTO)
-		return;
-
-	enabled = fe_system_prefers_dark ();
-	if (enabled == auto_dark_mode_enabled)
-		return;
-
-	auto_dark_mode_enabled = enabled;
-	fe_apply_theme_for_mode (ZOITECHAT_DARK_MODE_AUTO, NULL);
-	setup_apply_real (0, TRUE, FALSE, FALSE);
-}
 
 void
 fe_set_auto_dark_mode_state (gboolean enabled)
 {
 	auto_dark_mode_enabled = enabled;
-}
-
-void
-fe_refresh_auto_dark_mode (void)
-{
-	fe_auto_dark_mode_changed (NULL, NULL, NULL);
-}
-
-gboolean
-fe_apply_theme_for_mode (unsigned int mode, gboolean *palette_changed)
-{
-	gboolean enabled = fe_dark_mode_is_enabled_for (mode);
-	gboolean changed = palette_apply_dark_mode (enabled);
-
-#ifdef G_OS_WIN32
-	fe_apply_windows_theme (enabled);
-#endif
-
-	if (palette_changed)
-		*palette_changed = changed;
-
-	if (input_style)
-		create_input_style (input_style);
-
-	return enabled;
-}
-
-void
-fe_apply_theme_to_toplevel (GtkWidget *window)
-{
-	if (!window)
-		return;
-
-#ifdef G_OS_WIN32
-	{
-		GtkStyleContext *context = gtk_widget_get_style_context (window);
-		gboolean dark = fe_dark_mode_is_enabled ();
-
-		if (context)
-		{
-			gtk_style_context_remove_class (context, "zoitechat-dark");
-			gtk_style_context_remove_class (context, "zoitechat-light");
-			gtk_style_context_add_class (context, dark ? "zoitechat-dark" : "zoitechat-light");
-		}
-	}
-#endif
-
-	fe_win32_apply_native_titlebar (window, fe_dark_mode_is_enabled ());
 }
 
 gboolean
@@ -711,174 +539,10 @@ fe_dark_mode_is_enabled (void)
 	return fe_dark_mode_is_enabled_for (prefs.hex_gui_dark_mode);
 }
 
-InputStyle *
-create_input_style (InputStyle *style)
-{
-	char buf[256];
-	static int done_rc = FALSE;
-	static GtkCssProvider *input_css_provider = NULL;
-	static char *last_theme_name = NULL;
-	static gboolean last_dark_mode = FALSE;
-	static gboolean last_input_style = FALSE;
-	static gboolean last_colors_set = FALSE;
-	static guint16 last_fg_red;
-	static guint16 last_fg_green;
-	static guint16 last_fg_blue;
-	static guint16 last_bg_red;
-	static guint16 last_bg_green;
-	static guint16 last_bg_blue;
-
-	if (!style)
-		style = g_new0 (InputStyle, 1);
-
-	if (style->font_desc)
-		pango_font_description_free (style->font_desc);
-	style->font_desc = pango_font_description_from_string (prefs.hex_text_font);
-
-	/* fall back */
-	if (pango_font_description_get_size (style->font_desc) == 0)
-	{
-		g_snprintf (buf, sizeof (buf), _("Failed to open font:\n\n%s"), prefs.hex_text_font);
-		fe_message (buf, FE_MSG_ERROR);
-		pango_font_description_free (style->font_desc);
-		style->font_desc = pango_font_description_from_string ("sans 11");
-	}
-
-	if (prefs.hex_gui_input_style)
-	{
-		GtkSettings *settings = gtk_settings_get_default ();
-		GdkScreen *screen = gdk_screen_get_default ();
-		char *theme_name;
-		char cursor_rc[sizeof (cursor_color_rc)];
-		char cursor_color[8];
-		const char *cursor_color_start = NULL;
-		guint16 fg_red;
-		guint16 fg_green;
-		guint16 fg_blue;
-		guint16 bg_red;
-		guint16 bg_green;
-		guint16 bg_blue;
-		gboolean dark_mode = fe_dark_mode_is_enabled ();
-		gboolean needs_reload;
-
-		g_object_get (settings, "gtk-theme-name", &theme_name, NULL);
-
-		palette_color_get_rgb16 (&colors[COL_FG], &fg_red, &fg_green, &fg_blue);
-		palette_color_get_rgb16 (&colors[COL_BG], &bg_red, &bg_green, &bg_blue);
-		needs_reload = !done_rc
-			|| !last_input_style
-			|| last_dark_mode != dark_mode
-			|| g_strcmp0 (last_theme_name, theme_name) != 0
-			|| !last_colors_set
-			|| last_fg_red != fg_red
-			|| last_fg_green != fg_green
-			|| last_fg_blue != fg_blue
-			|| last_bg_red != bg_red
-			|| last_bg_green != bg_green
-			|| last_bg_blue != bg_blue;
-
-		if (needs_reload)
-		{
-			if (!input_css_provider)
-				input_css_provider = gtk_css_provider_new ();
-
-			g_snprintf (buf, sizeof (buf), "#%02x%02x%02x",
-				(fg_red >> 8), (fg_green >> 8), (fg_blue >> 8));
-			g_snprintf (cursor_rc, sizeof (cursor_rc), cursor_color_rc,
-				(fg_red >> 8), (fg_green >> 8), (fg_blue >> 8));
-			cursor_color_start = g_strstr_len (cursor_rc, -1, "cursor-color=\"");
-			if (cursor_color_start)
-			{
-				cursor_color_start += strlen ("cursor-color=\"");
-				g_strlcpy (cursor_color, cursor_color_start, sizeof (cursor_color));
-				cursor_color[7] = '\0';
-			}
-			else
-			{
-				g_strlcpy (cursor_color, buf, sizeof (cursor_color));
-			}
-			{
-				GString *css = g_string_new ("#zoitechat-inputbox {");
-
-				/* GTK3 equivalents for adwaita_workaround_rc/cursor_color_rc. */
-				if (adwaita_workaround_rc[0] != '\0'
-					&& (g_str_has_prefix (theme_name, "Adwaita")
-						|| g_str_has_prefix (theme_name, "Yaru")))
-					g_string_append (css, "background-image: none;");
-
-				g_string_append_printf (
-					css,
-					"background-color: #%02x%02x%02x;"
-					"color: #%02x%02x%02x;"
-					"caret-color: %s;"
-					"}"
-					"#zoitechat-inputbox text {"
-					"color: #%02x%02x%02x;"
-					"caret-color: %s;"
-					"}",
-					(bg_red >> 8), (bg_green >> 8), (bg_blue >> 8),
-					(fg_red >> 8), (fg_green >> 8), (fg_blue >> 8),
-					cursor_color,
-					(fg_red >> 8), (fg_green >> 8), (fg_blue >> 8),
-					cursor_color);
-				gtk_css_provider_load_from_data (input_css_provider, css->str, -1, NULL);
-				g_string_free (css, TRUE);
-			}
-
-			if (screen)
-				gtk_style_context_add_provider_for_screen (
-					screen,
-					GTK_STYLE_PROVIDER (input_css_provider),
-					GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
-
-			done_rc = TRUE;
-			last_input_style = TRUE;
-			last_dark_mode = dark_mode;
-			last_colors_set = TRUE;
-			last_fg_red = fg_red;
-			last_fg_green = fg_green;
-			last_fg_blue = fg_blue;
-			last_bg_red = bg_red;
-			last_bg_green = bg_green;
-			last_bg_blue = bg_blue;
-			g_free (last_theme_name);
-			last_theme_name = g_strdup (theme_name);
-		}
-
-		g_free (theme_name);
-	}
-	else
-	{
-		GdkScreen *screen = gdk_screen_get_default ();
-
-		if (input_css_provider && screen)
-		{
-			gtk_style_context_remove_provider_for_screen (
-				screen,
-				GTK_STYLE_PROVIDER (input_css_provider));
-		}
-		g_clear_object (&input_css_provider);
-		g_clear_pointer (&last_theme_name, g_free);
-		done_rc = FALSE;
-		last_input_style = FALSE;
-		last_colors_set = FALSE;
-	}
-
-
-	return style;
-}
-
 void
 fe_init (void)
 {
-	GtkSettings *settings;
-
-	palette_load ();
-	settings = gtk_settings_get_default ();
-	if (settings)
-		auto_dark_mode_enabled = fe_system_prefers_dark ();
-
-	fe_apply_theme_for_mode (prefs.hex_gui_dark_mode, NULL);
+	theme_manager_init ();
 	key_init ();
 	pixmaps_init ();
 
@@ -886,15 +550,8 @@ fe_init (void)
 	gtkosx_application_set_dock_icon_pixbuf (osx_app, pix_zoitechat);
 #endif
 	channelwin_pix = pixmap_load_from_file (prefs.hex_text_background);
-	input_style = create_input_style (input_style);
+	theme_application_reload_input_style ();
 
-	if (settings)
-	{
-		g_signal_connect (settings, "notify::gtk-application-prefer-dark-theme",
-					  G_CALLBACK (fe_auto_dark_mode_changed), NULL);
-		g_signal_connect (settings, "notify::gtk-theme-name",
-						  G_CALLBACK (fe_auto_dark_mode_changed), NULL);
-	}
 }
 
 #ifdef HAVE_GTK_MAC
@@ -1440,7 +1097,7 @@ fe_ctrl_gui (session *sess, fe_gui_action action, int arg)
 		mg_detach (sess, arg);	/* arg: 0=toggle 1=detach 2=attach */
 		break;
 	case FE_GUI_APPLY:
-		setup_apply_real (TRUE, TRUE, TRUE, FALSE);
+		theme_manager_dispatch_changed (THEME_CHANGED_REASON_PIXMAP | THEME_CHANGED_REASON_USERLIST | THEME_CHANGED_REASON_LAYOUT | THEME_CHANGED_REASON_WIDGET_STYLE);
 	}
 }
 
@@ -1630,7 +1287,7 @@ uri_contains_forbidden_characters (const char *uri)
 {
 	while (*uri)
 	{
-		if (!g_ascii_isalnum (*uri) && !strchr ("-._~:/?#[]@!$&'()*+,;=", *uri))
+		if (!g_ascii_isalnum (*uri) && !strchr ("-._~%:/?#[]@!$&'()*+,;=", *uri))
 			return TRUE;
 		uri++;
 	}

@@ -35,7 +35,8 @@
 #include "gtkutil.h"
 #include "xtext.h"
 #include "maingui.h"
-#include "palette.h"
+#include "theme/theme-access.h"
+#include "theme/theme-manager.h"
 #include "textgui.h"
 
 #define ICON_TEXTEVENT_SAVE_AS "document-save-as"
@@ -48,6 +49,8 @@ extern char *pntevts[];
 
 static GtkWidget *pevent_dialog = NULL, *pevent_dialog_twid,
 	*pevent_dialog_list, *pevent_dialog_hlist;
+
+#define PEVENT_THEME_LISTENER_ID_KEY "textgui.theme-listener-id"
 
 enum
 {
@@ -149,6 +152,51 @@ pevent_dialog_close (GtkWidget *wid, gpointer arg)
 {
 	pevent_dialog = NULL;
 	pevent_save (NULL);
+}
+
+static void
+pevent_dialog_theme_apply (GtkWidget *window)
+{
+	GtkWidget *xtext;
+	XTextColor xtext_palette[XTEXT_COLS];
+
+	if (!window)
+		return;
+
+	xtext = g_object_get_data (G_OBJECT (window), "xtext");
+	if (!xtext)
+		return;
+
+	theme_get_xtext_colors (xtext_palette, XTEXT_COLS);
+	gtk_xtext_set_palette (GTK_XTEXT (xtext), xtext_palette);
+}
+
+static void
+pevent_dialog_theme_changed (const ThemeChangedEvent *event, gpointer userdata)
+{
+	GtkWidget *window = userdata;
+
+	if (!theme_changed_event_has_reason (event, THEME_CHANGED_REASON_PALETTE) &&
+	    !theme_changed_event_has_reason (event, THEME_CHANGED_REASON_THEME_PACK) &&
+	    !theme_changed_event_has_reason (event, THEME_CHANGED_REASON_MODE))
+		return;
+
+	pevent_dialog_theme_apply (window);
+}
+
+static void
+pevent_dialog_theme_destroy_cb (GtkWidget *widget, gpointer userdata)
+{
+	guint listener_id;
+
+	(void) userdata;
+
+	listener_id = GPOINTER_TO_UINT (g_object_get_data (G_OBJECT (widget), PEVENT_THEME_LISTENER_ID_KEY));
+	if (listener_id)
+	{
+		theme_listener_unregister (listener_id);
+		g_object_set_data (G_OBJECT (widget), PEVENT_THEME_LISTENER_ID_KEY, NULL);
+	}
 }
 
 static void
@@ -467,12 +515,16 @@ pevent_dialog_show ()
 	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (wid), GTK_POLICY_NEVER, GTK_POLICY_ALWAYS);
 	gtk_box_pack_start (GTK_BOX (vbox), wid, FALSE, TRUE, 0);
 
-	palette_get_xtext_colors (xtext_palette, XTEXT_COLS);
+	theme_get_xtext_colors (xtext_palette, XTEXT_COLS);
 	pevent_dialog_twid = gtk_xtext_new (xtext_palette, 0);
 	gtk_widget_set_sensitive (pevent_dialog_twid, FALSE);
 	gtk_widget_set_size_request (pevent_dialog_twid, -1, 75);
 	gtk_container_add (GTK_CONTAINER (wid), pevent_dialog_twid);
 	gtk_xtext_set_font (GTK_XTEXT (pevent_dialog_twid), prefs.hex_text_font);
+	g_object_set_data (G_OBJECT (pevent_dialog), "xtext", pevent_dialog_twid);
+	g_object_set_data (G_OBJECT (pevent_dialog), PEVENT_THEME_LISTENER_ID_KEY,
+				   GUINT_TO_POINTER (theme_listener_register ("textgui.events", pevent_dialog_theme_changed, pevent_dialog)));
+	g_signal_connect (G_OBJECT (pevent_dialog), "destroy", G_CALLBACK (pevent_dialog_theme_destroy_cb), NULL);
 
 	hbox = gtk_button_box_new (GTK_ORIENTATION_HORIZONTAL);
 	gtk_button_box_set_layout (GTK_BUTTON_BOX (hbox), GTK_BUTTONBOX_SPREAD);

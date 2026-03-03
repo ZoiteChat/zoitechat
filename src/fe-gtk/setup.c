@@ -34,10 +34,10 @@
 #include "../common/zoitechatc.h"
 #include "../common/outbound.h"
 #include "fe-gtk.h"
+#include "theme/theme-manager.h"
+#include "theme/theme-preferences.h"
 #include "gtkutil.h"
 #include "maingui.h"
-#include "chanview.h"
-#include "palette.h"
 #include "pixmaps.h"
 #include "menu.h"
 #include "plugin-tray.h"
@@ -48,8 +48,6 @@
 #endif
 #include "sexy-spell-entry.h"
 
-InputStyle *create_input_style (InputStyle *);
-
 #define LABEL_INDENT 12
 
 static GtkWidget *setup_window = NULL;
@@ -57,17 +55,8 @@ static int last_selected_page = 0;
 static int last_selected_row = 0; /* sound row */
 static gboolean color_change;
 static struct zoitechatprefs setup_prefs;
-static GSList *color_selector_widgets;
 static GtkWidget *cancel_button;
 static GtkWidget *font_dialog = NULL;
-void setup_apply_real (int new_pix, int do_ulist, int do_layout, int do_identd);
-
-typedef struct
-{
-        GtkWidget *combo;
-        GtkWidget *apply_button;
-        GtkWidget *status_label;
-} setup_theme_ui;
 
 enum
 {
@@ -342,34 +331,6 @@ static const setting tabs_settings[] =
         {ST_MENU,       N_("Open utilities in:"), P_OFFINTNL(hex_gui_tab_utils), N_("Open DCC, Ignore, Notify etc, in tabs or windows?"), tabwin, 0},
 
         {ST_END, 0, 0, 0, 0, 0}
-};
-
-static const setting color_settings[] =
-{
-	{ST_TOGGLE, N_("Messages"), P_OFFINTNL(hex_text_stripcolor_msg), 0, 0, 0},
-	{ST_TOGGLE, N_("Scrollback"), P_OFFINTNL(hex_text_stripcolor_replay), 0, 0, 0},
-	{ST_TOGGLE, N_("Topic"), P_OFFINTNL(hex_text_stripcolor_topic), 0, 0, 0},
-
-	{ST_END, 0, 0, 0, 0, 0}
-};
-
-static const char *const dark_mode_modes[] =
-{
-	N_("Auto (system)"),
-	N_("Dark"),
-	N_("Light"),
-	NULL
-};
-
-static const setting dark_mode_setting =
-{
-	ST_MENU,
-	N_("Dark mode:"),
-	P_OFFINTNL(hex_gui_dark_mode),
-	N_("Choose how ZoiteChat selects its color palette for the chat buffer, channel list, and user list.\n"
-	   "This includes message colors, selection colors, and interface highlights.\n"),
-	dark_mode_modes,
-	0
 };
 
 static const char *const dccaccept[] =
@@ -1474,471 +1435,18 @@ setup_create_page (const setting *set)
         return tab;
 }
 
-static void
-setup_color_selectors_set_sensitive (gboolean sensitive)
-{
-        GSList *l = color_selector_widgets;
-        while (l)
-        {
-                GtkWidget *w = (GtkWidget *) l->data;
-                if (GTK_IS_WIDGET (w))
-                        gtk_widget_set_sensitive (w, sensitive);
-                l = l->next;
-        }
-}
-
-static void
-setup_dark_mode_menu_cb (GtkWidget *cbox, const setting *set)
-{
-	setup_menu_cb (cbox, set);
-	/* Keep color selectors usable even when dark mode is enabled. */
-	setup_color_selectors_set_sensitive (TRUE);
-}
-
-static GtkWidget *
-setup_create_dark_mode_menu (GtkWidget *table, int row, const setting *set)
-{
-	GtkWidget *wid, *cbox, *box;
-	const char **text = (const char **)set->list;
-	int i;
-
-	wid = gtk_label_new (_(set->label));
-	gtk_widget_set_halign (wid, GTK_ALIGN_START);
-	gtk_widget_set_valign (wid, GTK_ALIGN_CENTER);
-	setup_table_attach (table, wid, 2, 3, row, row + 1, FALSE, FALSE,
-			    SETUP_ALIGN_START, SETUP_ALIGN_CENTER,
-			    LABEL_INDENT, 0);
-
-	cbox = gtk_combo_box_text_new ();
-
-	for (i = 0; text[i]; i++)
-		gtk_combo_box_text_append_text (GTK_COMBO_BOX_TEXT (cbox), _(text[i]));
-
-	gtk_combo_box_set_active (GTK_COMBO_BOX (cbox),
-							  setup_get_int (&setup_prefs, set) - set->extra);
-	g_signal_connect (G_OBJECT (cbox), "changed",
-					  G_CALLBACK (setup_dark_mode_menu_cb), (gpointer)set);
-
-	box = gtkutil_box_new (GTK_ORIENTATION_HORIZONTAL, FALSE, 0);
-	gtk_box_pack_start (GTK_BOX (box), cbox, 0, 0, 0);
-	setup_table_attach (table, box, 3, 4, row, row + 1, TRUE, FALSE,
-			    SETUP_ALIGN_FILL, SETUP_ALIGN_FILL, 0, 0);
-
-	return cbox;
-}
-
-static void
-setup_color_button_apply (GtkWidget *button, const PaletteColor *color)
-{
-	GtkWidget *target = g_object_get_data (G_OBJECT (button), "zoitechat-color-box");
-	GtkWidget *apply_widget = GTK_IS_WIDGET (target) ? target : button;
-
-	gtkutil_apply_palette (apply_widget, color, NULL, NULL);
-
-	if (apply_widget != button)
-		gtkutil_apply_palette (button, color, NULL, NULL);
-
-	gtk_widget_queue_draw (button);
-}
-
-typedef struct
-{
-	GtkWidget *button;
-	PaletteColor *color;
-} setup_color_dialog_data;
-
-static void
-setup_rgba_from_palette (const PaletteColor *color, GdkRGBA *rgba)
-{
-	guint16 red, green, blue;
-	char color_string[16];
-
-	palette_color_get_rgb16 (color, &red, &green, &blue);
-	g_snprintf (color_string, sizeof (color_string), "#%04x%04x%04x",
-	            red, green, blue);
-	if (!gdk_rgba_parse (rgba, color_string))
-	{
-		rgba->red = red / 65535.0;
-		rgba->green = green / 65535.0;
-		rgba->blue = blue / 65535.0;
-		rgba->alpha = 1.0;
-	}
-}
-
-static void
-setup_color_response_cb (GtkDialog *dialog, gint response_id, gpointer user_data)
-{
-	setup_color_dialog_data *data = user_data;
-
-	if (response_id == GTK_RESPONSE_OK)
-	{
-		GdkRGBA rgba;
-
-		gtk_color_chooser_get_rgba (GTK_COLOR_CHOOSER (dialog), &rgba);
-		*data->color = rgba;
-		color_change = TRUE;
-		setup_color_button_apply (data->button, data->color);
-
-		if (fe_dark_mode_is_enabled_for (setup_prefs.hex_gui_dark_mode))
-			palette_dark_set_color ((int)(data->color - colors), data->color);
-		else
-			palette_user_set_color ((int)(data->color - colors), data->color);
-	}
-
-	gtk_widget_destroy (GTK_WIDGET (dialog));
-	g_free (data);
-}
-
-static void
-setup_color_cb (GtkWidget *button, gpointer userdata)
-{
-        GtkWidget *dialog;
-        PaletteColor *color;
-        GdkRGBA rgba;
-        setup_color_dialog_data *data;
-
-        color = &colors[GPOINTER_TO_INT (userdata)];
-
-        dialog = gtk_color_chooser_dialog_new (_("Select color"), GTK_WINDOW (setup_window));
-        setup_rgba_from_palette (color, &rgba);
-        gtk_color_chooser_set_rgba (GTK_COLOR_CHOOSER (dialog), &rgba);
-        gtk_window_set_modal (GTK_WINDOW (dialog), TRUE);
-
-        data = g_new0 (setup_color_dialog_data, 1);
-        data->button = button;
-        data->color = color;
-        g_signal_connect (dialog, "response", G_CALLBACK (setup_color_response_cb), data);
-        gtk_widget_show (dialog);
-}
-
-static void
-setup_create_color_button (GtkWidget *table, int num, int row, int col)
-{
-        GtkWidget *but;
-        GtkWidget *label;
-        GtkWidget *box;
-        char buf[64];
-
-        if (num > 31)
-                strcpy (buf, "<span size=\"x-small\">&#x2007;&#x2007;</span>");
-        else if (num < 10)
-                sprintf (buf, "<span size=\"x-small\">&#x2007;%d</span>", num);
-        else
-                                                /* 12345678901 23456789 01  23456789 */
-                sprintf (buf, "<span size=\"x-small\">%d</span>", num);
-        but = gtk_button_new ();
-        label = gtk_label_new (" ");
-        gtk_label_set_markup (GTK_LABEL (label), buf);
-        box = gtk_event_box_new ();
-        gtk_event_box_set_visible_window (GTK_EVENT_BOX (box), TRUE);
-        gtk_container_add (GTK_CONTAINER (box), label);
-        gtk_container_add (GTK_CONTAINER (but), box);
-        gtk_widget_set_halign (box, GTK_ALIGN_CENTER);
-        gtk_widget_set_valign (box, GTK_ALIGN_CENTER);
-        gtk_widget_show (label);
-        gtk_widget_show (box);
-        /* win32 build uses this to turn off themeing */
-        g_object_set_data (G_OBJECT (but), "zoitechat-color", (gpointer)1);
-        g_object_set_data (G_OBJECT (but), "zoitechat-color-box", box);
-        setup_table_attach (table, but, col, col + 1, row, row + 1, FALSE, FALSE,
-                            SETUP_ALIGN_CENTER, SETUP_ALIGN_CENTER, 0, 0);
-        g_signal_connect (G_OBJECT (but), "clicked",
-                                                        G_CALLBACK (setup_color_cb), GINT_TO_POINTER (num));
-        setup_color_button_apply (but, &colors[num]);
-
-        /* Track all color selector widgets (used for dark mode UI behavior). */
-        color_selector_widgets = g_slist_prepend (color_selector_widgets, but);
-}
-
-static void
-setup_create_other_colorR (char *text, int num, int row, GtkWidget *tab)
-{
-        GtkWidget *label;
-
-        label = gtk_label_new (text);
-        gtk_widget_set_halign (label, GTK_ALIGN_START);
-        gtk_widget_set_valign (label, GTK_ALIGN_CENTER);
-        setup_table_attach (tab, label, 5, 9, row, row + 1, FALSE, FALSE,
-                            SETUP_ALIGN_START, SETUP_ALIGN_CENTER,
-                            LABEL_INDENT, 0);
-        setup_create_color_button (tab, num, row, 9);
-}
-
-static void
-setup_create_other_color (char *text, int num, int row, GtkWidget *tab)
-{
-        GtkWidget *label;
-
-        label = gtk_label_new (text);
-        gtk_widget_set_halign (label, GTK_ALIGN_START);
-        gtk_widget_set_valign (label, GTK_ALIGN_CENTER);
-        setup_table_attach (tab, label, 2, 3, row, row + 1, FALSE, FALSE,
-                            SETUP_ALIGN_START, SETUP_ALIGN_CENTER,
-                            LABEL_INDENT, 0);
-        setup_create_color_button (tab, num, row, 3);
-}
-
 static GtkWidget *
 setup_create_color_page (void)
 {
-	color_selector_widgets = NULL;
-
-	GtkWidget *tab, *box, *label;
-	int i;
-
-        box = gtkutil_box_new (GTK_ORIENTATION_VERTICAL, FALSE, 0);
-        gtk_container_set_border_width (GTK_CONTAINER (box), 6);
-
-        tab = gtkutil_grid_new (9, 2, FALSE);
-        gtk_container_set_border_width (GTK_CONTAINER (tab), 6);
-        gtk_grid_set_row_spacing (GTK_GRID (tab), 2);
-        gtk_grid_set_column_spacing (GTK_GRID (tab), 3);
-        gtk_container_add (GTK_CONTAINER (box), tab);
-
-        setup_create_header (tab, 0, N_("Text Colors"));
-
-        label = gtk_label_new (_("mIRC colors:"));
-        gtk_widget_set_halign (label, GTK_ALIGN_START);
-        gtk_widget_set_valign (label, GTK_ALIGN_CENTER);
-        setup_table_attach (tab, label, 2, 3, 1, 2, FALSE, FALSE,
-                            SETUP_ALIGN_START, SETUP_ALIGN_CENTER,
-                            LABEL_INDENT, 0);
-
-        for (i = 0; i < 16; i++)
-                setup_create_color_button (tab, i, 1, i+3);
-
-        label = gtk_label_new (_("Local colors:"));
-        gtk_widget_set_halign (label, GTK_ALIGN_START);
-        gtk_widget_set_valign (label, GTK_ALIGN_CENTER);
-        setup_table_attach (tab, label, 2, 3, 2, 3, FALSE, FALSE,
-                            SETUP_ALIGN_START, SETUP_ALIGN_CENTER,
-                            LABEL_INDENT, 0);
-
-        for (i = 16; i < 32; i++)
-                setup_create_color_button (tab, i, 2, (i+3) - 16);
-
-        setup_create_other_color (_("Foreground:"), COL_FG, 3, tab);
-        setup_create_other_colorR (_("Background:"), COL_BG, 3, tab);
-
-        setup_create_header (tab, 5, N_("Selected Text"));
-
-        setup_create_other_color (_("Foreground:"), COL_MARK_FG, 6, tab);
-        setup_create_other_colorR (_("Background:"), COL_MARK_BG, 6, tab);
-
-        setup_create_header (tab, 8, N_("Interface Colors"));
-
-        setup_create_other_color (_("New data:"), COL_NEW_DATA, 9, tab);
-        setup_create_other_colorR (_("Marker line:"), COL_MARKER, 9, tab);
-	setup_create_other_color (_("New message:"), COL_NEW_MSG, 10, tab);
-	setup_create_other_colorR (_("Away user:"), COL_AWAY, 10, tab);
-	setup_create_other_color (_("Highlight:"), COL_HILIGHT, 11, tab);
-	setup_create_other_colorR (_("Spell checker:"), COL_SPELL, 11, tab);
-	setup_create_dark_mode_menu (tab, 13, &dark_mode_setting);
-	setup_color_selectors_set_sensitive (TRUE);
-	setup_create_header (tab, 15, N_("Color Stripping"));
-
-        /* label = gtk_label_new (_("Strip colors from:"));
-        gtk_widget_set_halign (label, GTK_ALIGN_START);
-        gtk_widget_set_valign (label, GTK_ALIGN_CENTER);
-        setup_table_attach (tab, label, 2, 3, 16, 17, FALSE, FALSE,
-                            SETUP_ALIGN_FILL, SETUP_ALIGN_FILL,
-                            LABEL_INDENT, 0); */
-
-        for (i = 0; i < 3; i++)
-        {
-                setup_create_toggleL (tab, i + 16, &color_settings[i]);
-        }
-
-        return box;
-}
-
-static void
-setup_theme_show_message (GtkMessageType message_type, const char *primary)
-{
-        GtkWidget *dialog;
-
-        dialog = gtk_message_dialog_new (GTK_WINDOW (setup_window), GTK_DIALOG_MODAL,
-                                                                                         message_type, GTK_BUTTONS_CLOSE, "%s", primary);
-        gtk_dialog_run (GTK_DIALOG (dialog));
-        gtk_widget_destroy (dialog);
-}
-
-static void
-setup_theme_populate (setup_theme_ui *ui)
-{
-        char *themes_dir;
-        GDir *dir;
-        const char *name;
-        GtkTreeModel *model;
-        GtkTreeIter iter;
-        int count;
-
-        model = gtk_combo_box_get_model (GTK_COMBO_BOX (ui->combo));
-        while (gtk_tree_model_get_iter_first (model, &iter))
-                gtk_combo_box_text_remove (GTK_COMBO_BOX_TEXT (ui->combo), 0);
-
-        themes_dir = g_build_filename (get_xdir (), "themes", NULL);
-        if (!g_file_test (themes_dir, G_FILE_TEST_IS_DIR))
-                g_mkdir_with_parents (themes_dir, 0700);
-
-        dir = g_dir_open (themes_dir, 0, NULL);
-        if (dir)
-        {
-                while ((name = g_dir_read_name (dir)))
-                {
-                        char *path = g_build_filename (themes_dir, name, NULL);
-                        if (g_file_test (path, G_FILE_TEST_IS_DIR))
-                                gtk_combo_box_text_append_text (GTK_COMBO_BOX_TEXT (ui->combo), name);
-                        g_free (path);
-                }
-                g_dir_close (dir);
-        }
-
-        count = gtk_tree_model_iter_n_children (gtk_combo_box_get_model (GTK_COMBO_BOX (ui->combo)), NULL);
-        if (count > 0)
-                gtk_combo_box_set_active (GTK_COMBO_BOX (ui->combo), 0);
-
-        gtk_widget_set_sensitive (ui->apply_button, count > 0);
-        gtk_label_set_text (GTK_LABEL (ui->status_label),
-                                                          count > 0 ? _("Select a theme to apply.") : _("No themes found."));
-
-        g_free (themes_dir);
-}
-
-static void
-setup_theme_refresh_cb (GtkWidget *button, gpointer user_data)
-{
-        setup_theme_ui *ui = user_data;
-
-        setup_theme_populate (ui);
-}
-
-static void
-setup_theme_open_folder_cb (GtkWidget *button, gpointer user_data)
-{
-        char *themes_dir;
-
-        themes_dir = g_build_filename (get_xdir (), "themes", NULL);
-        g_mkdir_with_parents (themes_dir, 0700);
-        fe_open_url (themes_dir);
-        g_free (themes_dir);
-}
-
-static void
-setup_theme_selection_changed (GtkComboBox *combo, gpointer user_data)
-{
-        setup_theme_ui *ui = user_data;
-        gboolean has_selection = gtk_combo_box_get_active (combo) >= 0;
-
-        gtk_widget_set_sensitive (ui->apply_button, has_selection);
-}
-
-static void
-setup_theme_apply_cb (GtkWidget *button, gpointer user_data)
-{
-        setup_theme_ui *ui = user_data;
-        GtkWidget *dialog;
-        gint response;
-        char *theme;
-        GError *error = NULL;
-
-        theme = gtk_combo_box_text_get_active_text (GTK_COMBO_BOX_TEXT (ui->combo));
-        if (!theme)
-                return;
-
-        dialog = gtk_message_dialog_new (GTK_WINDOW (setup_window), GTK_DIALOG_MODAL,
-                                                                                         GTK_MESSAGE_WARNING, GTK_BUTTONS_OK_CANCEL,
-                                                                                         "%s", _("Applying a theme will overwrite your current colors and event settings.\nContinue?"));
-        response = gtk_dialog_run (GTK_DIALOG (dialog));
-        gtk_widget_destroy (dialog);
-
-        if (response != GTK_RESPONSE_OK)
-        {
-                g_free (theme);
-                return;
-        }
-
-        if (!zoitechat_apply_theme (theme, &error))
-        {
-                setup_theme_show_message (GTK_MESSAGE_ERROR, error ? error->message : _("Failed to apply theme."));
-                g_clear_error (&error);
-                goto cleanup;
-        }
-
-	palette_load ();
-	palette_apply_dark_mode (fe_dark_mode_is_enabled ());
-	color_change = TRUE;
-        setup_apply_real (0, TRUE, FALSE, FALSE);
-
-        setup_theme_show_message (GTK_MESSAGE_INFO, _("Theme applied. Some changes may require a restart to take full effect."));
-
-cleanup:
-        g_free (theme);
+        return theme_preferences_create_color_page (GTK_WINDOW (setup_window),
+                                                    &setup_prefs,
+                                                    &color_change);
 }
 
 static GtkWidget *
 setup_create_theme_page (void)
 {
-        setup_theme_ui *ui;
-        GtkWidget *box;
-        GtkWidget *label;
-        GtkWidget *hbox;
-        GtkWidget *button_box;
-        char *themes_dir;
-        char *markup;
-
-        ui = g_new0 (setup_theme_ui, 1);
-
-        box = gtkutil_box_new (GTK_ORIENTATION_VERTICAL, FALSE, 6);
-        gtk_container_set_border_width (GTK_CONTAINER (box), 6);
-
-        themes_dir = g_build_filename (get_xdir (), "themes", NULL);
-        markup = g_markup_printf_escaped (_("Theme files are loaded from <tt>%s</tt>."), themes_dir);
-        label = gtk_label_new (NULL);
-        gtk_label_set_markup (GTK_LABEL (label), markup);
-        gtk_label_set_line_wrap (GTK_LABEL (label), TRUE);
-        gtk_widget_set_halign (label, GTK_ALIGN_START);
-        gtk_widget_set_valign (label, GTK_ALIGN_CENTER);
-        gtk_box_pack_start (GTK_BOX (box), label, FALSE, FALSE, 0);
-        g_free (markup);
-        g_free (themes_dir);
-
-        hbox = gtkutil_box_new (GTK_ORIENTATION_HORIZONTAL, FALSE, 6);
-        gtk_box_pack_start (GTK_BOX (box), hbox, FALSE, FALSE, 0);
-
-        ui->combo = gtk_combo_box_text_new ();
-        gtk_box_pack_start (GTK_BOX (hbox), ui->combo, TRUE, TRUE, 0);
-        g_signal_connect (G_OBJECT (ui->combo), "changed",
-                                                        G_CALLBACK (setup_theme_selection_changed), ui);
-
-        button_box = gtkutil_box_new (GTK_ORIENTATION_HORIZONTAL, FALSE, 6);
-        gtk_box_pack_start (GTK_BOX (hbox), button_box, FALSE, FALSE, 0);
-
-        ui->apply_button = gtk_button_new_with_mnemonic (_("_Apply Theme"));
-        gtk_box_pack_start (GTK_BOX (button_box), ui->apply_button, FALSE, FALSE, 0);
-        g_signal_connect (G_OBJECT (ui->apply_button), "clicked",
-                                                        G_CALLBACK (setup_theme_apply_cb), ui);
-
-        label = gtk_button_new_with_mnemonic (_("_Refresh"));
-        gtk_box_pack_start (GTK_BOX (button_box), label, FALSE, FALSE, 0);
-        g_signal_connect (G_OBJECT (label), "clicked",
-                                                        G_CALLBACK (setup_theme_refresh_cb), ui);
-
-        label = gtk_button_new_with_mnemonic (_("_Open Folder"));
-        gtk_box_pack_start (GTK_BOX (button_box), label, FALSE, FALSE, 0);
-        g_signal_connect (G_OBJECT (label), "clicked",
-                                                        G_CALLBACK (setup_theme_open_folder_cb), ui);
-
-        ui->status_label = gtk_label_new (NULL);
-        gtk_widget_set_halign (ui->status_label, GTK_ALIGN_START);
-        gtk_widget_set_valign (ui->status_label, GTK_ALIGN_CENTER);
-        gtk_box_pack_start (GTK_BOX (box), ui->status_label, FALSE, FALSE, 0);
-
-        setup_theme_populate (ui);
-
-        g_object_set_data_full (G_OBJECT (box), "setup-theme-ui", ui, g_free);
-
-        return box;
+        return theme_preferences_create_page (GTK_WINDOW (setup_window), &color_change);
 }
 
 /* === GLOBALS for sound GUI === */
@@ -2406,66 +1914,11 @@ setup_create_tree (GtkWidget *box, GtkWidget *book)
 }
 
 static void
-setup_apply_entry_style (GtkWidget *entry)
-{
-        gtkutil_apply_palette (entry, &colors[COL_BG], &colors[COL_FG],
-                               input_style->font_desc);
-}
-
-static void
 setup_apply_to_sess (session_gui *gui)
 {
         mg_update_xtext (gui->xtext);
-        chanview_apply_theme ((chanview *) gui->chanview);
 
-
-	{
-		const PaletteColor *bg = NULL;
-		const PaletteColor *fg = NULL;
-		const PangoFontDescription *font = NULL;
-
-		if (prefs.hex_gui_ulist_style || fe_dark_mode_is_enabled ())
-			bg = &colors[COL_BG];
-		if (fe_dark_mode_is_enabled ())
-			fg = &colors[COL_FG];
-		if (input_style)
-			font = input_style->font_desc;
-
-		gtkutil_apply_palette (gui->user_tree, bg, fg, font);
-	}
-
-        if (prefs.hex_gui_input_style)
-        {
-                char buf[128];
-                GtkCssProvider *provider = gtk_css_provider_new ();
-                GtkStyleContext *context;
-                char *color_string = gdk_rgba_to_string (&colors[COL_FG]);
-
-                g_snprintf (buf, sizeof (buf), ".zoitechat-inputbox { caret-color: %s; }",
-                            color_string);
-                gtk_css_provider_load_from_data (provider, buf, -1, NULL);
-                g_free (color_string);
-
-                context = gtk_widget_get_style_context (gui->input_box);
-                gtk_style_context_add_provider (context, GTK_STYLE_PROVIDER (provider),
-                                                GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
-                context = gtk_widget_get_style_context (gui->limit_entry);
-                gtk_style_context_add_provider (context, GTK_STYLE_PROVIDER (provider),
-                                                GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
-                context = gtk_widget_get_style_context (gui->key_entry);
-                gtk_style_context_add_provider (context, GTK_STYLE_PROVIDER (provider),
-                                                GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
-                context = gtk_widget_get_style_context (gui->topic_entry);
-                gtk_style_context_add_provider (context, GTK_STYLE_PROVIDER (provider),
-                                                GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
-
-                g_object_unref (provider);
-
-                setup_apply_entry_style (gui->input_box);
-                setup_apply_entry_style (gui->limit_entry);
-                setup_apply_entry_style (gui->key_entry);
-                setup_apply_entry_style (gui->topic_entry);
-        }
+        theme_preferences_apply_to_session (gui, input_style);
 
         if (prefs.hex_gui_ulist_buttons)
                 gtk_widget_show (gui->button_box);
@@ -2496,7 +1949,7 @@ unslash (char *dir)
 }
 
 void
-setup_apply_real (int new_pix, int do_ulist, int do_layout, int do_identd)
+setup_apply_real (const ThemeChangedEvent *event)
 {
         GSList *list;
         session *sess;
@@ -2509,14 +1962,14 @@ setup_apply_real (int new_pix, int do_ulist, int do_layout, int do_identd)
         g_mkdir (prefs.hex_dcc_dir, 0700);
         g_mkdir (prefs.hex_dcc_completed_dir, 0700);
 
-        if (new_pix)
+        if (theme_changed_event_has_reason (event, THEME_CHANGED_REASON_PIXMAP))
         {
                 if (channelwin_pix)
                         cairo_surface_destroy (channelwin_pix);
                 channelwin_pix = pixmap_load_from_file (prefs.hex_text_background);
         }
 
-        input_style = create_input_style (input_style);
+        theme_manager_reload_input_style ();
 
         list = sess_list;
         while (list)
@@ -2537,7 +1990,7 @@ setup_apply_real (int new_pix, int do_ulist, int do_layout, int do_identd)
 
                 log_open_or_close (sess);
 
-                if (do_ulist)
+                if (theme_changed_event_has_reason (event, THEME_CHANGED_REASON_USERLIST))
                         userlist_rehash (sess);
 
                 list = list->next;
@@ -2547,10 +2000,10 @@ setup_apply_real (int new_pix, int do_ulist, int do_layout, int do_identd)
         tray_apply_setup ();
         zoitechat_reinit_timers ();
 
-        if (do_layout)
+        if (theme_changed_event_has_reason (event, THEME_CHANGED_REASON_LAYOUT))
                 menu_change_layout ();
 
-        if (do_identd)
+        if (theme_changed_event_has_reason (event, THEME_CHANGED_REASON_IDENTD))
                 handle_command (current_sess, "IDENTD reload", FALSE);
 }
 
@@ -2562,15 +2015,11 @@ setup_apply (struct zoitechatprefs *pr)
         PangoFontDescription *new_desc;
         char buffer[4 * FONTNAMELEN + 1];
 #endif
-        int new_pix = FALSE;
-        int noapply = FALSE;
-        int do_ulist = FALSE;
-        int do_layout = FALSE;
-        int do_identd = FALSE;
-        int old_dark_mode = prefs.hex_gui_dark_mode;
+	int noapply = FALSE;
+	ThemeChangedEvent event;
+	struct zoitechatprefs old_prefs = prefs;
+	int old_dark_mode = prefs.hex_gui_dark_mode;
 
-        if (strcmp (pr->hex_text_background, prefs.hex_text_background) != 0)
-                new_pix = TRUE;
 
 #define DIFF(a) (pr->a != prefs.a)
 
@@ -2611,17 +2060,6 @@ setup_apply (struct zoitechatprefs *pr)
         if (DIFF (hex_gui_input_style) && prefs.hex_gui_input_style == TRUE)
                 noapply = TRUE; /* Requires restart to *disable* */
 
-        if (DIFF (hex_gui_tab_dots))
-                do_layout = TRUE;
-        if (DIFF (hex_gui_tab_layout))
-                do_layout = TRUE;
-
-        if (DIFF (hex_identd_server) || DIFF (hex_identd_port))
-                do_identd = TRUE;
-
-        if (color_change || (DIFF (hex_gui_ulist_color)) || (DIFF (hex_away_size_max)) || (DIFF (hex_away_track)))
-                do_ulist = TRUE;
-
         if ((pr->hex_gui_tab_pos == 5 || pr->hex_gui_tab_pos == 6) &&
                  pr->hex_gui_tab_layout == 2 && pr->hex_gui_tab_pos != prefs.hex_gui_tab_pos)
                 fe_message (_("You cannot place the tree on the top or bottom!\n"
@@ -2638,23 +2076,7 @@ setup_apply (struct zoitechatprefs *pr)
 
         memcpy (&prefs, pr, sizeof (prefs));
 
-        /*
-         * "Dark mode" applies ZoiteChat's built-in dark palette to the chat views.
-         *
-         * IMPORTANT: don't short-circuit this call.
-	 * We MUST run palette_apply_dark_mode() when the setting changes, otherwise
-	 * the preference flips but the palette stays the same (aka: "nothing happens").
-	 */
-	{
-		gboolean pal_changed = FALSE;
-
-		fe_apply_theme_for_mode (prefs.hex_gui_dark_mode, &pal_changed);
-		if (prefs.hex_gui_dark_mode != old_dark_mode || pal_changed)
-			color_change = TRUE;
-	}
-
-	if (prefs.hex_gui_dark_mode == ZOITECHAT_DARK_MODE_AUTO)
-		fe_set_auto_dark_mode_state (fe_dark_mode_is_enabled_for (ZOITECHAT_DARK_MODE_AUTO));
+	event = theme_manager_on_preferences_changed (&old_prefs, &prefs, old_dark_mode, &color_change);
 
 #ifdef WIN32
         /* merge hex_font_main and hex_font_alternative into hex_font_normal */
@@ -2678,7 +2100,7 @@ setup_apply (struct zoitechatprefs *pr)
                 strcpy (prefs.hex_irc_real_name, "realname");
         }
 
-        setup_apply_real (new_pix, do_ulist, do_layout, do_identd);
+	theme_manager_dispatch_setup_apply (&event);
 
         if (noapply)
                 fe_message (_("Some settings were changed that require a"
@@ -2704,7 +2126,7 @@ setup_ok_cb (GtkWidget *but, GtkWidget *win)
         gtk_widget_destroy (win);
         setup_apply (&setup_prefs);
         save_config ();
-        palette_save ();
+        theme_manager_save_preferences ();
 }
 
 static GtkWidget *
@@ -2751,11 +2173,6 @@ setup_close_cb (GtkWidget *win, GtkWidget **swin)
 {
         *swin = NULL;
 
-		if (color_selector_widgets)
-		{
-			g_slist_free (color_selector_widgets);
-			color_selector_widgets = NULL;
-		}
 
         if (font_dialog)
         {
