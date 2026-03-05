@@ -167,7 +167,7 @@ pevent_dialog_theme_apply (GtkWidget *window)
 	if (!xtext)
 		return;
 
-	theme_get_xtext_colors (xtext_palette, XTEXT_COLS);
+	theme_get_xtext_colors_for_widget (xtext, xtext_palette, XTEXT_COLS);
 	gtk_xtext_set_palette (GTK_XTEXT (xtext), xtext_palette);
 }
 
@@ -515,7 +515,7 @@ pevent_dialog_show ()
 	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (wid), GTK_POLICY_NEVER, GTK_POLICY_ALWAYS);
 	gtk_box_pack_start (GTK_BOX (vbox), wid, FALSE, TRUE, 0);
 
-	theme_get_xtext_colors (xtext_palette, XTEXT_COLS);
+	theme_get_xtext_colors_for_widget (wid, xtext_palette, XTEXT_COLS);
 	pevent_dialog_twid = gtk_xtext_new (xtext_palette, 0);
 	gtk_widget_set_sensitive (pevent_dialog_twid, FALSE);
 	gtk_widget_set_size_request (pevent_dialog_twid, -1, 75);
@@ -539,4 +539,5 @@ pevent_dialog_show ()
 						NULL, _("OK"));
 
 	gtk_widget_show_all (pevent_dialog);
+	pevent_dialog_theme_apply (pevent_dialog);
 }

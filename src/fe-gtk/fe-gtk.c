@@ -107,6 +107,7 @@ create_msg_dialog (gchar *title, gchar *message)
 	GtkWidget *dialog;
 
 	dialog = gtk_message_dialog_new (NULL, GTK_DIALOG_MODAL, GTK_MESSAGE_INFO, GTK_BUTTONS_CLOSE, "%s", message);
+	theme_manager_attach_window (dialog);
 	gtk_window_set_title (GTK_WINDOW (dialog), title);
 
 /* On Win32 we automatically have the icon. If we try to load it explicitly, it will look ugly for some reason. */
@@ -697,6 +698,7 @@ fe_message (char *msg, int flags)
 
 	dialog = gtk_message_dialog_new (GTK_WINDOW (parent_window), 0, type,
 												GTK_BUTTONS_OK, "%s", msg);
+	theme_manager_attach_window (dialog);
 	if (flags & FE_MSG_MARKUP)
 		gtk_message_dialog_set_markup (GTK_MESSAGE_DIALOG (dialog), msg);
 	g_signal_connect (G_OBJECT (dialog), "response",
@@ -1221,61 +1223,6 @@ fe_set_inputbox_contents (session *sess, char *text)
 	}
 }
 
-#ifdef __APPLE__
-static char *
-url_escape_hostname (const char *url)
-{
-    char *host_start, *host_end, *ret, *hostname;
-
-    host_start = strstr (url, "://");
-    if (host_start != NULL)
-    {
-        *host_start = '\0';
-        host_start += 3;
-        host_end = strchr (host_start, '/');
-
-        if (host_end != NULL)
-        {
-            *host_end = '\0';
-            host_end++;
-        }
-
-        hostname = g_hostname_to_ascii (host_start);
-        if (host_end != NULL)
-            ret = g_strdup_printf ("%s://%s/%s", url, hostname, host_end);
-        else
-            ret = g_strdup_printf ("%s://%s", url, hostname);
-
-        g_free (hostname);
-        return ret;
-    }
-
-    return g_strdup (url);
-}
-
-static void
-osx_show_uri (const char *url)
-{
-    char *escaped_url, *encoded_url, *open, *cmd;
-
-    escaped_url = url_escape_hostname (url);
-    encoded_url = g_filename_from_utf8 (escaped_url, -1, NULL, NULL, NULL);
-    if (encoded_url)
-    {
-        open = g_find_program_in_path ("open");
-        cmd = g_strjoin (" ", open, encoded_url, NULL);
-
-        zoitechat_exec (cmd);
-
-        g_free (encoded_url);
-        g_free (cmd);
-    }
-
-    g_free (escaped_url);
-}
-
-#endif
-
 static inline char *
 escape_uri (const char *uri)
 {
@@ -1318,48 +1265,39 @@ maybe_escape_uri (const char *uri)
 static void
 fe_open_url_inner (const char *url)
 {
-#ifdef WIN32
-	gunichar2 *url_utf16 = g_utf8_to_utf16 (url, -1, NULL, NULL, NULL);
-
-	if (url_utf16 == NULL)
-	{
-		return;
-	}
-
-	ShellExecuteW (0, L"open", url_utf16, NULL, NULL, SW_SHOWNORMAL);
-
-	g_free (url_utf16);
-#elif defined(__APPLE__)
-    osx_show_uri (url);
-#else
 	GError *error = NULL;
 	char *escaped_url = maybe_escape_uri (url);
-	gchar *xdg_open_argv[] = {(gchar *) "xdg-open", escaped_url, NULL};
-	gchar **spawn_env = NULL;
-	gboolean opened = FALSE;
-	g_debug ("Opening URL \"%s\" (%s)", escaped_url, url);
+	gboolean opened = g_app_info_launch_default_for_uri (escaped_url, NULL, &error);
 
-	/* AppImage runtime variables can point host binaries like /bin/sh at
-	 * bundled libraries, which may not be ABI-compatible with system tools. */
-	spawn_env = g_get_environ ();
+	if (!opened)
 	{
-		gchar **tmp_env = spawn_env;
-		spawn_env = g_environ_unsetenv (tmp_env, "LD_LIBRARY_PATH");
-		if (spawn_env != tmp_env)
-			g_strfreev (tmp_env);
+		g_clear_error (&error);
+#ifdef WIN32
+		gunichar2 *url_utf16 = g_utf8_to_utf16 (escaped_url, -1, NULL, NULL, NULL);
 
-		tmp_env = spawn_env;
-		spawn_env = g_environ_unsetenv (tmp_env, "LD_PRELOAD");
-		if (spawn_env != tmp_env)
-			g_strfreev (tmp_env);
-	}
+		if (url_utf16 != NULL)
+		{
+			opened = ((INT_PTR) ShellExecuteW (0, L"open", url_utf16, NULL, NULL, SW_SHOWNORMAL)) > 32;
+			g_free (url_utf16);
+		}
+#else
+		gchar *xdg_open_argv[] = {(gchar *) "xdg-open", escaped_url, NULL};
+		gchar **spawn_env = NULL;
 
-	/* Prefer xdg-open when available because gtk_show_uri can inherit
-	 * AppImage runtime state and fail before we can control the environment. */
-	{
-		gchar *xdg_open_path = g_find_program_in_path ("xdg-open");
-		if (xdg_open_path &&
-			g_spawn_async (NULL, xdg_open_argv, spawn_env,
+		spawn_env = g_get_environ ();
+		{
+			gchar **tmp_env = spawn_env;
+			spawn_env = g_environ_unsetenv (tmp_env, "LD_LIBRARY_PATH");
+			if (spawn_env != tmp_env)
+				g_strfreev (tmp_env);
+
+			tmp_env = spawn_env;
+			spawn_env = g_environ_unsetenv (tmp_env, "LD_PRELOAD");
+			if (spawn_env != tmp_env)
+				g_strfreev (tmp_env);
+		}
+
+		if (g_spawn_async (NULL, xdg_open_argv, spawn_env,
 							 G_SPAWN_SEARCH_PATH | G_SPAWN_STDOUT_TO_DEV_NULL | G_SPAWN_STDERR_TO_DEV_NULL,
 							 NULL, NULL, NULL, &error))
 		{
@@ -1369,27 +1307,26 @@ fe_open_url_inner (const char *url)
 		{
 			g_clear_error (&error);
 		}
-		g_free (xdg_open_path);
-	}
 
-	if (!opened && gtk_show_uri (NULL, escaped_url, GDK_CURRENT_TIME, &error))
-	{
-		opened = TRUE;
-	}
-	else if (!opened)
-	{
-		g_warning ("gtk_show_uri failed for '%s': %s", escaped_url, error ? error->message : "unknown error");
-		g_clear_error (&error);
+		if (!opened && gtk_show_uri (NULL, escaped_url, GDK_CURRENT_TIME, &error))
+		{
+			opened = TRUE;
+		}
+		else if (!opened)
+		{
+			g_clear_error (&error);
+		}
+
+		g_strfreev (spawn_env);
+#endif
 	}
 
 	if (!opened)
 	{
-		g_warning ("Unable to open URL '%s' via xdg-open or gtk_show_uri", escaped_url);
+		g_warning ("Unable to open URL '%s' using system default application", escaped_url);
 	}
 
-	g_strfreev (spawn_env);
 	g_free (escaped_url);
-#endif
 }
 
 void

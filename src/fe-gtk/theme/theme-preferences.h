@@ -7,7 +7,9 @@
 #include "../fe-gtk.h"
 #include "../../common/zoitechat.h"
 
-GtkWidget *theme_preferences_create_page (GtkWindow *parent, gboolean *color_change_flag);
+GtkWidget *theme_preferences_create_page (GtkWindow *parent,
+                                                struct zoitechatprefs *setup_prefs,
+                                                gboolean *color_change_flag);
 GtkWidget *theme_preferences_create_color_page (GtkWindow *parent,
                                                 struct zoitechatprefs *setup_prefs,
                                                 gboolean *color_change_flag);

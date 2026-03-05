@@ -193,7 +193,6 @@ static const char *const tabcompmenu[] =
 static const setting inputbox_settings[] =
 {
         {ST_HEADER, N_("Input Box"),0,0,0},
-        {ST_TOGGLE, N_("Use the text box font and colors"), P_OFFINTNL(hex_gui_input_style),0,0,0},
         {ST_TOGGLE, N_("Render colors and attributes"), P_OFFINTNL (hex_gui_input_attr),0,0,0},
         {ST_TOGGLE, N_("Show nick box"), P_OFFINTNL(hex_gui_input_nick),0,0,1},
         {ST_TOGGLE, N_("Show user mode icon in nick box"), P_OFFINTNL(hex_gui_input_icon),0,0,0},
@@ -257,7 +256,6 @@ static const setting userlist_settings[] =
 {
         {ST_HEADER,     N_("User List"),0,0,0},
         {ST_TOGGLE, N_("Show hostnames in user list"), P_OFFINTNL(hex_gui_ulist_show_hosts), 0, 0, 0},
-        {ST_TOGGLE, N_("Use the Text box font and colors"), P_OFFINTNL(hex_gui_ulist_style),0,0,0},
         {ST_TOGGLE, N_("Show icons for user modes"), P_OFFINTNL(hex_gui_ulist_icons), N_("Use graphical icons instead of text symbols in the user list."), 0, 0},
         {ST_TOGGLE, N_("Color nicknames in userlist"), P_OFFINTNL(hex_gui_ulist_color), N_("Will color nicknames the same as in chat."), 0, 0},
         {ST_TOGGLE, N_("Show user count in channels"), P_OFFINTNL(hex_gui_ulist_count), 0, 0, 0},
@@ -1194,6 +1192,7 @@ setup_browsefont_cb (GtkWidget *button, GtkWidget *entry)
         const char *font_name;
 
         dialog = gtk_font_chooser_dialog_new (_("Select font"), GTK_WINDOW (setup_window));
+	theme_manager_attach_window (dialog);
         font_dialog = dialog;      /* global var */
 
         gtk_window_set_modal (GTK_WINDOW (dialog), TRUE);
@@ -1436,17 +1435,11 @@ setup_create_page (const setting *set)
 }
 
 static GtkWidget *
-setup_create_color_page (void)
-{
-        return theme_preferences_create_color_page (GTK_WINDOW (setup_window),
-                                                    &setup_prefs,
-                                                    &color_change);
-}
-
-static GtkWidget *
 setup_create_theme_page (void)
 {
-        return theme_preferences_create_page (GTK_WINDOW (setup_window), &color_change);
+        return theme_preferences_create_page (GTK_WINDOW (setup_window),
+                                                    &setup_prefs,
+                                                    &color_change);
 }
 
 /* === GLOBALS for sound GUI === */
@@ -1736,8 +1729,7 @@ static const char *const cata_interface[] =
         N_("Input box"),
         N_("User list"),
         N_("Channel switcher"),
-        N_("Themes"),
-        N_("Colors"),
+        N_("GTK3 Theme"),
         NULL
 };
 
@@ -1772,7 +1764,6 @@ setup_create_pages (GtkWidget *box)
         setup_add_page (cata_interface[2], book, setup_create_page (userlist_settings));
         setup_add_page (cata_interface[3], book, setup_create_page (tabs_settings));
         setup_add_page (cata_interface[4], book, setup_create_theme_page ());
-        setup_add_page (cata_interface[5], book, setup_create_color_page ());
 
         setup_add_page (cata_chatting[0], book, setup_create_page (general_settings));
 
@@ -2053,12 +2044,8 @@ setup_apply (struct zoitechatprefs *pr)
                 noapply = TRUE;
         if (DIFF (hex_gui_ulist_show_hosts))
                 noapply = TRUE;
-        if (DIFF (hex_gui_ulist_style))
-                noapply = TRUE;
         if (DIFF (hex_gui_ulist_sort))
                 noapply = TRUE;
-        if (DIFF (hex_gui_input_style) && prefs.hex_gui_input_style == TRUE)
-                noapply = TRUE; /* Requires restart to *disable* */
 
         if ((pr->hex_gui_tab_pos == 5 || pr->hex_gui_tab_pos == 6) &&
                  pr->hex_gui_tab_layout == 2 && pr->hex_gui_tab_pos != prefs.hex_gui_tab_pos)

@@ -30,7 +30,7 @@
       <DisableSpecificWarnings>4244;4267;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
     <Link>
-      <AdditionalLibraryDirectories>$(DepsRoot)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(ArchiveLibDir);$(DepsRoot)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>$(DepLibs);$(ZoiteChatLib)common.lib;wbemuuid.lib;dwmapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
     </Link>
@@ -85,6 +85,7 @@ powershell "Get-Content -Encoding UTF8 '$(ZoiteChatLib)zoitechat.rc.utf8' | Out-
     <ClInclude Include="theme\theme-runtime.h" />
     <ClInclude Include="theme\theme-access.h" />
     <ClInclude Include="theme\theme-gtk.h" />
+    <ClInclude Include="theme\theme-gtk3.h" />
     <ClInclude Include="theme\theme-preferences.h" />
   </ItemGroup>
   <ItemGroup>
@@ -126,6 +127,7 @@ powershell "Get-Content -Encoding UTF8 '$(ZoiteChatLib)zoitechat.rc.utf8' | Out-
     <ClCompile Include="theme\theme-css.c" />
     <ClCompile Include="theme\theme-runtime.c" />
     <ClCompile Include="theme\theme-access.c" />
+    <ClCompile Include="theme\theme-gtk3.c" />
     <ClCompile Include="theme\theme-preferences.c" />
   </ItemGroup>
   <ItemGroup>

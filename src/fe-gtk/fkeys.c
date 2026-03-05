@@ -51,6 +51,7 @@
 #include "theme/theme-access.h"
 #include "theme/theme-manager.h"
 #include "theme/theme-css.h"
+#include "theme/theme-gtk3.h"
 #include "maingui.h"
 #include "textgui.h"
 #include "fkeys.h"
@@ -795,6 +796,7 @@ key_dialog_treeview_new (GtkWidget *box)
 					"changed", G_CALLBACK (key_dialog_selection_changed), NULL);
 
 	gtk_widget_set_name (view, "fkeys-treeview");
+	if (!theme_gtk3_is_active ())
 	{
 		GtkCssProvider *provider = gtk_css_provider_new ();
 

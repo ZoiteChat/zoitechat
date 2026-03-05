@@ -81,6 +81,11 @@ void theme_runtime_user_set_color (ThemeSemanticToken token, const GdkRGBA *colo
 	(void) color;
 }
 
+void theme_runtime_reset_mode_colors (gboolean dark_mode)
+{
+	(void) dark_mode;
+}
+
 gboolean theme_runtime_apply_mode (unsigned int mode, gboolean *dark_active)
 {
 	(void) mode;
@@ -129,6 +134,12 @@ void theme_get_widget_style_values (ThemeWidgetStyleValues *out_values)
 {
 	gdk_rgba_parse (&out_values->background, "#101010");
 	gdk_rgba_parse (&out_values->foreground, "#f0f0f0");
+}
+
+void theme_get_widget_style_values_for_widget (GtkWidget *widget, ThemeWidgetStyleValues *out_values)
+{
+	(void) widget;
+	theme_get_widget_style_values (out_values);
 }
 
 void fe_win32_apply_native_titlebar (GtkWidget *window, gboolean dark)

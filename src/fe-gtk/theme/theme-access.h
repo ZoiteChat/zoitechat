@@ -15,6 +15,8 @@ gboolean theme_get_mirc_color_rgb16 (unsigned int mirc_index, guint16 *red, guin
 G_DEPRECATED_FOR (theme_get_color)
 gboolean theme_get_legacy_color (int legacy_idx, GdkRGBA *out_rgba);
 void theme_get_widget_style_values (ThemeWidgetStyleValues *out_values);
+void theme_get_widget_style_values_for_widget (GtkWidget *widget, ThemeWidgetStyleValues *out_values);
 void theme_get_xtext_colors (XTextColor *palette, size_t palette_len);
+void theme_get_xtext_colors_for_widget (GtkWidget *widget, XTextColor *palette, size_t palette_len);
 
 #endif

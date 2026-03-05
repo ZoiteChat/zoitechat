@@ -135,9 +135,16 @@ struct _GtkXText
 
 	GtkAdjustment *adj;
 	cairo_surface_t *background_surface;	/* 0 = use palette[19] */
+	cairo_surface_t *background_clip_surface;
 	GdkWindow *draw_window;			/* points to ->window */
 	cairo_surface_t *draw_surface;	/* temporary surface for offscreen draws */
 	cairo_t *draw_cr;					/* GTK3 draw context */
+	int background_clip_x;
+	int background_clip_y;
+	int background_clip_width;
+	int background_clip_height;
+	int background_clip_cycle;
+	int render_cycle;
 	GdkCursor *hand_cursor;
 	GdkCursor *resize_cursor;
 

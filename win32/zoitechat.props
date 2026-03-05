@@ -113,7 +113,22 @@
 		<PngLib Condition="'$(PngLib)'=='' and Exists('$(DepsRoot)\lib\libpng16_static.lib')">libpng16_static.lib</PngLib>
 		<PngLib Condition="'$(PngLib)'=='' and Exists('$(DepsRoot)\lib\libpng.lib')">libpng.lib</PngLib>
 
-		<DepLibs>$(Gtk3Lib);$(Gdk3Lib);wininet.lib;winmm.lib;ws2_32.lib;atk-1.0.lib;gio-2.0.lib;gdk_pixbuf-2.0.lib;pangowin32-1.0.lib;pangocairo-1.0.lib;pango-1.0.lib;cairo.lib;gobject-2.0.lib;gmodule-2.0.lib;glib-2.0.lib;$(IntlLib);$(IconvLib);$(ZlibLib);$(Xml2Lib);$(JpegLib);$(PngLib);$(OpenSslLibs)</DepLibs>
+		<ArchiveLibDir Condition="'$(ArchiveLibDir)'==''">$(DepsRoot)\lib</ArchiveLibDir>
+
+		<ArchiveInclude Condition="Exists('$(DepsRoot)\include\archive.h') and Exists('$(DepsRoot)\include\archive_entry.h')">$(DepsRoot)\include</ArchiveInclude>
+		<ArchiveInclude Condition="'$(ArchiveInclude)'=='' and Exists('$(DepsRoot)\include\archive\archive.h')">$(DepsRoot)\include\archive</ArchiveInclude>
+		<ArchiveInclude Condition="'$(ArchiveInclude)'=='' and Exists('$(DepsRoot)\include\libarchive\archive.h')">$(DepsRoot)\include\libarchive</ArchiveInclude>
+
+		<ArchiveLib Condition="Exists('$(ArchiveLibDir)\archive.lib')">archive.lib</ArchiveLib>
+		<ArchiveLib Condition="'$(ArchiveLib)'=='' and Exists('$(ArchiveLibDir)\libarchive.lib')">libarchive.lib</ArchiveLib>
+		<ArchiveLib Condition="'$(ArchiveLib)'=='' and Exists('$(ArchiveLibDir)\archive-13.lib')">archive-13.lib</ArchiveLib>
+		<ArchiveLib Condition="'$(ArchiveLib)'=='' and Exists('$(ArchiveLibDir)\libarchive-13.lib')">libarchive-13.lib</ArchiveLib>
+		<ArchiveLib Condition="'$(ArchiveLib)'=='' and Exists('$(ArchiveLibDir)\archive_static.lib')">archive_static.lib</ArchiveLib>
+		<ArchiveLib Condition="'$(ArchiveLib)'=='' and Exists('$(ArchiveLibDir)\libarchive_static.lib')">libarchive_static.lib</ArchiveLib>
+
+		<ArchiveDefs Condition="'$(ArchiveLib)'=='archive_static.lib' or '$(ArchiveLib)'=='libarchive_static.lib'">LIBARCHIVE_STATIC</ArchiveDefs>
+
+		<DepLibs>$(Gtk3Lib);$(Gdk3Lib);wininet.lib;winmm.lib;ws2_32.lib;atk-1.0.lib;gio-2.0.lib;gdk_pixbuf-2.0.lib;pangowin32-1.0.lib;pangocairo-1.0.lib;pango-1.0.lib;cairo.lib;gobject-2.0.lib;gmodule-2.0.lib;glib-2.0.lib;$(IntlLib);$(IconvLib);$(ZlibLib);$(Xml2Lib);$(JpegLib);$(PngLib);$(ArchiveLib);$(OpenSslLibs)</DepLibs>
 
 		<DataDir>$(SolutionDir)..\data\\</DataDir>
 		<ZoiteChatBuild>$(SolutionDir)..\..\zoitechat-build</ZoiteChatBuild>
@@ -160,10 +175,10 @@
 			<FunctionLevelLinking>true</FunctionLevelLinking>
 			<IntrinsicFunctions>true</IntrinsicFunctions>
 			<MultiProcessorCompilation>true</MultiProcessorCompilation>
-			<PreProcessorDefinitions>NTDDI_VERSION=NTDDI_WIN8;_WIN32_WINNT=_WIN32_WINNT_WIN8;%(PreProcessorDefinitions)</PreProcessorDefinitions>
+			<PreProcessorDefinitions>NTDDI_VERSION=NTDDI_WIN8;_WIN32_WINNT=_WIN32_WINNT_WIN8;$(ArchiveDefs);%(PreProcessorDefinitions)</PreProcessorDefinitions>
 		</ClCompile>
 		<Lib>
-			<LinkTimeCodeGeneration>true</LinkTimeCodeGeneration>
+			<LinkTimeCodeGeneration>false</LinkTimeCodeGeneration>
 		</Lib>
 		<Link>
 			<ImportLibrary>$(ZoiteChatLib)$(TargetName).lib</ImportLibrary>
@@ -172,7 +187,7 @@
 			<GenerateDebugInformation>Debug</GenerateDebugInformation>
 			<EnableCOMDATFolding>true</EnableCOMDATFolding>
 			<OptimizeReferences>true</OptimizeReferences>
-			<LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
+			<LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
 		</Link>
 	</ItemDefinitionGroup>
 

@@ -97,6 +97,8 @@ static ThemePalette active_palette;
 static gboolean user_colors_valid = FALSE;
 static gboolean dark_user_colors_valid = FALSE;
 static gboolean dark_mode_active = FALSE;
+static gboolean light_custom_tokens[THEME_TOKEN_COUNT];
+static gboolean dark_custom_tokens[THEME_TOKEN_COUNT];
 
 #define THEME_PALETTE_MIGRATION_MARKER_KEY "theme.palette.semantic_migrated"
 #define THEME_PALETTE_MIGRATION_MARKER_VALUE 1
@@ -108,6 +110,75 @@ typedef struct
 	ThemePalette *palette;
 	gboolean *mode_valid;
 } ThemePalettePersistenceMode;
+
+static void
+theme_runtime_resolve_color (const GdkRGBA *mapped, const GdkRGBA *fallback, GdkRGBA *resolved)
+{
+	gdouble alpha;
+
+	g_return_if_fail (mapped != NULL);
+	g_return_if_fail (fallback != NULL);
+	g_return_if_fail (resolved != NULL);
+
+	alpha = CLAMP (mapped->alpha, 0.0, 1.0);
+	resolved->red = (mapped->red * alpha) + (fallback->red * (1.0 - alpha));
+	resolved->green = (mapped->green * alpha) + (fallback->green * (1.0 - alpha));
+	resolved->blue = (mapped->blue * alpha) + (fallback->blue * (1.0 - alpha));
+	resolved->alpha = 1.0;
+}
+
+static void
+theme_runtime_apply_gtk_map (ThemePalette *palette, const ThemeGtkPaletteMap *gtk_map, const gboolean *custom_tokens)
+{
+	GdkRGBA text_foreground;
+	GdkRGBA text_background;
+	GdkRGBA selection_foreground;
+	GdkRGBA selection_background;
+	GdkRGBA accent;
+	GdkRGBA fallback;
+
+	g_return_if_fail (palette != NULL);
+	if (gtk_map == NULL || !gtk_map->enabled || custom_tokens == NULL)
+		return;
+
+	g_assert (theme_palette_get_color (palette, THEME_TOKEN_TEXT_FOREGROUND, &fallback));
+	theme_runtime_resolve_color (&gtk_map->text_foreground, &fallback, &text_foreground);
+	g_assert (theme_palette_get_color (palette, THEME_TOKEN_TEXT_BACKGROUND, &fallback));
+	theme_runtime_resolve_color (&gtk_map->text_background, &fallback, &text_background);
+	g_assert (theme_palette_get_color (palette, THEME_TOKEN_SELECTION_FOREGROUND, &fallback));
+	theme_runtime_resolve_color (&gtk_map->selection_foreground, &fallback, &selection_foreground);
+	g_assert (theme_palette_get_color (palette, THEME_TOKEN_SELECTION_BACKGROUND, &fallback));
+	theme_runtime_resolve_color (&gtk_map->selection_background, &fallback, &selection_background);
+	g_assert (theme_palette_get_color (palette, THEME_TOKEN_MARKER, &fallback));
+	theme_runtime_resolve_color (&gtk_map->accent, &fallback, &accent);
+
+	if (!custom_tokens[THEME_TOKEN_TEXT_FOREGROUND])
+		g_assert (theme_palette_set_color (palette, THEME_TOKEN_TEXT_FOREGROUND, &text_foreground));
+	if (!custom_tokens[THEME_TOKEN_TEXT_BACKGROUND])
+		g_assert (theme_palette_set_color (palette, THEME_TOKEN_TEXT_BACKGROUND, &text_background));
+	if (!custom_tokens[THEME_TOKEN_SELECTION_FOREGROUND])
+		g_assert (theme_palette_set_color (palette, THEME_TOKEN_SELECTION_FOREGROUND, &selection_foreground));
+	if (!custom_tokens[THEME_TOKEN_SELECTION_BACKGROUND])
+		g_assert (theme_palette_set_color (palette, THEME_TOKEN_SELECTION_BACKGROUND, &selection_background));
+	if (!custom_tokens[THEME_TOKEN_MARKER])
+		g_assert (theme_palette_set_color (palette, THEME_TOKEN_MARKER, &accent));
+	if (!custom_tokens[THEME_TOKEN_TAB_NEW_DATA])
+		g_assert (theme_palette_set_color (palette, THEME_TOKEN_TAB_NEW_DATA, &accent));
+	if (!custom_tokens[THEME_TOKEN_TAB_HIGHLIGHT])
+		g_assert (theme_palette_set_color (palette, THEME_TOKEN_TAB_HIGHLIGHT, &accent));
+	if (!custom_tokens[THEME_TOKEN_TAB_NEW_MESSAGE])
+		g_assert (theme_palette_set_color (palette, THEME_TOKEN_TAB_NEW_MESSAGE, &accent));
+	if (!custom_tokens[THEME_TOKEN_TAB_AWAY])
+		g_assert (theme_palette_set_color (palette, THEME_TOKEN_TAB_AWAY, &accent));
+	if (!custom_tokens[THEME_TOKEN_SPELL])
+		g_assert (theme_palette_set_color (palette, THEME_TOKEN_SPELL, &accent));
+}
+
+static const gboolean *
+theme_runtime_active_custom_tokens (void)
+{
+	return light_custom_tokens;
+}
 
 static void
 palette_color_set_rgb16 (GdkRGBA *color, guint16 red, guint16 green, guint16 blue)
@@ -231,6 +302,13 @@ theme_runtime_get_color (ThemeSemanticToken token, GdkRGBA *out_rgba)
 	return theme_palette_get_color (&active_palette, token, out_rgba);
 }
 
+gboolean
+theme_runtime_mode_has_user_colors (gboolean dark_mode)
+{
+	(void) dark_mode;
+	return user_colors_valid;
+}
+
 void
 theme_runtime_get_widget_style_values (ThemeWidgetStyleValues *out_values)
 {
@@ -239,10 +317,32 @@ theme_runtime_get_widget_style_values (ThemeWidgetStyleValues *out_values)
 }
 
 void
+theme_runtime_get_widget_style_values_mapped (const ThemeGtkPaletteMap *gtk_map, ThemeWidgetStyleValues *out_values)
+{
+	ThemePalette mapped_palette;
+
+	g_return_if_fail (out_values != NULL);
+	mapped_palette = active_palette;
+	theme_runtime_apply_gtk_map (&mapped_palette, gtk_map, theme_runtime_active_custom_tokens ());
+	theme_palette_to_widget_style_values (&mapped_palette, out_values);
+}
+
+void
 theme_runtime_get_xtext_colors (XTextColor *palette, size_t palette_len)
 {
 	g_return_if_fail (palette != NULL);
 	theme_palette_to_xtext_colors (&active_palette, palette, palette_len);
+}
+
+void
+theme_runtime_get_xtext_colors_mapped (const ThemeGtkPaletteMap *gtk_map, XTextColor *palette, size_t palette_len)
+{
+	ThemePalette mapped_palette;
+
+	g_return_if_fail (palette != NULL);
+	mapped_palette = active_palette;
+	theme_runtime_apply_gtk_map (&mapped_palette, gtk_map, theme_runtime_active_custom_tokens ());
+	theme_palette_to_xtext_colors (&mapped_palette, palette, palette_len);
 }
 
 void
@@ -256,6 +356,7 @@ theme_runtime_user_set_color (ThemeSemanticToken token, const GdkRGBA *col)
 		light_palette = active_palette;
 
 	g_assert (theme_palette_set_color (&light_palette, token, col));
+	light_custom_tokens[token] = TRUE;
 	user_colors_valid = TRUE;
 }
 
@@ -270,7 +371,21 @@ theme_runtime_dark_set_color (ThemeSemanticToken token, const GdkRGBA *col)
 		dark_palette = active_palette;
 
 	g_assert (theme_palette_set_color (&dark_palette, token, col));
+	dark_custom_tokens[token] = TRUE;
 	dark_user_colors_valid = TRUE;
+}
+
+void
+theme_runtime_reset_mode_colors (gboolean dark_mode)
+{
+	(void) dark_mode;
+	theme_palette_from_legacy_colors (&light_palette, legacy_light_defaults, G_N_ELEMENTS (legacy_light_defaults));
+	active_palette = light_palette;
+	memset (light_custom_tokens, 0, sizeof light_custom_tokens);
+	memset (dark_custom_tokens, 0, sizeof dark_custom_tokens);
+	user_colors_valid = TRUE;
+	dark_user_colors_valid = FALSE;
+	dark_mode_active = FALSE;
 }
 
 void
@@ -287,6 +402,8 @@ theme_runtime_load (void)
 	const size_t mode_count = G_N_ELEMENTS (modes);
 
 	palette_init_defaults ();
+	memset (light_custom_tokens, 0, sizeof light_custom_tokens);
+	memset (dark_custom_tokens, 0, sizeof dark_custom_tokens);
 
 	fh = zoitechat_open_file ("colors.conf", O_RDONLY, 0, 0);
 	if (fh != -1)
@@ -312,7 +429,10 @@ theme_runtime_load (void)
 					found = theme_runtime_load_migrated_legacy_color (cfg, &modes[i], def, &color);
 				if (found)
 				{
+					gboolean *custom_tokens;
 					g_assert (theme_palette_set_color (modes[i].palette, def->token, &color));
+					custom_tokens = (modes[i].palette == &dark_palette) ? dark_custom_tokens : light_custom_tokens;
+					custom_tokens[def->token] = TRUE;
 					mode_found = TRUE;
 				}
 			}
@@ -379,9 +499,13 @@ theme_runtime_save (void)
 		for (j = 0; j < theme_palette_token_def_count (); j++)
 		{
 			const ThemePaletteTokenDef *def = theme_palette_token_def_at (j);
+			const gboolean *custom_tokens;
 			GdkRGBA color;
 
 			g_assert (def != NULL);
+			custom_tokens = (modes[i].palette == &dark_palette) ? dark_custom_tokens : light_custom_tokens;
+			if (!custom_tokens[def->token])
+				continue;
 			g_assert (theme_palette_get_color (modes[i].palette, def->token, &color));
 			palette_write_token_color (fh, modes[i].mode_name, def, &color);
 		}
@@ -450,13 +574,15 @@ theme_runtime_apply_dark_mode (gboolean enable)
 gboolean
 theme_runtime_apply_mode (unsigned int mode, gboolean *palette_changed)
 {
-	gboolean dark = theme_policy_is_dark_mode_active (mode);
-	gboolean changed = theme_runtime_apply_dark_mode (dark);
+	gboolean changed;
+
+	(void) mode;
+	changed = theme_runtime_apply_dark_mode (FALSE);
 
 	if (palette_changed)
 		*palette_changed = changed;
 
-	return dark;
+	return FALSE;
 }
 
 gboolean

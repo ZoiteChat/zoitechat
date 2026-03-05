@@ -2,6 +2,7 @@ zoitechat_theme_sources = [
   'theme/theme-access.c',
   'theme/theme-application.c',
   'theme/theme-css.c',
+  'theme/theme-gtk3.c',
   'theme/theme-manager.c',
   'theme/theme-palette.c',
   'theme/theme-preferences.c',
@@ -142,6 +143,7 @@ theme_manager_policy_tests = executable('theme_manager_policy_tests',
     'theme/tests/test-theme-manager-policy.c',
     'theme/theme-manager.c',
     'theme/theme-palette.c',
+    'theme/tests/test-theme-gtk3-stub.c',
   ],
   include_directories: [config_h_include],
   dependencies: [gtk_dep],
@@ -158,6 +160,7 @@ theme_manager_dispatch_tests = executable('theme_manager_dispatch_routing_tests'
     'theme/tests/test-theme-manager-dispatch-routing.c',
     'theme/theme-manager.c',
     'theme/theme-palette.c',
+    'theme/tests/test-theme-gtk3-stub.c',
   ],
   include_directories: [config_h_include],
   dependencies: [gtk_dep],
@@ -173,6 +176,7 @@ theme_manager_auto_refresh_tests = executable('theme_manager_auto_refresh_tests'
     'theme/tests/test-theme-manager-auto-refresh.c',
     'theme/theme-manager.c',
     'theme/theme-palette.c',
+    'theme/tests/test-theme-gtk3-stub.c',
   ],
   include_directories: [config_h_include],
   dependencies: [gtk_dep],
@@ -187,6 +191,7 @@ theme_application_input_style_tests = executable('theme_application_input_style_
   [
     'theme/tests/test-theme-application-input-style.c',
     'theme/theme-application.c',
+    'theme/tests/test-theme-gtk3-stub.c',
   ],
   include_directories: [config_h_include],
   dependencies: [gtk_dep],
@@ -217,6 +222,32 @@ theme_access_tests = executable('theme_access_routing_tests',
 )
 
 test('Theme Access Routing Tests', theme_access_tests,
+  protocol: 'tap',
+  timeout: 120,
+)
+
+theme_gtk3_settings_tests = executable('theme_gtk3_settings_tests',
+  [
+    'theme/tests/test-theme-gtk3-settings.c',
+    'theme/theme-gtk3.c',
+  ],
+  include_directories: [config_h_include],
+  dependencies: [gtk_dep],
+)
+
+test('Theme GTK3 Settings Tests', theme_gtk3_settings_tests,
+  protocol: 'tap',
+  timeout: 120,
+)
+
+
+theme_preferences_gtk3_populate_tests = executable('theme_preferences_gtk3_populate_tests',
+  'theme/tests/test-theme-preferences-gtk3-populate.c',
+  include_directories: [config_h_include],
+  dependencies: [gtk_dep],
+)
+
+test('Theme Preferences GTK3 Populate Tests', theme_preferences_gtk3_populate_tests,
   protocol: 'tap',
   timeout: 120,
 )

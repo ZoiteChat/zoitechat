@@ -554,6 +554,8 @@ gtkutil_file_req (GtkWindow *parent, const char *title, void *callback, void *us
 												_("_Open"), GTK_RESPONSE_ACCEPT,
 												NULL);
 
+	theme_manager_attach_window (dialog);
+
 	if (filter && filter[0] && (flags & FRF_FILTERISINITIAL))
 	{
 		if (flags & FRF_WRITE)
@@ -712,6 +714,7 @@ fe_get_str (char *msg, char *def, void *callback, void *userdata)
 										_("_Cancel"), GTK_RESPONSE_REJECT,
 										_("_OK"), GTK_RESPONSE_ACCEPT,
 										NULL);
+	theme_manager_attach_window (dialog);
 
 	gtk_window_set_transient_for (GTK_WINDOW (dialog), GTK_WINDOW (parent_window));
 	gtk_box_set_homogeneous (GTK_BOX (gtk_dialog_get_content_area (GTK_DIALOG (dialog))), TRUE);
@@ -807,6 +810,7 @@ fe_get_int (char *msg, int def, void *callback, void *userdata)
 										_("_Cancel"), GTK_RESPONSE_REJECT,
 										_("_OK"), GTK_RESPONSE_ACCEPT,
 										NULL);
+	theme_manager_attach_window (dialog);
 	gtk_box_set_homogeneous (GTK_BOX (gtk_dialog_get_content_area (GTK_DIALOG (dialog))), TRUE);
 	gtk_window_set_position (GTK_WINDOW (dialog), GTK_WIN_POS_MOUSE);
 	gtk_window_set_transient_for (GTK_WINDOW (dialog), GTK_WINDOW (parent_window));
@@ -847,6 +851,7 @@ fe_get_bool (char *title, char *prompt, void *callback, void *userdata)
 		_("_No"), GTK_RESPONSE_REJECT,
 		_("_Yes"), GTK_RESPONSE_ACCEPT,
 		NULL);
+	theme_manager_attach_window (dialog);
 	gtk_box_set_homogeneous (GTK_BOX (gtk_dialog_get_content_area (GTK_DIALOG (dialog))), TRUE);
 	gtk_window_set_position (GTK_WINDOW (dialog), GTK_WIN_POS_MOUSE);
 	gtk_window_set_transient_for (GTK_WINDOW (dialog), GTK_WINDOW (parent_window));
@@ -963,6 +968,7 @@ gtkutil_window_new (char *title, char *role, int width, int height, int flags)
 	GtkWidget *win;
 
 	win = gtk_window_new (GTK_WINDOW_TOPLEVEL);
+	theme_manager_attach_window (win);
 	gtkutil_set_icon (win);
 #ifdef WIN32
 	gtk_window_set_wmclass (GTK_WINDOW (win), "ZoiteChat", "zoitechat");

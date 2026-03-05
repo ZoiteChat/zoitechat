@@ -29,6 +29,7 @@ jobs:
             build-essential pkg-config meson ninja-build cmake \
             gettext \
             libcanberra-dev libdbus-glib-1-dev libglib2.0-dev \
+            libarchive-dev \
             libgtk-3-dev \
             libwayland-client0 libwayland-cursor0 libwayland-egl1 \
             libxkbcommon0 \

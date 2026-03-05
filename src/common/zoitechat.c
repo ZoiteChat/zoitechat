@@ -54,7 +54,6 @@
 #include "text.h"
 #include "url.h"
 #include "zoitechatc.h"
-#include "theme-service.h"
 
 #if ! GLIB_CHECK_VERSION (2, 36, 0)
 #include <glib-object.h>			/* for g_type_init() */
@@ -113,36 +112,9 @@ struct zoitechatprefs prefs;
 gboolean
 zoitechat_theme_path_from_arg (const char *arg, char **path_out)
 {
-	char *path = NULL;
-	const char *ext;
-
-	if (!arg)
-		return FALSE;
-
-	if (g_str_has_prefix (arg, "file://"))
-		path = g_filename_from_uri (arg, NULL, NULL);
-	else
-		path = g_strdup (arg);
-
-	if (!path)
-		return FALSE;
-
-	ext = strrchr (path, '.');
-	if (!g_file_test (path, G_FILE_TEST_IS_REGULAR) ||
-	    !ext ||
-	    (g_ascii_strcasecmp (ext, ".zct") != 0 &&
-	     g_ascii_strcasecmp (ext, ".hct") != 0))
-	{
-		g_free (path);
-		return FALSE;
-	}
-
-	if (path_out)
-		*path_out = path;
-	else
-		g_free (path);
-
-	return TRUE;
+	(void) arg;
+	(void) path_out;
+	return FALSE;
 }
 
 #ifdef WIN32
@@ -252,176 +224,19 @@ zoitechat_remote_win32 (void)
 }
 #endif
 
+static zoitechat_theme_post_apply_callback zoitechat_theme_post_apply_cb;
+
 void
 zoitechat_set_theme_post_apply_callback (zoitechat_theme_post_apply_callback callback)
 {
-	zoitechat_theme_service_set_post_apply_callback (callback);
+	zoitechat_theme_post_apply_cb = callback;
 }
 
 void
 zoitechat_run_theme_post_apply_callback (void)
 {
-	zoitechat_theme_service_run_post_apply_callback ();
-}
-
-gboolean
-zoitechat_apply_theme (const char *theme_name, GError **error)
-{
-	return zoitechat_theme_service_apply (theme_name, error);
-}
-
-gboolean
-zoitechat_import_theme (const char *path, GError **error)
-{
-	char *themes_dir;
-	char *basename;
-	char *dot;
-	char *theme_dir;
-	char *argv[] = {"unzip", "-o", (char *)path, "-d", NULL, NULL};
-	int status = 0;
-	gboolean ok;
-#ifdef WIN32
-	char *command = NULL;
-	char *powershell = NULL;
-#endif
-
-	if (!path)
-	{
-		g_set_error (error, G_IO_ERROR, G_IO_ERROR_INVALID_ARGUMENT,
-		             _("No theme file specified."));
-		return FALSE;
-	}
-
-	themes_dir = zoitechat_theme_service_get_themes_dir ();
-	basename = g_path_get_basename (path);
-	if (!basename || basename[0] == '\0')
-	{
-		g_free (themes_dir);
-		g_free (basename);
-		g_set_error (error, G_IO_ERROR, G_IO_ERROR_INVALID_ARGUMENT,
-		             _("Failed to determine theme name."));
-		return FALSE;
-	}
-
-	dot = strrchr (basename, '.');
-	if (dot)
-		*dot = '\0';
-
-	theme_dir = g_build_filename (themes_dir, basename, NULL);
-	if (g_mkdir_with_parents (theme_dir, 0700) != 0)
-	{
-		g_set_error (error, G_FILE_ERROR, g_file_error_from_errno (errno),
-		             _("Failed to create theme directory."));
-		g_free (theme_dir);
-		g_free (basename);
-		g_free (themes_dir);
-		return FALSE;
-	}
-
-#ifdef WIN32
-	powershell = g_find_program_in_path ("powershell.exe");
-	if (!powershell)
-		powershell = g_find_program_in_path ("powershell");
-
-	if (!powershell)
-	{
-		g_set_error (error, G_SPAWN_ERROR, G_SPAWN_ERROR_NOENT,
-		             _("No archive extractor was found."));
-		ok = FALSE;
-	}
-	else
-	{
-		GString *escaped_path = g_string_new ("'");
-		GString *escaped_dir = g_string_new ("'");
-		const char *cursor;
-
-		for (cursor = path; *cursor != '\0'; cursor++)
-		{
-			if (*cursor == '\'')
-				g_string_append (escaped_path, "''");
-			else
-				g_string_append_c (escaped_path, *cursor);
-		}
-		g_string_append_c (escaped_path, '\'');
-
-		for (cursor = theme_dir; *cursor != '\0'; cursor++)
-		{
-			if (*cursor == '\'')
-				g_string_append (escaped_dir, "''");
-			else
-				g_string_append_c (escaped_dir, *cursor);
-		}
-		g_string_append_c (escaped_dir, '\'');
-
-		command = g_strdup_printf (
-			"Add-Type -AssemblyName WindowsBase; "
-			"$ErrorActionPreference='Stop'; "
-			"$package=[System.IO.Packaging.Package]::Open(%s); "
-			"try { "
-			"foreach ($part in $package.GetParts()) { "
-			"$relative=$part.Uri.OriginalString.TrimStart('/'); "
-			"if ([string]::IsNullOrEmpty($relative)) { continue }; "
-			"$destPath=[System.IO.Path]::Combine(%s, $relative); "
-			"$destDir=[System.IO.Path]::GetDirectoryName($destPath); "
-			"if ($destDir -and -not (Test-Path -LiteralPath $destDir)) { "
-			"[System.IO.Directory]::CreateDirectory($destDir) | Out-Null "
-			"}; "
-			"$partStream=$part.GetStream(); "
-			"$fileStream=[System.IO.File]::Open($destPath,[System.IO.FileMode]::Create,[System.IO.FileAccess]::Write); "
-			"$partStream.CopyTo($fileStream); "
-			"$fileStream.Dispose(); "
-			"$partStream.Dispose(); "
-			"} "
-			"} finally { $package.Close(); }",
-			escaped_path->str,
-			escaped_dir->str);
-		g_string_free (escaped_path, TRUE);
-		g_string_free (escaped_dir, TRUE);
-
-		{
-			char *ps_argv[] = {powershell, "-NoProfile", "-NonInteractive", "-Command", command, NULL};
-			ok = g_spawn_sync (NULL, ps_argv, NULL, 0, NULL, NULL,
-			                   NULL, NULL, &status, error);
-		}
-	}
-#else
-	argv[4] = theme_dir;
-	ok = g_spawn_sync (NULL, argv, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL,
-	                   NULL, NULL, &status, error);
-#endif
-	if (!ok)
-	{
-#ifdef WIN32
-		g_free (command);
-		g_free (powershell);
-#endif
-		g_free (theme_dir);
-		g_free (basename);
-		g_free (themes_dir);
-		return FALSE;
-	}
-
-	if (!g_spawn_check_exit_status (status, error))
-	{
-#ifdef WIN32
-		g_free (command);
-		g_free (powershell);
-#endif
-		g_free (theme_dir);
-		g_free (basename);
-		g_free (themes_dir);
-		return FALSE;
-	}
-
-#ifdef WIN32
-	g_free (command);
-	g_free (powershell);
-#endif
-
-	g_free (theme_dir);
-	g_free (basename);
-	g_free (themes_dir);
-	return TRUE;
+	if (zoitechat_theme_post_apply_cb)
+		zoitechat_theme_post_apply_cb ();
 }
 
 /*
@@ -725,7 +540,6 @@ irc_init (session *sess)
 {
 	static int done_init = FALSE;
 	char *buf;
-	char *theme_path;
 
 	if (done_init)
 		return;
@@ -748,50 +562,10 @@ irc_init (session *sess)
 
 	if (arg_url != NULL)
 	{
-		theme_path = NULL;
-		if (zoitechat_theme_path_from_arg (arg_url, &theme_path))
-		{
-			GError *error = NULL;
-			char *basename = g_path_get_basename (theme_path);
-			char *dot = strrchr (basename, '.');
-			char *message;
-
-			if (dot)
-				*dot = '\0';
-
-			if (zoitechat_import_theme (theme_path, &error))
-			{
-				if (zoitechat_apply_theme (basename, &error))
-				{
-					message = g_strdup_printf (_("Theme \"%s\" imported and applied."), basename);
-					fe_message (message, FE_MSG_INFO);
-					g_free (message);
-				}
-				else
-				{
-					fe_message (error ? error->message : _("Theme imported, but failed to apply."),
-					            FE_MSG_ERROR);
-					g_clear_error (&error);
-				}
-			}
-			else
-			{
-				fe_message (error ? error->message : _("Failed to import theme."),
-				            FE_MSG_ERROR);
-				g_clear_error (&error);
-			}
-
-			g_free (basename);
-		}
-		else
-		{
-			buf = g_strdup_printf ("server %s", arg_url);
-			handle_command (sess, buf, FALSE);
-			g_free (buf);
-		}
-
-		g_free (theme_path);
-		g_free (arg_url);	/* from GOption */
+		buf = g_strdup_printf ("server %s", arg_url);
+		handle_command (sess, buf, FALSE);
+		g_free (buf);
+		g_free (arg_url);
 	}
 	
 	if (arg_urls != NULL)
@@ -799,49 +573,9 @@ irc_init (session *sess)
 		guint i;
 		for (i = 0; i < g_strv_length (arg_urls); i++)
 		{
-			theme_path = NULL;
-			if (zoitechat_theme_path_from_arg (arg_urls[i], &theme_path))
-			{
-				GError *error = NULL;
-				char *basename = g_path_get_basename (theme_path);
-				char *dot = strrchr (basename, '.');
-				char *message;
-
-				if (dot)
-					*dot = '\0';
-
-				if (zoitechat_import_theme (theme_path, &error))
-				{
-					if (zoitechat_apply_theme (basename, &error))
-					{
-						message = g_strdup_printf (_("Theme \"%s\" imported and applied."), basename);
-						fe_message (message, FE_MSG_INFO);
-							g_free (message);
-					}
-					else
-					{
-						fe_message (error ? error->message : _("Theme imported, but failed to apply."),
-						            FE_MSG_ERROR);
-						g_clear_error (&error);
-					}
-				}
-				else
-				{
-					fe_message (error ? error->message : _("Failed to import theme."),
-					            FE_MSG_ERROR);
-					g_clear_error (&error);
-				}
-
-				g_free (basename);
-			}
-			else
-			{
-				buf = g_strdup_printf ("%s %s", i==0? "server" : "newserver", arg_urls[i]);
-				handle_command (sess, buf, FALSE);
-				g_free (buf);
-			}
-
-			g_free (theme_path);
+			buf = g_strdup_printf ("%s %s", i == 0 ? "server" : "newserver", arg_urls[i]);
+			handle_command (sess, buf, FALSE);
+			g_free (buf);
 		}
 		g_strfreev (arg_urls);
 	}

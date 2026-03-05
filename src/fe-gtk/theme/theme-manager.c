@@ -2,17 +2,21 @@
 #include "theme-manager.h"
 
 #include <gtk/gtk.h>
+#include <string.h>
 
 #include "theme-application.h"
 #include "theme-policy.h"
 #include "theme-runtime.h"
 #include "theme-access.h"
 #include "theme-css.h"
+#include "theme-gtk3.h"
 #include "../gtkutil.h"
 #include "../maingui.h"
 #include "../setup.h"
 #include "../../common/zoitechat.h"
 #include "../../common/zoitechatc.h"
+
+void theme_runtime_reset_mode_colors (gboolean dark_mode);
 
 typedef struct
 {
@@ -26,6 +30,38 @@ static GHashTable *theme_manager_listeners;
 static guint theme_manager_next_listener_id = 1;
 static guint theme_manager_setup_listener_id;
 static const char theme_manager_window_destroy_handler_key[] = "theme-manager-window-destroy-handler";
+static const char theme_manager_window_csd_headerbar_key[] = "theme-manager-window-csd-headerbar";
+
+typedef struct
+{
+	gboolean initialized;
+	gboolean resolved_dark_preference;
+	char gtk3_theme_id[sizeof prefs.hex_gui_gtk3_theme];
+	int gtk3_variant;
+} ThemeManagerAutoRefreshCache;
+
+static ThemeManagerAutoRefreshCache theme_manager_auto_refresh_cache;
+
+static void theme_manager_apply_platform_window_theme (GtkWidget *window);
+
+static void
+theme_manager_apply_to_toplevel_windows (void)
+{
+	GList *toplevels;
+	GList *iter;
+
+	toplevels = gtk_window_list_toplevels ();
+	for (iter = toplevels; iter != NULL; iter = iter->next)
+	{
+		GtkWidget *window = GTK_WIDGET (iter->data);
+
+		if (!GTK_IS_WINDOW (window) || gtk_widget_get_mapped (window) == FALSE)
+			continue;
+
+		theme_manager_apply_platform_window_theme (window);
+	}
+	g_list_free (toplevels);
+}
 
 static void
 theme_listener_free (gpointer data)
@@ -76,27 +112,59 @@ theme_manager_synthesize_preference_reasons (const struct zoitechatprefs *old_pr
 	return reasons;
 }
 
+static gboolean
+theme_manager_should_refresh_gtk3 (void)
+{
+	return prefs.hex_gui_gtk3_variant == THEME_GTK3_VARIANT_FOLLOW_SYSTEM;
+}
+
 static void
 theme_manager_auto_dark_mode_changed (GtkSettings *settings, GParamSpec *pspec, gpointer data)
 {
 	gboolean color_change = FALSE;
+	gboolean should_refresh_gtk3;
+	gboolean gtk3_refresh;
+	gboolean resolved_dark_preference;
 	static gboolean in_handler = FALSE;
 
 	(void) settings;
 	(void) pspec;
 	(void) data;
 
-	if (prefs.hex_gui_dark_mode != ZOITECHAT_DARK_MODE_AUTO)
+	resolved_dark_preference = theme_policy_system_prefers_dark ();
+	gtk3_refresh = theme_manager_should_refresh_gtk3 ();
+	should_refresh_gtk3 = gtk3_refresh || prefs.hex_gui_dark_mode == ZOITECHAT_DARK_MODE_AUTO;
+
+	if (theme_manager_auto_refresh_cache.initialized &&
+	    theme_manager_auto_refresh_cache.resolved_dark_preference == resolved_dark_preference &&
+	    theme_manager_auto_refresh_cache.gtk3_variant == prefs.hex_gui_gtk3_variant &&
+	    g_strcmp0 (theme_manager_auto_refresh_cache.gtk3_theme_id, prefs.hex_gui_gtk3_theme) == 0)
+		return;
+
+	theme_manager_auto_refresh_cache.initialized = TRUE;
+	theme_manager_auto_refresh_cache.resolved_dark_preference = resolved_dark_preference;
+	theme_manager_auto_refresh_cache.gtk3_variant = prefs.hex_gui_gtk3_variant;
+	g_strlcpy (theme_manager_auto_refresh_cache.gtk3_theme_id,
+		   prefs.hex_gui_gtk3_theme,
+		   sizeof (theme_manager_auto_refresh_cache.gtk3_theme_id));
+
+	if (prefs.hex_gui_dark_mode != ZOITECHAT_DARK_MODE_AUTO && !gtk3_refresh)
 		return;
 	if (in_handler)
 		return;
 
 	in_handler = TRUE;
 
-	fe_set_auto_dark_mode_state (theme_policy_system_prefers_dark ());
-	theme_manager_commit_preferences (prefs.hex_gui_dark_mode, &color_change);
-	if (color_change)
-		theme_manager_dispatch_changed (THEME_CHANGED_REASON_PALETTE | THEME_CHANGED_REASON_WIDGET_STYLE | THEME_CHANGED_REASON_USERLIST | THEME_CHANGED_REASON_MODE);
+	if (prefs.hex_gui_dark_mode == ZOITECHAT_DARK_MODE_AUTO)
+	{
+		fe_set_auto_dark_mode_state (resolved_dark_preference);
+		theme_manager_commit_preferences (prefs.hex_gui_dark_mode, &color_change);
+		if (color_change)
+			theme_manager_dispatch_changed (THEME_CHANGED_REASON_PALETTE | THEME_CHANGED_REASON_WIDGET_STYLE | THEME_CHANGED_REASON_USERLIST | THEME_CHANGED_REASON_MODE);
+	}
+
+	if (should_refresh_gtk3)
+		theme_gtk3_apply_current (NULL);
 
 	in_handler = FALSE;
 }
@@ -141,6 +209,7 @@ theme_manager_init (void)
 		fe_set_auto_dark_mode_state (theme_policy_system_prefers_dark ());
 
 	theme_application_apply_mode (prefs.hex_gui_dark_mode, NULL);
+	theme_gtk3_init ();
 	zoitechat_set_theme_post_apply_callback (theme_manager_handle_theme_applied);
 
 	if (settings)
@@ -167,21 +236,36 @@ theme_manager_set_mode (unsigned int mode, gboolean *palette_changed)
 void
 theme_manager_set_token_color (unsigned int mode, ThemeSemanticToken token, const GdkRGBA *color, gboolean *palette_changed)
 {
-	gboolean dark;
 	gboolean changed = FALSE;
 
 	if (!color)
 		return;
 
-	dark = theme_policy_is_dark_mode_active (mode);
-	if (dark)
-		theme_runtime_dark_set_color (token, color);
-	else
-		theme_runtime_user_set_color (token, color);
+	(void) mode;
+	theme_runtime_user_set_color (token, color);
 
-	changed = theme_runtime_apply_mode (mode, NULL);
+	theme_runtime_apply_mode (ZOITECHAT_DARK_MODE_LIGHT, &changed);
 	if (palette_changed)
 		*palette_changed = changed;
+
+	if (changed)
+		theme_manager_dispatch_changed (THEME_CHANGED_REASON_PALETTE | THEME_CHANGED_REASON_WIDGET_STYLE | THEME_CHANGED_REASON_USERLIST);
+
+	theme_application_reload_input_style ();
+}
+
+void
+theme_manager_reset_mode_colors (unsigned int mode, gboolean *palette_changed)
+{
+	gboolean changed;
+
+	(void) mode;
+	theme_runtime_reset_mode_colors (FALSE);
+	theme_runtime_apply_mode (ZOITECHAT_DARK_MODE_LIGHT, &changed);
+	changed = TRUE;
+	if (palette_changed)
+		*palette_changed = changed;
+	theme_manager_dispatch_changed (THEME_CHANGED_REASON_PALETTE | THEME_CHANGED_REASON_WIDGET_STYLE | THEME_CHANGED_REASON_USERLIST);
 
 	theme_application_reload_input_style ();
 }
@@ -230,6 +314,13 @@ theme_manager_dispatch_changed (ThemeChangedReason reasons)
 	ThemeChangedEvent event;
 
 	event.reasons = reasons;
+
+	if ((reasons & (THEME_CHANGED_REASON_MODE |
+			    THEME_CHANGED_REASON_THEME_PACK |
+			    THEME_CHANGED_REASON_WIDGET_STYLE)) != 0)
+	{
+		theme_manager_apply_to_toplevel_windows ();
+	}
 
 	if (!theme_manager_listeners)
 		return;
@@ -284,9 +375,97 @@ theme_listener_unregister (guint listener_id)
 void
 theme_manager_handle_theme_applied (void)
 {
-	theme_runtime_load ();
-	theme_runtime_apply_mode (prefs.hex_gui_dark_mode, NULL);
+	theme_gtk3_invalidate_provider_cache ();
+	if (prefs.hex_gui_gtk3_theme[0])
+		theme_gtk3_refresh (prefs.hex_gui_gtk3_theme, (ThemeGtk3Variant) prefs.hex_gui_gtk3_variant, NULL);
+	theme_application_apply_mode (prefs.hex_gui_dark_mode, NULL);
 	theme_manager_dispatch_changed (THEME_CHANGED_REASON_THEME_PACK | THEME_CHANGED_REASON_PALETTE | THEME_CHANGED_REASON_WIDGET_STYLE | THEME_CHANGED_REASON_USERLIST | THEME_CHANGED_REASON_MODE);
+}
+
+
+static gboolean
+theme_manager_is_kde_wayland (void)
+{
+	const char *wayland_display;
+	const char *desktop;
+	char *desktop_lower;
+	gboolean is_kde;
+
+	wayland_display = g_getenv ("WAYLAND_DISPLAY");
+	if (!wayland_display || !wayland_display[0])
+		return FALSE;
+
+	desktop = g_getenv ("XDG_CURRENT_DESKTOP");
+	if (!desktop || !desktop[0])
+		desktop = g_getenv ("XDG_SESSION_DESKTOP");
+	if (!desktop || !desktop[0])
+		return FALSE;
+
+	desktop_lower = g_ascii_strdown (desktop, -1);
+	is_kde = strstr (desktop_lower, "kde") != NULL || strstr (desktop_lower, "plasma") != NULL;
+	g_free (desktop_lower);
+	return is_kde;
+}
+
+static void
+theme_manager_apply_wayland_kde_csd (GtkWidget *window)
+{
+	GtkWindow *gtk_window;
+	GtkWidget *headerbar;
+	gboolean enable_csd;
+
+	if (!window || !GTK_IS_WINDOW (window))
+		return;
+
+	gtk_window = GTK_WINDOW (window);
+	enable_csd = theme_gtk3_is_active () && theme_manager_is_kde_wayland ();
+	headerbar = g_object_get_data (G_OBJECT (window), theme_manager_window_csd_headerbar_key);
+
+	if (enable_csd)
+	{
+		if (!headerbar)
+		{
+			GtkWidget *icon_image;
+			GdkPixbuf *icon_pixbuf;
+
+			if (gtk_widget_get_realized (window))
+				return;
+
+			headerbar = gtk_header_bar_new ();
+			gtk_header_bar_set_show_close_button (GTK_HEADER_BAR (headerbar), TRUE);
+			gtk_header_bar_set_decoration_layout (GTK_HEADER_BAR (headerbar), "menu:minimize,maximize,close");
+			icon_pixbuf = gdk_pixbuf_new_from_resource_at_scale ("/icons/zoitechat.png", 32, 32, TRUE, NULL);
+			icon_image = icon_pixbuf ? gtk_image_new_from_pixbuf (icon_pixbuf) : gtk_image_new_from_resource ("/icons/zoitechat.png");
+			if (icon_pixbuf)
+				g_object_unref (icon_pixbuf);
+			gtk_header_bar_pack_start (GTK_HEADER_BAR (headerbar), icon_image);
+			gtk_widget_show (icon_image);
+			gtk_window_set_titlebar (gtk_window, headerbar);
+			g_object_set_data (G_OBJECT (window), theme_manager_window_csd_headerbar_key, headerbar);
+		}
+		gtk_header_bar_set_title (GTK_HEADER_BAR (headerbar), gtk_window_get_title (gtk_window));
+		gtk_widget_show (headerbar);
+		{
+			GdkScreen *screen = gdk_screen_get_default ();
+			if (screen)
+				gtk_style_context_reset_widgets (screen);
+		}
+		return;
+	}
+
+	if (headerbar)
+	{
+		if (gtk_widget_get_realized (window))
+			return;
+		gtk_window_set_titlebar (gtk_window, NULL);
+		g_object_set_data (G_OBJECT (window), theme_manager_window_csd_headerbar_key, NULL);
+	}
+
+	{
+		GdkScreen *screen = gdk_screen_get_default ();
+		if (screen)
+			gtk_style_context_reset_widgets (screen);
+	}
 }
 
 static void
@@ -300,7 +479,14 @@ theme_manager_apply_platform_window_theme (GtkWidget *window)
 		return;
 
 	context = gtk_widget_get_style_context (window);
-	dark = theme_runtime_is_dark_active ();
+	if (theme_gtk3_is_active ())
+	{
+		dark = prefs.hex_gui_gtk3_variant == THEME_GTK3_VARIANT_PREFER_DARK;
+		if (prefs.hex_gui_gtk3_variant == THEME_GTK3_VARIANT_FOLLOW_SYSTEM)
+			dark = theme_policy_system_prefers_dark ();
+	}
+	else
+		dark = theme_runtime_is_dark_active ();
 	if (context)
 	{
 		gtk_style_context_remove_class (context, "zoitechat-dark");
@@ -309,7 +495,7 @@ theme_manager_apply_platform_window_theme (GtkWidget *window)
 	}
 	fe_win32_apply_native_titlebar (window, dark);
 #else
-	(void) window;
+	theme_manager_apply_wayland_kde_csd (window);
 #endif
 }
 
@@ -379,7 +565,7 @@ theme_manager_apply_entry_palette (GtkWidget *widget, const PangoFontDescription
 	if (!widget || !font_desc)
 		return;
 
-	theme_get_widget_style_values (&style_values);
+	theme_get_widget_style_values_for_widget (widget, &style_values);
 	gtkutil_apply_palette (widget, &style_values.background, &style_values.foreground, font_desc);
 }
 
@@ -387,11 +573,10 @@ ThemePaletteBehavior
 theme_manager_get_userlist_palette_behavior (const PangoFontDescription *font_desc)
 {
 	ThemePaletteBehavior behavior;
-	gboolean dark_mode_active = theme_policy_is_dark_mode_active (prefs.hex_gui_dark_mode);
 
 	behavior.font_desc = font_desc;
-	behavior.apply_background = prefs.hex_gui_ulist_style || dark_mode_active;
-	behavior.apply_foreground = dark_mode_active;
+	behavior.apply_background = TRUE;
+	behavior.apply_foreground = TRUE;
 
 	return behavior;
 }
@@ -400,11 +585,10 @@ ThemePaletteBehavior
 theme_manager_get_channel_tree_palette_behavior (const PangoFontDescription *font_desc)
 {
 	ThemePaletteBehavior behavior;
-	gboolean dark_mode_active = theme_policy_is_dark_mode_active (prefs.hex_gui_dark_mode);
 
 	behavior.font_desc = font_desc;
-	behavior.apply_background = dark_mode_active || prefs.hex_gui_dark_mode == ZOITECHAT_DARK_MODE_LIGHT;
-	behavior.apply_foreground = dark_mode_active || prefs.hex_gui_dark_mode == ZOITECHAT_DARK_MODE_LIGHT;
+	behavior.apply_background = TRUE;
+	behavior.apply_foreground = TRUE;
 
 	return behavior;
 }
@@ -431,7 +615,7 @@ theme_manager_apply_userlist_style (GtkWidget *widget, ThemePaletteBehavior beha
 	if (!widget)
 		return;
 
-	theme_get_widget_style_values (&style_values);
+	theme_get_widget_style_values_for_widget (widget, &style_values);
 	if (behavior.apply_background)
 		background = &style_values.background;
 	if (behavior.apply_foreground)

@@ -46,6 +46,7 @@
     <ClInclude Include="zoitechat.h" />
     <ClInclude Include="zoitechatc.h" />
     <ClInclude Include="theme-service.h" />
+    <ClInclude Include="gtk3-theme-service.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="cfgfiles.c" />
@@ -77,6 +78,7 @@
     <ClCompile Include="util.c" />
     <ClCompile Include="zoitechat.c" />
     <ClCompile Include="theme-service.c" />
+    <ClCompile Include="gtk3-theme-service.c" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\win32\config.h.tt" />
@@ -97,7 +99,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <PreprocessorDefinitions>WIN32;_WIN64;_AMD64_;NDEBUG;_LIB;$(OwnFlags);%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(ZoiteChatLib);$(DepsRoot)\include;$(OpenSslInclude);$(Glib);$(Gtk);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ZoiteChatLib);$(DepsRoot)\include;$(ArchiveInclude);$(OpenSslInclude);$(Glib);$(Gtk);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4267;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
   </ItemDefinitionGroup>

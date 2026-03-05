@@ -37,6 +37,7 @@
 #include "theme/theme-gtk.h"
 #include "notifygui.h"
 #include "theme/theme-access.h"
+#include "theme/theme-manager.h"
 
 #define ICON_NOTIFY_NEW "document-new"
 #define ICON_NOTIFY_DELETE "edit-delete"
@@ -381,6 +382,7 @@ fe_notify_ask (char *nick, char *networks)
 										LABEL_NOTIFY_CANCEL, GTK_RESPONSE_REJECT,
 										LABEL_NOTIFY_OK, GTK_RESPONSE_ACCEPT,
 										NULL);
+	theme_manager_attach_window (dialog);
 	if (parent_window)
 		gtk_window_set_transient_for (GTK_WINDOW (dialog), GTK_WINDOW (parent_window));
 	gtk_window_set_position (GTK_WINDOW (dialog), GTK_WIN_POS_MOUSE);

@@ -35,6 +35,7 @@
 #include "menu.h"
 #include "pixmaps.h"
 #include "fkeys.h"
+#include "theme/theme-manager.h"
 
 #define SERVLIST_X_PADDING 4			/* horizontal paddig in the network editor */
 #define SERVLIST_Y_PADDING 0			/* vertical padding in the network editor */
@@ -787,6 +788,7 @@ servlist_deletenet_cb (GtkWidget *item, ircnet *net)
 												GTK_BUTTONS_OK_CANCEL,
 							_("Really remove network \"%s\" and all its servers?"),
 												net->name);
+	theme_manager_attach_window (dialog);
 	g_signal_connect (dialog, "response",
 							G_CALLBACK (servlist_deletenetdialog_cb), net);
 	gtk_window_set_position (GTK_WINDOW (dialog), GTK_WIN_POS_MOUSE);
@@ -1791,6 +1793,7 @@ servlist_open_edit (GtkWidget *parent, ircnet *net)
 	char buf[128];
 
 	editwindow = gtk_window_new (GTK_WINDOW_TOPLEVEL);
+	theme_manager_attach_window (editwindow);
 	gtk_container_set_border_width (GTK_CONTAINER (editwindow), 4);
 	g_snprintf (buf, sizeof (buf), _("Edit %s - %s"), net->name, _(DISPLAY_NAME));
 	gtk_window_set_title (GTK_WINDOW (editwindow), buf);
@@ -2072,6 +2075,7 @@ servlist_open_networks (void)
 	char buf[128];
 
 	servlist = gtk_window_new (GTK_WINDOW_TOPLEVEL);
+	theme_manager_attach_window (servlist);
 	gtk_container_set_border_width (GTK_CONTAINER (servlist), 4);
 	g_snprintf(buf, sizeof(buf), _("Network List - %s"), _(DISPLAY_NAME));
 	gtk_window_set_title (GTK_WINDOW (servlist), buf);

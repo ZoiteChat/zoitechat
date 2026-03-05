@@ -1364,6 +1364,7 @@ mg_tab_close (session *sess)
                                                 GTK_MESSAGE_WARNING, GTK_BUTTONS_OK_CANCEL,
                                                 _("This server still has %d channels or dialogs associated with it. "
                                                   "Close them all?"), i);
+	theme_manager_attach_window (dialog);
                 g_signal_connect (G_OBJECT (dialog), "response",
                                                                 G_CALLBACK (mg_tab_close_cb), sess);
                 if (prefs.hex_gui_tab_layout)
@@ -1461,6 +1462,7 @@ mg_open_quit_dialog (gboolean minimize_button)
         }
 
         dialog = gtk_dialog_new ();
+	theme_manager_attach_window (dialog);
         gtk_container_set_border_width (GTK_CONTAINER (dialog), 6);
         gtk_window_set_title (GTK_WINDOW (dialog), _("Quit ZoiteChat?"));
         gtk_window_set_transient_for (GTK_WINDOW (dialog), GTK_WINDOW (parent_window));
@@ -2617,7 +2619,7 @@ mg_update_xtext (GtkWidget *wid)
         const gchar *font_name;
         XTextColor xtext_palette[XTEXT_COLS];
 
-        theme_get_xtext_colors (xtext_palette, XTEXT_COLS);
+        theme_get_xtext_colors_for_widget (wid, xtext_palette, XTEXT_COLS);
         gtk_xtext_set_palette (xtext, xtext_palette);
         gtk_xtext_set_max_lines (xtext, prefs.hex_text_max_lines);
         gtk_xtext_set_background (xtext, channelwin_pix);
@@ -2664,7 +2666,7 @@ mg_create_textarea (session *sess, GtkWidget *box)
         gtk_frame_set_shadow_type (GTK_FRAME (frame), GTK_SHADOW_IN);
         gtk_box_pack_start (GTK_BOX (inbox), frame, TRUE, TRUE, 0);
 
-        theme_get_xtext_colors (xtext_palette, XTEXT_COLS);
+        theme_get_xtext_colors_for_widget (frame, xtext_palette, XTEXT_COLS);
         gui->xtext = gtk_xtext_new (xtext_palette, TRUE);
         xtext = GTK_XTEXT (gui->xtext);
         gtk_xtext_set_max_indent (xtext, prefs.hex_text_max_indent);

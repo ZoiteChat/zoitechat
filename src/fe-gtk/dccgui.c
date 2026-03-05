@@ -624,15 +624,7 @@ clear_completed (GtkWidget * wid, gpointer none)
 static void
 browse_folder (char *dir)
 {
-#ifdef WIN32
-	/* no need for file:// in ShellExecute() */
 	fe_open_url (dir);
-#else
-	char buf[512];
-
-	g_snprintf (buf, sizeof (buf), "file://%s", dir);
-	fe_open_url (buf);
-#endif
 }
 
 static void

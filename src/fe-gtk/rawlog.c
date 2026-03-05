@@ -61,7 +61,7 @@ rawlog_theme_apply (GtkWidget *window)
 	if (!xtext_widget)
 		return;
 
-	theme_get_xtext_colors (xtext_palette, XTEXT_COLS);
+	theme_get_xtext_colors_for_widget (xtext_widget, xtext_palette, XTEXT_COLS);
 	gtk_xtext_set_palette (GTK_XTEXT (xtext_widget), xtext_palette);
 }
 
@@ -174,7 +174,7 @@ open_rawlog (struct server *serv)
 	gtk_widget_set_vexpand (scrolledwindow, TRUE);
 	gtk_box_pack_start (GTK_BOX (vbox), scrolledwindow, TRUE, TRUE, 0);
 
-	theme_get_xtext_colors (xtext_palette, XTEXT_COLS);
+	theme_get_xtext_colors_for_widget (scrolledwindow, xtext_palette, XTEXT_COLS);
 	serv->gui->rawlog_textlist = gtk_xtext_new (xtext_palette, 0);
 	gtk_container_add (GTK_CONTAINER (scrolledwindow), serv->gui->rawlog_textlist);
 	gtk_xtext_set_font (GTK_XTEXT (serv->gui->rawlog_textlist), prefs.hex_text_font);
@@ -198,6 +198,7 @@ open_rawlog (struct server *serv)
 	g_signal_connect (G_OBJECT (serv->gui->rawlog_window), "destroy", G_CALLBACK (rawlog_theme_destroy_cb), NULL);
 
 	gtk_widget_show_all (serv->gui->rawlog_window);
+	rawlog_theme_apply (serv->gui->rawlog_window);
 }
 
 void

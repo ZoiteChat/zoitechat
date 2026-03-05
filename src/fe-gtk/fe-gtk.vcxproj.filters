@@ -123,6 +123,9 @@
     <ClInclude Include="theme\theme-gtk.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="theme\theme-gtk3.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="theme\theme-preferences.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -240,6 +243,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="theme\theme-access.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="theme\theme-gtk3.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="theme\theme-preferences.c">

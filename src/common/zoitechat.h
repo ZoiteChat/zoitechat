@@ -30,8 +30,6 @@
 #define ZOITECHAT_H
 
 gboolean zoitechat_theme_path_from_arg (const char *arg, char **path_out);
-gboolean zoitechat_import_theme (const char *path, GError **error);
-gboolean zoitechat_apply_theme (const char *theme_name, GError **error);
 typedef void (*zoitechat_theme_post_apply_callback) (void);
 void zoitechat_set_theme_post_apply_callback (zoitechat_theme_post_apply_callback callback);
 void zoitechat_run_theme_post_apply_callback (void);
@@ -143,6 +141,7 @@ struct zoitechatprefs
 	unsigned int hex_gui_tab_dots;
 	unsigned int hex_gui_tab_icons;
 	unsigned int hex_gui_dark_mode;
+	unsigned int hex_gui_gtk3_variant;
 	unsigned int hex_gui_tab_scrollchans;
 	unsigned int hex_gui_tab_server;
 	unsigned int hex_gui_tab_sort;
@@ -323,6 +322,7 @@ struct zoitechatprefs
 	char hex_text_font[4 * FONTNAMELEN + 1];
 	char hex_text_font_main[FONTNAMELEN + 1];
 	char hex_text_font_alternative[3 * FONTNAMELEN + 1];
+	char hex_gui_gtk3_theme[256];
 	char hex_text_spell_langs[64];
 
 	/* these are the private variables */

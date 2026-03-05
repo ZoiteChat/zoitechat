@@ -1,6 +1,7 @@
 #include "theme-css.h"
 
 #include "theme-runtime.h"
+#include "theme-gtk3.h"
 #include "../gtkutil.h"
 #include <string.h>
 
@@ -10,7 +11,7 @@ static const char *theme_css_selector_palette_class = "zoitechat-palette";
 static const char *theme_css_selector_dark_class = "zoitechat-dark";
 static const char *theme_css_selector_light_class = "zoitechat-light";
 static const char *theme_css_palette_provider_key = "zoitechat-palette-provider";
-static const guint theme_css_provider_priority = GTK_STYLE_PROVIDER_PRIORITY_APPLICATION;
+static const guint theme_css_provider_priority = GTK_STYLE_PROVIDER_PRIORITY_USER;
 
 typedef struct
 {
@@ -222,6 +223,8 @@ theme_css_apply_palette_widget (GtkWidget *widget, const GdkRGBA *bg, const GdkR
 	GString *css;
 	gchar *bg_color = NULL;
 	gchar *fg_color = NULL;
+	gchar *sel_bg_color = NULL;
+	gchar *sel_fg_color = NULL;
 
 	if (!widget)
 		return;
@@ -260,12 +263,30 @@ theme_css_apply_palette_widget (GtkWidget *widget, const GdkRGBA *bg, const GdkR
 		fg_color = gdk_rgba_to_string (fg);
 		g_string_append_printf (css, " color: %s;", fg_color);
 	}
+	{
+		GdkRGBA selection_bg;
+		GdkRGBA selection_fg;
+		if (theme_runtime_get_color (THEME_TOKEN_SELECTION_BACKGROUND, &selection_bg))
+			sel_bg_color = gdk_rgba_to_string (&selection_bg);
+		if (theme_runtime_get_color (THEME_TOKEN_SELECTION_FOREGROUND, &selection_fg))
+			sel_fg_color = gdk_rgba_to_string (&selection_fg);
+	}
 	gtkutil_append_font_css (css, font_desc);
 	g_string_append (css, " }");
-	g_string_append_printf (css, ".%s *:selected {", theme_css_selector_palette_class);
+	g_string_append_printf (css, ".%s, .%s *, .%s treeview, .%s treeview.view, .%s treeview.view text, .%s treeview.view cell, .%s treeview.view row, .%s list, .%s list row, .%s text {", theme_css_selector_palette_class, theme_css_selector_palette_class, theme_css_selector_palette_class, theme_css_selector_palette_class, theme_css_selector_palette_class, theme_css_selector_palette_class, theme_css_selector_palette_class, theme_css_selector_palette_class, theme_css_selector_palette_class, theme_css_selector_palette_class);
 	if (bg)
-		g_string_append (css, " background-color: @theme_selected_bg_color;");
+		g_string_append_printf (css, " background-color: %s;", bg_color);
 	if (fg)
+		g_string_append_printf (css, " color: %s;", fg_color);
+	g_string_append (css, " }");
+	g_string_append_printf (css, ".%s *:selected, .%s *:selected:focus, .%s *:selected:hover, .%s treeview.view:selected, .%s treeview.view:selected:focus, .%s treeview.view:selected:hover, .%s row:selected, .%s row:selected:focus, .%s row:selected:hover {", theme_css_selector_palette_class, theme_css_selector_palette_class, theme_css_selector_palette_class, theme_css_selector_palette_class, theme_css_selector_palette_class, theme_css_selector_palette_class, theme_css_selector_palette_class, theme_css_selector_palette_class, theme_css_selector_palette_class);
+	if (sel_bg_color)
+		g_string_append_printf (css, " background-color: %s;", sel_bg_color);
+	else if (bg)
+		g_string_append (css, " background-color: @theme_selected_bg_color;");
+	if (sel_fg_color)
+		g_string_append_printf (css, " color: %s;", sel_fg_color);
+	else if (fg)
 		g_string_append (css, " color: @theme_selected_fg_color;");
 	g_string_append (css, " }");
 
@@ -277,22 +298,46 @@ theme_css_apply_palette_widget (GtkWidget *widget, const GdkRGBA *bg, const GdkR
 	g_string_free (css, TRUE);
 	g_free (bg_color);
 	g_free (fg_color);
+	g_free (sel_bg_color);
+	g_free (sel_fg_color);
 }
 
 char *
 theme_css_build_toplevel_classes (void)
 {
 	return g_strdup_printf (
-		"window.%s, .%s {"
+		"window.%s, window.%s:backdrop, .%s {"
 		"background-color: #202020;"
 		"color: #f0f0f0;"
+		"border-color: #202020;"
 		"}"
-		"window.%s, .%s {"
+		"window.%s menubar, window.%s menubar:backdrop, window.%s menuitem, window.%s menuitem:backdrop {"
+		"background-color: #202020;"
+		"color: #f0f0f0;"
+		"border-color: #202020;"
+		"}"
+		"window.%s, window.%s:backdrop, .%s {"
 		"background-color: #f6f6f6;"
 		"color: #101010;"
+		"border-color: #f6f6f6;"
+		"}"
+		"window.%s menubar, window.%s menubar:backdrop, window.%s menuitem, window.%s menuitem:backdrop {"
+		"background-color: #f6f6f6;"
+		"color: #101010;"
+		"border-color: #f6f6f6;"
 		"}",
 		theme_css_selector_dark_class,
 		theme_css_selector_dark_class,
+		theme_css_selector_dark_class,
+		theme_css_selector_dark_class,
+		theme_css_selector_dark_class,
+		theme_css_selector_dark_class,
+		theme_css_selector_dark_class,
+		theme_css_selector_light_class,
+		theme_css_selector_light_class,
+		theme_css_selector_light_class,
+		theme_css_selector_light_class,
+		theme_css_selector_light_class,
 		theme_css_selector_light_class,
 		theme_css_selector_light_class);
 }

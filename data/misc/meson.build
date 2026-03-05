@@ -43,10 +43,6 @@ if get_option('gtk-frontend')
     install_dir: appdir
   )
 
-  install_data('net.zoite.Zoitechat.mime.xml',
-    install_dir: mimedir
-  )
-
   if desktop_utils.found()
     test('Validate net.zoite.Zoitechat.desktop', desktop_utils,
       args: [zoitechat_desktop]

@@ -27,6 +27,7 @@
 #endif
 
 #include "fe-gtk.h"
+#include "theme/theme-manager.h"
 
 #include "../common/zoitechat.h"
 #include "../common/fe.h"
@@ -563,6 +564,7 @@ banlist_clear (GtkWidget * wid, banlist_info *banl)
 	dialog = gtk_message_dialog_new (NULL, 0,
 								GTK_MESSAGE_QUESTION, GTK_BUTTONS_OK_CANCEL,
 					_("Are you sure you want to remove all listed items in %s?"), banl->sess->channel);
+	theme_manager_attach_window (dialog);
 
 	g_signal_connect (G_OBJECT (dialog), "response",
 							G_CALLBACK (banlist_clear_cb), banl);

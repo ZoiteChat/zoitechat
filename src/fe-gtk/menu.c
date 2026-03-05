@@ -55,6 +55,7 @@
 #include "pixmaps.h"
 #include "rawlog.h"
 #include "theme/theme-gtk.h"
+#include "theme/theme-manager.h"
 #include "plugingui.h"
 #include "search.h"
 #include "textgui.h"
@@ -1520,6 +1521,7 @@ menu_join (GtkWidget * wid, gpointer none)
 									_("_Cancel"), GTK_RESPONSE_REJECT,
 									_("_OK"), GTK_RESPONSE_ACCEPT,
 									NULL);
+	theme_manager_attach_window (dialog);
 	{
 		GtkWidget *button;
 
@@ -1856,6 +1858,7 @@ static void
 menu_about (GtkWidget *wid, gpointer sess)
 {
 	GtkAboutDialog *dialog = GTK_ABOUT_DIALOG(gtk_about_dialog_new());
+	theme_manager_attach_window (GTK_WIDGET (dialog));
 	char comment[512];
 	char *license = "This program is free software; you can redistribute it and/or modify\n" \
 					"it under the terms of the GNU General Public License as published by\n" \
@@ -2483,6 +2486,7 @@ menu_create_main (void *accel_group, int bar, int away, int toplevel,
 	if (bar)
 	{
 		menu_bar = gtk_menu_bar_new ();
+		gtk_style_context_add_class (gtk_widget_get_style_context (menu_bar), GTK_STYLE_CLASS_MENUBAR);
 #ifdef HAVE_GTK_MAC
 		gtkosx_application_set_menu_bar (osx_app, GTK_MENU_SHELL (menu_bar));
 #endif

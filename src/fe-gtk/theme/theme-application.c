@@ -4,6 +4,7 @@
 #include "../../common/zoitechatc.h"
 #include "theme-css.h"
 #include "theme-runtime.h"
+#include "theme-gtk3.h"
 #include "../maingui.h"
 
 #ifdef G_OS_WIN32
@@ -13,23 +14,52 @@ static void
 theme_application_apply_windows_theme (gboolean dark)
 {
 	GtkSettings *settings = gtk_settings_get_default ();
+	static GtkCssProvider *win_theme_provider = NULL;
+	static gboolean win_theme_provider_installed = FALSE;
+	GdkScreen *screen;
+	gboolean prefer_dark = dark;
+	char *css;
+
+	if (theme_gtk3_is_active ())
+	{
+		if (prefs.hex_gui_gtk3_variant == THEME_GTK3_VARIANT_PREFER_DARK)
+			prefer_dark = TRUE;
+		else if (prefs.hex_gui_gtk3_variant == THEME_GTK3_VARIANT_PREFER_LIGHT)
+			prefer_dark = FALSE;
+	}
 
 	if (settings && g_object_class_find_property (G_OBJECT_GET_CLASS (settings),
 	                                              "gtk-application-prefer-dark-theme"))
+		g_object_set (settings, "gtk-application-prefer-dark-theme", prefer_dark, NULL);
+
+	screen = gdk_screen_get_default ();
+	if (!screen)
+		return;
+
+	if (theme_gtk3_is_active ())
 	{
-		g_object_set (settings, "gtk-application-prefer-dark-theme", dark, NULL);
+		if (win_theme_provider_installed && win_theme_provider)
+		{
+			gtk_style_context_remove_provider_for_screen (screen,
+				GTK_STYLE_PROVIDER (win_theme_provider));
+			win_theme_provider_installed = FALSE;
+		}
+		return;
 	}
 
+	if (!win_theme_provider)
+		win_theme_provider = gtk_css_provider_new ();
+
+	css = theme_css_build_toplevel_classes ();
+	gtk_css_provider_load_from_data (win_theme_provider, css, -1, NULL);
+	g_free (css);
+
+	if (!win_theme_provider_installed)
 	{
-		static GtkCssProvider *win_theme_provider = NULL;
-		char *css = theme_css_build_toplevel_classes ();
-
-		if (!win_theme_provider)
-			win_theme_provider = gtk_css_provider_new ();
-
-		gtk_css_provider_load_from_data (win_theme_provider, css, -1, NULL);
-		theme_css_apply_app_provider (GTK_STYLE_PROVIDER (win_theme_provider));
-		g_free (css);
+		gtk_style_context_add_provider_for_screen (screen,
+			GTK_STYLE_PROVIDER (win_theme_provider),
+			GTK_STYLE_PROVIDER_PRIORITY_APPLICATION + 1);
+		win_theme_provider_installed = TRUE;
 	}
 }
 #endif
@@ -77,7 +107,7 @@ theme_application_update_input_style (InputStyle *style)
 		style->font_desc = pango_font_description_from_string ("sans 11");
 	}
 
-	theme_css_reload_input_style (prefs.hex_gui_input_style, style->font_desc);
+	theme_css_reload_input_style (FALSE, style->font_desc);
 
 	return style;
 }

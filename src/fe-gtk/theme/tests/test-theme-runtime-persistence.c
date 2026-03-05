@@ -1,4 +1,5 @@
 #include <errno.h>
+#include <math.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -267,6 +268,91 @@ test_ui_edits_persist_without_legacy_array_mutation (void)
 	g_assert_true (colors_equal (&dark_loaded, &dark_expected));
 }
 
+static void
+test_gtk_map_colors_blend_with_palette_without_transparency (void)
+{
+	ThemeGtkPaletteMap map = { 0 };
+	ThemeWidgetStyleValues base_values;
+	ThemeWidgetStyleValues values;
+	GdkRGBA mapped_bg;
+	double alpha;
+	double expected_red;
+	double expected_green;
+	double expected_blue;
+
+	setup_temp_home ();
+	theme_runtime_load ();
+	theme_runtime_get_widget_style_values (&base_values);
+
+	map.enabled = TRUE;
+	g_assert_true (gdk_rgba_parse (&map.text_foreground, "rgba(10, 20, 30, 0.25)"));
+	g_assert_true (gdk_rgba_parse (&map.text_background, "rgba(40, 50, 60, 0.30)"));
+	g_assert_true (gdk_rgba_parse (&map.selection_foreground, "rgba(70, 80, 90, 0.35)"));
+	g_assert_true (gdk_rgba_parse (&map.selection_background, "rgba(100, 110, 120, 0.40)"));
+	g_assert_true (gdk_rgba_parse (&map.accent, "rgba(130, 140, 150, 0.45)"));
+
+	theme_runtime_get_widget_style_values_mapped (&map, &values);
+	g_assert_cmpfloat (values.foreground.alpha, ==, 1.0);
+	g_assert_cmpfloat (values.background.alpha, ==, 1.0);
+	g_assert_cmpfloat (values.selection_foreground.alpha, ==, 1.0);
+	g_assert_cmpfloat (values.selection_background.alpha, ==, 1.0);
+
+	mapped_bg = map.text_background;
+	alpha = mapped_bg.alpha;
+	expected_red = (mapped_bg.red * alpha) + (base_values.background.red * (1.0 - alpha));
+	expected_green = (mapped_bg.green * alpha) + (base_values.background.green * (1.0 - alpha));
+	expected_blue = (mapped_bg.blue * alpha) + (base_values.background.blue * (1.0 - alpha));
+	g_assert_true (fabs (values.background.red - expected_red) < 0.0001);
+	g_assert_true (fabs (values.background.green - expected_green) < 0.0001);
+	g_assert_true (fabs (values.background.blue - expected_blue) < 0.0001);
+}
+
+
+static void
+test_gtk_map_uses_theme_defaults_until_custom_token_is_set (void)
+{
+	ThemeGtkPaletteMap map = { 0 };
+	ThemeWidgetStyleValues values;
+	GdkRGBA custom;
+
+	setup_temp_home ();
+	theme_runtime_load ();
+
+	map.enabled = TRUE;
+	g_assert_true (gdk_rgba_parse (&map.text_foreground, "#010203"));
+	g_assert_true (gdk_rgba_parse (&map.text_background, "#111213"));
+	g_assert_true (gdk_rgba_parse (&map.selection_foreground, "#212223"));
+	g_assert_true (gdk_rgba_parse (&map.selection_background, "#313233"));
+	g_assert_true (gdk_rgba_parse (&map.accent, "#414243"));
+
+	theme_runtime_get_widget_style_values_mapped (&map, &values);
+	g_assert_true (colors_equal (&values.foreground, &map.text_foreground));
+
+	g_assert_true (gdk_rgba_parse (&custom, "#a1b2c3"));
+	theme_runtime_user_set_color (THEME_TOKEN_TEXT_FOREGROUND, &custom);
+	theme_runtime_apply_mode (ZOITECHAT_DARK_MODE_LIGHT, NULL);
+	theme_runtime_get_widget_style_values_mapped (&map, &values);
+	g_assert_true (colors_equal (&values.foreground, &custom));
+}
+
+static void
+test_save_writes_only_custom_token_keys (void)
+{
+	GdkRGBA custom;
+	char *cfg;
+
+	setup_temp_home ();
+	theme_runtime_load ();
+	g_assert_true (gdk_rgba_parse (&custom, "#445566"));
+	theme_runtime_user_set_color (THEME_TOKEN_TEXT_FOREGROUND, &custom);
+	theme_runtime_save ();
+
+	cfg = read_colors_conf ();
+	g_assert_nonnull (g_strstr_len (cfg, -1, "theme.mode.light.token.text_foreground"));
+	g_assert_null (g_strstr_len (cfg, -1, "theme.mode.light.token.text_background"));
+	g_free (cfg);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -277,5 +363,11 @@ main (int argc, char **argv)
 			 test_loads_legacy_color_keys_via_migration_loader);
 	g_test_add_func ("/theme/runtime/ui_edits_persist_without_legacy_array_mutation",
 			 test_ui_edits_persist_without_legacy_array_mutation);
+	g_test_add_func ("/theme/runtime/gtk_map_colors_blend_with_palette_without_transparency",
+			 test_gtk_map_colors_blend_with_palette_without_transparency);
+	g_test_add_func ("/theme/runtime/gtk_map_uses_theme_defaults_until_custom_token_is_set",
+			 test_gtk_map_uses_theme_defaults_until_custom_token_is_set);
+	g_test_add_func ("/theme/runtime/save_writes_only_custom_token_keys",
+			 test_save_writes_only_custom_token_keys);
 	return g_test_run ();
 }
