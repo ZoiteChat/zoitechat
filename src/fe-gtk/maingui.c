@@ -432,12 +432,47 @@ set_window_urgency (GtkWidget *win, gboolean set)
         gtk_window_set_urgency_hint (GTK_WINDOW (win), set);
 }
 
+static gboolean
+is_wayland_display (void)
+{
+        GdkDisplay *display = gdk_display_get_default ();
+        const char *name;
+
+        if (!display)
+                return FALSE;
+
+        name = gdk_display_get_name (display);
+        if (!name)
+                return FALSE;
+
+        return g_str_has_prefix (name, "wayland");
+}
+
+static gboolean
+is_kde_desktop (void)
+{
+        const char *desktop = g_getenv ("XDG_CURRENT_DESKTOP");
+
+        if (desktop && strstr (desktop, "KDE"))
+                return TRUE;
+
+        return g_getenv ("KDE_FULL_SESSION") != NULL;
+}
+
+static gboolean
+is_kde_wayland (void)
+{
+        return is_wayland_display () && is_kde_desktop ();
+}
+
 static void
 flash_window (GtkWidget *win)
 {
 #ifdef HAVE_GTK_MAC
         gtkosx_application_attention_request (osx_app, INFO_REQUEST);
 #endif
+        if (is_kde_wayland ())
+                gtk_window_present (GTK_WINDOW (win));
         set_window_urgency (win, TRUE);
 }
 
