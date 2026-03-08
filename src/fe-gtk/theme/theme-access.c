@@ -4,6 +4,13 @@
 #include "theme-gtk3.h"
 
 
+
+enum
+{
+	THEME_XTEXT_FG_INDEX = 34,
+	THEME_XTEXT_BG_INDEX = 35
+};
+
 static gboolean
 theme_token_to_rgb16 (ThemeSemanticToken token, guint16 *red, guint16 *green, guint16 *blue)
 {
@@ -115,12 +122,25 @@ theme_get_xtext_colors (XTextColor *palette, size_t palette_len)
 void
 theme_get_xtext_colors_for_widget (GtkWidget *widget, XTextColor *palette, size_t palette_len)
 {
-	ThemeGtkPaletteMap gtk_map = { 0 };
+	ThemeWidgetStyleValues style_values;
 
-	if (theme_access_get_gtk_palette_map (widget, &gtk_map))
-	{
-		theme_runtime_get_xtext_colors_mapped (&gtk_map, palette, palette_len);
+	if (!palette)
 		return;
-	}
+
+	theme_get_widget_style_values_for_widget (widget, &style_values);
 	theme_runtime_get_xtext_colors (palette, palette_len);
+	if (palette_len > THEME_XTEXT_FG_INDEX)
+	{
+		palette[THEME_XTEXT_FG_INDEX].red = style_values.foreground.red;
+		palette[THEME_XTEXT_FG_INDEX].green = style_values.foreground.green;
+		palette[THEME_XTEXT_FG_INDEX].blue = style_values.foreground.blue;
+		palette[THEME_XTEXT_FG_INDEX].alpha = style_values.foreground.alpha;
+	}
+	if (palette_len > THEME_XTEXT_BG_INDEX)
+	{
+		palette[THEME_XTEXT_BG_INDEX].red = style_values.background.red;
+		palette[THEME_XTEXT_BG_INDEX].green = style_values.background.green;
+		palette[THEME_XTEXT_BG_INDEX].blue = style_values.background.blue;
+		palette[THEME_XTEXT_BG_INDEX].alpha = style_values.background.alpha;
+	}
 }

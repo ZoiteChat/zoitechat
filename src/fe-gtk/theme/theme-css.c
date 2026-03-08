@@ -2,6 +2,7 @@
 
 #include "theme-runtime.h"
 #include "theme-gtk3.h"
+#include "theme-access.h"
 #include "../gtkutil.h"
 #include <string.h>
 
@@ -169,18 +170,14 @@ theme_css_reload_input_style (gboolean enabled, const PangoFontDescription *font
 
 		next.theme_name = g_strdup (theme_name);
 		{
-			GdkRGBA color;
+			ThemeWidgetStyleValues style_values;
 
-			if (theme_runtime_get_color (THEME_TOKEN_TEXT_FOREGROUND, &color))
-			{
-				theme_palette_color_get_rgb16 (&color, &next.fg_red, &next.fg_green, &next.fg_blue);
-				next.colors_set = TRUE;
-			}
-			if (theme_runtime_get_color (THEME_TOKEN_TEXT_BACKGROUND, &color))
-			{
-				theme_palette_color_get_rgb16 (&color, &next.bg_red, &next.bg_green, &next.bg_blue);
-				next.colors_set = TRUE;
-			}
+			theme_get_widget_style_values_for_widget (NULL, &style_values);
+			theme_palette_color_get_rgb16 (&style_values.foreground,
+								 &next.fg_red, &next.fg_green, &next.fg_blue);
+			theme_palette_color_get_rgb16 (&style_values.background,
+								 &next.bg_red, &next.bg_green, &next.bg_blue);
+			next.colors_set = TRUE;
 		}
 
 		if (theme_css_input_fingerprint_matches (&next))

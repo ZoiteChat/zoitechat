@@ -138,20 +138,11 @@ cv_tree_init (chanview *cv)
 	gtk_widget_set_hexpand (view, TRUE);
 	gtk_widget_set_vexpand (view, TRUE);
 	gtk_widget_set_name (view, "zoitechat-tree");
-	if (
-		cv->font_desc
-	)
 	{
-		GdkRGBA bg;
-		GdkRGBA fg;
-		const GdkRGBA *bg_color = NULL;
-		const GdkRGBA *fg_color = NULL;
+		ThemeWidgetStyleValues style_values;
 
-		if (theme_get_color (THEME_TOKEN_TEXT_BACKGROUND, &bg))
-			bg_color = &bg;
-		if (theme_get_color (THEME_TOKEN_TEXT_FOREGROUND, &fg))
-			fg_color = &fg;
-		gtkutil_apply_palette (view, bg_color, fg_color,
+		theme_get_widget_style_values_for_widget (view, &style_values);
+		gtkutil_apply_palette (view, &style_values.background, &style_values.foreground,
 		                       cv->font_desc);
 	}
 	/*gtk_widget_modify_base (view, GTK_STATE_NORMAL, &colors[THEME_LEGACY_TEXT_BACKGROUND]);*/

@@ -29,6 +29,7 @@
 #include "gtkutil.h"
 #include "chanview.h"
 #include "theme/theme-manager.h"
+#include "theme/theme-access.h"
 
 /* treeStore columns */
 #define COL_NAME 0		/* (char *) */
