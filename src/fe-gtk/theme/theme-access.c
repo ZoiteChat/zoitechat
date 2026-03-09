@@ -40,9 +40,11 @@ theme_access_get_gtk_palette_map (GtkWidget *widget, ThemeGtkPaletteMap *out_map
 		return FALSE;
 
 	gtk_style_context_get_color (context, GTK_STATE_FLAG_NORMAL, &out_map->text_foreground);
+	G_GNUC_BEGIN_IGNORE_DEPRECATIONS
 	gtk_style_context_get_background_color (context, GTK_STATE_FLAG_NORMAL, &out_map->text_background);
 	gtk_style_context_get_color (context, GTK_STATE_FLAG_SELECTED, &out_map->selection_foreground);
 	gtk_style_context_get_background_color (context, GTK_STATE_FLAG_SELECTED, &out_map->selection_background);
+	G_GNUC_END_IGNORE_DEPRECATIONS
 	gtk_style_context_get_color (context, GTK_STATE_FLAG_LINK, &accent);
 	if (accent.alpha <= 0.0)
 		accent = out_map->selection_background;

@@ -1,11 +1,12 @@
+#include "../../../common/zoitechat.h"
+#include "../../../common/zoitechatc.h"
+
 #include <glib.h>
 #include <glib/gstdio.h>
 #include <gtk/gtk.h>
 
 #include "../theme-gtk3.h"
 #include "../../../common/gtk3-theme-service.h"
-#include "../../../common/zoitechat.h"
-#include "../../../common/zoitechatc.h"
 
 struct session *current_sess;
 struct session *current_tab;

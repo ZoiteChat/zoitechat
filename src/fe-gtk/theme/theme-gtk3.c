@@ -1,5 +1,8 @@
 #include "theme-gtk3.h"
 
+#include "../../common/zoitechat.h"
+#include "../../common/zoitechatc.h"
+
 #include <gtk/gtk.h>
 #include <glib/gstdio.h>
 #include <gio/gio.h>
@@ -7,8 +10,6 @@
 
 #include "theme-policy.h"
 #include "../../common/gtk3-theme-service.h"
-#include "../../common/zoitechat.h"
-#include "../../common/zoitechatc.h"
 
 static GPtrArray *theme_gtk3_providers_base;
 static GPtrArray *theme_gtk3_providers_variant;

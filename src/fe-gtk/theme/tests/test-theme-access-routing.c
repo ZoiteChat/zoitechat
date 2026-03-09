@@ -1,5 +1,6 @@
+#include "../../fe-gtk.h"
+
 #include <math.h>
-#include <gtk/gtk.h>
 
 #include "../theme-access.h"
 #include "../theme-manager.h"

@@ -1,11 +1,10 @@
 #ifndef ZOITECHAT_THEME_PREFERENCES_H
 #define ZOITECHAT_THEME_PREFERENCES_H
 
-#include <gtk/gtk.h>
-
-#include "theme-access.h"
 #include "../fe-gtk.h"
 #include "../../common/zoitechat.h"
+
+#include "theme-access.h"
 
 GtkWidget *theme_preferences_create_page (GtkWindow *parent,
                                                 struct zoitechatprefs *setup_prefs,

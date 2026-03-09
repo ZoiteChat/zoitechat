@@ -1,6 +1,9 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "../../common/zoitechat.h"
+#include "../../common/zoitechatc.h"
+
 #include <gio/gio.h>
 #include <glib/gstdio.h>
 
@@ -8,9 +11,7 @@
 #include "../../common/fe.h"
 #include "../../common/util.h"
 #include "../../common/cfgfiles.h"
-#include "../../common/zoitechat.h"
 #include "../../common/gtk3-theme-service.h"
-#include "../../common/zoitechatc.h"
 #include "theme-gtk3.h"
 #include "theme-manager.h"
 #include "theme-preferences.h"

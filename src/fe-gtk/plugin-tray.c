@@ -414,8 +414,10 @@ tray_app_indicator_init (void)
 {
 	GObjectClass *klass;
 
+	G_GNUC_BEGIN_IGNORE_DEPRECATIONS
 	tray_indicator = app_indicator_new ("zoitechat", ICON_NORMAL_NAME,
 		APP_INDICATOR_CATEGORY_COMMUNICATIONS);
+	G_GNUC_END_IGNORE_DEPRECATIONS
 	if (!tray_indicator)
 		return FALSE;
 
@@ -578,7 +580,12 @@ tray_backend_cleanup (void)
 static WinStatus
 tray_get_window_status (void)
 {
+	GtkWindow *win;
 	const char *st;
+
+	win = GTK_WINDOW (zoitechat_get_info (ph, "gtkwin_ptr"));
+	if (win && !gtk_widget_get_visible (GTK_WIDGET (win)))
+		return WS_HIDDEN;
 
 	st = zoitechat_get_info (ph, "win_status");
 
@@ -998,6 +1005,7 @@ blink_item (unsigned int *setting, GtkWidget *menu, char *label)
 }
 #endif
 
+#if !HAVE_APPINDICATOR_BACKEND
 static void
 tray_menu_destroy (GtkWidget *menu, gpointer userdata)
 {
@@ -1009,6 +1017,7 @@ tray_menu_destroy (GtkWidget *menu, gpointer userdata)
 	g_source_remove (tray_menu_timer);
 #endif
 }
+#endif
 
 #ifdef WIN32
 static gboolean

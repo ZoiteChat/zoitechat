@@ -740,6 +740,51 @@ select_theme_root (GPtrArray *roots, const char *input_root)
 }
 
 static gboolean
+copy_css_file (const char *src, const char *dest, GError **error)
+{
+	char *contents = NULL;
+	char *normalized;
+	gsize len = 0;
+	GRegex *regex;
+
+	if (!g_file_get_contents (src, &contents, &len, error))
+		return FALSE;
+
+	if (!g_strstr_len (contents, len, ":insensitive"))
+	{
+		gboolean ok = g_file_set_contents (dest, contents, len, error);
+		g_free (contents);
+		return ok;
+	}
+
+	regex = g_regex_new (":insensitive", 0, 0, error);
+	if (!regex)
+	{
+		g_free (contents);
+		return FALSE;
+	}
+
+	normalized = g_regex_replace_literal (regex, contents, -1, 0, ":disabled", 0, error);
+	g_regex_unref (regex);
+	if (!normalized)
+	{
+		g_free (contents);
+		return FALSE;
+	}
+
+	if (!g_file_set_contents (dest, normalized, -1, error))
+	{
+		g_free (normalized);
+		g_free (contents);
+		return FALSE;
+	}
+
+	g_free (normalized);
+	g_free (contents);
+	return TRUE;
+}
+
+static gboolean
 copy_tree (const char *src, const char *dest, GError **error)
 {
 	GDir *dir;
@@ -768,19 +813,32 @@ copy_tree (const char *src, const char *dest, GError **error)
 		}
 		else
 		{
-			GFile *sf = g_file_new_for_path (s);
-			GFile *df = g_file_new_for_path (d);
-			if (!g_file_copy (sf, df, G_FILE_COPY_OVERWRITE, NULL, NULL, NULL, error))
+			if (g_str_has_suffix (name, ".css"))
 			{
+				if (!copy_css_file (s, d, error))
+				{
+					g_free (s);
+					g_free (d);
+					g_dir_close (dir);
+					return FALSE;
+				}
+			}
+			else
+			{
+				GFile *sf = g_file_new_for_path (s);
+				GFile *df = g_file_new_for_path (d);
+				if (!g_file_copy (sf, df, G_FILE_COPY_OVERWRITE, NULL, NULL, NULL, error))
+				{
+					g_object_unref (sf);
+					g_object_unref (df);
+					g_free (s);
+					g_free (d);
+					g_dir_close (dir);
+					return FALSE;
+				}
 				g_object_unref (sf);
 				g_object_unref (df);
-				g_free (s);
-				g_free (d);
-				g_dir_close (dir);
-				return FALSE;
 			}
-			g_object_unref (sf);
-			g_object_unref (df);
 		}
 		g_free (s);
 		g_free (d);

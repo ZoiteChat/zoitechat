@@ -16,7 +16,8 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
  */
 
-#include <glib.h>
+#include "zoitechat.h"
+
 #include <time.h>
 #include <fcntl.h>
 
@@ -26,7 +27,6 @@
 #include <unistd.h>
 #endif
 
-#include "zoitechat.h"
 #include "cfgfiles.h"
 #include "util.h"
 #include "text.h"

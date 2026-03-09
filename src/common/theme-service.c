@@ -1,10 +1,11 @@
 #include <errno.h>
 
+#include "zoitechat.h"
+
 #include <gio/gio.h>
 #include <glib/gstdio.h>
 
 #include "cfgfiles.h"
-#include "zoitechat.h"
 #include "theme-service.h"
 
 static zoitechat_theme_post_apply_callback zoitechat_theme_post_apply_cb;

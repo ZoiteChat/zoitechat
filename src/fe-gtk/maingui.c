@@ -21,6 +21,8 @@
 #include <stdio.h>
 #include <ctype.h>
 
+#include "fe-gtk.h"
+
 #include <gdk/gdk.h>
 #include <gdk/gdkkeysyms.h>
 #include <gdk/gdkcairo.h>
@@ -40,7 +42,6 @@
 #include "../common/chanopt.h"
 #include "../common/cfgfiles.h"
 
-#include "fe-gtk.h"
 #include "theme/theme-manager.h"
 #include "theme/theme-css.h"
 #include "banlist.h"

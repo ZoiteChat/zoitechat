@@ -1,3 +1,6 @@
+#include "../../../common/zoitechat.h"
+#include "../../../common/zoitechatc.h"
+
 #include <errno.h>
 #include <math.h>
 #include <fcntl.h>
@@ -8,8 +11,6 @@
 #include <unistd.h>
 
 #include "../theme-runtime.h"
-#include "../../../common/zoitechat.h"
-#include "../../../common/zoitechatc.h"
 
 struct session *current_sess;
 struct session *current_tab;

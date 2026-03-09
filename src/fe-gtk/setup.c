@@ -22,10 +22,10 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+#include "../common/zoitechat.h"
+
 #include <gio/gio.h>
 #include <glib/gstdio.h>
-
-#include "../common/zoitechat.h"
 #include "../common/cfgfiles.h"
 #include "../common/fe.h"
 #include "../common/text.h"

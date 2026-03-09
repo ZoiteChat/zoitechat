@@ -1,7 +1,7 @@
 #ifndef ZOITECHAT_GTK3_THEME_SERVICE_H
 #define ZOITECHAT_GTK3_THEME_SERVICE_H
 
-#include <glib.h>
+#include "zoitechat.h"
 
 typedef enum
 {

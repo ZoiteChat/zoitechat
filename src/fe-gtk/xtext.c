@@ -318,12 +318,18 @@ xtext_surface_from_window (GdkWindow *window)
 static cairo_t *
 xtext_create_context (GtkXText *xtext)
 {
+	cairo_t *cr;
+
 	if (xtext->draw_surface)
 		return cairo_create (xtext->draw_surface);
 	if (xtext->draw_cr)
 		return cairo_reference (xtext->draw_cr);
 
-	return gdk_cairo_create (xtext->draw_window);
+	G_GNUC_BEGIN_IGNORE_DEPRECATIONS
+	cr = gdk_cairo_create (xtext->draw_window);
+	G_GNUC_END_IGNORE_DEPRECATIONS
+
+	return cr;
 }
 
 static inline void
@@ -357,7 +363,7 @@ xtext_draw_line (GtkXText *xtext, cairo_t *cr, const XTextColor *color, int x1, 
 	cairo_restore (cr);
 }
 
-static inline void
+static void
 xtext_draw_bg_offset (GtkXText *xtext, int x, int y, int width, int height, int tile_x, int tile_y)
 {
 	cairo_t *cr = xtext_create_context (xtext);
@@ -1065,8 +1071,10 @@ static inline void
 gtk_xtext_clear_background (GtkWidget *widget)
 {
 	GdkWindow *window = gtk_widget_get_window (widget);
+	G_GNUC_BEGIN_IGNORE_DEPRECATIONS
 	if (window)
 		gdk_window_set_background_pattern (window, NULL);
+	G_GNUC_END_IGNORE_DEPRECATIONS
 }
 
 static void

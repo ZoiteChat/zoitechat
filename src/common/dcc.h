@@ -59,7 +59,9 @@ struct DCC
 	int resume_error;
 	int resume_errno;
 
+	G_GNUC_BEGIN_IGNORE_DEPRECATIONS
 	GTimeVal lastcpstv, firstcpstv;
+	G_GNUC_END_IGNORE_DEPRECATIONS
 	goffset lastcpspos;
 	gint64 maxcps;
 

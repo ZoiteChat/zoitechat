@@ -1,7 +1,5 @@
 #include "theme-policy.h"
 
-#include <gtk/gtk.h>
-
 #include "../fe-gtk.h"
 #include "../../common/zoitechat.h"
 #include "../../common/zoitechatc.h"
