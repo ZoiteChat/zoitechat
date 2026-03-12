@@ -2,6 +2,7 @@
 <gresources>
 	<gresource prefix="/icons">
 		<file alias="zoitechat.png" preprocess="to-pixdata">icons/zoitechat.png</file>
+		<file alias="zoitechat.svg">icons/zoitechat.svg</file>
 		<file alias="book.png" preprocess="to-pixdata">icons/book.png</file>
 
 		<file alias="ulist_voice.png" preprocess="to-pixdata">icons/ulist_voice.png</file>

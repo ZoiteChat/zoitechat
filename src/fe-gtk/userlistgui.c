@@ -369,13 +369,13 @@ void
 userlist_set_value (GtkWidget *treeview, gfloat val)
 {
 	gtk_adjustment_set_value (
-			gtk_tree_view_get_vadjustment (GTK_TREE_VIEW (treeview)), val);
+			gtk_scrollable_get_vadjustment (GTK_SCROLLABLE (treeview)), val);
 }
 
 gfloat
 userlist_get_value (GtkWidget *treeview)
 {
-	return gtk_adjustment_get_value (gtk_tree_view_get_vadjustment (GTK_TREE_VIEW (treeview)));
+	return gtk_adjustment_get_value (gtk_scrollable_get_vadjustment (GTK_SCROLLABLE (treeview)));
 }
 
 int
@@ -429,7 +429,7 @@ fe_userlist_rehash (session *sess, struct User *user)
 		nick_token = THEME_TOKEN_TAB_AWAY;
 		have_nick_token = TRUE;
 	}
-	else if (prefs.hex_gui_ulist_color)
+	else if (prefs.hex_gui_ulist_color || prefs.hex_text_color_nicks)
 	{
 		int mirc_index = text_color_of (user->nick);
 
@@ -461,7 +461,7 @@ fe_userlist_insert (session *sess, struct User *newuser, gboolean sel)
 		nick_token = THEME_TOKEN_TAB_AWAY;
 		have_nick_token = TRUE;
 	}
-	else if (prefs.hex_gui_ulist_color)
+	else if (prefs.hex_gui_ulist_color || prefs.hex_text_color_nicks)
 	{
 		int mirc_index = text_color_of (newuser->nick);
 

@@ -170,7 +170,7 @@ ignore_treeview_new (GtkWidget *box)
 	                             UNIGNORE_COLUMN, _("Unignore"),
 	                             -1);
 
-	gtk_tree_view_set_rules_hint (GTK_TREE_VIEW (view), TRUE);
+	gtk_tree_view_set_grid_lines (GTK_TREE_VIEW (view), GTK_TREE_VIEW_GRID_LINES_HORIZONTAL);
 	gtk_tree_view_column_set_expand (gtk_tree_view_get_column (GTK_TREE_VIEW (view), 0), TRUE);
 
 	/* attach to signals and customise columns */

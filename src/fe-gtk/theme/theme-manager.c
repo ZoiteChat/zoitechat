@@ -102,6 +102,7 @@ theme_manager_synthesize_preference_reasons (const struct zoitechatprefs *old_pr
 		reasons |= THEME_CHANGED_REASON_IDENTD;
 	if (color_change ||
 	    old_prefs->hex_gui_ulist_color != new_prefs->hex_gui_ulist_color ||
+	    old_prefs->hex_text_color_nicks != new_prefs->hex_text_color_nicks ||
 	    old_prefs->hex_away_size_max != new_prefs->hex_away_size_max ||
 	    old_prefs->hex_away_track != new_prefs->hex_away_track)
 		reasons |= THEME_CHANGED_REASON_USERLIST;
@@ -434,7 +435,9 @@ theme_manager_apply_wayland_kde_csd (GtkWidget *window)
 			headerbar = gtk_header_bar_new ();
 			gtk_header_bar_set_show_close_button (GTK_HEADER_BAR (headerbar), TRUE);
 			gtk_header_bar_set_decoration_layout (GTK_HEADER_BAR (headerbar), "menu:minimize,maximize,close");
-			icon_pixbuf = gdk_pixbuf_new_from_resource_at_scale ("/icons/zoitechat.png", 32, 32, TRUE, NULL);
+			icon_pixbuf = gdk_pixbuf_new_from_resource_at_scale ("/icons/zoitechat.svg", 32, 32, TRUE, NULL);
+			if (!icon_pixbuf)
+				icon_pixbuf = gdk_pixbuf_new_from_resource_at_scale ("/icons/zoitechat.png", 32, 32, TRUE, NULL);
 			icon_image = icon_pixbuf ? gtk_image_new_from_pixbuf (icon_pixbuf) : gtk_image_new_from_resource ("/icons/zoitechat.png");
 			if (icon_pixbuf)
 				g_object_unref (icon_pixbuf);
@@ -576,7 +579,7 @@ theme_manager_get_userlist_palette_behavior (const PangoFontDescription *font_de
 
 	behavior.font_desc = font_desc;
 	behavior.apply_background = TRUE;
-	behavior.apply_foreground = TRUE;
+	behavior.apply_foreground = (prefs.hex_gui_ulist_color || prefs.hex_text_color_nicks) ? FALSE : TRUE;
 
 	return behavior;
 }

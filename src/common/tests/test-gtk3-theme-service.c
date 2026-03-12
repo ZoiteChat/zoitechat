@@ -1,8 +1,8 @@
-#include <glib.h>
-#include <glib/gstdio.h>
-
+#include "../zoitechat.h"
 #include "../gtk3-theme-service.h"
 #include "../cfgfiles.h"
+
+#include <glib/gstdio.h>
 
 char *xdir = NULL;
 

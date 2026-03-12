@@ -1,7 +1,6 @@
 #ifndef ZOITECHAT_THEME_APPLICATION_H
 #define ZOITECHAT_THEME_APPLICATION_H
 
-#include <glib.h>
 #include "../fe-gtk.h"
 
 gboolean theme_application_apply_mode (unsigned int mode, gboolean *palette_changed);

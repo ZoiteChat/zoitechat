@@ -21,6 +21,8 @@
 #include <stdio.h>
 #include <ctype.h>
 
+#include "fe-gtk.h"
+
 #include <gdk/gdk.h>
 #include <gdk/gdkkeysyms.h>
 #include <gdk/gdkcairo.h>
@@ -40,7 +42,6 @@
 #include "../common/chanopt.h"
 #include "../common/cfgfiles.h"
 
-#include "fe-gtk.h"
 #include "theme/theme-manager.h"
 #include "theme/theme-css.h"
 #include "banlist.h"
@@ -407,7 +408,7 @@ mg_attr_list_create (const XTextColor *col, int size)
 static void
 mg_create_tab_colors (void)
 {
-        XTextColor gui_palette[XTEXT_COLS];
+        XTextColor gui_palette[THEME_TOKEN_COUNT];
 
         if (plain_list)
         {
@@ -2663,7 +2664,7 @@ mg_update_xtext (GtkWidget *wid)
         gtk_xtext_set_show_separator (xtext, prefs.hex_text_indent ? prefs.hex_text_show_sep : 0);
         gtk_xtext_set_indent (xtext, prefs.hex_text_indent);
 
-        font_name = (prefs.hex_text_font && *prefs.hex_text_font)
+        font_name = *prefs.hex_text_font
                 ? prefs.hex_text_font
                 : "Sans 10";
         if (!gtk_xtext_set_font (xtext, (char *)font_name))
@@ -3321,7 +3322,7 @@ mg_apply_emoji_fallback_widget (GtkWidget *widget)
 {
         PangoFontDescription *desc;
         GtkStyleContext *context;
-        const PangoFontDescription *base_desc;
+        PangoFontDescription *base_desc = NULL;
 
         if (!widget)
                 return;
@@ -3330,16 +3331,19 @@ mg_apply_emoji_fallback_widget (GtkWidget *widget)
         if (!context)
                 return;
 
-        base_desc = gtk_style_context_get_font (context, GTK_STATE_FLAG_NORMAL);
+        gtk_style_context_get (context, GTK_STATE_FLAG_NORMAL,
+                               "font", &base_desc,
+                               NULL);
         if (!base_desc)
                 return;
 
         desc = mg_fontdesc_with_fallback (base_desc, FALSE);
+        pango_font_description_free (base_desc);
         if (!desc)
                 return;
 
-		mg_apply_font_css (widget, desc, "zoitechat-emoji-font",
-		                   "zoitechat-emoji-font-provider");
+        mg_apply_font_css (widget, desc, "zoitechat-emoji-font",
+                           "zoitechat-emoji-font-provider");
         pango_font_description_free (desc);
 }
 
@@ -3733,7 +3737,7 @@ mg_create_topwindow (session *sess)
                                                                                   prefs.hex_gui_win_height, 0);
         sess->gui->window = win;
         gtk_container_set_border_width (GTK_CONTAINER (win), GUI_BORDER);
-        gtk_window_set_opacity (GTK_WINDOW (win), (prefs.hex_gui_transparency / 255.));
+        gtk_widget_set_opacity (win, (prefs.hex_gui_transparency / 255.));
 
         g_signal_connect (G_OBJECT (win), "focus_in_event",
                                                         G_CALLBACK (mg_topwin_focus_cb), sess);
@@ -3922,7 +3926,7 @@ mg_create_tabwindow (session *sess)
                 gtk_window_maximize (GTK_WINDOW (win));
         if (prefs.hex_gui_win_fullscreen)
                 gtk_window_fullscreen (GTK_WINDOW (win));
-        gtk_window_set_opacity (GTK_WINDOW (win), (prefs.hex_gui_transparency / 255.));
+        gtk_widget_set_opacity (win, (prefs.hex_gui_transparency / 255.));
         gtk_container_set_border_width (GTK_CONTAINER (win), GUI_BORDER);
 
         g_signal_connect (G_OBJECT (win), "delete_event",
@@ -4515,6 +4519,8 @@ mg_drag_motion_cb (GtkWidget *widget, GdkDragContext *context, int x, int y, gui
 {
         XTextColor col;
         cairo_t *cr;
+        GdkDrawingContext *draw_context;
+        cairo_region_t *region;
         int half, width, height;
         int ox, oy;
         GdkWindow *window;
@@ -4545,7 +4551,11 @@ mg_drag_motion_cb (GtkWidget *widget, GdkDragContext *context, int x, int y, gui
         col.green = (double)rand () / (double)RAND_MAX;
         col.blue = (double)rand () / (double)RAND_MAX;
         col.alpha = 1.0;
-        cr = gdk_cairo_create (window);
+        region = cairo_region_create ();
+        cairo_region_union_rectangle (region, &(cairo_rectangle_int_t){ 0, 0, width, height });
+        draw_context = gdk_window_begin_draw_frame (window, region);
+        cairo_region_destroy (region);
+        cr = gdk_drawing_context_get_cairo_context (draw_context);
         cairo_set_operator (cr, CAIRO_OPERATOR_XOR);
         mg_set_source_color (cr, &col);
         cairo_set_line_width (cr, 1.0);
@@ -4587,7 +4597,7 @@ mg_drag_motion_cb (GtkWidget *widget, GdkDragContext *context, int x, int y, gui
                 gtk_widget_queue_draw_area (widget, ox, oy, width, half);
         }
 
-        cairo_destroy (cr);
+        gdk_window_end_draw_frame (window, draw_context);
 
         return TRUE;
 }

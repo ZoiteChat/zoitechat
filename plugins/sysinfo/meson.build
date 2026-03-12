@@ -19,10 +19,6 @@ if system == 'linux' or system == 'gnu' or system.startswith('gnu/') or system =
     'shared/df.c'
   ]
 
-  if get_option('gtk-frontend')
-    sysinfo_cargs += '-DUSE_GTK_FRONTEND'
-  endif
-
   if system == 'linux' or system == 'gnu' or system.startswith('gnu/') or system == 'freebsd'
     libpci = dependency('libpci', required: false, method: 'pkg-config')
     if libpci.found()

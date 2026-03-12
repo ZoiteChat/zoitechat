@@ -321,7 +321,6 @@ gtk_entry_find_position (GtkEntry *entry, gint x)
 	PangoLayout *layout;
 	PangoLayoutLine *line;
 	const gchar *text;
-	gint cursor_index;
 	gint index;
 	gint pos;
 	gboolean trailing;
@@ -336,10 +335,6 @@ gtk_entry_find_position (GtkEntry *entry, gint x)
 
 	layout = gtk_entry_get_layout(entry);
 	text = pango_layout_get_text(layout);
-	cursor_index = g_utf8_offset_to_pointer(
-		text,
-		gtk_editable_get_position(GTK_EDITABLE(entry))) - text;
-
 	line = pango_layout_get_lines(layout)->data;
 	pango_layout_line_x_to_index(line, x * PANGO_SCALE, &index, &trailing);
 

@@ -34,7 +34,6 @@ config_h.set_quoted('PACKAGE_NAME', meson.project_name())
 config_h.set_quoted('GETTEXT_PACKAGE', 'zoitechat')
 config_h.set_quoted('LOCALEDIR', join_paths(get_option('prefix'),
                                  get_option('datadir'), 'locale'))
-config_h.set_quoted('G_LOG_DOMAIN', 'zoitechat')
 config_h.set10('ENABLE_NLS', true)
 
 # Optional features
@@ -48,8 +47,6 @@ config_h.set('G_DISABLE_SINGLE_INCLUDES', true)
 config_h.set('GTK_DISABLE_DEPRECATED', true)
 config_h.set('GTK_DISABLE_SINGLE_INCLUDES', true)
 config_h.set('GDK_PIXBUF_DISABLE_SINGLE_INCLUDES', true)
-config_h.set('GLIB_VERSION_MAX_ALLOWED', 'GLIB_VERSION_2_36')
-config_h.set('GLIB_VERSION_MIN_REQUIRED', 'GLIB_VERSION_2_36')
 
 # Detected features
 config_h.set('HAVE_MEMRCHR', cc.has_function('memrchr'))
@@ -95,7 +92,10 @@ if host_machine.system() == 'windows'
 endif
 
 
-global_cflags = []
+global_cflags = [
+  '-DGLIB_VERSION_MAX_ALLOWED=GLIB_VERSION_2_36',
+  '-DGLIB_VERSION_MIN_REQUIRED=GLIB_VERSION_2_36',
+]
 test_cflags = [
   '-funsigned-char',
   '-Wno-conversion',

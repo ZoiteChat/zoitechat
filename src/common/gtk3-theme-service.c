@@ -22,7 +22,12 @@
 #include <glib/gstdio.h>
 #include <gio/gio.h>
 #include <errno.h>
+#include <stdlib.h>
 #include <string.h>
+
+#ifndef G_OS_WIN32
+extern char *realpath (const char *path, char *resolved_path);
+#endif
 
 #include "util.h"
 #include "cfgfiles.h"
@@ -55,6 +60,7 @@ remove_tree (const char *path)
 	g_rmdir (path);
 }
 
+#ifdef G_OS_WIN32
 static gboolean
 path_tree_has_entries (const char *path)
 {
@@ -86,6 +92,7 @@ path_tree_has_entries (const char *path)
 	g_dir_close (dir);
 	return FALSE;
 }
+#endif
 
 static gboolean
 gtk3_css_dir_parse_minor (const char *name, gint *minor)
@@ -492,6 +499,49 @@ discover_dir (GPtrArray *themes, GHashTable *seen_theme_roots, const char *base_
 }
 
 
+
+static char *
+path_canonicalize_compat (const char *path)
+{
+	char *absolute_path;
+	char *cwd;
+	char *resolved;
+
+	if (!path || path[0] == '\0')
+		return NULL;
+
+	if (g_path_is_absolute (path))
+		absolute_path = g_strdup (path);
+	else
+	{
+		cwd = g_get_current_dir ();
+		absolute_path = g_build_filename (cwd, path, NULL);
+		g_free (cwd);
+	}
+
+#ifdef G_OS_WIN32
+	resolved = _fullpath (NULL, absolute_path, 0);
+	if (resolved)
+	{
+		char *copy = g_strdup (resolved);
+		free (resolved);
+		g_free (absolute_path);
+		return copy;
+	}
+#else
+	resolved = realpath (absolute_path, NULL);
+	if (resolved)
+	{
+		char *copy = g_strdup (resolved);
+		free (resolved);
+		g_free (absolute_path);
+		return copy;
+	}
+#endif
+
+	return absolute_path;
+}
+
 static char *
 path_normalize_theme_root (const char *path)
 {
@@ -501,7 +551,7 @@ path_normalize_theme_root (const char *path)
 	if (!path || path[0] == '\0')
 		return NULL;
 
-	canonical = g_canonicalize_filename (path, NULL);
+	canonical = path_canonicalize_compat (path);
 	target = g_file_read_link (canonical, NULL);
 	if (target && target[0])
 	{
@@ -510,7 +560,7 @@ path_normalize_theme_root (const char *path)
 		? g_strdup (target)
 		: g_build_filename (base, target, NULL);
 		g_free (canonical);
-		canonical = g_canonicalize_filename (resolved, NULL);
+		canonical = path_canonicalize_compat (resolved);
 		g_free (resolved);
 		g_free (base);
 	}
@@ -534,7 +584,7 @@ add_theme_root (GPtrArray *roots, GHashTable *seen, const char *path)
 	if (!path || path[0] == '\0')
 		return;
 
-	normalized = g_canonicalize_filename (path, NULL);
+	normalized = path_canonicalize_compat (path);
 	if (g_hash_table_contains (seen, normalized))
 	{
 		g_free (normalized);
@@ -740,6 +790,51 @@ select_theme_root (GPtrArray *roots, const char *input_root)
 }
 
 static gboolean
+copy_css_file (const char *src, const char *dest, GError **error)
+{
+	char *contents = NULL;
+	char *normalized;
+	gsize len = 0;
+	GRegex *regex;
+
+	if (!g_file_get_contents (src, &contents, &len, error))
+		return FALSE;
+
+	if (!g_strstr_len (contents, len, ":insensitive"))
+	{
+		gboolean ok = g_file_set_contents (dest, contents, len, error);
+		g_free (contents);
+		return ok;
+	}
+
+	regex = g_regex_new (":insensitive", 0, 0, error);
+	if (!regex)
+	{
+		g_free (contents);
+		return FALSE;
+	}
+
+	normalized = g_regex_replace_literal (regex, contents, -1, 0, ":disabled", 0, error);
+	g_regex_unref (regex);
+	if (!normalized)
+	{
+		g_free (contents);
+		return FALSE;
+	}
+
+	if (!g_file_set_contents (dest, normalized, -1, error))
+	{
+		g_free (normalized);
+		g_free (contents);
+		return FALSE;
+	}
+
+	g_free (normalized);
+	g_free (contents);
+	return TRUE;
+}
+
+static gboolean
 copy_tree (const char *src, const char *dest, GError **error)
 {
 	GDir *dir;
@@ -768,19 +863,32 @@ copy_tree (const char *src, const char *dest, GError **error)
 		}
 		else
 		{
-			GFile *sf = g_file_new_for_path (s);
-			GFile *df = g_file_new_for_path (d);
-			if (!g_file_copy (sf, df, G_FILE_COPY_OVERWRITE, NULL, NULL, NULL, error))
+			if (g_str_has_suffix (name, ".css"))
 			{
+				if (!copy_css_file (s, d, error))
+				{
+					g_free (s);
+					g_free (d);
+					g_dir_close (dir);
+					return FALSE;
+				}
+			}
+			else
+			{
+				GFile *sf = g_file_new_for_path (s);
+				GFile *df = g_file_new_for_path (d);
+				if (!g_file_copy (sf, df, G_FILE_COPY_OVERWRITE, NULL, NULL, NULL, error))
+				{
+					g_object_unref (sf);
+					g_object_unref (df);
+					g_free (s);
+					g_free (d);
+					g_dir_close (dir);
+					return FALSE;
+				}
 				g_object_unref (sf);
 				g_object_unref (df);
-				g_free (s);
-				g_free (d);
-				g_dir_close (dir);
-				return FALSE;
 			}
-			g_object_unref (sf);
-			g_object_unref (df);
 		}
 		g_free (s);
 		g_free (d);

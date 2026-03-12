@@ -839,7 +839,7 @@ fe_dcc_open_recv_win (int passive)
 	gtk_widget_set_vexpand (view_scrolled, TRUE);
 	gtk_widget_set_hexpand (view, TRUE);
 	gtk_widget_set_vexpand (view, TRUE);
-	gtk_tree_view_set_rules_hint (GTK_TREE_VIEW (view), TRUE);
+	gtk_tree_view_set_grid_lines (GTK_TREE_VIEW (view), GTK_TREE_VIEW_GRID_LINES_HORIZONTAL);
 	/* Up/Down Icon column */
 	gtk_tree_view_insert_column_with_attributes (GTK_TREE_VIEW (view), -1, NULL,
 																gtk_cell_renderer_pixbuf_new (),
@@ -1116,7 +1116,7 @@ fe_dcc_open_chat_win (int passive)
 	dcc_add_column (view, CCOL_START,  CCOL_COLOR, _("Start Time"), FALSE);
 
 	gtk_tree_view_column_set_expand (gtk_tree_view_get_column (GTK_TREE_VIEW (view), 1), TRUE);
-	gtk_tree_view_set_rules_hint (GTK_TREE_VIEW (view), TRUE);
+	gtk_tree_view_set_grid_lines (GTK_TREE_VIEW (view), GTK_TREE_VIEW_GRID_LINES_HORIZONTAL);
 
 	dcccwin.list = view;
 	dcccwin.store = store;

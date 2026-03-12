@@ -1,16 +1,16 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "../../common/zoitechat.h"
+#include "../../common/zoitechatc.h"
+
 #include <gio/gio.h>
 #include <glib/gstdio.h>
 
 #include "../gtkutil.h"
 #include "../../common/fe.h"
 #include "../../common/util.h"
-#include "../../common/cfgfiles.h"
-#include "../../common/zoitechat.h"
 #include "../../common/gtk3-theme-service.h"
-#include "../../common/zoitechatc.h"
 #include "theme-gtk3.h"
 #include "theme-manager.h"
 #include "theme-preferences.h"
@@ -740,6 +740,186 @@ theme_preferences_manage_colors_cb (GtkWidget *button, gpointer user_data)
 }
 
 static void
+theme_preferences_show_import_error (GtkWidget *button, const char *message)
+{
+        GtkWidget *dialog;
+
+        dialog = gtk_message_dialog_new (GTK_WINDOW (gtk_widget_get_toplevel (button)),
+                                         GTK_DIALOG_MODAL,
+                                         GTK_MESSAGE_ERROR,
+                                         GTK_BUTTONS_CLOSE,
+                                         "%s",
+                                         message);
+        gtk_dialog_run (GTK_DIALOG (dialog));
+        gtk_widget_destroy (dialog);
+}
+
+static gboolean
+theme_preferences_parse_cfg_color (const char *cfg,
+                                   const char *key,
+                                   guint16 *red,
+                                   guint16 *green,
+                                   guint16 *blue)
+{
+        const char *line;
+        size_t key_len;
+
+        if (!cfg || !key || !red || !green || !blue)
+                return FALSE;
+
+        key_len = strlen (key);
+        line = cfg;
+
+        while (*line)
+        {
+                const char *line_end;
+                const char *p;
+
+                while (*line == '\n' || *line == '\r')
+                        line++;
+                if (!*line)
+                        break;
+
+                line_end = strchr (line, '\n');
+                if (!line_end)
+                        line_end = line + strlen (line);
+
+                p = line;
+                while (p < line_end && g_ascii_isspace (*p))
+                        p++;
+
+                if ((size_t) (line_end - p) > key_len &&
+                    strncmp (p, key, key_len) == 0)
+                {
+                        unsigned int r;
+                        unsigned int g;
+                        unsigned int b;
+
+                        p += key_len;
+                        while (p < line_end && g_ascii_isspace (*p))
+                                p++;
+                        if (p < line_end && *p == '=')
+                                p++;
+                        while (p < line_end && g_ascii_isspace (*p))
+                                p++;
+
+                        if (sscanf (p, "%x %x %x", &r, &g, &b) == 3)
+                        {
+                                *red = (guint16) CLAMP (r, 0, 0xffff);
+                                *green = (guint16) CLAMP (g, 0, 0xffff);
+                                *blue = (guint16) CLAMP (b, 0, 0xffff);
+                                return TRUE;
+                        }
+                }
+
+                line = line_end;
+        }
+
+        return FALSE;
+}
+
+static gboolean
+theme_preferences_read_import_color (const char *cfg,
+                                     ThemeSemanticToken token,
+                                     GdkRGBA *rgba)
+{
+        static const char *token_names[] = {
+                "mirc_0", "mirc_1", "mirc_2", "mirc_3", "mirc_4", "mirc_5", "mirc_6", "mirc_7",
+                "mirc_8", "mirc_9", "mirc_10", "mirc_11", "mirc_12", "mirc_13", "mirc_14", "mirc_15",
+                "mirc_16", "mirc_17", "mirc_18", "mirc_19", "mirc_20", "mirc_21", "mirc_22", "mirc_23",
+                "mirc_24", "mirc_25", "mirc_26", "mirc_27", "mirc_28", "mirc_29", "mirc_30", "mirc_31",
+                "selection_foreground", "selection_background", "text_foreground", "text_background", "marker",
+                "tab_new_data", "tab_highlight", "tab_new_message", "tab_away", "spell"
+        };
+        char key[256];
+        guint16 red;
+        guint16 green;
+        guint16 blue;
+        int legacy_key;
+
+        if (token < 0 || token >= THEME_TOKEN_COUNT)
+                return FALSE;
+
+        g_snprintf (key, sizeof key, "theme.mode.light.token.%s", token_names[token]);
+        if (!theme_preferences_parse_cfg_color (cfg, key, &red, &green, &blue))
+        {
+                legacy_key = token < 32 ? token : (token - 32) + 256;
+                g_snprintf (key, sizeof key, "color_%d", legacy_key);
+                if (!theme_preferences_parse_cfg_color (cfg, key, &red, &green, &blue))
+                        return FALSE;
+        }
+
+        rgba->red = red / 65535.0;
+        rgba->green = green / 65535.0;
+        rgba->blue = blue / 65535.0;
+        rgba->alpha = 1.0;
+        return TRUE;
+}
+
+static void
+theme_preferences_import_colors_conf_cb (GtkWidget *button, gpointer user_data)
+{
+        gboolean *color_change_flag = user_data;
+        GtkWidget *dialog;
+        char *path;
+        char *cfg;
+        GError *error = NULL;
+        gboolean any_imported = FALSE;
+        gboolean old_changed = FALSE;
+        ThemeSemanticToken token;
+
+        if (color_change_flag)
+                old_changed = *color_change_flag;
+
+        dialog = gtk_file_chooser_dialog_new (_("Import colors.conf colors"),
+                                              GTK_WINDOW (gtk_widget_get_toplevel (button)),
+                                              GTK_FILE_CHOOSER_ACTION_OPEN,
+                                              _("_Cancel"), GTK_RESPONSE_CANCEL,
+                                              _("_Import"), GTK_RESPONSE_ACCEPT,
+                                              NULL);
+        gtk_file_chooser_set_local_only (GTK_FILE_CHOOSER (dialog), TRUE);
+        gtk_file_chooser_set_select_multiple (GTK_FILE_CHOOSER (dialog), FALSE);
+
+        if (gtk_dialog_run (GTK_DIALOG (dialog)) != GTK_RESPONSE_ACCEPT)
+        {
+                gtk_widget_destroy (dialog);
+                return;
+        }
+
+        path = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (dialog));
+        gtk_widget_destroy (dialog);
+        if (!path)
+                return;
+
+        if (!g_file_get_contents (path, &cfg, NULL, &error))
+        {
+                theme_preferences_show_import_error (button, _("Failed to read colors.conf file."));
+                g_clear_error (&error);
+                g_free (path);
+                return;
+        }
+
+        for (token = THEME_TOKEN_MIRC_0; token < THEME_TOKEN_COUNT; token++)
+        {
+                GdkRGBA rgba;
+
+                if (!theme_preferences_read_import_color (cfg, token, &rgba))
+                        continue;
+
+                theme_manager_set_token_color (ZOITECHAT_DARK_MODE_LIGHT, token, &rgba, color_change_flag);
+                any_imported = TRUE;
+        }
+
+        if (!any_imported)
+                theme_preferences_show_import_error (button, _("No importable colors were found in that colors.conf file."));
+        else if (color_change_flag && *color_change_flag != old_changed)
+                theme_manager_save_preferences ();
+
+        g_free (cfg);
+        g_free (path);
+}
+
+static void
 theme_preferences_create_color_button (GtkWidget *table,
                                        ThemeSemanticToken token,
                                        int row,
@@ -1102,6 +1282,40 @@ theme_preferences_load_thumbnail (const char *path)
 	return scaled;
 }
 
+static int
+theme_preferences_gtk3_find_system_theme_index (GPtrArray *themes)
+{
+        GtkSettings *settings;
+        char *system_theme = NULL;
+        guint i;
+        int found = -1;
+
+        settings = gtk_settings_get_default ();
+        if (!settings || !themes)
+                return -1;
+
+        g_object_get (G_OBJECT (settings), "gtk-theme-name", &system_theme, NULL);
+        if (!system_theme || system_theme[0] == '\0')
+        {
+                g_free (system_theme);
+                return -1;
+        }
+
+        for (i = 0; i < themes->len; i++)
+        {
+                ZoitechatGtk3Theme *theme = g_ptr_array_index (themes, i);
+
+                if (theme && g_strcmp0 (theme->id, system_theme) == 0)
+                {
+                        found = (int) i;
+                        break;
+                }
+        }
+
+        g_free (system_theme);
+        return found;
+}
+
 static void
 theme_preferences_populate_gtk3 (theme_preferences_ui *ui)
 {
@@ -1111,6 +1325,7 @@ theme_preferences_populate_gtk3 (theme_preferences_ui *ui)
         GtkTreeIter iter;
         int active = -1;
         gboolean removed_selected_theme = FALSE;
+        gboolean using_system_default = prefs.hex_gui_gtk3_theme[0] == '\0';
         gboolean should_apply = FALSE;
         char *final_id;
         ThemeGtk3Variant final_variant = THEME_GTK3_VARIANT_PREFER_LIGHT;
@@ -1143,12 +1358,14 @@ theme_preferences_populate_gtk3 (theme_preferences_ui *ui)
                         g_object_unref (thumbnail);
                 g_free (label);
         }
+        if (active < 0 && using_system_default)
+                active = theme_preferences_gtk3_find_system_theme_index (themes);
         if (active >= 0)
                 gtk_combo_box_set_active (GTK_COMBO_BOX (ui->gtk3_combo), active);
         else if (themes->len > 0)
         {
                 gtk_combo_box_set_active (GTK_COMBO_BOX (ui->gtk3_combo), 0);
-                if (prefs.hex_gui_gtk3_theme[0] != '\0')
+                if (!using_system_default)
                         removed_selected_theme = TRUE;
         }
         else if (prefs.hex_gui_gtk3_theme[0] != '\0')
@@ -1161,19 +1378,22 @@ theme_preferences_populate_gtk3 (theme_preferences_ui *ui)
         if (final_id)
         {
                 final_variant = theme_gtk3_variant_for_theme (final_id);
-                should_apply = g_strcmp0 (prefs.hex_gui_gtk3_theme, final_id) != 0
-                               || prefs.hex_gui_gtk3_variant != final_variant
-                               || removed_selected_theme;
-                g_strlcpy (prefs.hex_gui_gtk3_theme, final_id, sizeof (prefs.hex_gui_gtk3_theme));
-                if (ui->setup_prefs)
-                        g_strlcpy (ui->setup_prefs->hex_gui_gtk3_theme,
-                                   final_id,
-                                   sizeof (ui->setup_prefs->hex_gui_gtk3_theme));
+                if (!using_system_default || removed_selected_theme)
+                {
+                        should_apply = g_strcmp0 (prefs.hex_gui_gtk3_theme, final_id) != 0
+                                       || prefs.hex_gui_gtk3_variant != final_variant
+                                       || removed_selected_theme;
+                        g_strlcpy (prefs.hex_gui_gtk3_theme, final_id, sizeof (prefs.hex_gui_gtk3_theme));
+                        if (ui->setup_prefs)
+                                g_strlcpy (ui->setup_prefs->hex_gui_gtk3_theme,
+                                           final_id,
+                                           sizeof (ui->setup_prefs->hex_gui_gtk3_theme));
+                        prefs.hex_gui_gtk3_variant = final_variant;
+                        if (ui->setup_prefs)
+                                ui->setup_prefs->hex_gui_gtk3_variant = final_variant;
+                }
                 g_free (final_id);
         }
-        prefs.hex_gui_gtk3_variant = final_variant;
-        if (ui->setup_prefs)
-                ui->setup_prefs->hex_gui_gtk3_variant = final_variant;
 
         if (should_apply && !theme_gtk3_apply_current (&error))
         {
@@ -1289,6 +1509,7 @@ theme_preferences_create_page (GtkWindow *parent,
         GtkWidget *colors_frame;
         GtkWidget *colors_box;
         GtkWidget *manage_colors_button;
+        GtkWidget *import_colors_button;
         GtkWidget *gtk3_frame;
         GtkWidget *gtk3_grid;
         GtkWidget *gtk3_button;
@@ -1318,6 +1539,12 @@ theme_preferences_create_page (GtkWindow *parent,
         gtk_box_pack_start (GTK_BOX (colors_box), manage_colors_button, FALSE, FALSE, 0);
         g_signal_connect (G_OBJECT (manage_colors_button), "clicked",
                           G_CALLBACK (theme_preferences_manage_colors_cb), color_change_flag);
+
+        import_colors_button = gtk_button_new_with_label (_("Import colors.conf colors…"));
+        gtk_widget_set_halign (import_colors_button, GTK_ALIGN_START);
+        gtk_box_pack_start (GTK_BOX (colors_box), import_colors_button, FALSE, FALSE, 0);
+        g_signal_connect (G_OBJECT (import_colors_button), "clicked",
+                          G_CALLBACK (theme_preferences_import_colors_conf_cb), color_change_flag);
 
         gtk3_frame = gtk_frame_new (_("GTK3 Theme"));
         gtk_box_pack_start (GTK_BOX (box), gtk3_frame, FALSE, FALSE, 0);

@@ -123,7 +123,7 @@ static void tray_set_icon_state (TrayIcon icon, TrayIconState state);
 static void tray_menu_restore_cb (GtkWidget *item, gpointer userdata);
 static void tray_menu_notify_cb (GObject *tray, GParamSpec *pspec, gpointer user_data);
 #if HAVE_APPINDICATOR_BACKEND
-static void tray_menu_show_cb (GtkWidget *menu, gpointer userdata);
+static void tray_menu_show_cb (GtkWidget *menu, gpointer userdata) G_GNUC_UNUSED;
 #endif
 #if !HAVE_APPINDICATOR_BACKEND
 static void tray_menu_cb (GtkWidget *widget, guint button, guint time, gpointer userdata);
@@ -414,8 +414,10 @@ tray_app_indicator_init (void)
 {
 	GObjectClass *klass;
 
+	G_GNUC_BEGIN_IGNORE_DEPRECATIONS
 	tray_indicator = app_indicator_new ("zoitechat", ICON_NORMAL_NAME,
 		APP_INDICATOR_CATEGORY_COMMUNICATIONS);
+	G_GNUC_END_IGNORE_DEPRECATIONS
 	if (!tray_indicator)
 		return FALSE;
 
@@ -578,7 +580,12 @@ tray_backend_cleanup (void)
 static WinStatus
 tray_get_window_status (void)
 {
+	GtkWindow *win;
 	const char *st;
+
+	win = GTK_WINDOW (zoitechat_get_info (ph, "gtkwin_ptr"));
+	if (win && !gtk_widget_get_visible (GTK_WIDGET (win)))
+		return WS_HIDDEN;
 
 	st = zoitechat_get_info (ph, "win_status");
 
@@ -998,6 +1005,7 @@ blink_item (unsigned int *setting, GtkWidget *menu, char *label)
 }
 #endif
 
+#if !HAVE_APPINDICATOR_BACKEND
 static void
 tray_menu_destroy (GtkWidget *menu, gpointer userdata)
 {
@@ -1009,6 +1017,7 @@ tray_menu_destroy (GtkWidget *menu, gpointer userdata)
 	g_source_remove (tray_menu_timer);
 #endif
 }
+#endif
 
 #ifdef WIN32
 static gboolean
@@ -1109,7 +1118,7 @@ tray_menu_clear (GtkWidget *menu)
 	g_list_free (children);
 }
 
-static void
+static void G_GNUC_UNUSED
 tray_menu_show_cb (GtkWidget *menu, gpointer userdata)
 {
 	(void)userdata;
@@ -1125,7 +1134,9 @@ tray_menu_cb (GtkWidget *widget, guint button, guint time, gpointer userdata)
 {
 	static GtkWidget *menu;
 
-	(void)widget;
+	(void)button;
+	(void)time;
+	(void)userdata;
 
 	/* close any old menu */
 	if (G_IS_OBJECT (menu))
@@ -1151,8 +1162,15 @@ tray_menu_cb (GtkWidget *widget, guint button, guint time, gpointer userdata)
 	tray_menu_timer = g_timeout_add (500, (GSourceFunc)tray_check_hide, menu);
 #endif
 
-	gtk_menu_popup (GTK_MENU (menu), NULL, NULL, NULL,
-		userdata, button, time);
+	if (widget && GTK_IS_WIDGET (widget))
+		gtk_menu_popup_at_widget (GTK_MENU (menu), widget, GDK_GRAVITY_SOUTH_WEST, GDK_GRAVITY_NORTH_WEST, NULL);
+	else
+	{
+		GdkEvent *event = gtk_get_current_event ();
+		gtk_menu_popup_at_pointer (GTK_MENU (menu), event);
+		if (event)
+			gdk_event_free (event);
+	}
 }
 #endif
 

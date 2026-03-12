@@ -694,17 +694,29 @@ conn_fail:
 	} else
 	{
 		SSL_SESSION *session = SSL_get_session (serv->ssl);
-		if (session && SSL_SESSION_get_time (session) + SSLTMOUT < time (NULL))
+		if (session)
 		{
-			g_snprintf (buf, sizeof (buf), "SSL handshake timed out");
-			EMIT_SIGNAL (XP_TE_CONNFAIL, serv->server_session, buf, NULL,
+			time_t session_time = 0;
+			gboolean handshake_timed_out = FALSE;
+
+#if OPENSSL_VERSION_NUMBER >= 0x30400000L
+			session_time = (time_t) SSL_SESSION_get_time_ex (session);
+#else
+			session_time = SSL_SESSION_get_time (session);
+#endif
+			handshake_timed_out = session_time + SSLTMOUT < time (NULL);
+			if (handshake_timed_out)
+			{
+				g_snprintf (buf, sizeof (buf), "SSL handshake timed out");
+				EMIT_SIGNAL (XP_TE_CONNFAIL, serv->server_session, buf, NULL,
 							 NULL, NULL, 0);
-			server_cleanup (serv); /* ->connecting = FALSE */
+				server_cleanup (serv); /* ->connecting = FALSE */
 
-			if (prefs.hex_net_auto_reconnectonfail)
-				auto_reconnect (serv, FALSE, -1);
+				if (prefs.hex_net_auto_reconnectonfail)
+					auto_reconnect (serv, FALSE, -1);
 
-			return (0);				  /* remove it (0) */
+				return (0);				  /* remove it (0) */
+			}
 		}
 
 		return (1);					  /* call it more (1) */

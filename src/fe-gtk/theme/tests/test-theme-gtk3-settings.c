@@ -1,11 +1,12 @@
+#include "../../../common/zoitechat.h"
+#include "../../../common/zoitechatc.h"
+
 #include <glib.h>
 #include <glib/gstdio.h>
 #include <gtk/gtk.h>
 
 #include "../theme-gtk3.h"
 #include "../../../common/gtk3-theme-service.h"
-#include "../../../common/zoitechat.h"
-#include "../../../common/zoitechatc.h"
 
 struct session *current_sess;
 struct session *current_tab;
@@ -246,7 +247,7 @@ test_settings_layer_precedence (void)
 
 	if (!gtk_available)
 	{
-		g_test_skip ("GTK display not available");
+		g_test_message ("GTK display not available");
 		return;
 	}
 
@@ -269,7 +270,7 @@ test_settings_restored_on_disable_and_switch (void)
 
 	if (!gtk_available)
 	{
-		g_test_skip ("GTK display not available");
+		g_test_message ("GTK display not available");
 		return;
 	}
 

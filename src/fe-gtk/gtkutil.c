@@ -825,7 +825,6 @@ fe_get_int (char *msg, int def, void *callback, void *userdata)
 	gtk_adjustment_set_lower (adj, 0);
 	gtk_adjustment_set_upper (adj, 1024);
 	gtk_adjustment_set_step_increment (adj, 1);
-	gtk_adjustment_changed (adj);
 	gtk_spin_button_set_value ((GtkSpinButton*)spin, def);
 	gtk_box_pack_end (GTK_BOX (hbox), spin, 0, 0, 0);
 
@@ -1126,7 +1125,7 @@ gtkutil_tray_icon_supported (GtkWindow *window)
 	GdkDisplay *display = gdk_screen_get_display (screen);
 	if (!GDK_IS_X11_DISPLAY (display))
 		return FALSE;
-	int screen_number = gdk_screen_get_number (screen);
+	int screen_number = gdk_x11_screen_get_screen_number (screen);
 	Display *xdisplay = gdk_x11_display_get_xdisplay (display);
 	char *selection_name = g_strdup_printf ("_NET_SYSTEM_TRAY_S%d", screen_number);
 	Atom selection_atom = XInternAtom (xdisplay, selection_name, False);

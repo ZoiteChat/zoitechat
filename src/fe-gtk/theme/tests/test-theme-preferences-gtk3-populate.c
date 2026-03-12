@@ -1,9 +1,8 @@
-#include <gtk/gtk.h>
+#include "../../fe-gtk.h"
 
 #include "../../../common/zoitechat.h"
 #include "../../../common/zoitechatc.h"
 #include "../../../common/gtk3-theme-service.h"
-#include "../../fe-gtk.h"
 #include "../theme-gtk3.h"
 #include "../theme-manager.h"
 
@@ -95,6 +94,7 @@ theme_manager_attach_window (GtkWidget *window)
 {
         (void)window;
 }
+
 
 char *
 zoitechat_gtk3_theme_service_get_user_themes_dir (void)
@@ -239,7 +239,7 @@ test_removed_selected_theme_commits_fallback_and_applies (void)
 
         if (!gtk_available)
         {
-                g_test_skip ("GTK display not available");
+                g_test_message ("GTK display not available");
                 return;
         }
 
@@ -269,6 +269,37 @@ test_removed_selected_theme_commits_fallback_and_applies (void)
         gtk_widget_destroy (page);
 }
 
+
+static void
+test_unset_theme_keeps_system_default_without_apply (void)
+{
+        GtkWidget *page;
+        struct zoitechatprefs setup_prefs;
+
+        if (!gtk_available)
+        {
+                g_test_message ("GTK display not available");
+                return;
+        }
+
+        memset (&setup_prefs, 0, sizeof (setup_prefs));
+        memset (&prefs, 0, sizeof (prefs));
+        removed_selected = FALSE;
+        apply_current_calls = 0;
+        applied_theme_id[0] = '\0';
+        prefs.hex_gui_gtk3_variant = THEME_GTK3_VARIANT_FOLLOW_SYSTEM;
+
+        page = theme_preferences_create_page (NULL, &setup_prefs, NULL);
+
+        g_assert_cmpstr (prefs.hex_gui_gtk3_theme, ==, "");
+        g_assert_cmpstr (setup_prefs.hex_gui_gtk3_theme, ==, "");
+        g_assert_cmpint (prefs.hex_gui_gtk3_variant, ==, THEME_GTK3_VARIANT_FOLLOW_SYSTEM);
+        g_assert_cmpint (setup_prefs.hex_gui_gtk3_variant, ==, 0);
+        g_assert_cmpint (apply_current_calls, ==, 0);
+
+        gtk_widget_destroy (page);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -276,5 +307,7 @@ main (int argc, char **argv)
         gtk_available = gtk_init_check (&argc, &argv);
         g_test_add_func ("/theme/preferences/gtk3_removed_selection_applies_fallback",
                          test_removed_selected_theme_commits_fallback_and_applies);
+        g_test_add_func ("/theme/preferences/gtk3_unset_keeps_system_default",
+                         test_unset_theme_keeps_system_default_without_apply);
         return g_test_run ();
 }

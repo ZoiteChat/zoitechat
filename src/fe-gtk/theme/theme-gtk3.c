@@ -1,5 +1,8 @@
 #include "theme-gtk3.h"
 
+#include "../../common/zoitechat.h"
+#include "../../common/zoitechatc.h"
+
 #include <gtk/gtk.h>
 #include <glib/gstdio.h>
 #include <gio/gio.h>
@@ -7,8 +10,6 @@
 
 #include "theme-policy.h"
 #include "../../common/gtk3-theme-service.h"
-#include "../../common/zoitechat.h"
-#include "../../common/zoitechatc.h"
 
 static GPtrArray *theme_gtk3_providers_base;
 static GPtrArray *theme_gtk3_providers_variant;
@@ -183,7 +184,7 @@ settings_restore_icon_search_path (void)
 	if (!icon_theme || !theme_gtk3_settings_state.icon_search_path_captured)
 		return;
 
-	gtk_icon_theme_set_search_path (icon_theme, (const char * const *) theme_gtk3_settings_state.icon_search_path, theme_gtk3_settings_state.icon_search_path_count);
+	gtk_icon_theme_set_search_path (icon_theme, (const char **) theme_gtk3_settings_state.icon_search_path, theme_gtk3_settings_state.icon_search_path_count);
 	gtk_icon_theme_rescan_if_needed (icon_theme);
 	g_strfreev (theme_gtk3_settings_state.icon_search_path);
 	theme_gtk3_settings_state.icon_search_path = NULL;

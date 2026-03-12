@@ -1,4 +1,4 @@
-#include <gtk/gtk.h>
+#include "../../fe-gtk.h"
 
 #include "../theme-application.h"
 #include "../../maingui.h"

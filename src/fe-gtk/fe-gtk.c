@@ -922,7 +922,7 @@ fe_beep (session *sess)
 
 	if (ca_context_play (ca_con, 0, CA_PROP_EVENT_ID, "message-new-instant", NULL) != 0)
 #endif
-	gdk_beep ();
+	gdk_display_beep (gdk_display_get_default ());
 #endif
 }
 
@@ -1308,7 +1308,7 @@ fe_open_url_inner (const char *url)
 			g_clear_error (&error);
 		}
 
-		if (!opened && gtk_show_uri (NULL, escaped_url, GDK_CURRENT_TIME, &error))
+		if (!opened && gtk_show_uri_on_window (NULL, escaped_url, GDK_CURRENT_TIME, &error))
 		{
 			opened = TRUE;
 		}

@@ -1,8 +1,7 @@
-#include <gtk/gtk.h>
+#include "../../fe-gtk.h"
 
 #include "../theme-palette.h"
 #include "../theme-manager.h"
-#include "../../fe-gtk.h"
 #include "../../../common/zoitechat.h"
 #include "../../../common/zoitechatc.h"
 

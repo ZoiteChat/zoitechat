@@ -535,7 +535,7 @@ chanlist_join (GtkWidget * wid, server *serv)
 			g_snprintf (tbuf, sizeof (tbuf), "join %s", chan);
 			handle_command (serv->server_session, tbuf, FALSE);
 		} else
-			gdk_beep ();
+			gdk_display_beep (gdk_display_get_default ());
 		g_free (chan);
 	}
 }
@@ -595,10 +595,16 @@ chanlist_save (GtkWidget * wid, server *serv)
 static gboolean
 chanlist_flash (server *serv)
 {
-	if (gtk_widget_get_state (serv->gui->chanlist_refresh) != GTK_STATE_ACTIVE)
-		gtk_widget_set_state (serv->gui->chanlist_refresh, GTK_STATE_ACTIVE);
+	if (!(gtk_widget_get_state_flags (serv->gui->chanlist_refresh) & GTK_STATE_FLAG_ACTIVE))
+	{
+		gtk_widget_unset_state_flags (serv->gui->chanlist_refresh, GTK_STATE_FLAG_PRELIGHT);
+		gtk_widget_set_state_flags (serv->gui->chanlist_refresh, GTK_STATE_FLAG_ACTIVE, FALSE);
+	}
 	else
-		gtk_widget_set_state (serv->gui->chanlist_refresh, GTK_STATE_PRELIGHT);
+	{
+		gtk_widget_unset_state_flags (serv->gui->chanlist_refresh, GTK_STATE_FLAG_ACTIVE);
+		gtk_widget_set_state_flags (serv->gui->chanlist_refresh, GTK_STATE_FLAG_PRELIGHT, FALSE);
+	}
 
 	return TRUE;
 }
@@ -872,7 +878,7 @@ chanlist_opengui (server *serv, int do_refresh)
 	chanlist_add_column (view, COL_CHANNEL, 96, _("Channel"), FALSE);
 	chanlist_add_column (view, COL_USERS,   50, _("Users"),   TRUE);
 	chanlist_add_column (view, COL_TOPIC,   50, _("Topic"),   FALSE);
-	gtk_tree_view_set_rules_hint (GTK_TREE_VIEW (view), TRUE);
+	gtk_tree_view_set_grid_lines (GTK_TREE_VIEW (view), GTK_TREE_VIEW_GRID_LINES_HORIZONTAL);
 	/* this is a speed up, but no horizontal scrollbar :( */
 	/*gtk_tree_view_set_fixed_height_mode (GTK_TREE_VIEW (view), TRUE);*/
 	gtk_widget_show (view);

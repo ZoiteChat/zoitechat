@@ -58,6 +58,8 @@ foreach flag : ret.stdout().strip().split(' ')
   endif
 endforeach
 
+perl_cflags += ['-Wno-strict-prototypes']
+
 perl_cflags += [
   # Perl has its own 'config.h' that we must override
   # TODO: Just rename ours to something more unique.

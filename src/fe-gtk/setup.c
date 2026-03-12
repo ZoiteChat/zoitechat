@@ -22,10 +22,10 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+#include "../common/zoitechat.h"
+
 #include <gio/gio.h>
 #include <glib/gstdio.h>
-
-#include "../common/zoitechat.h"
 #include "../common/cfgfiles.h"
 #include "../common/fe.h"
 #include "../common/text.h"
@@ -914,7 +914,7 @@ static gint
 setup_apply_trans (int *tag)
 {
         prefs.hex_gui_transparency = setup_prefs.hex_gui_transparency;
-        gtk_window_set_opacity (GTK_WINDOW (current_sess->gui->window),
+        gtk_widget_set_opacity (current_sess->gui->window,
                                                         (prefs.hex_gui_transparency / 255.));
 
         *tag = 0;
@@ -956,7 +956,7 @@ setup_create_hscale (GtkWidget *table, int row, const setting *set)
 
 #ifndef WIN32 /* Windows always supports this */
         /* Only used for transparency currently */
-        if (!gtk_widget_is_composited (current_sess->gui->window))
+        if (!gdk_screen_is_composited (gtk_widget_get_screen (current_sess->gui->window)))
                 gtk_widget_set_sensitive (wid, FALSE);
 #endif
 }
@@ -1732,7 +1732,7 @@ setup_create_sound_page (void)
                                                         G_CALLBACK (setup_snd_row_cb), NULL);
         gtk_widget_show (sound_tree);
         gtk_container_add (GTK_CONTAINER (scrolledwindow1), sound_tree);
-        gtk_tree_view_set_rules_hint (GTK_TREE_VIEW (sound_tree), TRUE);
+        gtk_tree_view_set_grid_lines (GTK_TREE_VIEW (sound_tree), GTK_TREE_VIEW_GRID_LINES_HORIZONTAL);
 
         table1 = gtkutil_grid_new (2, 3, FALSE);
         gtk_widget_show (table1);
@@ -1797,7 +1797,7 @@ setup_add_page (const char *title, GtkWidget *book, GtkWidget *tab)
         sw = GTK_SCROLLED_WINDOW(gtk_scrolled_window_new (NULL, NULL));
         gtk_scrolled_window_set_shadow_type (sw, GTK_SHADOW_IN);
         gtk_scrolled_window_set_policy (sw, GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
-        gtk_scrolled_window_add_with_viewport (sw, vvbox);
+        gtk_container_add (GTK_CONTAINER (sw), vvbox);
 
         viewport = gtk_bin_get_child (GTK_BIN(sw));
         gtk_viewport_set_shadow_type (GTK_VIEWPORT(viewport), GTK_SHADOW_NONE);

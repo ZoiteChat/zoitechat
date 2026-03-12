@@ -317,6 +317,7 @@ userlist_change (struct session *sess, char *oldname, char *newname)
 
 		tree_insert (sess->usertree, user);
 		fe_userlist_insert (sess, user, FALSE);
+		fe_userlist_rehash (sess, user);
 
 		return 1;
 	}
