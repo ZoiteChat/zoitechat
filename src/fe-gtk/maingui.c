@@ -3868,10 +3868,21 @@ mg_win32_filter (GdkXEvent *xevent, GdkEvent *event, gpointer data)
 			{
 				if (strcmp (command, "__WIN32_TASKBAR_TOGGLE__") == 0)
 				{
-					if (gtk_widget_get_visible (current_sess->gui->window))
-						fe_ctrl_gui (current_sess, FE_GUI_ICONIFY, 0);
+					GtkWidget *window = current_sess->gui->window;
+					GtkWindow *gtk_window = GTK_WINDOW (window);
+					GdkWindow *gdk_window = gtk_widget_get_window (window);
+					gboolean iconified = gdk_window && ((gdk_window_get_state (gdk_window) & GDK_WINDOW_STATE_ICONIFIED) != 0);
+
+					if (!gtk_widget_get_visible (window) || iconified)
+					{
+						gtk_widget_show (window);
+						gtk_window_deiconify (gtk_window);
+						gtk_window_present (gtk_window);
+					}
 					else
-						fe_ctrl_gui (current_sess, FE_GUI_SHOW, 0);
+					{
+						gtk_window_iconify (gtk_window);
+					}
 				}
 				else
 				{

@@ -145,6 +145,46 @@ zoitechat_has_theme_argument (void)
 	return FALSE;
 }
 
+static gboolean
+zoitechat_window_title_matches (const char *title)
+{
+	const char *suffix = " - ZoiteChat";
+	size_t title_len;
+	size_t suffix_len;
+
+	if (!title || !*title)
+		return FALSE;
+
+	if (strcmp (title, "ZoiteChat") == 0)
+		return TRUE;
+
+	title_len = strlen (title);
+	suffix_len = strlen (suffix);
+	if (title_len >= suffix_len && strcmp (title + title_len - suffix_len, suffix) == 0)
+		return TRUE;
+
+	return FALSE;
+}
+
+static BOOL CALLBACK
+zoitechat_find_running_window_cb (HWND hwnd, LPARAM lparam)
+{
+	char title[512];
+	HWND *result = (HWND *)lparam;
+
+	if (!result || *result)
+		return FALSE;
+
+	if (!GetWindowTextA (hwnd, title, sizeof (title)))
+		return TRUE;
+
+	if (!zoitechat_window_title_matches (title))
+		return TRUE;
+
+	*result = hwnd;
+	return FALSE;
+}
+
 static HWND
 zoitechat_find_running_window (void)
 {
@@ -154,6 +194,8 @@ zoitechat_find_running_window (void)
 		hwnd = FindWindowA ("zoitechat", NULL);
 	if (!hwnd)
 		hwnd = FindWindowA (NULL, "ZoiteChat");
+	if (!hwnd)
+		EnumWindows (zoitechat_find_running_window_cb, (LPARAM)&hwnd);
 
 	return hwnd;
 }
