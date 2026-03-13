@@ -17,11 +17,9 @@
     "--filesystem=~/.icons:ro",
     "--filesystem=xdg-run/tray-icon:create",
     "--env=GTK_CSD=1",
-
     "--talk-name=org.freedesktop.Notifications",
     "--talk-name=org.kde.StatusNotifierWatcher",
     "--talk-name=com.canonical.AppMenu.Registrar",
-
     "--talk-name=org.mpris.MediaPlayer2.*"
   ],
   "add-extensions": {
@@ -41,6 +39,7 @@
     "shared-modules/libcanberra/libcanberra.json",
     "shared-modules/libayatana-appindicator/libayatana-appindicator-gtk3.json",
     "python3-cffi.json",
+    "perl.json",
     {
       "name": "lgi",
       "buildsystem": "meson",
@@ -57,8 +56,8 @@
       "buildsystem": "meson",
       "config-opts": [
         "-Ddbus-service-use-appid=true",
-        "-Dwith-perl=false",
-        "-Dwith-python=false",
+        "-Dwith-perl=perl",
+        "-Dwith-python=python3",
         "-Dwith-lua=lua"
       ],
       "build-options": {

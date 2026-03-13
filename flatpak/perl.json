@@ -1,0 +1,20 @@
+{
+  "name": "perl",
+  "buildsystem": "simple",
+  "build-commands": [
+    "./Configure -des -Dprefix=/app -Dvendorprefix=/app -Duseshrplib -Dman1dir=none -Dman3dir=none",
+    "make -j${FLATPAK_BUILDER_N_JOBS}",
+    "make install"
+  ],
+  "cleanup": [
+    "/share/man",
+    "/lib/perl5/*/*/CORE/*.a"
+  ],
+  "sources": [
+    {
+      "type": "archive",
+      "url": "https://www.cpan.org/src/5.0/perl-5.40.1.tar.xz",
+      "sha256": "c8fef42d36fef2e129532d38648d4f9efb06efec87d20fdbd2865ed24dbadb68"
+    }
+  ]
+}
