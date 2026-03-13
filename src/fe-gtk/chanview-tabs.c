@@ -27,7 +27,7 @@ typedef struct
 	GtkWidget *b2;		/* button2 */
 } tabview;
 
-#define ICON_CHANVIEW_CLOSE "window-close"
+#define ICON_CHANVIEW_CLOSE "gtk-close"
 
 static void chanview_populate (chanview *cv);
 
