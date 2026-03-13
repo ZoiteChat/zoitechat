@@ -122,6 +122,9 @@ static void tray_init (void);
 static void tray_set_icon_state (TrayIcon icon, TrayIconState state);
 static void tray_menu_restore_cb (GtkWidget *item, gpointer userdata);
 static void tray_menu_notify_cb (GObject *tray, GParamSpec *pspec, gpointer user_data);
+static void tray_update_toggle_item_label (void);
+static gboolean tray_window_state_cb (GtkWidget *widget, GdkEventWindowState *event, gpointer userdata);
+static void tray_window_visibility_cb (GtkWidget *widget, gpointer userdata);
 #if HAVE_APPINDICATOR_BACKEND
 static void tray_menu_show_cb (GtkWidget *menu, gpointer userdata) G_GNUC_UNUSED;
 #endif
@@ -165,6 +168,7 @@ static int tray_pub_count = 0;
 static int tray_hilight_count = 0;
 static int tray_file_count = 0;
 static int tray_restore_timer = 0;
+static GtkWidget *tray_toggle_item = NULL;
 
 #if HAVE_APPINDICATOR_BACKEND
 static TrayCustomIcon
@@ -890,6 +894,8 @@ tray_toggle_visibility (gboolean force_hide)
 		gtk_window_present (win);
 	}
 
+	tray_update_toggle_item_label ();
+
 	return TRUE;
 }
 
@@ -1083,10 +1089,8 @@ tray_menu_populate (GtkWidget *menu)
 	/* ph may have an invalid context now */
 	zoitechat_set_context (ph, zoitechat_find_context (ph, NULL, NULL));
 
-	if (tray_get_window_status () == WS_HIDDEN)
-		tray_make_item (menu, _("_Restore Window"), tray_menu_restore_cb, NULL);
-	else
-		tray_make_item (menu, _("_Hide Window"), tray_menu_restore_cb, NULL);
+	tray_toggle_item = tray_make_item (menu, _("_Hide Window"), tray_menu_restore_cb, NULL);
+	tray_update_toggle_item_label ();
 	tray_make_item (menu, NULL, tray_menu_quit_cb, NULL);
 
 #ifndef WIN32 /* submenus are buggy on win32 */
@@ -1128,6 +1132,45 @@ tray_menu_clear (GtkWidget *menu)
 	for (iter = children; iter; iter = iter->next)
 		gtk_widget_destroy (GTK_WIDGET (iter->data));
 	g_list_free (children);
+	tray_toggle_item = NULL;
+}
+
+static void
+tray_update_toggle_item_label (void)
+{
+	const char *label;
+
+	if (!tray_toggle_item)
+		return;
+
+	if (tray_get_window_status () == WS_HIDDEN)
+		label = _("_Restore Window");
+	else
+		label = _("_Hide Window");
+
+	gtk_menu_item_set_label (GTK_MENU_ITEM (tray_toggle_item), label);
+	gtk_menu_item_set_use_underline (GTK_MENU_ITEM (tray_toggle_item), TRUE);
+}
+
+static gboolean
+tray_window_state_cb (GtkWidget *widget, GdkEventWindowState *event, gpointer userdata)
+{
+	(void)widget;
+	(void)event;
+	(void)userdata;
+
+	tray_update_toggle_item_label ();
+
+	return FALSE;
+}
+
+static void
+tray_window_visibility_cb (GtkWidget *widget, gpointer userdata)
+{
+	(void)widget;
+	(void)userdata;
+
+	tray_update_toggle_item_label ();
 }
 
 static void G_GNUC_UNUSED
@@ -1381,6 +1424,19 @@ tray_plugin_init (zoitechat_plugin *plugin_handle, char **plugin_name,
 	zoitechat_hook_print (ph, "Focus Window", -1, tray_focus_cb, NULL);
 
 	GtkWindow *window = GTK_WINDOW(zoitechat_get_info (ph, "gtkwin_ptr"));
+	GtkWidget *window_widget;
+
+	if (window)
+	{
+		window_widget = GTK_WIDGET (window);
+		g_signal_connect (G_OBJECT (window_widget), "window-state-event",
+			G_CALLBACK (tray_window_state_cb), NULL);
+		g_signal_connect (G_OBJECT (window_widget), "show",
+			G_CALLBACK (tray_window_visibility_cb), NULL);
+		g_signal_connect (G_OBJECT (window_widget), "hide",
+			G_CALLBACK (tray_window_visibility_cb), NULL);
+	}
+
 	if (prefs.hex_gui_tray && gtkutil_tray_icon_supported (window))
 		tray_init ();
 
