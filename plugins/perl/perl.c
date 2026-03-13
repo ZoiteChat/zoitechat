@@ -32,6 +32,7 @@
 #include <stdbool.h>
 #else
 #include <dirent.h>
+#include <strings.h>
 #endif
 
 #include <glib.h>
