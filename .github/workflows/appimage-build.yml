@@ -156,10 +156,19 @@ jobs:
           fi
 
           if [ -d "$APPDIR/usr/lib/x86_64-linux-gnu/gio/modules" ]; then
-            export GIO_EXTRA_MODULES="$APPDIR/usr/lib/x86_64-linux-gnu/gio/modules${GIO_EXTRA_MODULES:+:$GIO_EXTRA_MODULES}"
+            gio_module_dir="$APPDIR/usr/lib/x86_64-linux-gnu/gio/modules"
           elif [ -d "$APPDIR/usr/lib/gio/modules" ]; then
-            export GIO_EXTRA_MODULES="$APPDIR/usr/lib/gio/modules${GIO_EXTRA_MODULES:+:$GIO_EXTRA_MODULES}"
+            gio_module_dir="$APPDIR/usr/lib/gio/modules"
+          else
+            gio_module_dir=""
           fi
+
+          if [ -n "$gio_module_dir" ]; then
+            export GIO_MODULE_DIR="$gio_module_dir"
+            export GIO_EXTRA_MODULES="$gio_module_dir"
+          fi
+
+          unset GTK_MODULES
 
           export PYTHONHOME="$APPDIR/usr"
           python_stdlib_dir="$(find "$APPDIR/usr/lib" -maxdepth 1 -type d -name 'python3.*' | head -n 1 || true)"
