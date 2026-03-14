@@ -926,6 +926,11 @@ menu_setting_foreach (void (*callback) (session *), int id, guint state)
 	while (list)
 	{
 		sess = list->data;
+		if (!sess || !sess->gui)
+		{
+			list = list->next;
+			continue;
+		}
 
 		if (!sess->gui->is_tab || !maindone)
 		{
@@ -937,7 +942,18 @@ menu_setting_foreach (void (*callback) (session *), int id, guint state)
 
 				if (menu_item != NULL)
 				{
-					gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (menu_item), state);
+					guint toggled_signal = g_signal_lookup ("toggled", G_OBJECT_TYPE (menu_item));
+
+					if (toggled_signal != 0)
+					{
+						g_signal_handlers_block_matched (menu_item, G_SIGNAL_MATCH_ID, toggled_signal, 0, NULL, NULL, NULL);
+						gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (menu_item), state);
+						g_signal_handlers_unblock_matched (menu_item, G_SIGNAL_MATCH_ID, toggled_signal, 0, NULL, NULL, NULL);
+					}
+					else
+					{
+						gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (menu_item), state);
+					}
 				}
 			}
 			if (callback)
@@ -2170,6 +2186,11 @@ menu_foreach_gui (menu_entry *me, void (*callback) (GtkWidget *, menu_entry *, c
 	while (list)
 	{
 		sess = list->data;
+		if (!sess || !sess->gui)
+		{
+			list = list->next;
+			continue;
+		}
 		/* do it only once for tab sessions, since they share a GUI */
 		if (!sess->gui->is_tab || !tabdone)
 		{
