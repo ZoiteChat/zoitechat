@@ -36,6 +36,7 @@ jobs:
             libgtk-3-bin libglib2.0-bin shared-mime-info gsettings-desktop-schemas \
             libluajit-5.1-dev libpci-dev libperl-dev libssl-dev libayatana-appindicator3-dev \
             perl python3 python3-minimal python3-dev python3-cffi mono-devel desktop-file-utils \
+            fonts-noto-color-emoji breeze-gtk-theme \
             patchelf file curl
 
       - name: Configure
@@ -104,6 +105,26 @@ jobs:
             cp -a /usr/lib/x86_64-linux-gnu/libpython3*.so* AppDir/usr/lib/x86_64-linux-gnu/
           fi
 
+          if [ -d "/usr/share/gtk-3.0/emoji" ]; then
+            install -d AppDir/usr/share/gtk-3.0
+            cp -a /usr/share/gtk-3.0/emoji AppDir/usr/share/gtk-3.0/
+          fi
+
+          if [ -f "/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf" ]; then
+            install -d AppDir/usr/share/fonts/truetype/noto
+            cp -a /usr/share/fonts/truetype/noto/NotoColorEmoji.ttf AppDir/usr/share/fonts/truetype/noto/
+          fi
+
+          if [ -d "/usr/lib/x86_64-linux-gnu/gtk-3.0/modules" ]; then
+            install -d AppDir/usr/lib/x86_64-linux-gnu/gtk-3.0
+            cp -a /usr/lib/x86_64-linux-gnu/gtk-3.0/modules AppDir/usr/lib/x86_64-linux-gnu/gtk-3.0/
+          fi
+
+          if [ -d "/usr/lib/gtk-3.0/modules" ]; then
+            install -d AppDir/usr/lib/gtk-3.0
+            cp -a /usr/lib/gtk-3.0/modules AppDir/usr/lib/gtk-3.0/
+          fi
+
       - name: Verify bundled plugins
         run: |
           set -eux
@@ -144,6 +165,26 @@ jobs:
           export PATH="${PATH:-/usr/bin:/bin}:$APPDIR/usr/bin"
           export LD_LIBRARY_PATH="$APPDIR/usr/lib:$APPDIR/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH:-}"
           export XDG_DATA_DIRS="$APPDIR/usr/share:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
+          export GTK_EXE_PREFIX="$APPDIR/usr"
+          export GTK_DATA_PREFIX="$APPDIR/usr"
+          gtk_path_entries=""
+          if [ -d "$APPDIR/usr/lib/x86_64-linux-gnu/gtk-3.0" ]; then
+            gtk_path_entries="$APPDIR/usr/lib/x86_64-linux-gnu/gtk-3.0"
+          fi
+          if [ -d "$APPDIR/usr/lib/gtk-3.0" ]; then
+            gtk_path_entries="${gtk_path_entries:+$gtk_path_entries:}$APPDIR/usr/lib/gtk-3.0"
+          fi
+          if [ -n "$gtk_path_entries" ]; then
+            export GTK_PATH="$gtk_path_entries${GTK_PATH:+:$GTK_PATH}"
+          fi
+
+          if [ -d "$APPDIR/etc/fonts" ]; then
+            export FONTCONFIG_SYSROOT="$APPDIR"
+            export FONTCONFIG_PATH="$APPDIR/etc/fonts${FONTCONFIG_PATH:+:$FONTCONFIG_PATH}"
+            if [ -f "$APPDIR/etc/fonts/fonts.conf" ]; then
+              export FONTCONFIG_FILE="$APPDIR/etc/fonts/fonts.conf"
+            fi
+          fi
 
           if [ -d "$APPDIR/usr/lib/x86_64-linux-gnu/zoitechat/plugins" ]; then
             export ZOITECHAT_LIBDIR="$APPDIR/usr/lib/x86_64-linux-gnu/zoitechat/plugins"
@@ -156,10 +197,19 @@ jobs:
           fi
 
           if [ -d "$APPDIR/usr/lib/x86_64-linux-gnu/gio/modules" ]; then
-            export GIO_EXTRA_MODULES="$APPDIR/usr/lib/x86_64-linux-gnu/gio/modules${GIO_EXTRA_MODULES:+:$GIO_EXTRA_MODULES}"
+            gio_module_dir="$APPDIR/usr/lib/x86_64-linux-gnu/gio/modules"
           elif [ -d "$APPDIR/usr/lib/gio/modules" ]; then
-            export GIO_EXTRA_MODULES="$APPDIR/usr/lib/gio/modules${GIO_EXTRA_MODULES:+:$GIO_EXTRA_MODULES}"
+            gio_module_dir="$APPDIR/usr/lib/gio/modules"
+          else
+            gio_module_dir=""
           fi
+
+          if [ -n "$gio_module_dir" ]; then
+            export GIO_MODULE_DIR="$gio_module_dir"
+            export GIO_EXTRA_MODULES="$gio_module_dir"
+          fi
+
+          unset GTK_MODULES
 
           export PYTHONHOME="$APPDIR/usr"
           python_stdlib_dir="$(find "$APPDIR/usr/lib" -maxdepth 1 -type d -name 'python3.*' | head -n 1 || true)"
@@ -191,6 +241,16 @@ jobs:
               export GDK_BACKEND="x11"
             fi
           fi
+
+          for hook_dir in "$APPDIR/apprun-hooks" "$APPDIR/usr/apprun-hooks"; do
+            if [ -d "$hook_dir" ]; then
+              for hook in "$hook_dir"/*.sh; do
+                if [ -f "$hook" ]; then
+                  . "$hook"
+                fi
+              done
+            fi
+          done
 
           exec "$APPDIR/usr/bin/zoitechat" "$@"
           EOF

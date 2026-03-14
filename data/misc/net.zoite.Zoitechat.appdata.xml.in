@@ -29,6 +29,27 @@
     <id>zoitechat.desktop</id>
   </provides>
 <releases>
+  <release date="2026-03-13" version="2.18.0~pre3">
+    <description>
+      <p>GTK3 theming, UI, and platform improvements:</p>
+      <ul>
+        <li>Added a major GTK3 theming overhaul with improved theme importing, inheritance, rollback safety, and caching.</li>
+        <li>Merged theme settings into Appearance and added a new Advanced section.</li>
+        <li>Added a full color editor and improved widget, chat text, userlist, and tab color handling.</li>
+        <li>Added <code>colors.conf</code> import support and improved compatibility with older themes.</li>
+        <li>Improved chat background image handling and switched to a native file picker.</li>
+        <li>Bundled more built-in icons, including OK/Cancel, and improved emoji fallback support.</li>
+        <li>Embedded the app SVG icon and improved headerbar icon handling.</li>
+        <li>Fixed KDE Wayland alert flashing.</li>
+        <li>Fixed tray hide/restore labels so tray state stays in sync with the real window state.</li>
+        <li>Fixed several GTK3 styling issues, warning spam, and imported CSS cleanup problems.</li>
+        <li>Removed menubar icons and simplified Away menu behavior.</li>
+        <li>Improved Flatpak behavior on KDE and enabled Python/Perl plugin support.</li>
+        <li>Manual addons now persist properly by being copied into the user addon directory.</li>
+        <li>Updated the bundled server list and added a checker script for server list maintenance.</li>
+      </ul>
+    </description>
+  </release>
   <release date="2026-02-25" version="2.18.0~pre2">
     <description>
       <p>Compatibility and UI improvements:</p>

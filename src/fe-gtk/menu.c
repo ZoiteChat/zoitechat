@@ -1533,12 +1533,12 @@ menu_join (GtkWidget * wid, gpointer none)
 		button = gtk_dialog_get_widget_for_response (GTK_DIALOG (dialog), GTK_RESPONSE_REJECT);
 		if (button)
 			gtk_button_set_image (GTK_BUTTON (button),
-										 gtk_image_new_from_icon_name ("dialog-cancel", GTK_ICON_SIZE_BUTTON));
+										 gtkutil_image_new_from_stock ("gtk-cancel", GTK_ICON_SIZE_BUTTON));
 
 		button = gtk_dialog_get_widget_for_response (GTK_DIALOG (dialog), GTK_RESPONSE_ACCEPT);
 		if (button)
 			gtk_button_set_image (GTK_BUTTON (button),
-										 gtk_image_new_from_icon_name ("dialog-ok", GTK_ICON_SIZE_BUTTON));
+										 gtkutil_image_new_from_stock ("gtk-ok", GTK_ICON_SIZE_BUTTON));
 	}
 	content_area = gtk_dialog_get_content_area (GTK_DIALOG (dialog));
 	gtk_box_set_homogeneous (GTK_BOX (content_area), TRUE);

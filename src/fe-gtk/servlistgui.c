@@ -43,7 +43,7 @@
 #define ICON_SERVLIST_CONNECT "zc-menu-connect"
 #define ICON_SERVLIST_ADD "list-add"
 #define ICON_SERVLIST_REMOVE "list-remove"
-#define ICON_SERVLIST_CLOSE "window-close"
+#define ICON_SERVLIST_CLOSE "gtk-close"
 #define ICON_SERVLIST_ERROR "dialog-error"
 
 #ifdef USE_OPENSSL
@@ -106,7 +106,7 @@ servlist_icon_button_new (const char *label, const char *icon_name)
 	GtkWidget *image;
 
 	button = gtk_button_new_with_mnemonic (label);
-	image = gtk_image_new_from_icon_name (icon_name, GTK_ICON_SIZE_BUTTON);
+	image = gtkutil_image_new_from_stock (icon_name, GTK_ICON_SIZE_BUTTON);
 	gtk_button_set_image (GTK_BUTTON (button), image);
 	gtk_button_set_always_show_image (GTK_BUTTON (button), TRUE);
 

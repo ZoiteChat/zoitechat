@@ -23,6 +23,7 @@ LicenseFile=share\doc\zoitechat\COPYING
 UninstallDisplayIcon={app}\zoitechat.exe
 UninstallDisplayName=ZoiteChat
 DefaultDirName={pf64}\ZoiteChat
+DisableDirPage=no
 DefaultGroupName=ZoiteChat
 AllowNoIcons=yes
 SolidCompression=yes

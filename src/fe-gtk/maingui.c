@@ -46,6 +46,7 @@
 #include "theme/theme-css.h"
 #include "banlist.h"
 #include "gtkutil.h"
+#include "icon-resolver.h"
 #include "joind.h"
 #include "theme/theme-access.h"
 #include "theme/theme-palette.h"
@@ -1560,7 +1561,7 @@ mg_open_quit_dialog (gboolean minimize_button)
 
         button = gtk_button_new_with_mnemonic (_("_Cancel"));
         gtk_button_set_image (GTK_BUTTON (button),
-                              gtk_image_new_from_icon_name ("dialog-cancel", GTK_ICON_SIZE_BUTTON));
+                              gtkutil_image_new_from_stock ("gtk-cancel", GTK_ICON_SIZE_BUTTON));
         gtk_widget_show (button);
         gtk_dialog_add_action_widget (GTK_DIALOG (dialog), button,
                                                                                         GTK_RESPONSE_CANCEL);
@@ -3261,8 +3262,21 @@ mg_find_available_icon_name (const char *const *icon_names)
 
         for (i = 0; icon_names[i] != NULL; i++)
         {
+                int action;
+
                 if (gtk_icon_theme_has_icon (theme, icon_names[i]))
                         return icon_names[i];
+
+                if (icon_resolver_menu_action_from_name (icon_names[i], &action))
+                {
+                        char *resource_path = icon_resolver_resolve_path (ICON_RESOLVER_ROLE_MENU_ACTION, action, GTK_ICON_SIZE_MENU, "menu", ICON_RESOLVER_THEME_SYSTEM, NULL);
+
+                        if (resource_path)
+                        {
+                                g_free (resource_path);
+                                return icon_names[i];
+                        }
+                }
         }
 
         return NULL;

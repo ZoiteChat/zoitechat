@@ -74,6 +74,10 @@
 		<file alias="menu/light/help.svg">icons/menu/light/help.svg</file>
 		<file alias="menu/light/about.png" preprocess="to-pixdata">icons/menu/light/about.png</file>
 		<file alias="menu/light/about.svg">icons/menu/light/about.svg</file>
+			<file alias="menu/light/ok.png" preprocess="to-pixdata">icons/menu/light/ok.png</file>
+			<file alias="menu/light/ok.svg">icons/menu/light/ok.svg</file>
+			<file alias="menu/light/cancel.png" preprocess="to-pixdata">icons/menu/light/cancel.png</file>
+			<file alias="menu/light/cancel.svg">icons/menu/light/cancel.svg</file>
 		<file alias="menu/light/update.png" preprocess="to-pixdata">icons/menu/light/update.png</file>
 		<file alias="menu/light/update.svg">icons/menu/light/update.svg</file>
 		<file alias="menu/light/emoji.png" preprocess="to-pixdata">icons/menu/light/emoji.png</file>
@@ -131,6 +135,10 @@
 		<file alias="menu/dark/help.svg">icons/menu/dark/help.svg</file>
 		<file alias="menu/dark/about.png" preprocess="to-pixdata">icons/menu/dark/about.png</file>
 		<file alias="menu/dark/about.svg">icons/menu/dark/about.svg</file>
+			<file alias="menu/dark/ok.png" preprocess="to-pixdata">icons/menu/dark/ok.png</file>
+			<file alias="menu/dark/ok.svg">icons/menu/dark/ok.svg</file>
+			<file alias="menu/dark/cancel.png" preprocess="to-pixdata">icons/menu/dark/cancel.png</file>
+			<file alias="menu/dark/cancel.svg">icons/menu/dark/cancel.svg</file>
 		<file alias="menu/dark/update.png" preprocess="to-pixdata">icons/menu/dark/update.png</file>
 		<file alias="menu/dark/update.svg">icons/menu/dark/update.svg</file>
 		<file alias="menu/dark/emoji.png" preprocess="to-pixdata">icons/menu/dark/emoji.png</file>

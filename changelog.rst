@@ -1,6 +1,25 @@
 ZoiteChat ChangeLog
 =================
 
+2.18.0~pre3 (2026-03-13)
+------------------------
+
+- Added a major GTK3 theming overhaul with improved theme importing, inheritance, rollback safety, and caching.
+- Merged theme settings into Appearance and added a new Advanced section.
+- Added a full color editor and improved widget, chat text, userlist, and tab color handling.
+- Added `colors.conf` import support and improved compatibility with older themes.
+- Improved chat background image handling and switched to a native file picker.
+- Bundled more built-in icons, including OK/Cancel, and improved emoji fallback support.
+- Embedded the app SVG icon and improved headerbar icon handling.
+- Fixed KDE Wayland alert flashing.
+- Fixed tray hide/restore labels so they stay in sync with the real window state.
+- Fixed several GTK3 styling issues, warning spam, and imported CSS cleanup problems.
+- Removed menubar icons and simplified Away menu behavior.
+- Improved Flatpak behavior on KDE and enabled Python/Perl plugin support.
+- Manual addons now persist properly by being copied into the user addon directory.
+- Updated `servlist.c` to remove dead servers and added a checker script.
+
+
 2.18.0~pre2 (2026-02-25)
 ------------------------
 

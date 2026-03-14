@@ -46,6 +46,8 @@ static const IconRegistryEntry icon_registry[] = {
 	{ ICON_RESOLVER_ROLE_MENU_ACTION, ICON_RESOLVER_MENU_ACTION_NEXT, "zc-menu-next", "go-next", "next" },
 	{ ICON_RESOLVER_ROLE_MENU_ACTION, ICON_RESOLVER_MENU_ACTION_HELP, "zc-menu-help", "help-browser", "help" },
 	{ ICON_RESOLVER_ROLE_MENU_ACTION, ICON_RESOLVER_MENU_ACTION_ABOUT, "zc-menu-about", "help-about", "about" },
+	{ ICON_RESOLVER_ROLE_MENU_ACTION, ICON_RESOLVER_MENU_ACTION_OK, "zc-menu-ok", "dialog-ok", "ok" },
+	{ ICON_RESOLVER_ROLE_MENU_ACTION, ICON_RESOLVER_MENU_ACTION_CANCEL, "zc-menu-cancel", "dialog-cancel", "cancel" },
 	{ ICON_RESOLVER_ROLE_MENU_ACTION, ICON_RESOLVER_MENU_ACTION_EMOJI, "zc-menu-emoji", "face-smile", "emoji" },
 	{ ICON_RESOLVER_ROLE_MENU_ACTION, ICON_RESOLVER_MENU_ACTION_UPDATE, "zc-menu-update", "software-update-available", "update" },
 	{ ICON_RESOLVER_ROLE_MENU_ACTION, ICON_RESOLVER_MENU_ACTION_CHANLIST, "zc-menu-chanlist", "network-workgroup", "chanlist" },
