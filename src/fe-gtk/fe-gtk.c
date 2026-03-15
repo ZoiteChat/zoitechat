@@ -1339,22 +1339,61 @@ fe_open_url_inner (const char *url)
 	g_free (escaped_url);
 }
 
+static gboolean
+fe_open_url_is_local_path (const char *url)
+{
+	if (g_path_is_absolute (url) || g_file_test (url, G_FILE_TEST_EXISTS))
+		return TRUE;
+
+#ifdef WIN32
+	if (g_ascii_isalpha (url[0]) && url[1] == ':' &&
+		(url[2] == '\\' || url[2] == '/'))
+		return TRUE;
+
+	if (url[0] == '\\' && url[1] == '\\')
+		return TRUE;
+#endif
+
+	return FALSE;
+}
+
 void
 fe_open_url (const char *url)
 {
 	int url_type = url_check_word (url);
 	char *uri;
+	char *path;
+	char *path_uri;
+
+	if (fe_open_url_is_local_path (url))
+	{
+		path = g_canonicalize_filename (url, NULL);
+		path_uri = g_filename_to_uri (path, NULL, NULL);
+		g_free (path);
+
+		if (path_uri)
+		{
+			fe_open_url_inner (path_uri);
+			g_free (path_uri);
+			return;
+		}
+	}
 
 	/* gvfs likes file:// */
 	if (url_type == WORD_PATH)
 	{
-#ifndef WIN32
-		uri = g_strconcat ("file://", url, NULL);
-		fe_open_url_inner (uri);
-		g_free (uri);
-#else
-		fe_open_url_inner (url);
-#endif
+		path = g_canonicalize_filename (url, NULL);
+		path_uri = g_filename_to_uri (path, NULL, NULL);
+		g_free (path);
+		if (path_uri)
+		{
+			fe_open_url_inner (path_uri);
+			g_free (path_uri);
+		}
+		else
+		{
+			fe_open_url_inner (url);
+		}
 	}
 	/* IPv6 addr. Add http:// */
 	else if (url_type == WORD_HOST6)
