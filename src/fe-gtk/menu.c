@@ -869,6 +869,9 @@ menu_nickmenu (session *sess, GdkEventButton *event, char *nick, int num_sel)
 static void
 menu_showhide_cb (session *sess)
 {
+	if (!sess->gui->menu)
+		return;
+
 	if (prefs.hex_gui_hide_menu)
 		gtk_widget_hide (sess->gui->menu);
 	else
