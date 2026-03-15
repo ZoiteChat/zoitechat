@@ -52,6 +52,24 @@ enum
 
 static void userlist_store_color (GtkListStore *store, GtkTreeIter *iter, ThemeSemanticToken token, gboolean has_token);
 
+static void
+userlist_update_min_width (session *sess)
+{
+	GtkRequisition minimum;
+	GtkRequisition natural;
+	int width;
+
+	if (!sess || !sess->gui || !sess->gui->user_box || !sess->gui->namelistinfo)
+		return;
+
+	gtk_widget_get_preferred_size (sess->gui->namelistinfo, &minimum, &natural);
+	width = MAX (minimum.width, natural.width) + 16;
+	if (width < 1)
+		width = 1;
+
+	gtk_widget_set_size_request (sess->gui->user_box, width, -1);
+}
+
 GdkPixbuf *
 get_user_icon (server *serv, struct User *user)
 {
@@ -110,9 +128,11 @@ fe_userlist_numbers (session *sess)
 			g_snprintf (tbuf, sizeof (tbuf), _("%d ops, %d total"), sess->ops, sess->total);
 			tbuf[sizeof (tbuf) - 1] = 0;
 			gtk_label_set_text (GTK_LABEL (sess->gui->namelistinfo), tbuf);
+			userlist_update_min_width (sess);
 		} else
 		{
 			gtk_label_set_text (GTK_LABEL (sess->gui->namelistinfo), NULL);
+			userlist_update_min_width (sess);
 		}
 
 		if (sess->type == SESS_CHANNEL && prefs.hex_gui_win_ucount)
