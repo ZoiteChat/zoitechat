@@ -758,11 +758,15 @@ fe_set_topic (session *sess, char *topic, char *stripped_topic)
 	{
 		if (prefs.hex_text_stripcolor_topic)
 		{
-			gtk_entry_set_text (GTK_ENTRY (sess->gui->topic_entry), stripped_topic);
+			gtk_text_buffer_set_text (
+				gtk_text_view_get_buffer (GTK_TEXT_VIEW (sess->gui->topic_entry)),
+				stripped_topic, -1);
 		}
 		else
 		{
-			gtk_entry_set_text (GTK_ENTRY (sess->gui->topic_entry), topic);
+			gtk_text_buffer_set_text (
+				gtk_text_view_get_buffer (GTK_TEXT_VIEW (sess->gui->topic_entry)),
+				topic, -1);
 		}
 		mg_set_topic_tip (sess);
 	}

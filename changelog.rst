@@ -1,6 +1,15 @@
 ZoiteChat ChangeLog
 =================
 
+2.18.0~pre4 (2026-03-15)
+------------------------
+
+- Fixed a regression where Ctrl+A could incorrectly mark you away instead of selecting all text.
+- Fixed a crash when toggling the GUI with F9 or the menu toggle action.
+- Fixed sidebar collapse behavior on fresh installs.
+- Added multiline topic bar support with clickable URLs.
+- Improved GTK selection styling so text selection is shown visually on topic and chat text box.
+
 2.18.0~pre3 (2026-03-13)
 ------------------------
 

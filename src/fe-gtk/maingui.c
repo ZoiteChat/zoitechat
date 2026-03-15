@@ -920,13 +920,18 @@ mg_unpopulate (session *sess)
 {
         restore_gui *res;
         session_gui *gui;
+        GtkTextBuffer *topic_buffer;
+        GtkTextIter start;
+        GtkTextIter end;
         int i;
 
         gui = sess->gui;
         res = sess->res;
 
         res->input_text = g_strdup (SPELL_ENTRY_GET_TEXT (gui->input_box));
-        res->topic_text = g_strdup (gtk_entry_get_text (GTK_ENTRY (gui->topic_entry)));
+        topic_buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (gui->topic_entry));
+        gtk_text_buffer_get_bounds (topic_buffer, &start, &end);
+        res->topic_text = gtk_text_buffer_get_text (topic_buffer, &start, &end, FALSE);
         res->limit_text = g_strdup (gtk_entry_get_text (GTK_ENTRY (gui->limit_entry)));
         res->key_text = g_strdup (gtk_entry_get_text (GTK_ENTRY (gui->key_entry)));
         if (gui->laginfo)
@@ -1003,6 +1008,9 @@ void
 mg_set_topic_tip (session *sess)
 {
         char *text;
+        GtkTextBuffer *topic_buffer;
+        GtkTextIter start;
+        GtkTextIter end;
 
         switch (sess->type)
         {
@@ -1017,11 +1025,14 @@ mg_set_topic_tip (session *sess)
                         gtk_widget_set_tooltip_text (sess->gui->topic_entry, _("No topic is set"));
                 break;
         default:
-                if (gtk_entry_get_text (GTK_ENTRY (sess->gui->topic_entry)) &&
-                         gtk_entry_get_text (GTK_ENTRY (sess->gui->topic_entry))[0])
-                        gtk_widget_set_tooltip_text (sess->gui->topic_entry, (char *)gtk_entry_get_text (GTK_ENTRY (sess->gui->topic_entry)));
+                topic_buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (sess->gui->topic_entry));
+                gtk_text_buffer_get_bounds (topic_buffer, &start, &end);
+                text = gtk_text_buffer_get_text (topic_buffer, &start, &end, FALSE);
+                if (text[0])
+                        gtk_widget_set_tooltip_text (sess->gui->topic_entry, text);
                 else
                         gtk_widget_set_tooltip_text (sess->gui->topic_entry, NULL);
+                g_free (text);
         }
 }
 
@@ -1164,7 +1175,7 @@ mg_populate (session *sess)
                 /* hide the userlist */
                 mg_decide_userlist (sess, FALSE);
                 /* shouldn't edit the topic */
-                gtk_editable_set_editable (GTK_EDITABLE (gui->topic_entry), FALSE);
+                gtk_text_view_set_editable (GTK_TEXT_VIEW (gui->topic_entry), FALSE);
                 /* might be hidden from server tab */
                 if (prefs.hex_gui_topicbar)
                         gtk_widget_show (gui->topic_bar);
@@ -1186,8 +1197,8 @@ mg_populate (session *sess)
                         gtk_widget_show (gui->topicbutton_box);
                 /* show the userlist */
                 mg_decide_userlist (sess, FALSE);
-                /* let the topic be editted */
-                gtk_editable_set_editable (GTK_EDITABLE (gui->topic_entry), TRUE);
+                /* let the topic be edited */
+                gtk_text_view_set_editable (GTK_TEXT_VIEW (gui->topic_entry), TRUE);
                 if (prefs.hex_gui_topicbar)
                         gtk_widget_show (gui->topic_bar);
         }
@@ -1207,8 +1218,21 @@ mg_populate (session *sess)
         if (gui->is_tab)
                 gtk_widget_set_sensitive (gui->menu, TRUE);
 
-        /* restore all the GtkEntry's */
-        mg_restore_entry (gui->topic_entry, &res->topic_text);
+        if (res->topic_text)
+        {
+                GtkTextBuffer *topic_buffer;
+
+                topic_buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (gui->topic_entry));
+                gtk_text_buffer_set_text (topic_buffer, res->topic_text, -1);
+                g_free (res->topic_text);
+                res->topic_text = NULL;
+        } else
+        {
+                GtkTextBuffer *topic_buffer;
+
+                topic_buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (gui->topic_entry));
+                gtk_text_buffer_set_text (topic_buffer, "", -1);
+        }
         mg_restore_speller (gui->input_box, &res->input_text);
         mg_restore_entry (gui->key_entry, &res->key_text);
         mg_restore_entry (gui->limit_entry, &res->limit_text);
@@ -2114,22 +2138,171 @@ mg_create_userlistbuttons (GtkWidget *box)
 }
 
 static void
-mg_topic_cb (GtkWidget *entry, gpointer userdata)
+mg_topic_cb (GtkWidget *entry)
 {
         session *sess = current_sess;
+        GtkTextBuffer *topic_buffer;
+        GtkTextIter start;
+        GtkTextIter end;
         char *text;
 
         if (sess->channel[0] && sess->server->connected && sess->type == SESS_CHANNEL)
         {
-                text = (char *)gtk_entry_get_text (GTK_ENTRY (entry));
+                topic_buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (entry));
+                gtk_text_buffer_get_bounds (topic_buffer, &start, &end);
+                text = gtk_text_buffer_get_text (topic_buffer, &start, &end, FALSE);
                 if (text[0] == 0)
-                        text = NULL;
-                sess->server->p_topic (sess->server, sess->channel, text);
+                        sess->server->p_topic (sess->server, sess->channel, NULL);
+                else
+                        sess->server->p_topic (sess->server, sess->channel, text);
+                g_free (text);
         } else
-                gtk_entry_set_text (GTK_ENTRY (entry), "");
+        {
+                topic_buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (entry));
+                gtk_text_buffer_set_text (topic_buffer, "", -1);
+        }
         /* restore focus to the input widget, where the next input will most
 likely be */
         gtk_widget_grab_focus (sess->gui->input_box);
+}
+
+static gboolean
+mg_topic_key_press_cb (GtkWidget *entry, GdkEventKey *event, gpointer userdata)
+{
+        if (event->keyval == GDK_KEY_Return || event->keyval == GDK_KEY_KP_Enter)
+        {
+                mg_topic_cb (entry);
+                return TRUE;
+        }
+
+        return FALSE;
+}
+
+static char *
+mg_topic_get_word_at_pos (GtkWidget *entry, gdouble event_x, gdouble event_y)
+{
+        GtkTextBuffer *buffer;
+        GtkTextIter iter;
+        GtkTextIter start;
+        GtkTextIter end;
+        int x;
+        int y;
+
+        x = (int)event_x;
+        y = (int)event_y;
+        gtk_text_view_window_to_buffer_coords (GTK_TEXT_VIEW (entry), GTK_TEXT_WINDOW_TEXT,
+                                               x, y, &x, &y);
+        gtk_text_view_get_iter_at_location (GTK_TEXT_VIEW (entry), &iter, x, y);
+
+        start = iter;
+        while (!gtk_text_iter_starts_line (&start))
+        {
+                GtkTextIter prev = start;
+                gunichar ch;
+
+                gtk_text_iter_backward_char (&prev);
+                ch = gtk_text_iter_get_char (&prev);
+                if (g_unichar_isspace (ch))
+                        break;
+                start = prev;
+        }
+
+        end = iter;
+        while (!gtk_text_iter_ends_line (&end))
+        {
+                gunichar ch;
+
+                ch = gtk_text_iter_get_char (&end);
+                if (ch == 0 || g_unichar_isspace (ch))
+                        break;
+                gtk_text_iter_forward_char (&end);
+        }
+
+        if (gtk_text_iter_equal (&start, &end))
+                return NULL;
+
+        buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (entry));
+        return gtk_text_buffer_get_text (buffer, &start, &end, FALSE);
+}
+
+static void
+mg_topic_set_cursor (GtkWidget *entry, GdkCursorType cursor_type)
+{
+        GdkWindow *text_window;
+        GdkDisplay *display;
+        GdkCursor *cursor;
+
+        text_window = gtk_text_view_get_window (GTK_TEXT_VIEW (entry), GTK_TEXT_WINDOW_TEXT);
+        if (!text_window)
+                return;
+
+        display = gdk_window_get_display (text_window);
+        cursor = gdk_cursor_new_for_display (display, cursor_type);
+        gdk_window_set_cursor (text_window, cursor);
+        g_object_unref (cursor);
+}
+
+static gboolean
+mg_topic_word_is_clickable (const char *word)
+{
+        if (!word || word[0] == 0)
+                return FALSE;
+
+        if (strcmp (word, "/") == 0)
+                return FALSE;
+
+        return url_check_word (word) != 0;
+}
+
+static gboolean
+mg_topic_motion_cb (GtkWidget *entry, GdkEventMotion *event, gpointer userdata)
+{
+        char *word;
+        gboolean word_is_clickable;
+
+        word = mg_topic_get_word_at_pos (entry, event->x, event->y);
+        word_is_clickable = mg_topic_word_is_clickable (word);
+        if (word_is_clickable)
+                mg_topic_set_cursor (entry, GDK_HAND2);
+        else
+                mg_topic_set_cursor (entry, GDK_XTERM);
+        g_free (word);
+
+        return FALSE;
+}
+
+static gboolean
+mg_topic_leave_cb (GtkWidget *entry, GdkEventCrossing *event, gpointer userdata)
+{
+        mg_topic_set_cursor (entry, GDK_XTERM);
+        return FALSE;
+}
+
+static gboolean
+mg_topic_button_release_cb (GtkWidget *entry, GdkEventButton *event, gpointer userdata)
+{
+        char *word;
+        int start;
+        int end;
+
+        if (event->button != 1)
+                return FALSE;
+
+        word = mg_topic_get_word_at_pos (entry, event->x, event->y);
+        if (!word)
+                return FALSE;
+
+        if (mg_topic_word_is_clickable (word))
+        {
+                url_last (&start, &end);
+                word[end] = 0;
+                fe_open_url (word + start);
+                g_free (word);
+                return TRUE;
+        }
+
+        g_free (word);
+        return FALSE;
 }
 
 static void
@@ -2415,6 +2588,20 @@ mg_apply_entry_style (GtkWidget *entry)
 	theme_manager_apply_entry_palette (entry, input_style->font_desc);
 }
 
+static gboolean
+mg_entry_select_all (GtkWidget *entry, GdkEventKey *event, gpointer userdata)
+{
+	if ((event->state & GDK_CONTROL_MASK) &&
+		!(event->state & (GDK_SHIFT_MASK | GDK_MOD1_MASK | GDK_META_MASK)) &&
+		(event->keyval == GDK_KEY_a || event->keyval == GDK_KEY_A))
+	{
+		gtk_editable_select_region (GTK_EDITABLE (entry), 0, -1);
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
 static void
 mg_create_chanmodebuttons (session_gui *gui, GtkWidget *box)
 {
@@ -2434,6 +2621,8 @@ mg_create_chanmodebuttons (session_gui *gui, GtkWidget *box)
         mg_apply_emoji_fallback_widget (gui->key_entry);
         g_signal_connect (G_OBJECT (gui->key_entry), "activate",
                                                         G_CALLBACK (mg_key_entry_cb), NULL);
+        g_signal_connect (G_OBJECT (gui->key_entry), "key_press_event",
+                                                        G_CALLBACK (mg_entry_select_all), NULL);
 
         if (prefs.hex_gui_input_style)
                 mg_apply_entry_style (gui->key_entry);
@@ -2447,6 +2636,8 @@ mg_create_chanmodebuttons (session_gui *gui, GtkWidget *box)
         mg_apply_emoji_fallback_widget (gui->limit_entry);
         g_signal_connect (G_OBJECT (gui->limit_entry), "activate",
                                                         G_CALLBACK (mg_limit_entry_cb), NULL);
+        g_signal_connect (G_OBJECT (gui->limit_entry), "key_press_event",
+                                                        G_CALLBACK (mg_entry_select_all), NULL);
 
         if (prefs.hex_gui_input_style)
                 mg_apply_entry_style (gui->limit_entry);
@@ -2470,12 +2661,18 @@ mg_dialog_button_cb (GtkWidget *wid, char *cmd)
         char buf[128];
         char *host = "";
         char *topic;
+        char *topic_text;
+        GtkTextBuffer *topic_buffer;
+        GtkTextIter start;
+        GtkTextIter end;
 
         if (!current_sess)
                 return;
 
-        topic = (char *)(gtk_entry_get_text (GTK_ENTRY (current_sess->gui->topic_entry)));
-        topic = strrchr (topic, '@');
+        topic_buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (current_sess->gui->topic_entry));
+        gtk_text_buffer_get_bounds (topic_buffer, &start, &end);
+        topic_text = gtk_text_buffer_get_text (topic_buffer, &start, &end, FALSE);
+        topic = strrchr (topic_text, '@');
         if (topic)
                 host = topic + 1;
 
@@ -2484,6 +2681,7 @@ mg_dialog_button_cb (GtkWidget *wid, char *cmd)
                                          current_sess->channel, "");
 
         handle_command (current_sess, buf, TRUE);
+        g_free (topic_text);
 
         /* dirty trick to avoid auto-selection */
         SPELL_ENTRY_SET_EDITABLE (current_sess->gui->input_box, FALSE);
@@ -2530,16 +2728,23 @@ mg_create_topicbar (session *sess, GtkWidget *box)
         if (!gui->is_tab)
                 sess->res->tab = NULL;
 
-        gui->topic_entry = topic = sexy_spell_entry_new ();
+        gui->topic_entry = topic = gtk_text_view_new ();
         gtk_widget_set_name (topic, "zoitechat-inputbox");
-        sexy_spell_entry_set_checked (SEXY_SPELL_ENTRY (topic), FALSE);
+        gtk_text_view_set_wrap_mode (GTK_TEXT_VIEW (topic), GTK_WRAP_WORD_CHAR);
+        gtk_text_view_set_left_margin (GTK_TEXT_VIEW (topic), 4);
+        gtk_text_view_set_right_margin (GTK_TEXT_VIEW (topic), 4);
         gtk_box_pack_start (GTK_BOX (hbox), topic, TRUE, TRUE, 0);
         mg_apply_emoji_fallback_widget (topic);
-        g_signal_connect (G_OBJECT (topic), "activate",
-                                                        G_CALLBACK (mg_topic_cb), 0);
-
-        if (prefs.hex_gui_input_style)
-                mg_apply_entry_style (topic);
+        gtk_widget_add_events (topic, GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK |
+                                      GDK_POINTER_MOTION_MASK | GDK_LEAVE_NOTIFY_MASK);
+        g_signal_connect (G_OBJECT (topic), "key-press-event",
+                                                        G_CALLBACK (mg_topic_key_press_cb), NULL);
+        g_signal_connect (G_OBJECT (topic), "button-release-event",
+                                                        G_CALLBACK (mg_topic_button_release_cb), NULL);
+        g_signal_connect (G_OBJECT (topic), "motion-notify-event",
+                                                        G_CALLBACK (mg_topic_motion_cb), NULL);
+        g_signal_connect (G_OBJECT (topic), "leave-notify-event",
+                                                        G_CALLBACK (mg_topic_leave_cb), NULL);
 
         gui->topicbutton_box = bbox = mg_box_new (GTK_ORIENTATION_HORIZONTAL, FALSE, 0);
         gtk_box_pack_start (GTK_BOX (hbox), bbox, 0, 0, 0);
@@ -2984,15 +3189,15 @@ mg_create_center (session *sess, session_gui *gui, GtkWidget *box)
 
         if (prefs.hex_gui_win_swap)
         {
-                gtk_paned_pack2 (GTK_PANED (gui->hpane_left), gui->vpane_left, FALSE, TRUE);
+                gtk_paned_pack2 (GTK_PANED (gui->hpane_left), gui->vpane_left, FALSE, FALSE);
 			    gtk_paned_pack1 (GTK_PANED (gui->hpane_left), gui->hpane_right, TRUE, TRUE);
         }
         else
         {
-                gtk_paned_pack1 (GTK_PANED (gui->hpane_left), gui->vpane_left, FALSE, TRUE);
+                gtk_paned_pack1 (GTK_PANED (gui->hpane_left), gui->vpane_left, FALSE, FALSE);
 			    gtk_paned_pack2 (GTK_PANED (gui->hpane_left), gui->hpane_right, TRUE, TRUE);
         }
-        gtk_paned_pack2 (GTK_PANED (gui->hpane_right), gui->vpane_right, FALSE, TRUE);
+        gtk_paned_pack2 (GTK_PANED (gui->hpane_right), gui->vpane_right, FALSE, FALSE);
 
         gtk_box_pack_start (GTK_BOX (box), gui->hpane_left, TRUE, TRUE, 0);
 
@@ -4088,7 +4293,8 @@ fe_clear_channel (session *sess)
 
         if (!sess->gui->is_tab || sess == current_tab)
         {
-                gtk_entry_set_text (GTK_ENTRY (gui->topic_entry), "");
+                gtk_text_buffer_set_text (
+                        gtk_text_view_get_buffer (GTK_TEXT_VIEW (gui->topic_entry)), "", -1);
 
                 if (gui->op_xpm)
                 {

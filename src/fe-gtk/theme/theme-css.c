@@ -27,6 +27,12 @@ typedef struct
 	guint16 bg_red;
 	guint16 bg_green;
 	guint16 bg_blue;
+	guint16 sel_fg_red;
+	guint16 sel_fg_green;
+	guint16 sel_fg_blue;
+	guint16 sel_bg_red;
+	guint16 sel_bg_green;
+	guint16 sel_bg_blue;
 } ThemeCssInputFingerprint;
 
 static GtkCssProvider *theme_css_input_provider;
@@ -92,6 +98,12 @@ theme_css_input_fingerprint_matches (const ThemeCssInputFingerprint *next)
 	if (theme_css_input_fp.bg_red != next->bg_red || theme_css_input_fp.bg_green != next->bg_green
 		|| theme_css_input_fp.bg_blue != next->bg_blue)
 		return FALSE;
+	if (theme_css_input_fp.sel_fg_red != next->sel_fg_red || theme_css_input_fp.sel_fg_green != next->sel_fg_green
+		|| theme_css_input_fp.sel_fg_blue != next->sel_fg_blue)
+		return FALSE;
+	if (theme_css_input_fp.sel_bg_red != next->sel_bg_red || theme_css_input_fp.sel_bg_green != next->sel_bg_green
+		|| theme_css_input_fp.sel_bg_blue != next->sel_bg_blue)
+		return FALSE;
 	if (g_strcmp0 (theme_css_input_fp.theme_name, next->theme_name) != 0)
 		return FALSE;
 	if (g_strcmp0 (theme_css_input_fp.font, next->font) != 0)
@@ -119,7 +131,9 @@ theme_css_input_fingerprint_clear (void)
 
 static char *
 theme_css_build_input (const char *theme_name, guint16 fg_red, guint16 fg_green, guint16 fg_blue,
-						guint16 bg_red, guint16 bg_green, guint16 bg_blue)
+					guint16 bg_red, guint16 bg_green, guint16 bg_blue,
+					guint16 sel_fg_red, guint16 sel_fg_green, guint16 sel_fg_blue,
+					guint16 sel_bg_red, guint16 sel_bg_green, guint16 sel_bg_blue)
 {
 	GString *css = g_string_new ("");
 
@@ -137,6 +151,11 @@ theme_css_build_input (const char *theme_name, guint16 fg_red, guint16 fg_green,
 		"%s {"
 		"color: #%02x%02x%02x;"
 		"caret-color: #%02x%02x%02x;"
+		"}"
+		"%s selection, %s text selection, %s:focus selection, %s:focus text selection, %s *:selected, %s *:selected:focus {"
+		"background-color: #%02x%02x%02x;"
+		"color: #%02x%02x%02x;"
+		"text-shadow: none;"
 		"}",
 		theme_css_selector_input,
 		(bg_red >> 8), (bg_green >> 8), (bg_blue >> 8),
@@ -144,7 +163,15 @@ theme_css_build_input (const char *theme_name, guint16 fg_red, guint16 fg_green,
 		(fg_red >> 8), (fg_green >> 8), (fg_blue >> 8),
 		theme_css_selector_input_text,
 		(fg_red >> 8), (fg_green >> 8), (fg_blue >> 8),
-		(fg_red >> 8), (fg_green >> 8), (fg_blue >> 8));
+		(fg_red >> 8), (fg_green >> 8), (fg_blue >> 8),
+		theme_css_selector_input,
+		theme_css_selector_input,
+		theme_css_selector_input,
+		theme_css_selector_input,
+		theme_css_selector_input,
+		theme_css_selector_input,
+		(sel_bg_red >> 8), (sel_bg_green >> 8), (sel_bg_blue >> 8),
+		(sel_fg_red >> 8), (sel_fg_green >> 8), (sel_fg_blue >> 8));
 
 	return g_string_free (css, FALSE);
 }
@@ -177,6 +204,10 @@ theme_css_reload_input_style (gboolean enabled, const PangoFontDescription *font
 								 &next.fg_red, &next.fg_green, &next.fg_blue);
 			theme_palette_color_get_rgb16 (&style_values.background,
 								 &next.bg_red, &next.bg_green, &next.bg_blue);
+			theme_palette_color_get_rgb16 (&style_values.selection_foreground,
+							 &next.sel_fg_red, &next.sel_fg_green, &next.sel_fg_blue);
+			theme_palette_color_get_rgb16 (&style_values.selection_background,
+							 &next.sel_bg_red, &next.sel_bg_green, &next.sel_bg_blue);
 			next.colors_set = TRUE;
 		}
 
@@ -193,7 +224,9 @@ theme_css_reload_input_style (gboolean enabled, const PangoFontDescription *font
 
 		css = theme_css_build_input (theme_name ? theme_name : "",
 			next.fg_red, next.fg_green, next.fg_blue,
-			next.bg_red, next.bg_green, next.bg_blue);
+			next.bg_red, next.bg_green, next.bg_blue,
+			next.sel_fg_red, next.sel_fg_green, next.sel_fg_blue,
+			next.sel_bg_red, next.sel_bg_green, next.sel_bg_blue);
 		gtk_css_provider_load_from_data (theme_css_input_provider, css, -1, NULL);
 		g_free (css);
 		theme_css_apply_app_provider (GTK_STYLE_PROVIDER (theme_css_input_provider));
@@ -276,7 +309,7 @@ theme_css_apply_palette_widget (GtkWidget *widget, const GdkRGBA *bg, const GdkR
 	if (fg)
 		g_string_append_printf (css, " color: %s;", fg_color);
 	g_string_append (css, " }");
-	g_string_append_printf (css, ".%s *:selected, .%s *:selected:focus, .%s *:selected:hover, .%s treeview.view:selected, .%s treeview.view:selected:focus, .%s treeview.view:selected:hover, .%s row:selected, .%s row:selected:focus, .%s row:selected:hover {", theme_css_selector_palette_class, theme_css_selector_palette_class, theme_css_selector_palette_class, theme_css_selector_palette_class, theme_css_selector_palette_class, theme_css_selector_palette_class, theme_css_selector_palette_class, theme_css_selector_palette_class, theme_css_selector_palette_class);
+	g_string_append_printf (css, ".%s *:selected, .%s *:selected:focus, .%s *:selected:hover, .%s treeview.view:selected, .%s treeview.view:selected:focus, .%s treeview.view:selected:hover, .%s row:selected, .%s row:selected:focus, .%s row:selected:hover, .%s selection, .%s text selection, .%s entry selection, .%s entry text selection, .%s:focus selection, .%s:focus text selection {", theme_css_selector_palette_class, theme_css_selector_palette_class, theme_css_selector_palette_class, theme_css_selector_palette_class, theme_css_selector_palette_class, theme_css_selector_palette_class, theme_css_selector_palette_class, theme_css_selector_palette_class, theme_css_selector_palette_class, theme_css_selector_palette_class, theme_css_selector_palette_class, theme_css_selector_palette_class, theme_css_selector_palette_class, theme_css_selector_palette_class, theme_css_selector_palette_class);
 	if (sel_bg_color)
 		g_string_append_printf (css, " background-color: %s;", sel_bg_color);
 	else if (bg)

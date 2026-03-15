@@ -29,6 +29,18 @@
     <id>zoitechat.desktop</id>
   </provides>
 <releases>
+  <release date="2026-03-14" version="2.18.0~pre4">
+    <description>
+      <p>UI fixes, topic bar improvements, and selection styling updates:</p>
+      <ul>
+        <li>Fixed a regression where <code>Ctrl+A</code> could incorrectly mark you away instead of selecting all text.</li>
+        <li>Fixed a crash when toggling the GUI with <code>F9</code> or the menu toggle action.</li>
+        <li>Fixed sidebar collapse behavior on fresh installs.</li>
+        <li>Added multiline topic bar support with clickable URLs.</li>
+        <li>Improved GTK selection styling so text selection is shown visually in the topic bar and chat input box.</li>
+      </ul>
+    </description>
+  </release>
   <release date="2026-03-13" version="2.18.0~pre3">
     <description>
       <p>GTK3 theming, UI, and platform improvements:</p>

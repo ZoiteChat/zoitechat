@@ -1132,25 +1132,12 @@ theme_preferences_create_color_page (GtkWindow *parent,
 static void
 theme_preferences_open_gtk3_folder_cb (GtkWidget *button, gpointer user_data)
 {
-        theme_preferences_ui *ui = user_data;
-        GAppInfo *handler;
         char *themes_dir;
 
+        (void)user_data;
         (void)button;
         themes_dir = zoitechat_gtk3_theme_service_get_user_themes_dir ();
         g_mkdir_with_parents (themes_dir, 0700);
-
-        handler = g_app_info_get_default_for_uri_scheme ("file");
-        if (!handler)
-        {
-                theme_preferences_show_message (ui,
-                                                GTK_MESSAGE_ERROR,
-                                                _("No application is configured to open folders."));
-                g_free (themes_dir);
-                return;
-        }
-
-        g_object_unref (handler);
         fe_open_url (themes_dir);
         g_free (themes_dir);
 }
