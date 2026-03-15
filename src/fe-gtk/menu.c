@@ -869,6 +869,9 @@ menu_nickmenu (session *sess, GdkEventButton *event, char *nick, int num_sel)
 static void
 menu_showhide_cb (session *sess)
 {
+	if (!sess->gui->menu || !GTK_IS_WIDGET (sess->gui->menu))
+		return;
+
 	if (prefs.hex_gui_hide_menu)
 		gtk_widget_hide (sess->gui->menu);
 	else
@@ -940,7 +943,7 @@ menu_setting_foreach (void (*callback) (session *), int id, guint state)
 			{
 				GtkWidget *menu_item = sess->gui->menu_item[id];
 
-				if (menu_item != NULL)
+				if (menu_item != NULL && GTK_IS_CHECK_MENU_ITEM (menu_item))
 				{
 					guint toggled_signal = g_signal_lookup ("toggled", G_OBJECT_TYPE (menu_item));
 
@@ -968,7 +971,7 @@ void
 menu_bar_toggle (void)
 {
 	prefs.hex_gui_hide_menu = !prefs.hex_gui_hide_menu;
-	menu_setting_foreach (menu_showhide_cb, MENU_ID_MENUBAR, !prefs.hex_gui_hide_menu);
+	menu_setting_foreach (menu_showhide_cb, -1, !prefs.hex_gui_hide_menu);
 }
 
 static void
