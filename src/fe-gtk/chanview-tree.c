@@ -166,34 +166,32 @@ cv_tree_init (chanview *cv)
 	gtk_container_add (GTK_CONTAINER (win), view);
 	col = gtk_tree_view_column_new();
 
-	/* icon column */
 	if (cv->use_icons)
 	{
 		renderer = gtk_cell_renderer_pixbuf_new ();
 		if (prefs.hex_gui_compact)
 			g_object_set (G_OBJECT (renderer), "ypad", 0, NULL);
 
-		gtk_tree_view_column_pack_start(col, renderer, FALSE);
+		gtk_tree_view_column_pack_start (col, renderer, FALSE);
 		gtk_tree_view_column_set_attributes (col, renderer, "pixbuf", COL_PIXBUF, NULL);
 	}
 
-	/* main column */
 	renderer = gtk_cell_renderer_text_new ();
 	if (prefs.hex_gui_compact)
 		g_object_set (G_OBJECT (renderer), "ypad", 0, NULL);
 	g_object_set (G_OBJECT (renderer), "ellipsize", PANGO_ELLIPSIZE_END, NULL);
 	gtk_cell_renderer_text_set_fixed_height_from_font (GTK_CELL_RENDERER_TEXT (renderer), 1);
-	gtk_tree_view_column_pack_start(col, renderer, TRUE);
+	gtk_tree_view_column_pack_start (col, renderer, TRUE);
 	gtk_tree_view_column_set_attributes (col, renderer,
 								  "text", COL_NAME,
 								  "attributes", COL_ATTR,
 								  "underline", COL_UNDERLINE,
 								  NULL);
 	gtk_tree_view_column_set_expand (col, TRUE);
-	gtk_tree_view_column_set_sizing (col, GTK_TREE_VIEW_COLUMN_FIXED);
-	gtk_tree_view_column_set_fixed_width (col, 1);
+	gtk_tree_view_column_set_sizing (col, GTK_TREE_VIEW_COLUMN_GROW_ONLY);
 	gtk_tree_view_column_set_min_width (col, 1);
-	gtk_tree_view_append_column(GTK_TREE_VIEW(view), col);									
+	gtk_tree_view_append_column (GTK_TREE_VIEW (view), col);
+	gtk_tree_view_set_expander_column (GTK_TREE_VIEW (view), col);
 
 	g_signal_connect (G_OBJECT (gtk_tree_view_get_selection (GTK_TREE_VIEW (view))),
 							"changed", G_CALLBACK (cv_tree_sel_cb), cv);
