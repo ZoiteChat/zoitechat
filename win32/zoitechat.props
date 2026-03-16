@@ -6,7 +6,7 @@
 
 		<YourDepsPath>c:\gtk-build\gtk</YourDepsPath>
 		<YourGendefPath>c:\gtk-build\gendef</YourGendefPath>
-		<YourPerlPath>c:\gtk-build\perl-5.20</YourPerlPath>
+		<YourPerlPath>c:\gtk-build\perl-5.42.0.1</YourPerlPath>
 		<YourPython3Path>c:\gtk-build\python-3.14</YourPython3Path>
 		<YourWinSparklePath>c:\gtk-build\WinSparkle</YourWinSparklePath>
 
@@ -24,7 +24,7 @@
 		<GendefPath>$(YourGendefPath)</GendefPath>
 		<WinSparklePath>$(YourWinSparklePath)\$(ZoiteChatPlatform)</WinSparklePath>
 		<PerlPath>$(YourPerlPath)\$(ZoiteChatPlatform)</PerlPath>
-		<PerlLib>perl520</PerlLib>
+		<PerlLib>perl542</PerlLib>
 
 		<Python3Path>$(YourPython3Path)\$(ZoiteChatPlatform)</Python3Path>
 		<Python3Lib>python314</Python3Lib>

@@ -29,7 +29,7 @@ jobs:
 
       - uses: actions/setup-python@v6
         with:
-          python-version: '3.14.2'
+          python-version: '3.14.3'
           architecture: ${{ matrix.arch }}
 
       - name: Install Dependencies
@@ -62,11 +62,8 @@ jobs:
             }
           }
 
-          Download-WithRetry -Url https://files.jrsoftware.org/is/6/innosetup-6.7.0.exe -OutFile deps\innosetup-unicode.exe
+          Download-WithRetry -Url https://github.com/jrsoftware/issrc/releases/download/is-6_7_1/innosetup-6.7.1.exe -OutFile deps\innosetup-unicode.exe
           & deps\innosetup-unicode.exe /VERYSILENT | Out-Null
-
-          Download-WithRetry -Url https://github.com/zoitechat/gvsbuild/releases/download/zoitechat-2.17.0/idpsetup-1.5.1.exe -OutFile deps\idpsetup.exe
-          & deps\idpsetup.exe /VERYSILENT
 
           Download-WithRetry -Url https://github.com/ZoiteChat/gvsbuild/releases/download/zoitechat-2.18.0-pre1/GTK3_Gvsbuild_zoitechat-2.18.0-pre1_${{ matrix.platform }}.7z -OutFile deps\gtk-${{ matrix.arch }}.7z
           & 7z.exe x deps\gtk-${{ matrix.arch }}.7z -oC:\gtk-build\gtk\x64\release
@@ -74,7 +71,7 @@ jobs:
           Download-WithRetry -Url https://repo.msys2.org/mingw/x86_64/mingw-w64-x86_64-hicolor-icon-theme-0.18-1-any.pkg.tar.zst -OutFile deps\hicolor-icon-theme.pkg.tar.zst
           python -c "import tarfile,zstandard,pathlib;archive=pathlib.Path(r'deps\\hicolor-icon-theme.pkg.tar.zst');target=pathlib.Path(r'C:\\gtk-build\\gtk\\x64\\release');dctx=zstandard.ZstdDecompressor();f=archive.open('rb');reader=dctx.stream_reader(f);tf=tarfile.open(fileobj=reader,mode='r|');[tf.extract(m,path=target) for m in tf if m.name.startswith('mingw64/share/icons/hicolor/')];tf.close();reader.close();f.close()"
 
-          Download-WithRetry -Url https://repo.msys2.org/mingw/x86_64/mingw-w64-x86_64-libarchive-3.8.1-1-any.pkg.tar.zst -OutFile deps\libarchive.pkg.tar.zst
+          Download-WithRetry -Url https://repo.msys2.org/mingw/x86_64/mingw-w64-x86_64-libarchive-3.8.6-1-any.pkg.tar.zst -OutFile deps\libarchive.pkg.tar.zst
           python -c "import tarfile,zstandard,pathlib;archive=pathlib.Path(r'deps\\libarchive.pkg.tar.zst');target=pathlib.Path(r'C:\\gtk-build\\gtk\\x64\\release');dctx=zstandard.ZstdDecompressor();f=archive.open('rb');reader=dctx.stream_reader(f);tf=tarfile.open(fileobj=reader,mode='r|');[tf.extract(m,path=target) for m in tf if m.name.startswith(('mingw64/include/archive','mingw64/lib/libarchive','mingw64/bin/libarchive'))];tf.close();reader.close();f.close()"
 
           if (Test-Path C:\gtk-build\gtk\x64\release\mingw64\share\icons\hicolor) {
@@ -97,19 +94,19 @@ jobs:
             Remove-Item -Path C:\gtk-build\gtk\x64\release\mingw64 -Recurse -Force
           }
 
-          Download-WithRetry -Url https://github.com/zoitechat/gvsbuild/releases/download/zoitechat-2.17.0/gendef-20111031.7z -OutFile deps\gendef.7z
+          Download-WithRetry -Url https://github.com/ZoiteChat/gvsbuild/releases/download/zoitechat-2.18.0-pre4/gendef20260315.7z -OutFile deps\gendef.7z
           & 7z.exe x deps\gendef.7z -oC:\gtk-build
 
-          Download-WithRetry -Url https://github.com/zoitechat/gvsbuild/releases/download/zoitechat-2.17.0/WinSparkle-20151011.7z -OutFile deps\WinSparkle.7z
+          Download-WithRetry -Url https://github.com/ZoiteChat/gvsbuild/releases/download/zoitechat-2.18.0-pre4/WinSparkle-20260315.7z -OutFile deps\WinSparkle.7z
           & 7z.exe x deps\WinSparkle.7z -oC:\gtk-build\WinSparkle
 
-          Download-WithRetry -Url https://github.com/zoitechat/gvsbuild/releases/download/zoitechat-2.17.0/perl-5.20.0-${{ matrix.arch }}.7z -OutFile deps\perl-${{ matrix.arch }}.7z
-          & 7z.exe x deps\perl-${{ matrix.arch }}.7z -oC:\gtk-build\perl-5.20\${{ matrix.platform }}
+          Download-WithRetry -Url https://github.com/ZoiteChat/gvsbuild/releases/download/zoitechat-2.18.0-pre4/perl-5.42.0.1-${{ matrix.arch }}.7z -OutFile deps\perl-${{ matrix.arch }}.7z
+          & 7z.exe x deps\perl-${{ matrix.arch }}.7z -oC:\gtk-build\perl-5.42.0.1\${{ matrix.platform }}
 
           $pyRoot = $env:pythonLocation
           if (-not $pyRoot) { $pyRoot = & python -c "import sys; print(sys.prefix)" }
 
-          foreach ($pyDir in @("C:\gtk-build\python-3.14.2", "C:\gtk-build\python-3.14")) {
+          foreach ($pyDir in @("C:\gtk-build\python-3.14.3", "C:\gtk-build\python-3.14")) {
             New-Item -Path $pyDir -ItemType Directory -Force | Out-Null
             $target = Join-Path $pyDir "${{ matrix.platform }}"
             if (Test-Path $target) { Remove-Item $target -Recurse -Force }
@@ -120,7 +117,7 @@ jobs:
         run: |
           call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat"
 
-          set "PYTHON_DIR=C:\gtk-build\python-3.14.2\${{ matrix.platform }}"
+          set "PYTHON_DIR=C:\gtk-build\python-3.14.3\${{ matrix.platform }}"
           if not exist "%PYTHON_DIR%\libs\python314.lib" (
             echo Missing %PYTHON_DIR%\libs\python314.lib
             dir "%PYTHON_DIR%\libs"
