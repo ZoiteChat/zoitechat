@@ -292,7 +292,13 @@ match_host (const char *word, int *start, int *end)
 static gboolean
 match_host6 (const char *word, int *start, int *end)
 {
-	return regex_match (re_host6 (), word, start, end);
+	if (!regex_match (re_host6 (), word, start, end))
+		return FALSE;
+
+	if (word[*start] != '[')
+		return FALSE;
+
+	return TRUE;
 }
 
 static gboolean
@@ -373,40 +379,64 @@ url_last (int *lstart, int *lend)
 }
 
 static gboolean
-regex_match (const GRegex *re, const char *word, int *start, int *end)
+match_has_valid_context (const char *word, int start, int end)
 {
-	GMatchInfo *gmi;
+	if (start > 0)
+	{
+		char prev = word[start - 1];
+		if (g_ascii_isalnum ((guchar)prev) || prev == '_' || prev == '-')
+			return FALSE;
+	}
 
-	g_regex_match (re, word, 0, &gmi);
-	
-	if (!g_match_info_matches (gmi))
+	if (word[end] != '\0')
 	{
-		g_match_info_free (gmi);
-		return FALSE;
+		char next = word[end];
+		if (g_ascii_isalnum ((guchar)next) || next == '_')
+			return FALSE;
 	}
-	
-	while (g_match_info_matches (gmi))
-	{
-		g_match_info_fetch_pos (gmi, 0, start, end);
-		g_match_info_next (gmi, NULL);
-	}
-	
-	g_match_info_free (gmi);
-	
+
 	return TRUE;
 }
 
+static gboolean
+regex_match (const GRegex *re, const char *word, int *start, int *end)
+{
+	GMatchInfo *gmi;
+	gboolean found = FALSE;
+	int mstart;
+	int mend;
+
+	g_regex_match (re, word, 0, &gmi);
+
+	while (g_match_info_matches (gmi))
+	{
+		g_match_info_fetch_pos (gmi, 0, &mstart, &mend);
+		if (match_has_valid_context (word, mstart, mend))
+		{
+			*start = mstart;
+			*end = mend;
+			found = TRUE;
+		}
+		g_match_info_next (gmi, NULL);
+	}
+
+	g_match_info_free (gmi);
+
+	return found;
+}
+
 /*	Miscellaneous description --- */
-#define DOMAIN "[_\\pL\\pN\\pS][-_\\pL\\pN\\pS]*(\\.[-_\\pL\\pN\\pS]+)*"
-#define TLD "\\.[\\pL][-\\pL\\pN]*[\\pL]"
-#define IPADDR "[0-9]{1,3}(\\.[0-9]{1,3}){3}"
+#define DOMAIN_LABEL "[\\pL\\pN](?:[-\\pL\\pN]{0,61}[\\pL\\pN])?"
+#define DOMAIN DOMAIN_LABEL "(\\." DOMAIN_LABEL ")*"
+#define TLD "\\.[\\pL](?:[-\\pL\\pN]*[\\pL\\pN])?"
+#define IPADDR "(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])(\\.(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])){3}"
 #define IPV6GROUP "([0-9a-f]{0,4})"
 #define IPV6ADDR "((" IPV6GROUP "(:" IPV6GROUP "){7})"	\
 	         "|(" IPV6GROUP "(:" IPV6GROUP ")*:(:" IPV6GROUP ")+))" /* with :: compression */
 #define HOST "(" DOMAIN TLD "|" IPADDR "|" IPV6ADDR ")"
 /* In urls the IPv6 must be enclosed in square brackets */
 #define HOST_URL "(" DOMAIN TLD "|" IPADDR "|" "\\[" IPV6ADDR "\\]" ")"
-#define HOST_URL_OPT_TLD "(" DOMAIN "|" HOST_URL ")"
+#define HOST_URL_OPT_TLD HOST_URL
 #define PORT "(:[1-9][0-9]{0,4})"
 #define OPT_PORT "(" PORT ")?"
 
