@@ -964,6 +964,9 @@ default_word_check(SexySpellEntry *entry, const gchar *word)
 		/* We only want to check words */
 		return FALSE;
 	}
+
+	if (g_utf8_strlen (word, -1) > 20)
+		return FALSE;
 	for (li = entry->priv->dict_list; li; li = g_slist_next (li)) {
 		struct EnchantDict *dict = (struct EnchantDict *) li->data;
 		if (enchant_dict_check(dict, word, strlen(word)) == 0) {
@@ -1161,13 +1164,34 @@ check_color:
 	}
 }
 
+static gboolean
+attr_list_has_attrs (PangoAttrList *attrs)
+{
+	PangoAttrIterator *it;
+	GSList *list;
+	gboolean has = FALSE;
+
+	if (!attrs)
+		return FALSE;
+
+	it = pango_attr_list_get_iterator (attrs);
+	if (!it)
+		return FALSE;
+
+	list = pango_attr_iterator_get_attrs (it);
+	has = (list != NULL);
+	g_slist_free_full (list, (GDestroyNotify) pango_attribute_destroy);
+	pango_attr_iterator_destroy (it);
+
+	return has;
+}
+
 static void
 sexy_spell_entry_recheck_all(SexySpellEntry *entry)
 {
 	GdkRectangle rect;
 	GtkAllocation allocation;
 	GtkWidget *widget = GTK_WIDGET(entry);
-	PangoLayout *layout;
 	int length, i, text_len;
 	const char *text;
 
@@ -1196,8 +1220,7 @@ sexy_spell_entry_recheck_all(SexySpellEntry *entry)
 		}
 	}
 
-	layout = gtk_entry_get_layout(GTK_ENTRY(entry));
-	pango_layout_set_attributes(layout, entry->priv->attr_list);
+	gtk_entry_set_attributes (GTK_ENTRY (entry), attr_list_has_attrs (entry->priv->attr_list) ? entry->priv->attr_list : NULL);
 
 	if (gtk_widget_get_realized (GTK_WIDGET(entry)))
 	{
@@ -1213,13 +1236,6 @@ sexy_spell_entry_recheck_all(SexySpellEntry *entry)
 static gboolean
 sexy_spell_entry_draw(GtkWidget *widget, cairo_t *cr)
 {
-	SexySpellEntry *entry = SEXY_SPELL_ENTRY(widget);
-	GtkEntry *gtk_entry = GTK_ENTRY(widget);
-	PangoLayout *layout;
-
-	layout = gtk_entry_get_layout(gtk_entry);
-	pango_layout_set_attributes(layout, entry->priv->attr_list);
-
 	return GTK_WIDGET_CLASS(parent_class)->draw (widget, cr);
 }
 

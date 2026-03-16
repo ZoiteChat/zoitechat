@@ -670,7 +670,7 @@ mg_spellcheck_cb (SexySpellEntry *entry, gchar *word, gpointer data)
 {
         /* This can cause freezes on long words, nicks arn't very long anyway. */
         if (strlen (word) > 20)
-                return TRUE;
+                return FALSE;
 
         /* Ignore anything we think is a valid url */
         if (url_check_word (word) != 0)

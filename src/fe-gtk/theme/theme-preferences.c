@@ -1393,25 +1393,33 @@ theme_preferences_populate_gtk3 (theme_preferences_ui *ui)
 }
 
 static void
+theme_preferences_gtk3_import_path (theme_preferences_ui *ui, char *path)
+{
+        char *id = NULL;
+        GError *error = NULL;
+
+        if (!zoitechat_gtk3_theme_service_import (path, &id, &error))
+                theme_preferences_show_message (ui, GTK_MESSAGE_ERROR,
+                                                error ? error->message : _("Failed to import GTK3 theme."));
+        g_clear_error (&error);
+        g_free (id);
+        g_free (path);
+        theme_preferences_populate_gtk3 (ui);
+}
+
+static void
 theme_preferences_gtk3_import_cb (GtkWidget *button, gpointer user_data)
 {
         theme_preferences_ui *ui = user_data;
-        GtkWidget *dialog;
+        GtkFileChooserNative *dialog;
         GtkFileFilter *filter;
-        GtkWidget *folder_dialog;
         char *path;
-        char *id = NULL;
-        GError *error = NULL;
-        gint response;
 
         (void)button;
-        dialog = gtk_file_chooser_dialog_new (_("Import GTK3 Theme"), ui->parent,
+        dialog = gtk_file_chooser_native_new (_("Import GTK3 Theme"), ui->parent,
                                               GTK_FILE_CHOOSER_ACTION_OPEN,
-                                              _("Import _Folder"), 1,
-                                              _("_Cancel"), GTK_RESPONSE_CANCEL,
-                                              _("_Import"), GTK_RESPONSE_ACCEPT,
-                                              NULL);
-	theme_manager_attach_window (dialog);
+                                              _("_Import"),
+                                              _("_Cancel"));
         gtk_file_chooser_set_local_only (GTK_FILE_CHOOSER (dialog), TRUE);
         gtk_file_chooser_set_select_multiple (GTK_FILE_CHOOSER (dialog), FALSE);
         filter = gtk_file_filter_new ();
@@ -1426,43 +1434,15 @@ theme_preferences_gtk3_import_cb (GtkWidget *button, gpointer user_data)
         gtk_file_filter_add_pattern (filter, "*.tbz");
         gtk_file_chooser_add_filter (GTK_FILE_CHOOSER (dialog), filter);
 
-        response = gtk_dialog_run (GTK_DIALOG (dialog));
-        if (response == 1)
+        if (gtk_native_dialog_run (GTK_NATIVE_DIALOG (dialog)) != GTK_RESPONSE_ACCEPT)
         {
-                gtk_widget_destroy (dialog);
-                folder_dialog = gtk_file_chooser_dialog_new (_("Import GTK3 Theme Folder"), ui->parent,
-                                                             GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER,
-                                                             _("_Cancel"), GTK_RESPONSE_CANCEL,
-                                                             _("_Import"), GTK_RESPONSE_ACCEPT,
-                                                             NULL);
-	theme_manager_attach_window (folder_dialog);
-                gtk_file_chooser_set_local_only (GTK_FILE_CHOOSER (folder_dialog), TRUE);
-                if (gtk_dialog_run (GTK_DIALOG (folder_dialog)) != GTK_RESPONSE_ACCEPT)
-                {
-                        gtk_widget_destroy (folder_dialog);
-                        return;
-                }
-
-                path = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (folder_dialog));
-                gtk_widget_destroy (folder_dialog);
-        }
-        else if (response == GTK_RESPONSE_ACCEPT)
-        {
-                path = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (dialog));
-                gtk_widget_destroy (dialog);
-        }
-        else
-        {
-                gtk_widget_destroy (dialog);
+                g_object_unref (dialog);
                 return;
         }
 
-        if (!zoitechat_gtk3_theme_service_import (path, &id, &error))
-                theme_preferences_show_message (ui, GTK_MESSAGE_ERROR,
-                                                error ? error->message : _("Failed to import GTK3 theme."));
-        g_clear_error (&error);
-        g_free (path);
-        theme_preferences_populate_gtk3 (ui);
+        path = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (dialog));
+        g_object_unref (dialog);
+        theme_preferences_gtk3_import_path (ui, path);
 }
 
 static void

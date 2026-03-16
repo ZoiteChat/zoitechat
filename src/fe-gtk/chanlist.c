@@ -508,36 +508,72 @@ chanlist_match_topic_button_toggled (GtkWidget * wid, server *serv)
 	serv->gui->chanlist_match_wants_topic = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (wid));
 }
 
+static GSList *
+chanlist_get_selection (server *serv, int column)
+{
+	GtkTreeSelection *sel = gtk_tree_view_get_selection (GTK_TREE_VIEW (serv->gui->chanlist_list));
+	GtkTreeModel *model = GET_MODEL (serv);
+	GList *rows;
+	GList *cur;
+	GSList *result = NULL;
+
+	rows = gtk_tree_selection_get_selected_rows (sel, &model);
+	for (cur = rows; cur != NULL; cur = cur->next)
+	{
+		GtkTreeIter iter;
+		char *value;
+
+		if (gtk_tree_model_get_iter (model, &iter, (GtkTreePath *)cur->data))
+		{
+			gtk_tree_model_get (model, &iter, column, &value, -1);
+			result = g_slist_prepend (result, value);
+		}
+	}
+
+	g_list_free_full (rows, (GDestroyNotify) gtk_tree_path_free);
+	return g_slist_reverse (result);
+}
+
 static char *
 chanlist_get_selected (server *serv, gboolean get_topic)
 {
-	char *chan;
-	GtkTreeSelection *sel = gtk_tree_view_get_selection (GTK_TREE_VIEW (serv->gui->chanlist_list));
-	GtkTreeModel *model;
-	GtkTreeIter iter;
+	GSList *selection = chanlist_get_selection (serv, get_topic ? COL_TOPIC : COL_CHANNEL);
+	char *value;
 
-	if (!gtk_tree_selection_get_selected (sel, &model, &iter))
+	if (!selection)
 		return NULL;
 
-	gtk_tree_model_get (model, &iter, get_topic ? COL_TOPIC : COL_CHANNEL, &chan, -1);
-	return chan;
+	value = selection->data;
+	selection->data = NULL;
+	g_slist_free_full (selection, g_free);
+	return value;
 }
 
 static void
 chanlist_join (GtkWidget * wid, server *serv)
 {
 	char tbuf[CHANLEN + 6];
-	char *chan = chanlist_get_selected (serv, FALSE);
-	if (chan)
+	GSList *selection;
+	GSList *item;
+	gboolean joined = FALSE;
+
+	selection = chanlist_get_selection (serv, COL_CHANNEL);
+	for (item = selection; item != NULL; item = item->next)
 	{
-		if (serv->connected && (strcmp (chan, "*") != 0))
+		char *chan = item->data;
+
+		if (serv->connected && strcmp (chan, "*") != 0)
 		{
 			g_snprintf (tbuf, sizeof (tbuf), "join %s", chan);
 			handle_command (serv->server_session, tbuf, FALSE);
-		} else
-			gdk_display_beep (gdk_display_get_default ());
-		g_free (chan);
+			joined = TRUE;
+		}
 	}
+
+	if (!joined && selection)
+		gdk_display_beep (gdk_display_get_default ());
+
+	g_slist_free_full (selection, g_free);
 }
 
 static void
@@ -656,23 +692,47 @@ chanlist_menu_destroy (GtkWidget *menu, gpointer userdata)
 static void
 chanlist_copychannel (GtkWidget *item, server *serv)
 {
-	char *chan = chanlist_get_selected (serv, FALSE);
-	if (chan)
+	GSList *selection = chanlist_get_selection (serv, COL_CHANNEL);
+	GSList *cur;
+	GString *text;
+
+	if (!selection)
+		return;
+
+	text = g_string_new ("");
+	for (cur = selection; cur != NULL; cur = cur->next)
 	{
-		gtkutil_copy_to_clipboard (item, NULL, chan);
-		g_free (chan);
+		if (text->len)
+			g_string_append_c (text, '\n');
+		g_string_append (text, (char *)cur->data);
 	}
+
+	gtkutil_copy_to_clipboard (item, NULL, text->str);
+	g_string_free (text, TRUE);
+	g_slist_free_full (selection, g_free);
 }
 
 static void
 chanlist_copytopic (GtkWidget *item, server *serv)
 {
-	char *topic = chanlist_get_selected (serv, TRUE);
-	if (topic)
+	GSList *selection = chanlist_get_selection (serv, COL_TOPIC);
+	GSList *cur;
+	GString *text;
+
+	if (!selection)
+		return;
+
+	text = g_string_new ("");
+	for (cur = selection; cur != NULL; cur = cur->next)
 	{
-		gtkutil_copy_to_clipboard (item, NULL, topic);
-		g_free (topic);
+		if (text->len)
+			g_string_append_c (text, '\n');
+		g_string_append (text, (char *)cur->data);
 	}
+
+	gtkutil_copy_to_clipboard (item, NULL, text->str);
+	g_string_free (text, TRUE);
+	g_slist_free_full (selection, g_free);
 }
 
 static gboolean
@@ -689,10 +749,12 @@ chanlist_button_cb (GtkTreeView *tree, GdkEventButton *event, server *serv)
 	if (!gtk_tree_view_get_path_at_pos (tree, event->x, event->y, &path, 0, 0, 0))
 		return FALSE;
 
-	/* select what they right-clicked on */
 	sel = gtk_tree_view_get_selection (tree);
-	gtk_tree_selection_unselect_all (sel);
-	gtk_tree_selection_select_path (sel, path);
+	if (!gtk_tree_selection_path_is_selected (sel, path))
+	{
+		gtk_tree_selection_unselect_all (sel);
+		gtk_tree_selection_select_path (sel, path);
+	}
 	gtk_tree_path_free (path);
 
 	menu = gtk_menu_new ();
@@ -879,6 +941,7 @@ chanlist_opengui (server *serv, int do_refresh)
 	chanlist_add_column (view, COL_USERS,   50, _("Users"),   TRUE);
 	chanlist_add_column (view, COL_TOPIC,   50, _("Topic"),   FALSE);
 	gtk_tree_view_set_grid_lines (GTK_TREE_VIEW (view), GTK_TREE_VIEW_GRID_LINES_HORIZONTAL);
+	gtk_tree_selection_set_mode (gtk_tree_view_get_selection (GTK_TREE_VIEW (view)), GTK_SELECTION_MULTIPLE);
 	/* this is a speed up, but no horizontal scrollbar :( */
 	/*gtk_tree_view_set_fixed_height_mode (GTK_TREE_VIEW (view), TRUE);*/
 	gtk_widget_show (view);
