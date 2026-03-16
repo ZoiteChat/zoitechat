@@ -131,6 +131,7 @@ cv_tree_init (chanview *cv)
 									 GTK_SHADOW_IN);
 	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (win),
 											  GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
+	gtk_scrolled_window_set_min_content_width (GTK_SCROLLED_WINDOW (win), 1);
 	gtk_container_add (GTK_CONTAINER (cv->box), win);
 	gtk_widget_show (win);
 
@@ -180,6 +181,7 @@ cv_tree_init (chanview *cv)
 	renderer = gtk_cell_renderer_text_new ();
 	if (prefs.hex_gui_compact)
 		g_object_set (G_OBJECT (renderer), "ypad", 0, NULL);
+	g_object_set (G_OBJECT (renderer), "ellipsize", PANGO_ELLIPSIZE_END, NULL);
 	gtk_cell_renderer_text_set_fixed_height_from_font (GTK_CELL_RENDERER_TEXT (renderer), 1);
 	gtk_tree_view_column_pack_start(col, renderer, TRUE);
 	gtk_tree_view_column_set_attributes (col, renderer,
@@ -188,6 +190,9 @@ cv_tree_init (chanview *cv)
 								  "underline", COL_UNDERLINE,
 								  NULL);
 	gtk_tree_view_column_set_expand (col, TRUE);
+	gtk_tree_view_column_set_sizing (col, GTK_TREE_VIEW_COLUMN_FIXED);
+	gtk_tree_view_column_set_fixed_width (col, 1);
+	gtk_tree_view_column_set_min_width (col, 1);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(view), col);									
 
 	g_signal_connect (G_OBJECT (gtk_tree_view_get_selection (GTK_TREE_VIEW (view))),

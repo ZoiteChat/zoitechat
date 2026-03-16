@@ -57,16 +57,21 @@ userlist_update_min_width (session *sess)
 {
 	GtkRequisition minimum;
 	GtkRequisition natural;
+	GtkWidget *scrolled_window;
 	int width;
 
-	if (!sess || !sess->gui || !sess->gui->user_box || !sess->gui->namelistinfo)
+	if (!sess || !sess->gui || !sess->gui->user_box || !sess->gui->namelistinfo || !sess->gui->user_tree)
 		return;
 
 	gtk_widget_get_preferred_size (sess->gui->namelistinfo, &minimum, &natural);
-	width = MAX (minimum.width, natural.width) + 16;
+	width = MAX (minimum.width, natural.width);
 	if (width < 1)
 		width = 1;
 
+	scrolled_window = gtk_widget_get_parent (sess->gui->user_tree);
+	if (GTK_IS_SCROLLED_WINDOW (scrolled_window))
+		gtk_scrolled_window_set_min_content_width (GTK_SCROLLED_WINDOW (scrolled_window), width);
+	gtk_widget_set_size_request (sess->gui->user_tree, width, -1);
 	gtk_widget_set_size_request (sess->gui->user_box, width, -1);
 }
 
@@ -682,6 +687,7 @@ static void
 userlist_add_columns (GtkTreeView * treeview)
 {
 	GtkCellRenderer *renderer;
+	GtkTreeViewColumn *column;
 
 	/* icon column */
 	renderer = gtk_cell_renderer_pixbuf_new ();
@@ -690,15 +696,22 @@ userlist_add_columns (GtkTreeView * treeview)
 	gtk_tree_view_insert_column_with_attributes (GTK_TREE_VIEW (treeview),
 																-1, NULL, renderer,
 																"pixbuf", 0, NULL);
+	column = gtk_tree_view_get_column (GTK_TREE_VIEW (treeview), 0);
+	gtk_tree_view_column_set_sizing (column, GTK_TREE_VIEW_COLUMN_FIXED);
 
 	/* nick column */
 	renderer = gtk_cell_renderer_text_new ();
 	if (prefs.hex_gui_compact)
 		g_object_set (G_OBJECT (renderer), "ypad", 0, NULL);
+	g_object_set (G_OBJECT (renderer), "ellipsize", PANGO_ELLIPSIZE_END, NULL);
 	gtk_cell_renderer_text_set_fixed_height_from_font (GTK_CELL_RENDERER_TEXT (renderer), 1);
 	gtk_tree_view_insert_column_with_attributes (GTK_TREE_VIEW (treeview),
 																-1, NULL, renderer,
 													"text", 1, THEME_GTK_FOREGROUND_PROPERTY, 4, NULL);
+	column = gtk_tree_view_get_column (GTK_TREE_VIEW (treeview), 1);
+	gtk_tree_view_column_set_sizing (column, GTK_TREE_VIEW_COLUMN_FIXED);
+	gtk_tree_view_column_set_expand (column, TRUE);
+	gtk_tree_view_column_set_min_width (column, 1);
 
 	if (prefs.hex_gui_ulist_show_hosts)
 	{
@@ -706,10 +719,15 @@ userlist_add_columns (GtkTreeView * treeview)
 		renderer = gtk_cell_renderer_text_new ();
 		if (prefs.hex_gui_compact)
 			g_object_set (G_OBJECT (renderer), "ypad", 0, NULL);
+		g_object_set (G_OBJECT (renderer), "ellipsize", PANGO_ELLIPSIZE_END, NULL);
 		gtk_cell_renderer_text_set_fixed_height_from_font (GTK_CELL_RENDERER_TEXT (renderer), 1);
 		gtk_tree_view_insert_column_with_attributes (GTK_TREE_VIEW (treeview),
 																	-1, NULL, renderer,
 																	"text", 2, NULL);
+		column = gtk_tree_view_get_column (GTK_TREE_VIEW (treeview), 2);
+		gtk_tree_view_column_set_sizing (column, GTK_TREE_VIEW_COLUMN_FIXED);
+		gtk_tree_view_column_set_expand (column, TRUE);
+		gtk_tree_view_column_set_min_width (column, 1);
 	}
 }
 

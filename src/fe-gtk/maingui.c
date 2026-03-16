@@ -1063,9 +1063,14 @@ mg_userlist_showhide (session *sess, int show)
         session_gui *gui = sess->gui;
         int handle_size;
         int right_size;
+        int min_right_size;
         GtkAllocation allocation;
 
-        right_size = MAX (prefs.hex_gui_pane_right_size, prefs.hex_gui_pane_right_size_min);
+        gtk_widget_get_size_request (gui->user_box, &min_right_size, NULL);
+        if (min_right_size < 1)
+                min_right_size = 1;
+
+        right_size = MAX (prefs.hex_gui_pane_right_size, min_right_size);
 
         if (show)
         {
@@ -3115,6 +3120,8 @@ mg_create_userlist (session_gui *gui, GtkWidget *box)
                 gtk_box_pack_start (GTK_BOX (vbox), frame, 0, 0, GUI_SPACING);
 
         gui->namelistinfo = gtk_label_new (NULL);
+        gtk_label_set_xalign (GTK_LABEL (gui->namelistinfo), 0.0f);
+        gtk_widget_set_halign (gui->namelistinfo, GTK_ALIGN_START);
         gtk_container_add (GTK_CONTAINER (frame), gui->namelistinfo);
 
         gui->user_tree = ulist = userlist_create (vbox);
@@ -3197,7 +3204,7 @@ mg_create_center (session *sess, session_gui *gui, GtkWidget *box)
                 gtk_paned_pack1 (GTK_PANED (gui->hpane_left), gui->vpane_left, FALSE, FALSE);
 			    gtk_paned_pack2 (GTK_PANED (gui->hpane_left), gui->hpane_right, TRUE, TRUE);
         }
-        gtk_paned_pack2 (GTK_PANED (gui->hpane_right), gui->vpane_right, FALSE, FALSE);
+        gtk_paned_pack2 (GTK_PANED (gui->hpane_right), gui->vpane_right, FALSE, TRUE);
 
         gtk_box_pack_start (GTK_BOX (box), gui->hpane_left, TRUE, TRUE, 0);
 
