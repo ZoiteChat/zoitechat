@@ -4,12 +4,6 @@
 ;#define APPARCH "x64"
 ;#define PROJECTDIR "C:\...\zoitechat\win32\installer\"
 
-;http://mitrich.net23.net/?/inno-download-plugin.html
-#ifexist "idp.iss"
-#define USE_INNO_DOWNLOAD_PLUGIN
-#include <idp.iss>
-#endif
-
 [Setup]
 AppName=ZoiteChat
 AppVersion={#APPVER}
@@ -65,8 +59,8 @@ Name: "plugins\upd"; Description: "Update Checker"; Types: normal custom; Flags:
 Name: "plugins\winamp"; Description: "Winamp"; Types: custom; Flags: disablenouninstallwarning
 Name: "langs"; Description: "Language Interfaces"; Types: custom; Flags: disablenouninstallwarning
 Name: "langs\lua"; Description: "Lua"; Types: normal custom; Flags: disablenouninstallwarning
-Name: "langs\perl"; Description: "Perl (requires Perl 5.20)"; Types: custom; Flags: disablenouninstallwarning
-Name: "langs\python"; Description: "Python (requires Python 3.14.2)"; Types: custom; Flags: disablenouninstallwarning
+Name: "langs\perl"; Description: "Perl (requires Perl 5.42)"; Types: custom; Flags: disablenouninstallwarning
+Name: "langs\python"; Description: "Python (requires Python 3.14.3)"; Types: custom; Flags: disablenouninstallwarning
 
 [Tasks]
 Name: portable; Description: "Yes"; GroupDescription: "Portable Mode: Stores configuration files within install directory for portable drives."; Flags: unchecked
@@ -282,8 +276,8 @@ begin
 	begin
 
 		REDIST := 'https://github.com/zoitechat/gvsbuild/releases/download/zoitechat-2.16.2/vcredist_2015_x64.exe';
-		PERL := 'https://github.com/zoitechat/gvsbuild/releases/download/zoitechat-2.16.2/Perl.5.20.0.x64.msi';
-		PY3 := 'https://www.python.org/ftp/python/3.14.2/python-3.14.2-amd64.exe';
+		PERL := 'https://github.com/StrawberryPerl/Perl-Dist-Strawberry/releases/download/SP_54201_64bit/strawberry-perl-5.42.0.1-64bit.msi';
+		PY3 := 'https://www.python.org/ftp/python/3.14.3/python-3.14.3-amd64.exe';
 		SPELL := 'https://github.com/zoitechat/gvsbuild/releases/download/zoitechat-2.16.2/ZoiteChat.Spelling.Dictionaries.r2.exe';
 
 		if not CheckVCInstall() then
@@ -294,7 +288,7 @@ begin
 
 		if not WizardSilent() then
 		begin
-			if IsComponentSelected('langs\perl') and not CheckDLL('perl520.dll') then
+			if IsComponentSelected('langs\perl') and not CheckDLL('perl542.dll') then
 			begin
 				idpAddFile(PERL, ExpandConstant('{tmp}\perl.msi'))
 			end;
