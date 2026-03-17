@@ -145,6 +145,8 @@ static void
 theme_preferences_staged_set_color (ThemeSemanticToken token, const GdkRGBA *rgba,
                                     gboolean *color_change_flag, gboolean live_preview)
 {
+        const GdkRGBA *preview_color = rgba;
+
         if (token < 0 || token >= THEME_TOKEN_COUNT || !rgba)
                 return;
 
@@ -155,10 +157,12 @@ theme_preferences_staged_set_color (ThemeSemanticToken token, const GdkRGBA *rgb
                 theme_preferences_stage_recompute_changed ();
                 if (color_change_flag)
                         *color_change_flag = theme_preferences_stage.changed;
+
+                preview_color = &theme_preferences_stage.staged[token];
         }
 
         if (live_preview)
-                theme_manager_set_token_color (ZOITECHAT_DARK_MODE_LIGHT, token, rgba, NULL);
+                theme_manager_set_token_color (ZOITECHAT_DARK_MODE_LIGHT, token, preview_color, NULL);
 }
 
 void
