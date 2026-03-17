@@ -19,6 +19,12 @@ struct zoitechatprefs prefs;
 
 static char *test_home_dir;
 
+static char *
+test_home_path (const char *file)
+{
+	return g_build_filename (test_home_dir, file, NULL);
+}
+
 static gboolean
 read_line_value (const char *cfg, const char *key, char *out, gsize out_len)
 {
@@ -97,6 +103,12 @@ cfg_put_int (int fh, int value, char *var)
 	return write (fh, line, (size_t) len) == len;
 }
 
+char *
+get_xdir (void)
+{
+	return test_home_dir;
+}
+
 int
 zoitechat_open_file (const char *file, int flags, int mode, int xof_flags)
 {
@@ -145,7 +157,7 @@ read_colors_conf (void)
 	gsize length = 0;
 	gboolean ok;
 
-	path = g_build_filename (test_home_dir, "colors.conf", NULL);
+	path = test_home_path ("colors.conf");
 	ok = g_file_get_contents (path, &content, &length, NULL);
 	g_free (path);
 	g_assert_true (ok);
@@ -222,7 +234,7 @@ test_loads_legacy_color_keys_via_migration_loader (void)
 	gboolean ok;
 
 	setup_temp_home ();
-	path = g_build_filename (test_home_dir, "colors.conf", NULL);
+	path = test_home_path ("colors.conf");
 	ok = g_file_set_contents (path, legacy_cfg, -1, NULL);
 	g_free (path);
 	g_assert_true (ok);
@@ -336,6 +348,50 @@ test_gtk_map_uses_theme_defaults_until_custom_token_is_set (void)
 	g_assert_true (colors_equal (&values.foreground, &custom));
 }
 
+
+static void
+test_save_finalize_replaces_colors_conf_atomically (void)
+{
+	char *path;
+	char *temp_path = NULL;
+	char *cfg = NULL;
+	gboolean ok;
+
+	setup_temp_home ();
+	path = test_home_path ("colors.conf");
+	ok = g_file_set_contents (path, "theme.mode.light.token.mirc_0 = 0000 0000 0000\n", -1, NULL);
+	g_assert_true (ok);
+
+	theme_runtime_load ();
+	g_assert_true (theme_runtime_save_prepare (&temp_path));
+	g_assert_nonnull (temp_path);
+	g_assert_nonnull (g_strrstr (temp_path, "colors.conf.new."));
+	g_assert_true (g_file_test (temp_path, G_FILE_TEST_EXISTS));
+	g_assert_true (theme_runtime_save_finalize (temp_path));
+	g_assert_false (g_file_test (temp_path, G_FILE_TEST_EXISTS));
+	ok = g_file_get_contents (path, &cfg, NULL, NULL);
+	g_assert_true (ok);
+	g_assert_nonnull (g_strstr_len (cfg, -1, "theme.palette.semantic_migrated = 1"));
+	g_free (cfg);
+	g_free (temp_path);
+	g_free (path);
+}
+
+static void
+test_save_discard_unlinks_temp_file (void)
+{
+	char *temp_path = NULL;
+
+	setup_temp_home ();
+	theme_runtime_load ();
+	g_assert_true (theme_runtime_save_prepare (&temp_path));
+	g_assert_nonnull (temp_path);
+	g_assert_true (g_file_test (temp_path, G_FILE_TEST_EXISTS));
+	theme_runtime_save_discard (temp_path);
+	g_assert_false (g_file_test (temp_path, G_FILE_TEST_EXISTS));
+	g_free (temp_path);
+}
+
 static void
 test_save_writes_only_custom_token_keys (void)
 {
@@ -368,6 +424,10 @@ main (int argc, char **argv)
 			 test_gtk_map_colors_blend_with_palette_without_transparency);
 	g_test_add_func ("/theme/runtime/gtk_map_uses_theme_defaults_until_custom_token_is_set",
 			 test_gtk_map_uses_theme_defaults_until_custom_token_is_set);
+	g_test_add_func ("/theme/runtime/save_finalize_replaces_colors_conf_atomically",
+			 test_save_finalize_replaces_colors_conf_atomically);
+	g_test_add_func ("/theme/runtime/save_discard_unlinks_temp_file",
+			 test_save_discard_unlinks_temp_file);
 	g_test_add_func ("/theme/runtime/save_writes_only_custom_token_keys",
 			 test_save_writes_only_custom_token_keys);
 	return g_test_run ();

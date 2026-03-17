@@ -4,6 +4,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <errno.h>
 
 #ifdef WIN32
 #include <io.h>
@@ -515,86 +516,61 @@ gboolean
 theme_runtime_save_prepare (char **temp_path)
 {
 	int fh;
-	const char *temp_name;
+	char *temp_name;
+	const char *config_dir;
 
 	if (!temp_path)
 		return FALSE;
 
-	temp_name = "colors.conf.new";
-	fh = zoitechat_open_file (temp_name, O_TRUNC | O_WRONLY | O_CREAT, 0600, XOF_DOMODE);
-	if (fh == -1)
+	config_dir = get_xdir ();
+	if (!config_dir)
 		return FALSE;
+
+	temp_name = g_build_filename (config_dir, "colors.conf.new.XXXXXX", NULL);
+	fh = g_mkstemp (temp_name);
+	if (fh == -1)
+	{
+		g_free (temp_name);
+		return FALSE;
+	}
 
 	if (!theme_runtime_save_to_fd (fh))
 	{
 		close (fh);
+		g_unlink (temp_name);
+		g_free (temp_name);
 		return FALSE;
 	}
 
 	if (close (fh) == -1)
+	{
+		g_unlink (temp_name);
+		g_free (temp_name);
 		return FALSE;
+	}
 
-	*temp_path = g_strdup (temp_name);
+	*temp_path = temp_name;
 	return TRUE;
 }
 
 gboolean
 theme_runtime_save_finalize (const char *temp_path)
 {
-	int src_fh;
-	int dst_fh;
-	char buffer[4096];
-	ssize_t read_len;
+	char *config_path;
 
 	if (!temp_path)
 		return FALSE;
 
-	src_fh = zoitechat_open_file (temp_path, O_RDONLY, 0, XOF_DOMODE);
-	if (src_fh == -1)
-		return FALSE;
-
-	dst_fh = zoitechat_open_file ("colors.conf", O_TRUNC | O_WRONLY | O_CREAT, 0600, XOF_DOMODE);
-	if (dst_fh == -1)
+	config_path = g_build_filename (get_xdir (), "colors.conf", NULL);
+#ifdef WIN32
+	g_unlink (config_path);
+#endif
+	if (g_rename (temp_path, config_path) == -1)
 	{
-		close (src_fh);
+		g_free (config_path);
 		return FALSE;
 	}
-
-	while ((read_len = read (src_fh, buffer, sizeof (buffer))) > 0)
-	{
-		ssize_t offset;
-
-		offset = 0;
-		while (offset < read_len)
-		{
-			ssize_t written;
-
-			written = write (dst_fh, buffer + offset, (size_t) (read_len - offset));
-			if (written <= 0)
-			{
-				close (src_fh);
-				close (dst_fh);
-				return FALSE;
-			}
-			offset += written;
-		}
-	}
-
-	if (read_len < 0)
-	{
-		close (src_fh);
-		close (dst_fh);
-		return FALSE;
-	}
-
-	if (close (src_fh) == -1)
-	{
-		close (dst_fh);
-		return FALSE;
-	}
-
-	if (close (dst_fh) == -1)
-		return FALSE;
+	g_free (config_path);
 
 	return TRUE;
 }
@@ -602,14 +578,10 @@ theme_runtime_save_finalize (const char *temp_path)
 void
 theme_runtime_save_discard (const char *temp_path)
 {
-	int fh;
-
 	if (!temp_path)
 		return;
 
-	fh = zoitechat_open_file (temp_path, O_TRUNC | O_WRONLY | O_CREAT, 0600, XOF_DOMODE);
-	if (fh != -1)
-		close (fh);
+	g_unlink (temp_path);
 }
 
 gboolean
