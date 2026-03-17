@@ -439,7 +439,10 @@ const struct prefs vars[] =
 	{"gui_tab_dots", P_OFFINT (hex_gui_tab_dots), TYPE_BOOL},
 	{"gui_tab_icons", P_OFFINT (hex_gui_tab_icons), TYPE_BOOL},
 	{"gui_dark_mode", P_OFFINT (hex_gui_dark_mode), TYPE_INT},
-	{"gui_gtk3_variant", P_OFFINT (hex_gui_gtk3_variant), TYPE_INT},
+	{"gui_theme_variant", P_OFFINT (hex_gui_theme_variant), TYPE_INT},
+#ifdef USE_GTK_FRONTEND
+	{"gtk_theme_variant", P_OFFINT (hex_gui_theme_variant), TYPE_INT},
+#endif
 	{"gui_tab_layout", P_OFFINT (hex_gui_tab_layout), TYPE_INT},
 	{"gui_tab_middleclose", P_OFFINT (hex_gui_tab_middleclose), TYPE_BOOL},
 	{"gui_tab_newtofront", P_OFFINT (hex_gui_tab_newtofront), TYPE_INT},
@@ -569,7 +572,10 @@ const struct prefs vars[] =
 	{"text_font", P_OFFSET (hex_text_font), TYPE_STR},
 	{"text_font_main", P_OFFSET (hex_text_font_main), TYPE_STR},
 	{"text_font_alternative", P_OFFSET (hex_text_font_alternative), TYPE_STR},
-	{"gui_gtk3_theme", P_OFFSET (hex_gui_gtk3_theme), TYPE_STR},
+	{"gui_theme", P_OFFSET (hex_gui_theme), TYPE_STR},
+#ifdef USE_GTK_FRONTEND
+	{"gtk_theme", P_OFFSET (hex_gui_theme), TYPE_STR},
+#endif
 	{"text_indent", P_OFFINT (hex_text_indent), TYPE_BOOL},
 	{"text_max_indent", P_OFFINT (hex_text_max_indent), TYPE_INT},
 	{"text_max_lines", P_OFFINT (hex_text_max_lines), TYPE_INT},

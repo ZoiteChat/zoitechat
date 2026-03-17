@@ -22,9 +22,9 @@ theme_application_apply_windows_theme (gboolean dark)
 
 	if (theme_gtk3_is_active ())
 	{
-		if (prefs.hex_gui_gtk3_variant == THEME_GTK3_VARIANT_PREFER_DARK)
+		if (prefs.hex_gui_theme_variant == THEME_GTK3_VARIANT_PREFER_DARK)
 			prefer_dark = TRUE;
-		else if (prefs.hex_gui_gtk3_variant == THEME_GTK3_VARIANT_PREFER_LIGHT)
+		else if (prefs.hex_gui_theme_variant == THEME_GTK3_VARIANT_PREFER_LIGHT)
 			prefer_dark = FALSE;
 	}
 

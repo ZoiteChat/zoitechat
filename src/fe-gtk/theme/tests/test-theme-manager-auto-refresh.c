@@ -181,7 +181,7 @@ reset_state (void)
 	listener_calls = 0;
 	idle_add_calls = 0;
 	next_idle_source_id = 33;
-	prefs.hex_gui_gtk3_variant = THEME_GTK3_VARIANT_FOLLOW_SYSTEM;
+	prefs.hex_gui_theme_variant = THEME_GTK3_VARIANT_FOLLOW_SYSTEM;
 	test_theme_gtk3_stub_reset ();
 }
 
@@ -242,7 +242,7 @@ test_auto_refresh_reapplies_gtk3_for_follow_system_variant (void)
 
 	reset_state ();
 	prefs.hex_gui_dark_mode = ZOITECHAT_DARK_MODE_DARK;
-	prefs.hex_gui_gtk3_variant = THEME_GTK3_VARIANT_FOLLOW_SYSTEM;
+	prefs.hex_gui_theme_variant = THEME_GTK3_VARIANT_FOLLOW_SYSTEM;
 	listener_id = theme_listener_register ("auto.gtk3", auto_listener, NULL);
 	theme_manager_set_idle_add_func (immediate_idle_add);
 

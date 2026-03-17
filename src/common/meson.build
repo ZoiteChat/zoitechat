@@ -3,7 +3,6 @@ common_sources = [
   'chanopt.c',
   'ctcp.c',
   'dcc.c',
-  'gtk3-theme-service.c',
   'zoitechat.c',
   'history.c',
   'ignore.c',
@@ -102,6 +101,11 @@ textevents = custom_target('textevents',
   command: [make_te, '@INPUT@', '@OUTPUT0@', '@OUTPUT1@']
 )
 
+
+if get_option('gtk-frontend')
+  common_sources += 'gtk3-theme-service.c'
+endif
+
 if libssl_dep.found()
   common_sources += 'ssl.c'
   common_deps += libssl_dep
@@ -141,16 +145,18 @@ zoitechat_plugin_dep = declare_dependency(
 )
 
 
-gtk3_theme_service_tests = executable('gtk3_theme_service_tests',
-  [
-    'tests/test-gtk3-theme-service.c',
-    'gtk3-theme-service.c',
-  ],
-  include_directories: [config_h_include, include_directories('.')],
-  dependencies: [libgio_dep] + (libarchive_dep.found() ? [libarchive_dep] : []),
-)
+if get_option('gtk-frontend')
+  gtk3_theme_service_tests = executable('gtk3_theme_service_tests',
+    [
+      'tests/test-gtk3-theme-service.c',
+      'gtk3-theme-service.c',
+    ],
+    include_directories: [config_h_include, include_directories('.')],
+    dependencies: [libgio_dep] + (libarchive_dep.found() ? [libarchive_dep] : []),
+  )
 
-test('GTK3 Theme Service Tests', gtk3_theme_service_tests,
-  protocol: 'tap',
-  timeout: 120,
-)
+  test('GTK3 Theme Service Tests', gtk3_theme_service_tests,
+    protocol: 'tap',
+    timeout: 120,
+  )
+endif

@@ -929,13 +929,13 @@ theme_gtk3_init (void)
 gboolean
 theme_gtk3_apply_current (GError **error)
 {
-	if (!prefs.hex_gui_gtk3_theme[0])
+	if (!prefs.hex_gui_theme[0])
 	{
 		theme_gtk3_disable ();
 		return TRUE;
 	}
 
-	return theme_gtk3_apply (prefs.hex_gui_gtk3_theme, (ThemeGtk3Variant) prefs.hex_gui_gtk3_variant, error);
+	return theme_gtk3_apply (prefs.hex_gui_theme, (ThemeGtk3Variant) prefs.hex_gui_theme_variant, error);
 }
 
 gboolean

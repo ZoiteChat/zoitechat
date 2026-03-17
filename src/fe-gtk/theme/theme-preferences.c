@@ -1194,15 +1194,15 @@ theme_preferences_gtk3_changed_cb (GtkComboBox *combo, gpointer user_data)
                 return;
 
         variant = theme_gtk3_variant_for_theme (id);
-        selection_changed = g_strcmp0 (prefs.hex_gui_gtk3_theme, id) != 0
-                            || prefs.hex_gui_gtk3_variant != variant;
-        g_strlcpy (prefs.hex_gui_gtk3_theme, id, sizeof (prefs.hex_gui_gtk3_theme));
-        prefs.hex_gui_gtk3_variant = variant;
+        selection_changed = g_strcmp0 (prefs.hex_gui_theme, id) != 0
+                            || prefs.hex_gui_theme_variant != variant;
+        g_strlcpy (prefs.hex_gui_theme, id, sizeof (prefs.hex_gui_theme));
+        prefs.hex_gui_theme_variant = variant;
 
         if (ui->setup_prefs)
         {
-                g_strlcpy (ui->setup_prefs->hex_gui_gtk3_theme, id, sizeof (ui->setup_prefs->hex_gui_gtk3_theme));
-                ui->setup_prefs->hex_gui_gtk3_variant = prefs.hex_gui_gtk3_variant;
+                g_strlcpy (ui->setup_prefs->hex_gui_theme, id, sizeof (ui->setup_prefs->hex_gui_theme));
+                ui->setup_prefs->hex_gui_theme_variant = prefs.hex_gui_theme_variant;
         }
 
         if (selection_changed && !theme_gtk3_apply_current (&error))
@@ -1312,7 +1312,7 @@ theme_preferences_populate_gtk3 (theme_preferences_ui *ui)
         GtkTreeIter iter;
         int active = -1;
         gboolean removed_selected_theme = FALSE;
-        gboolean using_system_default = prefs.hex_gui_gtk3_theme[0] == '\0';
+        gboolean using_system_default = prefs.hex_gui_theme[0] == '\0';
         gboolean should_apply = FALSE;
         char *final_id;
         ThemeGtk3Variant final_variant = THEME_GTK3_VARIANT_PREFER_LIGHT;
@@ -1339,7 +1339,7 @@ theme_preferences_populate_gtk3 (theme_preferences_ui *ui)
                                     GTK3_THEME_COL_SOURCE, theme->source,
                                     GTK3_THEME_COL_THUMBNAIL, thumbnail,
                                     -1);
-                if (g_strcmp0 (prefs.hex_gui_gtk3_theme, theme->id) == 0)
+                if (g_strcmp0 (prefs.hex_gui_theme, theme->id) == 0)
                         active = i;
                 if (thumbnail)
                         g_object_unref (thumbnail);
@@ -1355,7 +1355,7 @@ theme_preferences_populate_gtk3 (theme_preferences_ui *ui)
                 if (!using_system_default)
                         removed_selected_theme = TRUE;
         }
-        else if (prefs.hex_gui_gtk3_theme[0] != '\0')
+        else if (prefs.hex_gui_theme[0] != '\0')
                 removed_selected_theme = TRUE;
         gtk_widget_set_sensitive (ui->gtk3_combo, themes->len > 0);
         theme_preferences_gtk3_sync_remove_state (ui);
@@ -1367,17 +1367,17 @@ theme_preferences_populate_gtk3 (theme_preferences_ui *ui)
                 final_variant = theme_gtk3_variant_for_theme (final_id);
                 if (!using_system_default || removed_selected_theme)
                 {
-                        should_apply = g_strcmp0 (prefs.hex_gui_gtk3_theme, final_id) != 0
-                                       || prefs.hex_gui_gtk3_variant != final_variant
+                        should_apply = g_strcmp0 (prefs.hex_gui_theme, final_id) != 0
+                                       || prefs.hex_gui_theme_variant != final_variant
                                        || removed_selected_theme;
-                        g_strlcpy (prefs.hex_gui_gtk3_theme, final_id, sizeof (prefs.hex_gui_gtk3_theme));
+                        g_strlcpy (prefs.hex_gui_theme, final_id, sizeof (prefs.hex_gui_theme));
                         if (ui->setup_prefs)
-                                g_strlcpy (ui->setup_prefs->hex_gui_gtk3_theme,
+                                g_strlcpy (ui->setup_prefs->hex_gui_theme,
                                            final_id,
-                                           sizeof (ui->setup_prefs->hex_gui_gtk3_theme));
-                        prefs.hex_gui_gtk3_variant = final_variant;
+                                           sizeof (ui->setup_prefs->hex_gui_theme));
+                        prefs.hex_gui_theme_variant = final_variant;
                         if (ui->setup_prefs)
-                                ui->setup_prefs->hex_gui_gtk3_variant = final_variant;
+                                ui->setup_prefs->hex_gui_theme_variant = final_variant;
                 }
                 g_free (final_id);
         }

@@ -190,8 +190,8 @@ theme_gtk3_apply_current (GError **error)
 {
         (void)error;
         apply_current_calls++;
-        g_strlcpy (applied_theme_id, prefs.hex_gui_gtk3_theme, sizeof (applied_theme_id));
-        applied_variant = (ThemeGtk3Variant)prefs.hex_gui_gtk3_variant;
+        g_strlcpy (applied_theme_id, prefs.hex_gui_theme, sizeof (applied_theme_id));
+        applied_variant = (ThemeGtk3Variant)prefs.hex_gui_theme_variant;
         return TRUE;
 }
 
@@ -245,8 +245,8 @@ test_removed_selected_theme_commits_fallback_and_applies (void)
 
         memset (&setup_prefs, 0, sizeof (setup_prefs));
         memset (&prefs, 0, sizeof (prefs));
-        g_strlcpy (prefs.hex_gui_gtk3_theme, "removed-theme", sizeof (prefs.hex_gui_gtk3_theme));
-        prefs.hex_gui_gtk3_variant = THEME_GTK3_VARIANT_PREFER_DARK;
+        g_strlcpy (prefs.hex_gui_theme, "removed-theme", sizeof (prefs.hex_gui_theme));
+        prefs.hex_gui_theme_variant = THEME_GTK3_VARIANT_PREFER_DARK;
         removed_selected = FALSE;
         apply_current_calls = 0;
         applied_theme_id[0] = '\0';
@@ -258,10 +258,10 @@ test_removed_selected_theme_commits_fallback_and_applies (void)
         g_assert_nonnull (ui->gtk3_remove);
         gtk_button_clicked (GTK_BUTTON (ui->gtk3_remove));
 
-        g_assert_cmpstr (prefs.hex_gui_gtk3_theme, ==, "fallback-theme");
-        g_assert_cmpstr (setup_prefs.hex_gui_gtk3_theme, ==, "fallback-theme");
-        g_assert_cmpint (prefs.hex_gui_gtk3_variant, ==, THEME_GTK3_VARIANT_PREFER_LIGHT);
-        g_assert_cmpint (setup_prefs.hex_gui_gtk3_variant, ==, THEME_GTK3_VARIANT_PREFER_LIGHT);
+        g_assert_cmpstr (prefs.hex_gui_theme, ==, "fallback-theme");
+        g_assert_cmpstr (setup_prefs.hex_gui_theme, ==, "fallback-theme");
+        g_assert_cmpint (prefs.hex_gui_theme_variant, ==, THEME_GTK3_VARIANT_PREFER_LIGHT);
+        g_assert_cmpint (setup_prefs.hex_gui_theme_variant, ==, THEME_GTK3_VARIANT_PREFER_LIGHT);
         g_assert_cmpint (apply_current_calls, ==, 1);
         g_assert_cmpstr (applied_theme_id, ==, "fallback-theme");
         g_assert_cmpint (applied_variant, ==, THEME_GTK3_VARIANT_PREFER_LIGHT);
@@ -287,14 +287,14 @@ test_unset_theme_keeps_system_default_without_apply (void)
         removed_selected = FALSE;
         apply_current_calls = 0;
         applied_theme_id[0] = '\0';
-        prefs.hex_gui_gtk3_variant = THEME_GTK3_VARIANT_FOLLOW_SYSTEM;
+        prefs.hex_gui_theme_variant = THEME_GTK3_VARIANT_FOLLOW_SYSTEM;
 
         page = theme_preferences_create_page (NULL, &setup_prefs, NULL);
 
-        g_assert_cmpstr (prefs.hex_gui_gtk3_theme, ==, "");
-        g_assert_cmpstr (setup_prefs.hex_gui_gtk3_theme, ==, "");
-        g_assert_cmpint (prefs.hex_gui_gtk3_variant, ==, THEME_GTK3_VARIANT_FOLLOW_SYSTEM);
-        g_assert_cmpint (setup_prefs.hex_gui_gtk3_variant, ==, 0);
+        g_assert_cmpstr (prefs.hex_gui_theme, ==, "");
+        g_assert_cmpstr (setup_prefs.hex_gui_theme, ==, "");
+        g_assert_cmpint (prefs.hex_gui_theme_variant, ==, THEME_GTK3_VARIANT_FOLLOW_SYSTEM);
+        g_assert_cmpint (setup_prefs.hex_gui_theme_variant, ==, 0);
         g_assert_cmpint (apply_current_calls, ==, 0);
 
         gtk_widget_destroy (page);

@@ -36,7 +36,7 @@ typedef struct
 {
 	gboolean initialized;
 	gboolean resolved_dark_preference;
-	char gtk3_theme_id[sizeof prefs.hex_gui_gtk3_theme];
+	char gtk3_theme_id[sizeof prefs.hex_gui_theme];
 	int gtk3_variant;
 } ThemeManagerAutoRefreshCache;
 
@@ -116,7 +116,7 @@ theme_manager_synthesize_preference_reasons (const struct zoitechatprefs *old_pr
 static gboolean
 theme_manager_should_refresh_gtk3 (void)
 {
-	return prefs.hex_gui_gtk3_variant == THEME_GTK3_VARIANT_FOLLOW_SYSTEM;
+	return prefs.hex_gui_theme_variant == THEME_GTK3_VARIANT_FOLLOW_SYSTEM;
 }
 
 static void
@@ -138,15 +138,15 @@ theme_manager_auto_dark_mode_changed (GtkSettings *settings, GParamSpec *pspec, 
 
 	if (theme_manager_auto_refresh_cache.initialized &&
 	    theme_manager_auto_refresh_cache.resolved_dark_preference == resolved_dark_preference &&
-	    theme_manager_auto_refresh_cache.gtk3_variant == prefs.hex_gui_gtk3_variant &&
-	    g_strcmp0 (theme_manager_auto_refresh_cache.gtk3_theme_id, prefs.hex_gui_gtk3_theme) == 0)
+	    theme_manager_auto_refresh_cache.gtk3_variant == prefs.hex_gui_theme_variant &&
+	    g_strcmp0 (theme_manager_auto_refresh_cache.gtk3_theme_id, prefs.hex_gui_theme) == 0)
 		return;
 
 	theme_manager_auto_refresh_cache.initialized = TRUE;
 	theme_manager_auto_refresh_cache.resolved_dark_preference = resolved_dark_preference;
-	theme_manager_auto_refresh_cache.gtk3_variant = prefs.hex_gui_gtk3_variant;
+	theme_manager_auto_refresh_cache.gtk3_variant = prefs.hex_gui_theme_variant;
 	g_strlcpy (theme_manager_auto_refresh_cache.gtk3_theme_id,
-		   prefs.hex_gui_gtk3_theme,
+		   prefs.hex_gui_theme,
 		   sizeof (theme_manager_auto_refresh_cache.gtk3_theme_id));
 
 	if (prefs.hex_gui_dark_mode != ZOITECHAT_DARK_MODE_AUTO && !gtk3_refresh)
@@ -377,8 +377,8 @@ void
 theme_manager_handle_theme_applied (void)
 {
 	theme_gtk3_invalidate_provider_cache ();
-	if (prefs.hex_gui_gtk3_theme[0])
-		theme_gtk3_refresh (prefs.hex_gui_gtk3_theme, (ThemeGtk3Variant) prefs.hex_gui_gtk3_variant, NULL);
+	if (prefs.hex_gui_theme[0])
+		theme_gtk3_refresh (prefs.hex_gui_theme, (ThemeGtk3Variant) prefs.hex_gui_theme_variant, NULL);
 	theme_application_apply_mode (prefs.hex_gui_dark_mode, NULL);
 	theme_manager_dispatch_changed (THEME_CHANGED_REASON_THEME_PACK | THEME_CHANGED_REASON_PALETTE | THEME_CHANGED_REASON_WIDGET_STYLE | THEME_CHANGED_REASON_USERLIST | THEME_CHANGED_REASON_MODE);
 }
@@ -484,8 +484,8 @@ theme_manager_apply_platform_window_theme (GtkWidget *window)
 	context = gtk_widget_get_style_context (window);
 	if (theme_gtk3_is_active ())
 	{
-		dark = prefs.hex_gui_gtk3_variant == THEME_GTK3_VARIANT_PREFER_DARK;
-		if (prefs.hex_gui_gtk3_variant == THEME_GTK3_VARIANT_FOLLOW_SYSTEM)
+		dark = prefs.hex_gui_theme_variant == THEME_GTK3_VARIANT_PREFER_DARK;
+		if (prefs.hex_gui_theme_variant == THEME_GTK3_VARIANT_FOLLOW_SYSTEM)
 			dark = theme_policy_system_prefers_dark ();
 	}
 	else

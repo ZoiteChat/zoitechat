@@ -314,7 +314,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/theme/gtk3/settings_layer_precedence", test_settings_layer_precedence);
 	g_test_add_func ("/theme/gtk3/settings_restored_on_disable_and_switch", test_settings_restored_on_disable_and_switch);
 
-	prefs.hex_gui_gtk3_variant = THEME_GTK3_VARIANT_PREFER_LIGHT;
+	prefs.hex_gui_theme_variant = THEME_GTK3_VARIANT_PREFER_LIGHT;
 
 	if (!gtk_available)
 		g_test_message ("Skipping GTK3 settings tests because GTK initialization failed");
