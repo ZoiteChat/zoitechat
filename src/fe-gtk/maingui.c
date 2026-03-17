@@ -889,7 +889,7 @@ mg_configure_cb (GtkWidget *wid, GdkEventConfigure *event, session *sess)
 {
         gboolean changed = FALSE;
 
-        if (sess == NULL)                       /* for the main_window */
+        if (sess == NULL)
         {
                 if (mg_gui)
                 {
@@ -900,7 +900,6 @@ mg_configure_cb (GtkWidget *wid, GdkEventConfigure *event, session *sess)
                                 int win_width;
                                 int win_height;
 
-                                sess = current_sess;
                                 gtk_window_get_position (GTK_WINDOW (wid), &win_left, &win_top);
                                 gtk_window_get_size (GTK_WINDOW (wid), &win_width, &win_height);
 
@@ -930,42 +929,38 @@ mg_configure_cb (GtkWidget *wid, GdkEventConfigure *event, session *sess)
                         }
                 }
         }
-
-        if (sess)
+        else if (sess->type == SESS_DIALOG && prefs.hex_gui_win_save)
         {
-                if (sess->type == SESS_DIALOG && prefs.hex_gui_win_save)
+                int dialog_left;
+                int dialog_top;
+                int dialog_width;
+                int dialog_height;
+
+                gtk_window_get_position (GTK_WINDOW (wid), &dialog_left, &dialog_top);
+                gtk_window_get_size (GTK_WINDOW (wid), &dialog_width, &dialog_height);
+
+                if (prefs.hex_gui_dialog_left != dialog_left)
                 {
-                        int dialog_left;
-                        int dialog_top;
-                        int dialog_width;
-                        int dialog_height;
+                        prefs.hex_gui_dialog_left = dialog_left;
+                        changed = TRUE;
+                }
 
-                        gtk_window_get_position (GTK_WINDOW (wid), &dialog_left, &dialog_top);
-                        gtk_window_get_size (GTK_WINDOW (wid), &dialog_width, &dialog_height);
+                if (prefs.hex_gui_dialog_top != dialog_top)
+                {
+                        prefs.hex_gui_dialog_top = dialog_top;
+                        changed = TRUE;
+                }
 
-                        if (prefs.hex_gui_dialog_left != dialog_left)
-                        {
-                                prefs.hex_gui_dialog_left = dialog_left;
-                                changed = TRUE;
-                        }
+                if (prefs.hex_gui_dialog_width != dialog_width)
+                {
+                        prefs.hex_gui_dialog_width = dialog_width;
+                        changed = TRUE;
+                }
 
-                        if (prefs.hex_gui_dialog_top != dialog_top)
-                        {
-                                prefs.hex_gui_dialog_top = dialog_top;
-                                changed = TRUE;
-                        }
-
-                        if (prefs.hex_gui_dialog_width != dialog_width)
-                        {
-                                prefs.hex_gui_dialog_width = dialog_width;
-                                changed = TRUE;
-                        }
-
-                        if (prefs.hex_gui_dialog_height != dialog_height)
-                        {
-                                prefs.hex_gui_dialog_height = dialog_height;
-                                changed = TRUE;
-                        }
+                if (prefs.hex_gui_dialog_height != dialog_height)
+                {
+                        prefs.hex_gui_dialog_height = dialog_height;
+                        changed = TRUE;
                 }
         }
 
