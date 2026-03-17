@@ -241,7 +241,7 @@ joind_show_dialog (server *serv)
 
 	g_signal_connect (G_OBJECT (dialog1), "destroy",
 							G_CALLBACK (joind_destroy_cb), serv);
-	g_signal_connect (G_OBJECT (entry1), "focus_in_event",
+	g_signal_connect (G_OBJECT (entry1), "focus-in-event",
 							G_CALLBACK (joind_entryfocus_cb), serv);
 	g_signal_connect (G_OBJECT (entry1), "activate",
 							G_CALLBACK (joind_entryenter_cb), okbutton1);

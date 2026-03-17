@@ -662,7 +662,7 @@ gtkutil_esc_destroy (GtkWidget * win, GdkEventKey * key, gpointer userdata)
 void
 gtkutil_destroy_on_esc (GtkWidget *win)
 {
-	g_signal_connect (G_OBJECT (win), "key_press_event", G_CALLBACK (gtkutil_esc_destroy), win);
+	g_signal_connect (G_OBJECT (win), "key-press-event", G_CALLBACK (gtkutil_esc_destroy), win);
 }
 
 void

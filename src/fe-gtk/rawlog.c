@@ -192,7 +192,7 @@ open_rawlog (struct server *serv)
 						 serv, _("Save As..."));
 
 	/* Copy selection to clipboard when Ctrl+Shift+C is pressed AND text auto-copy is disabled */
-	g_signal_connect (G_OBJECT (serv->gui->rawlog_window), "key_press_event", G_CALLBACK (rawlog_key_cb), serv->gui->rawlog_textlist);
+	g_signal_connect (G_OBJECT (serv->gui->rawlog_window), "key-press-event", G_CALLBACK (rawlog_key_cb), serv->gui->rawlog_textlist);
 	g_object_set_data (G_OBJECT (serv->gui->rawlog_window), RAWLOG_THEME_LISTENER_ID_KEY,
 				   GUINT_TO_POINTER (theme_listener_register ("rawlog.window", rawlog_theme_changed, serv->gui->rawlog_window)));
 	g_signal_connect (G_OBJECT (serv->gui->rawlog_window), "destroy", G_CALLBACK (rawlog_theme_destroy_cb), NULL);

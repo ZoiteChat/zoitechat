@@ -371,7 +371,7 @@ make_sbutton (GtkArrowType type, void *click_cb, void *userdata)
 	gtk_button_set_relief (GTK_BUTTON (button), GTK_RELIEF_NONE);
 	g_signal_connect (G_OBJECT (button), "clicked",
 							G_CALLBACK (click_cb), userdata);
-	g_signal_connect (G_OBJECT (button), "scroll_event",
+	g_signal_connect (G_OBJECT (button), "scroll-event",
 							G_CALLBACK (tab_scroll_cb), userdata);
 	gtk_widget_show (arrow);
 
@@ -395,7 +395,7 @@ cv_tabs_init (chanview *cv)
 		outer = gtkutil_box_new (GTK_ORIENTATION_HORIZONTAL, FALSE, 0);
 	}
 	((tabview *)cv)->outer = outer;
-	g_signal_connect (G_OBJECT (outer), "size_allocate",
+	g_signal_connect (G_OBJECT (outer), "size-allocate",
 							G_CALLBACK (cv_tabs_sizealloc), cv);
 	gtk_widget_show (outer);
 
@@ -405,7 +405,7 @@ cv_tabs_init (chanview *cv)
 		gtk_widget_set_size_request (viewport, -1, 1);
 	else
 		gtk_widget_set_size_request (viewport, 1, -1);
-	g_signal_connect (G_OBJECT (viewport), "scroll_event",
+	g_signal_connect (G_OBJECT (viewport), "scroll-event",
 							G_CALLBACK (tab_scroll_cb), cv);
 	gtk_box_pack_start (GTK_BOX (outer), viewport, 1, 1, 0);
 	gtk_widget_show (viewport);
@@ -671,12 +671,12 @@ cv_tabs_add (chanview *cv, chan *ch, char *name, GtkTreeIter *parent)
 	gtk_widget_set_name (but, "zoitechat-tab");
 	g_object_set_data (G_OBJECT (but), "c", ch);
 	/* used to trap right-clicks */
-	g_signal_connect (G_OBJECT (but), "button_press_event",
+	g_signal_connect (G_OBJECT (but), "button-press-event",
 						 	G_CALLBACK (tab_click_cb), ch);
 	/* avoid prelights */
-	g_signal_connect (G_OBJECT (but), "enter_notify_event",
+	g_signal_connect (G_OBJECT (but), "enter-notify-event",
 						 	G_CALLBACK (tab_ignore_cb), NULL);
-	g_signal_connect (G_OBJECT (but), "leave_notify_event",
+	g_signal_connect (G_OBJECT (but), "leave-notify-event",
 						 	G_CALLBACK (tab_ignore_cb), NULL);
 	g_signal_connect (G_OBJECT (but), "pressed",
 							G_CALLBACK (tab_pressed_cb), ch);

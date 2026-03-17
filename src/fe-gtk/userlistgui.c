@@ -865,26 +865,26 @@ userlist_create (GtkWidget *box)
 	gtk_drag_source_set (treeview, GDK_BUTTON1_MASK, dnd_src_target, 1, GDK_ACTION_MOVE);
 
 	/* file DND (for DCC) */
-	g_signal_connect (G_OBJECT (treeview), "drag_motion",
+	g_signal_connect (G_OBJECT (treeview), "drag-motion",
 							G_CALLBACK (userlist_dnd_motion), treeview);
-	g_signal_connect (G_OBJECT (treeview), "drag_leave",
+	g_signal_connect (G_OBJECT (treeview), "drag-leave",
 							G_CALLBACK (userlist_dnd_leave), 0);
-	g_signal_connect (G_OBJECT (treeview), "drag_data_received",
+	g_signal_connect (G_OBJECT (treeview), "drag-data-received",
 							G_CALLBACK (userlist_dnd_drop), treeview);
 
-	g_signal_connect (G_OBJECT (treeview), "button_press_event",
+	g_signal_connect (G_OBJECT (treeview), "button-press-event",
 							G_CALLBACK (userlist_click_cb), 0);
-	g_signal_connect (G_OBJECT (treeview), "key_press_event",
+	g_signal_connect (G_OBJECT (treeview), "key-press-event",
 							G_CALLBACK (userlist_key_cb), 0);
 
 	/* tree/chanview DND */
-	g_signal_connect (G_OBJECT (treeview), "drag_begin",
+	g_signal_connect (G_OBJECT (treeview), "drag-begin",
 							G_CALLBACK (mg_drag_begin_cb), NULL);
-	g_signal_connect (G_OBJECT (treeview), "drag_drop",
+	g_signal_connect (G_OBJECT (treeview), "drag-drop",
 							G_CALLBACK (mg_drag_drop_cb), NULL);
-	g_signal_connect (G_OBJECT (treeview), "drag_motion",
+	g_signal_connect (G_OBJECT (treeview), "drag-motion",
 							G_CALLBACK (mg_drag_motion_cb), NULL);
-	g_signal_connect (G_OBJECT (treeview), "drag_end",
+	g_signal_connect (G_OBJECT (treeview), "drag-end",
 							G_CALLBACK (mg_drag_end_cb), NULL);
 
 	userlist_add_columns (GTK_TREE_VIEW (treeview));

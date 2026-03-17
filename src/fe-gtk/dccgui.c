@@ -863,7 +863,7 @@ fe_dcc_open_recv_win (int passive)
 	gtk_tree_selection_set_mode (dccfwin.sel, GTK_SELECTION_MULTIPLE);
 
 	if (!prefs.hex_gui_tab_utils)
-		g_signal_connect (G_OBJECT (dccfwin.window), "configure_event",
+		g_signal_connect (G_OBJECT (dccfwin.window), "configure-event",
 								G_CALLBACK (dcc_configure_cb), 0);
 	g_signal_connect (G_OBJECT (dccfwin.sel), "changed",
 							G_CALLBACK (dcc_row_cb), NULL);

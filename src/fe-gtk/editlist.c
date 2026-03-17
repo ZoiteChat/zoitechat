@@ -290,7 +290,7 @@ editlist_treeview_new (GtkWidget *box, char *title1, char *title2)
 	gtk_tree_view_set_enable_search (GTK_TREE_VIEW (view), FALSE);
 	gtk_tree_view_set_reorderable (GTK_TREE_VIEW (view), TRUE);
 	
-	g_signal_connect (G_OBJECT (view), "key_press_event",
+	g_signal_connect (G_OBJECT (view), "key-press-event",
 						G_CALLBACK (editlist_keypress), NULL);
 
 	gtk_tree_view_set_grid_lines (GTK_TREE_VIEW (view), GTK_TREE_VIEW_GRID_LINES_HORIZONTAL);

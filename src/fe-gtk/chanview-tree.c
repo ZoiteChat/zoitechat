@@ -199,20 +199,20 @@ cv_tree_init (chanview *cv)
 							G_CALLBACK (cv_tree_click_cb), cv);
 	g_signal_connect (G_OBJECT (view), "row-activated",
 							G_CALLBACK (cv_tree_activated_cb), NULL);
-	g_signal_connect (G_OBJECT (view), "scroll_event",
+	g_signal_connect (G_OBJECT (view), "scroll-event",
 							G_CALLBACK (cv_tree_scroll_event_cb), NULL);
 
 	gtk_drag_dest_set (view, GTK_DEST_DEFAULT_ALL, dnd_dest_target, 1,
 							 GDK_ACTION_MOVE | GDK_ACTION_COPY | GDK_ACTION_LINK);
 	gtk_drag_source_set (view, GDK_BUTTON1_MASK, dnd_src_target, 1, GDK_ACTION_COPY);
 
-	g_signal_connect (G_OBJECT (view), "drag_begin",
+	g_signal_connect (G_OBJECT (view), "drag-begin",
 							G_CALLBACK (mg_drag_begin_cb), NULL);
-	g_signal_connect (G_OBJECT (view), "drag_drop",
+	g_signal_connect (G_OBJECT (view), "drag-drop",
 							G_CALLBACK (mg_drag_drop_cb), NULL);
-	g_signal_connect (G_OBJECT (view), "drag_motion",
+	g_signal_connect (G_OBJECT (view), "drag-motion",
 							G_CALLBACK (mg_drag_motion_cb), NULL);
-	g_signal_connect (G_OBJECT (view), "drag_end",
+	g_signal_connect (G_OBJECT (view), "drag-end",
 							G_CALLBACK (mg_drag_end_cb), NULL);
 
 	((treeview *)cv)->tree = GTK_TREE_VIEW (view);

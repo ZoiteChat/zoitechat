@@ -894,7 +894,7 @@ setup_create_spin (GtkWidget *table, int row, const setting *set)
                 gtk_widget_set_tooltip_text (wid, _(set->tooltip));
         gtk_spin_button_set_value (GTK_SPIN_BUTTON (wid),
                                                                                 setup_get_int (&setup_prefs, set));
-        g_signal_connect (G_OBJECT (wid), "value_changed",
+        g_signal_connect (G_OBJECT (wid), "value-changed",
                                                         G_CALLBACK (setup_spin_cb), (gpointer)set);
         gtk_box_pack_start (GTK_BOX (rbox), wid, 0, 0, 0);
 
@@ -950,7 +950,7 @@ setup_create_hscale (GtkWidget *table, int row, const setting *set)
         wid = gtk_scale_new_with_range (GTK_ORIENTATION_HORIZONTAL, 0., 255., 1.);
         gtk_scale_set_value_pos (GTK_SCALE (wid), GTK_POS_RIGHT);
         gtk_range_set_value (GTK_RANGE (wid), setup_get_int (&setup_prefs, set));
-        g_signal_connect (G_OBJECT(wid), "value_changed",
+        g_signal_connect (G_OBJECT(wid), "value-changed",
                                                         G_CALLBACK (setup_hscale_cb), (gpointer)set);
         setup_table_attach (table, wid, 3, 6, row, row + 1, TRUE, FALSE,
                             SETUP_ALIGN_FILL, SETUP_ALIGN_FILL, 0, 0);
@@ -1966,7 +1966,7 @@ setup_create_tree (GtkWidget *box, GtkWidget *book)
         gtk_tree_selection_set_mode (sel, GTK_SELECTION_BROWSE);
         gtk_tree_selection_set_select_function (sel, setup_tree_select_filter,
                                                                                                                  NULL, NULL);
-        g_signal_connect (G_OBJECT (tree), "cursor_changed",
+        g_signal_connect (G_OBJECT (tree), "cursor-changed",
                                                         G_CALLBACK (setup_tree_cb), book);
 
         renderer = gtk_cell_renderer_text_new ();

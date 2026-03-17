@@ -2806,7 +2806,7 @@ mg_create_chanmodebuttons (session_gui *gui, GtkWidget *box)
         mg_apply_emoji_fallback_widget (gui->key_entry);
         g_signal_connect (G_OBJECT (gui->key_entry), "activate",
                                                         G_CALLBACK (mg_key_entry_cb), NULL);
-        g_signal_connect (G_OBJECT (gui->key_entry), "key_press_event",
+        g_signal_connect (G_OBJECT (gui->key_entry), "key-press-event",
                                                         G_CALLBACK (mg_entry_select_all), NULL);
 
         if (prefs.hex_gui_input_style)
@@ -2821,7 +2821,7 @@ mg_create_chanmodebuttons (session_gui *gui, GtkWidget *box)
         mg_apply_emoji_fallback_widget (gui->limit_entry);
         g_signal_connect (G_OBJECT (gui->limit_entry), "activate",
                                                         G_CALLBACK (mg_limit_entry_cb), NULL);
-        g_signal_connect (G_OBJECT (gui->limit_entry), "key_press_event",
+        g_signal_connect (G_OBJECT (gui->limit_entry), "key-press-event",
                                                         G_CALLBACK (mg_entry_select_all), NULL);
 
         if (prefs.hex_gui_input_style)
@@ -3113,18 +3113,18 @@ mg_create_textarea (session *sess, GtkWidget *box)
 
         gtk_drag_dest_set (gui->vscrollbar, 5, dnd_dest_targets, 2,
                                                          GDK_ACTION_MOVE | GDK_ACTION_COPY | GDK_ACTION_LINK);
-        g_signal_connect (G_OBJECT (gui->vscrollbar), "drag_begin",
+        g_signal_connect (G_OBJECT (gui->vscrollbar), "drag-begin",
                                                         G_CALLBACK (mg_drag_begin_cb), NULL);
-        g_signal_connect (G_OBJECT (gui->vscrollbar), "drag_drop",
+        g_signal_connect (G_OBJECT (gui->vscrollbar), "drag-drop",
                                                         G_CALLBACK (mg_drag_drop_cb), NULL);
-        g_signal_connect (G_OBJECT (gui->vscrollbar), "drag_motion",
+        g_signal_connect (G_OBJECT (gui->vscrollbar), "drag-motion",
                                                         G_CALLBACK (mg_drag_motion_cb), gui->vscrollbar);
-        g_signal_connect (G_OBJECT (gui->vscrollbar), "drag_end",
+        g_signal_connect (G_OBJECT (gui->vscrollbar), "drag-end",
                                                         G_CALLBACK (mg_drag_end_cb), NULL);
 
         gtk_drag_dest_set (gui->xtext, GTK_DEST_DEFAULT_ALL, dnd_targets, 1,
                                                          GDK_ACTION_MOVE | GDK_ACTION_COPY | GDK_ACTION_LINK);
-        g_signal_connect (G_OBJECT (gui->xtext), "drag_data_received",
+        g_signal_connect (G_OBJECT (gui->xtext), "drag-data-received",
                                                         G_CALLBACK (mg_dialog_dnd_drop), NULL);
 }
 
@@ -3897,7 +3897,7 @@ mg_create_search(session *sess, GtkWidget *box)
         gtk_widget_set_size_request (gui->shentry, 180, -1);
         mg_apply_emoji_fallback_widget (entry);
         gui->search_changed_signal = g_signal_connect(G_OBJECT(entry), "changed", G_CALLBACK(search_handle_change), sess);
-        g_signal_connect (G_OBJECT (entry), "key_press_event", G_CALLBACK (search_handle_esc), sess);
+        g_signal_connect (G_OBJECT (entry), "key-press-event", G_CALLBACK (search_handle_esc), sess);
         g_signal_connect(G_OBJECT(entry), "activate", G_CALLBACK(mg_search_handle_next), sess);
         gtk_entry_set_icon_activatable (GTK_ENTRY (entry), GTK_ENTRY_ICON_SECONDARY, FALSE);
         gtk_entry_set_icon_tooltip_text (GTK_ENTRY (sess->gui->shentry), GTK_ENTRY_ICON_SECONDARY, _("Search hit end or not found."));
@@ -3979,11 +3979,11 @@ mg_create_entry (session *sess, GtkWidget *box)
         gtk_box_pack_start (GTK_BOX (hbox), entry, TRUE, TRUE, 0);
 
         gtk_widget_set_name (entry, "zoitechat-inputbox");
-        g_signal_connect (G_OBJECT (entry), "key_press_event",
+        g_signal_connect (G_OBJECT (entry), "key-press-event",
                                                         G_CALLBACK (key_handle_key_press), NULL);
-        g_signal_connect (G_OBJECT (entry), "focus_in_event",
+        g_signal_connect (G_OBJECT (entry), "focus-in-event",
                                                         G_CALLBACK (mg_inputbox_focus), gui);
-        g_signal_connect (G_OBJECT (entry), "populate_popup",
+        g_signal_connect (G_OBJECT (entry), "populate-popup",
                                                         G_CALLBACK (mg_inputbox_rightclick), NULL);
         g_signal_connect (G_OBJECT (entry), "word-check",
                                                         G_CALLBACK (mg_spellcheck_cb), NULL);
@@ -4146,11 +4146,11 @@ mg_create_topwindow (session *sess)
         gtk_container_set_border_width (GTK_CONTAINER (win), GUI_BORDER);
         gtk_widget_set_opacity (win, (prefs.hex_gui_transparency / 255.));
 
-        g_signal_connect (G_OBJECT (win), "focus_in_event",
+        g_signal_connect (G_OBJECT (win), "focus-in-event",
                                                         G_CALLBACK (mg_topwin_focus_cb), sess);
         g_signal_connect (G_OBJECT (win), "destroy",
                                                         G_CALLBACK (mg_topdestroy_cb), sess);
-        g_signal_connect (G_OBJECT (win), "configure_event",
+        g_signal_connect (G_OBJECT (win), "configure-event",
                                                         G_CALLBACK (mg_configure_cb), sess);
 
 
@@ -4336,15 +4336,15 @@ mg_create_tabwindow (session *sess)
         gtk_widget_set_opacity (win, (prefs.hex_gui_transparency / 255.));
         gtk_container_set_border_width (GTK_CONTAINER (win), GUI_BORDER);
 
-        g_signal_connect (G_OBJECT (win), "delete_event",
+        g_signal_connect (G_OBJECT (win), "delete-event",
                                                    G_CALLBACK (mg_tabwindow_de_cb), 0);
         g_signal_connect (G_OBJECT (win), "destroy",
                                                    G_CALLBACK (mg_tabwindow_kill_cb), 0);
-        g_signal_connect (G_OBJECT (win), "focus_in_event",
+        g_signal_connect (G_OBJECT (win), "focus-in-event",
                                                         G_CALLBACK (mg_tabwin_focus_cb), NULL);
-        g_signal_connect (G_OBJECT (win), "configure_event",
+        g_signal_connect (G_OBJECT (win), "configure-event",
                                                         G_CALLBACK (mg_configure_cb), NULL);
-        g_signal_connect (G_OBJECT (win), "window_state_event",
+        g_signal_connect (G_OBJECT (win), "window-state-event",
                                                         G_CALLBACK (mg_windowstate_cb), NULL);
 
 

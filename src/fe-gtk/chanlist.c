@@ -936,7 +936,7 @@ chanlist_opengui (server *serv, int do_refresh)
 													 GTK_SHADOW_IN);
 	serv->gui->chanlist_list = view;
 
-	g_signal_connect (G_OBJECT (view), "row_activated",
+	g_signal_connect (G_OBJECT (view), "row-activated",
 							G_CALLBACK (chanlist_dclick_cb), serv);
 	g_signal_connect (G_OBJECT (view), "button-press-event",
 							G_CALLBACK (chanlist_button_cb), serv);
@@ -1003,7 +1003,7 @@ chanlist_opengui (server *serv, int do_refresh)
 	wid = gtk_spin_button_new_with_range (1, 999999, 1);
 	gtk_spin_button_set_value (GTK_SPIN_BUTTON (wid),
 										serv->gui->chanlist_minusers);
-	g_signal_connect (G_OBJECT (wid), "value_changed",
+	g_signal_connect (G_OBJECT (wid), "value-changed",
 							G_CALLBACK (chanlist_minusers), serv);
 	gtk_box_pack_start (GTK_BOX (hbox), wid, 0, 0, 0);
 	gtk_widget_show (wid);
@@ -1016,7 +1016,7 @@ chanlist_opengui (server *serv, int do_refresh)
 	wid = gtk_spin_button_new_with_range (1, 999999, 1);
 	gtk_spin_button_set_value (GTK_SPIN_BUTTON (wid),
 										serv->gui->chanlist_maxusers);
-	g_signal_connect (G_OBJECT (wid), "value_changed",
+	g_signal_connect (G_OBJECT (wid), "value-changed",
 							G_CALLBACK (chanlist_maxusers), serv);
 	gtk_box_pack_start (GTK_BOX (hbox), wid, 0, 0, 0);
 	gtk_widget_show (wid);

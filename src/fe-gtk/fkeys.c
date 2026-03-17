@@ -470,7 +470,7 @@ key_handle_key_press (GtkWidget *wid, GdkEventKey *evt, session *sess)
 				return 1;
 			case 2:
 				g_signal_stop_emission_by_name (G_OBJECT (wid),
-														"key_press_event");
+														"key-press-event");
 				return 1;
 			}
 		}

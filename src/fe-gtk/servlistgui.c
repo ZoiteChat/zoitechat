@@ -763,9 +763,9 @@ servlist_edit_cb (GtkWidget *but, gpointer none)
 	servlist_servers_populate (selected_net, edit_trees[SERVER_TREE]);
 	servlist_channels_populate (selected_net, edit_trees[CHANNEL_TREE]);
 	servlist_commands_populate (selected_net, edit_trees[CMD_TREE]);
-	g_signal_connect (G_OBJECT (edit_win), "delete_event",
+	g_signal_connect (G_OBJECT (edit_win), "delete-event",
 						 	G_CALLBACK (servlist_editwin_delete_cb), 0);
-	g_signal_connect (G_OBJECT (edit_win), "configure_event",
+	g_signal_connect (G_OBJECT (edit_win), "configure-event",
 							G_CALLBACK (servlist_edit_configure_cb), 0);
 	gtk_widget_show (edit_win);
 }
@@ -1839,7 +1839,7 @@ servlist_open_edit (GtkWidget *parent, ircnet *net)
 	model = GTK_TREE_MODEL (store);
 
 	edit_trees[SERVER_TREE] = treeview_servers = gtk_tree_view_new_with_model (model);
-	g_signal_connect (G_OBJECT (treeview_servers), "key_press_event",
+	g_signal_connect (G_OBJECT (treeview_servers), "key-press-event",
 							G_CALLBACK (servlist_keypress_cb), notebook);
 	g_signal_connect (G_OBJECT (gtk_tree_view_get_selection (GTK_TREE_VIEW (treeview_servers))),
 							"changed", G_CALLBACK (servlist_server_row_cb), NULL);
@@ -1864,7 +1864,7 @@ servlist_open_edit (GtkWidget *parent, ircnet *net)
 	model = GTK_TREE_MODEL (store);
 
 	edit_trees[CHANNEL_TREE] = treeview_channels = gtk_tree_view_new_with_model (model);
-	g_signal_connect (G_OBJECT (treeview_channels), "key_press_event",
+	g_signal_connect (G_OBJECT (treeview_channels), "key-press-event",
 							G_CALLBACK (servlist_keypress_cb), notebook);
 	g_signal_connect (G_OBJECT (gtk_tree_view_get_selection (GTK_TREE_VIEW (treeview_channels))),
 							"changed", G_CALLBACK (servlist_channel_row_cb), NULL);
@@ -1901,7 +1901,7 @@ servlist_open_edit (GtkWidget *parent, ircnet *net)
 	model = GTK_TREE_MODEL (store);
 
 	edit_trees[CMD_TREE] = treeview_commands = gtk_tree_view_new_with_model (model);
-	g_signal_connect (G_OBJECT (treeview_commands), "key_press_event",
+	g_signal_connect (G_OBJECT (treeview_commands), "key-press-event",
 							G_CALLBACK (servlist_keypress_cb), notebook);
 	g_signal_connect (G_OBJECT (gtk_tree_view_get_selection (GTK_TREE_VIEW (treeview_commands))),
 							"changed", G_CALLBACK (servlist_command_row_cb), NULL);
@@ -2357,13 +2357,13 @@ fe_serverlist_open (session *sess)
 
 	servlist_networks_populate (networks_tree, network_list);
 
-	g_signal_connect (G_OBJECT (serverlist_win), "delete_event",
+	g_signal_connect (G_OBJECT (serverlist_win), "delete-event",
 						 	G_CALLBACK (servlist_delete_cb), 0);
-	g_signal_connect (G_OBJECT (serverlist_win), "configure_event",
+	g_signal_connect (G_OBJECT (serverlist_win), "configure-event",
 							G_CALLBACK (servlist_configure_cb), 0);
 	g_signal_connect (G_OBJECT (gtk_tree_view_get_selection (GTK_TREE_VIEW (networks_tree))),
 							"changed", G_CALLBACK (servlist_network_row_cb), NULL);
-	g_signal_connect (G_OBJECT (networks_tree), "key_press_event",
+	g_signal_connect (G_OBJECT (networks_tree), "key-press-event",
 							G_CALLBACK (servlist_net_keypress_cb), networks_tree);
 
 	gtk_widget_show (serverlist_win);

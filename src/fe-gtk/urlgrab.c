@@ -99,7 +99,7 @@ url_treeview_new (GtkWidget *box)
 	scroll = gtk_widget_get_parent (view);
 	gtk_widget_set_hexpand (scroll, TRUE);
 	gtk_widget_set_vexpand (scroll, TRUE);
-	g_signal_connect (G_OBJECT (view), "button_press_event",
+	g_signal_connect (G_OBJECT (view), "button-press-event",
 	                  G_CALLBACK (url_treeview_url_clicked_cb), NULL);
 	gtk_tree_view_set_headers_visible (GTK_TREE_VIEW (view), FALSE);
 	gtk_widget_show (view);
