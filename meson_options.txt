@@ -5,6 +5,9 @@ option('gtk-frontend', type: 'boolean',
 option('text-frontend', type: 'boolean', value: false,
   description: 'Text interface (not generally useful)'
 )
+option('win32-frontend', type: 'boolean', value: false,
+  description: 'Native Win32 frontend'
+)
 
 # Features
 option('tls', type: 'feature', value: 'enabled',
