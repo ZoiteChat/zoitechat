@@ -461,6 +461,8 @@ static void mg_create_entry (session *sess, GtkWidget *box);
 static void mg_create_search (session *sess, GtkWidget *box);
 #ifdef G_OS_WIN32
 static GdkFilterReturn mg_win32_filter (GdkXEvent *xevent, GdkEvent *event, gpointer data);
+static void mg_show_win32_emoji_panel (void);
+static void mg_inputbox_icon_press (GtkEntry *entry, GtkEntryIconPosition icon_pos, GdkEvent *event, gpointer user_data);
 #endif
 static void mg_link_irctab (session *sess, int focus);
 
@@ -4028,6 +4030,9 @@ mg_create_entry (session *sess, GtkWidget *box)
                 mg_apply_entry_style (entry);
 
         g_object_set (G_OBJECT (entry), "show-emoji-icon", TRUE, NULL);
+#ifdef G_OS_WIN32
+        g_signal_connect (G_OBJECT (entry), "icon-press", G_CALLBACK (mg_inputbox_icon_press), NULL);
+#endif
 
         if (gtk_entry_get_icon_storage_type (GTK_ENTRY (entry), GTK_ENTRY_ICON_SECONDARY) == GTK_IMAGE_EMPTY)
         {
@@ -4036,6 +4041,42 @@ mg_create_entry (session *sess, GtkWidget *box)
                         gtk_entry_set_icon_from_icon_name (GTK_ENTRY (entry), GTK_ENTRY_ICON_SECONDARY, emoji_fallback_icon_name);
         }
 }
+
+#ifdef G_OS_WIN32
+static void
+mg_show_win32_emoji_panel (void)
+{
+        INPUT input[4];
+
+        ZeroMemory (input, sizeof (input));
+
+        input[0].type = INPUT_KEYBOARD;
+        input[0].ki.wVk = VK_LWIN;
+        input[1].type = INPUT_KEYBOARD;
+        input[1].ki.wVk = VK_OEM_PERIOD;
+        input[2].type = INPUT_KEYBOARD;
+        input[2].ki.wVk = VK_OEM_PERIOD;
+        input[2].ki.dwFlags = KEYEVENTF_KEYUP;
+        input[3].type = INPUT_KEYBOARD;
+        input[3].ki.wVk = VK_LWIN;
+        input[3].ki.dwFlags = KEYEVENTF_KEYUP;
+
+        SendInput ((UINT) G_N_ELEMENTS (input), input, sizeof (INPUT));
+}
+
+static void
+mg_inputbox_icon_press (GtkEntry *entry, GtkEntryIconPosition icon_pos, GdkEvent *event, gpointer user_data)
+{
+        (void) event;
+        (void) user_data;
+
+        if (icon_pos != GTK_ENTRY_ICON_SECONDARY)
+                return;
+
+        g_signal_stop_emission_by_name (entry, "icon-press");
+        mg_show_win32_emoji_panel ();
+}
+#endif
 
 static void
 mg_switch_tab_cb (chanview *cv, chan *ch, int tag, gpointer ud)
