@@ -461,7 +461,7 @@ static void mg_create_entry (session *sess, GtkWidget *box);
 static void mg_create_search (session *sess, GtkWidget *box);
 #ifdef G_OS_WIN32
 static GdkFilterReturn mg_win32_filter (GdkXEvent *xevent, GdkEvent *event, gpointer data);
-static void mg_show_win32_emoji_panel (void);
+static void mg_show_win32_emoji_panel (GtkEntry *entry);
 static void mg_inputbox_icon_press (GtkEntry *entry, GtkEntryIconPosition icon_pos, GdkEvent *event, gpointer user_data);
 #endif
 static void mg_link_irctab (session *sess, int focus);
@@ -4031,6 +4031,7 @@ mg_create_entry (session *sess, GtkWidget *box)
 
 #ifdef G_OS_WIN32
         g_object_set (G_OBJECT (entry), "show-emoji-icon", FALSE, NULL);
+        gtk_entry_set_icon_from_icon_name (GTK_ENTRY (entry), GTK_ENTRY_ICON_PRIMARY, NULL);
         g_signal_connect (G_OBJECT (entry), "icon-press", G_CALLBACK (mg_inputbox_icon_press), NULL);
 #else
         g_object_set (G_OBJECT (entry), "show-emoji-icon", TRUE, NULL);
@@ -4046,9 +4047,26 @@ mg_create_entry (session *sess, GtkWidget *box)
 
 #ifdef G_OS_WIN32
 static void
-mg_show_win32_emoji_panel (void)
+mg_show_win32_emoji_panel (GtkEntry *entry)
 {
         INPUT input[4];
+        GdkRectangle icon_rect;
+        GtkWidget *widget;
+        GdkWindow *window;
+        gint origin_x, origin_y;
+
+        widget = GTK_WIDGET (entry);
+        if (gtk_widget_get_realized (widget))
+        {
+                window = gtk_widget_get_window (widget);
+                if (window)
+                {
+                        gtk_entry_get_icon_area (entry, GTK_ENTRY_ICON_SECONDARY, &icon_rect);
+                        gdk_window_get_origin (window, &origin_x, &origin_y);
+                        SetCursorPos (origin_x + icon_rect.x + (icon_rect.width / 2),
+                                      origin_y + icon_rect.y + (icon_rect.height / 2));
+                }
+        }
 
         ZeroMemory (input, sizeof (input));
 
@@ -4076,7 +4094,7 @@ mg_inputbox_icon_press (GtkEntry *entry, GtkEntryIconPosition icon_pos, GdkEvent
                 return;
 
         g_signal_stop_emission_by_name (entry, "icon-press");
-        mg_show_win32_emoji_panel ();
+        mg_show_win32_emoji_panel (entry);
 }
 #endif
 
