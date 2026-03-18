@@ -4029,9 +4029,11 @@ mg_create_entry (session *sess, GtkWidget *box)
         if (prefs.hex_gui_input_style)
                 mg_apply_entry_style (entry);
 
-        g_object_set (G_OBJECT (entry), "show-emoji-icon", TRUE, NULL);
 #ifdef G_OS_WIN32
+        g_object_set (G_OBJECT (entry), "show-emoji-icon", FALSE, NULL);
         g_signal_connect (G_OBJECT (entry), "icon-press", G_CALLBACK (mg_inputbox_icon_press), NULL);
+#else
+        g_object_set (G_OBJECT (entry), "show-emoji-icon", TRUE, NULL);
 #endif
 
         if (gtk_entry_get_icon_storage_type (GTK_ENTRY (entry), GTK_ENTRY_ICON_SECONDARY) == GTK_IMAGE_EMPTY)
