@@ -61,6 +61,8 @@ Name: "langs"; Description: "Language Interfaces"; Types: custom; Flags: disable
 Name: "langs\lua"; Description: "Lua"; Types: normal custom; Flags: disablenouninstallwarning
 Name: "langs\perl"; Description: "Perl (requires Perl 5.42)"; Types: custom; Flags: disablenouninstallwarning
 Name: "langs\python"; Description: "Python (requires Python 3.14.3)"; Types: custom; Flags: disablenouninstallwarning
+Name: "deps"; Description: "Dependencies"; Types: custom; Flags: disablenouninstallwarning
+Name: "deps\vcredist2015"; Description: "Visual C++ Redistributable 2015"; Types: normal minimal custom; Flags: disablenouninstallwarning
 
 [Tasks]
 Name: portable; Description: "Yes"; GroupDescription: "Portable Mode: Stores configuration files within install directory for portable drives."; Flags: unchecked
@@ -81,7 +83,7 @@ Root: HKCR; Subkey: "ZoiteChat.Theme\shell\open\command"; ValueType: string; Val
 [Run]
 Filename: "{app}\zoitechat.exe"; Description: "Run ZoiteChat after closing the Wizard"; Flags: nowait postinstall skipifsilent
 Filename: "http://docs.zoitechat.org/en/latest/changelog.html"; Description: "See what's changed"; Flags: shellexec runasoriginaluser postinstall skipifsilent unchecked
-Filename: "{tmp}\vcredist.exe"; Parameters: "/install /quiet /norestart"; StatusMsg: "Installing Visual C++ Redistributable"; Flags: skipifdoesntexist; Tasks: not portable
+Filename: "{tmp}\vcredist.exe"; Parameters: "/install /quiet /norestart"; StatusMsg: "Installing Visual C++ Redistributable"; Components: deps\vcredist2015; Flags: skipifdoesntexist; Tasks: not portable
 Filename: "{tmp}\perl.msi"; StatusMsg: "Installing Perl"; Components: langs\perl; Flags: shellexec skipifdoesntexist; Tasks: not portable
 Filename: "{tmp}\python.msi"; StatusMsg: "Installing Python"; Components: langs\python; Flags: shellexec skipifdoesntexist; Tasks: not portable
 Filename: "{tmp}\python.exe"; Parameters: "InstallAllUsers=1 PrependPath=1"; StatusMsg: "Installing Python"; Components: langs\python; Flags: shellexec skipifdoesntexist; Tasks: not portable
@@ -243,6 +245,22 @@ begin
 	Result := FileExists(GetSysDir() + 'vcruntime140.dll');;
 end;
 
+procedure UpdateVCRedistComponentState;
+var
+	I: Integer;
+	Installed: Boolean;
+begin
+	Installed := CheckVCInstall();
+	for I := 0 to WizardForm.ComponentsList.Items.Count - 1 do
+	begin
+		if WizardForm.ComponentsList.ItemCaption[I] = 'Visual C++ Redistributable 2015' then
+		begin
+			WizardForm.ComponentsList.Checked[I] := not Installed;
+			WizardForm.ComponentsList.ItemEnabled[I] := not Installed;
+		end;
+	end;
+end;
+
 
 /////////////////////////////////////////////////////////////////////
 function CheckSpellInstall(): Boolean;
@@ -268,6 +286,9 @@ var
 	PY3: String;
 	SPELL: String;
 begin
+  if (CurPageID = wpSelectComponents) then
+    UpdateVCRedistComponentState();
+
   if(CurPageID = wpReady) then
   begin
     idpClearFiles;
@@ -280,7 +301,7 @@ begin
 		PY3 := 'https://www.python.org/ftp/python/3.14.3/python-3.14.3-amd64.exe';
 		SPELL := 'https://github.com/zoitechat/gvsbuild/releases/download/zoitechat-2.16.2/ZoiteChat.Spelling.Dictionaries.r2.exe';
 
-		if not CheckVCInstall() then
+		if IsComponentSelected('deps\vcredist2015') and not CheckVCInstall() then
 			idpAddFile(REDIST, ExpandConstant('{tmp}\vcredist.exe'));
 
 		if IsComponentSelected('spell') and not CheckSpellInstall() then
