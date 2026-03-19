@@ -1880,6 +1880,21 @@ about_dialog_openurl (GtkAboutDialog *dialog, char *uri, gpointer data)
 }
 
 static void
+about_dialog_add_links (GtkAboutDialog *dialog)
+{
+	GtkWidget *content = gtk_dialog_get_content_area (GTK_DIALOG (dialog));
+	GtkWidget *row = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 8);
+	GtkWidget *website = gtk_link_button_new_with_label ("http://zoitechat.zoite.net", "Website");
+	GtkWidget *license = gtk_link_button_new_with_label ("https://www.gnu.org/licenses/old-licenses/gpl-2.0.html", "License");
+	gtk_button_set_relief (GTK_BUTTON (website), GTK_RELIEF_NONE);
+	gtk_button_set_relief (GTK_BUTTON (license), GTK_RELIEF_NONE);
+	gtk_box_pack_start (GTK_BOX (row), website, FALSE, FALSE, 0);
+	gtk_box_pack_start (GTK_BOX (row), license, FALSE, FALSE, 0);
+	gtk_box_pack_start (GTK_BOX (content), row, FALSE, FALSE, 0);
+	gtk_widget_show_all (row);
+}
+
+static void
 menu_about (GtkWidget *wid, gpointer sess)
 {
 	GtkAboutDialog *dialog = GTK_ABOUT_DIALOG(gtk_about_dialog_new());
@@ -1899,12 +1914,14 @@ menu_about (GtkWidget *wid, gpointer sess)
 
 	gtk_about_dialog_set_program_name (dialog, _(DISPLAY_NAME));
 	gtk_about_dialog_set_version (dialog, PACKAGE_VERSION);
-	gtk_about_dialog_set_license_type (GTK_ABOUT_DIALOG (dialog), GTK_LICENSE_GPL_2_0);
-	gtk_about_dialog_set_website (dialog, "http://zoitechat.zoite.net");
-	gtk_about_dialog_set_website_label (dialog, "Website");
+	gtk_about_dialog_set_authors (dialog, NULL);
+	gtk_about_dialog_set_documenters (dialog, NULL);
+	gtk_about_dialog_set_artists (dialog, NULL);
+	gtk_about_dialog_set_translator_credits (dialog, NULL);
 	gtk_about_dialog_set_logo (dialog, pix_zoitechat);
 	gtk_about_dialog_set_copyright (dialog, "\302\251 1998-2010 Peter \305\275elezn\303\275\n\302\251 2009-2014 Berke Viktor\n\302\251 2026 deepend");
 	gtk_about_dialog_set_comments (dialog, comment);
+	about_dialog_add_links (dialog);
 
 	gtk_window_set_transient_for (GTK_WINDOW(dialog), GTK_WINDOW(parent_window));
 	g_signal_connect (G_OBJECT(dialog), "response", G_CALLBACK(about_dialog_close), NULL);
