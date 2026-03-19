@@ -46,6 +46,8 @@
 
 #ifdef WIN32
 #include "../common/fe.h"
+#include <windows.h>
+#include <commdlg.h>
 #endif
 #include "sexy-spell-entry.h"
 
@@ -87,6 +89,93 @@ typedef struct
         char const *const *list;
         int extra;
 } setting;
+
+#ifdef WIN32
+static gint
+setup_windows_point_tenths_from_height (LONG lf_height)
+{
+        HDC screen_dc;
+        gint dpi_y;
+
+        if (lf_height >= 0)
+                return 90;
+
+        screen_dc = GetDC (NULL);
+        dpi_y = screen_dc ? GetDeviceCaps (screen_dc, LOGPIXELSY) : 96;
+        if (screen_dc)
+                ReleaseDC (NULL, screen_dc);
+
+        return MulDiv (-lf_height, 720, dpi_y);
+}
+
+static void
+setup_windows_get_default_log_font (LOGFONTW *log_font, gint *point_tenths)
+{
+        NONCLIENTMETRICSW metrics;
+
+        memset (&metrics, 0, sizeof (metrics));
+        metrics.cbSize = sizeof (metrics);
+        if (SystemParametersInfoW (SPI_GETNONCLIENTMETRICS, metrics.cbSize, &metrics, 0))
+        {
+                memcpy (log_font, &metrics.lfMessageFont, sizeof (*log_font));
+                *point_tenths = setup_windows_point_tenths_from_height (log_font->lfHeight);
+        }
+        else
+        {
+                memset (log_font, 0, sizeof (*log_font));
+                lstrcpyW (log_font->lfFaceName, L"Segoe UI");
+                *point_tenths = 90;
+        }
+}
+
+static gboolean
+setup_windows_load_log_font_from_entry (GtkWidget *entry, LOGFONTW *log_font, gint *point_tenths)
+{
+        const gchar *entry_text;
+        PangoFontDescription *font_desc;
+        const gchar *family;
+        gunichar2 *family_utf16;
+        gint pango_size;
+        gint size_points;
+
+        entry_text = gtk_entry_get_text (GTK_ENTRY (entry));
+        if (!entry_text || !entry_text[0])
+                return FALSE;
+
+        font_desc = pango_font_description_from_string (entry_text);
+        if (!font_desc)
+                return FALSE;
+
+        family = pango_font_description_get_family (font_desc);
+        if (!family || !family[0])
+        {
+                pango_font_description_free (font_desc);
+                return FALSE;
+        }
+
+        memset (log_font, 0, sizeof (*log_font));
+        family_utf16 = g_utf8_to_utf16 (family, -1, NULL, NULL, NULL);
+        if (!family_utf16)
+        {
+                pango_font_description_free (font_desc);
+                return FALSE;
+        }
+
+        lstrcpynW (log_font->lfFaceName, (LPCWSTR) family_utf16, LF_FACESIZE);
+        g_free (family_utf16);
+
+        pango_size = pango_font_description_get_size (font_desc);
+        size_points = pango_size > 0 ? pango_size / PANGO_SCALE : 0;
+        *point_tenths = size_points > 0 ? size_points * 10 : 90;
+
+        log_font->lfItalic = pango_font_description_get_style (font_desc) != PANGO_STYLE_NORMAL ? TRUE : FALSE;
+        log_font->lfWeight = pango_font_description_get_weight (font_desc);
+        log_font->lfHeight = -MulDiv (*point_tenths, 96, 720);
+
+        pango_font_description_free (font_desc);
+        return TRUE;
+}
+#endif
 
 #ifdef WIN32
 static const char *const langsmenu[] =
@@ -1236,6 +1325,37 @@ setup_browsefolder_cb (GtkWidget *button, GtkEntry *entry)
 static void
 setup_browsefont_cb (GtkWidget *button, GtkWidget *entry)
 {
+#ifdef WIN32
+        CHOOSEFONTW choose_font;
+        LOGFONTW log_font;
+        gunichar2 utf16_name[LF_FACESIZE];
+        gchar *font_name;
+        gchar font_spec[FONTNAMELEN + 1];
+        gint point_size;
+        gint point_tenths;
+
+        memset (&choose_font, 0, sizeof (choose_font));
+        if (!setup_windows_load_log_font_from_entry (entry, &log_font, &point_tenths))
+                setup_windows_get_default_log_font (&log_font, &point_tenths);
+
+        choose_font.lStructSize = sizeof (choose_font);
+        choose_font.Flags = CF_SCREENFONTS | CF_FORCEFONTEXIST | CF_INITTOLOGFONTSTRUCT;
+        choose_font.lpLogFont = &log_font;
+        choose_font.iPointSize = point_tenths;
+
+        if (ChooseFontW (&choose_font))
+        {
+                memcpy (utf16_name, log_font.lfFaceName, sizeof (utf16_name));
+                font_name = g_utf16_to_utf8 (utf16_name, -1, NULL, NULL, NULL);
+                if (font_name && font_name[0])
+                {
+                        point_size = choose_font.iPointSize > 0 ? choose_font.iPointSize / 10 : 11;
+                        g_snprintf (font_spec, sizeof (font_spec), "%s %d", font_name, point_size);
+                        gtk_entry_set_text (GTK_ENTRY (entry), font_spec);
+                }
+                g_free (font_name);
+        }
+#else
         GtkWidget *dialog;
         const char *font_name;
 
@@ -1253,6 +1373,7 @@ setup_browsefont_cb (GtkWidget *button, GtkWidget *entry)
                                                         G_CALLBACK (setup_fontchooser_response), entry);
 
         gtk_widget_show (dialog);
+#endif
 }
 
 static void
