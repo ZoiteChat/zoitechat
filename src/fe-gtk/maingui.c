@@ -64,6 +64,7 @@
 
 #ifdef G_OS_WIN32
 #include <windows.h>
+#include <imm.h>
 #include <shellapi.h>
 #include <gdk/gdkwin32.h>
 
@@ -461,6 +462,7 @@ static void mg_create_entry (session *sess, GtkWidget *box);
 static void mg_create_search (session *sess, GtkWidget *box);
 #ifdef G_OS_WIN32
 static GdkFilterReturn mg_win32_filter (GdkXEvent *xevent, GdkEvent *event, gpointer data);
+static gboolean mg_win32_get_emoji_anchor (GtkEntry *entry, gint *pointer_x, gint *pointer_y, gint *line_height);
 static void mg_show_win32_emoji_panel (GtkEntry *entry);
 static void mg_inputbox_icon_press (GtkEntry *entry, GtkEntryIconPosition icon_pos, GdkEvent *event, gpointer user_data);
 #endif
@@ -4046,30 +4048,50 @@ mg_create_entry (session *sess, GtkWidget *box)
 }
 
 #ifdef G_OS_WIN32
+static gboolean
+mg_win32_get_emoji_anchor (GtkEntry *entry, gint *pointer_x, gint *pointer_y, gint *line_height)
+{
+        GdkRectangle icon_rect;
+        GtkWidget *widget;
+        GdkWindow *window;
+
+        widget = GTK_WIDGET (entry);
+        if (!gtk_widget_get_realized (widget))
+                return FALSE;
+
+        window = gtk_widget_get_window (widget);
+        if (!window)
+                return FALSE;
+
+        gtk_entry_get_icon_area (entry, GTK_ENTRY_ICON_SECONDARY, &icon_rect);
+        if (icon_rect.width <= 0 || icon_rect.height <= 0)
+        {
+                icon_rect.x = gtk_widget_get_allocated_width (widget) - 1;
+                icon_rect.y = gtk_widget_get_allocated_height (widget) - 1;
+                icon_rect.width = 1;
+                icon_rect.height = 1;
+        }
+
+        gdk_window_get_root_coords (window,
+                                    icon_rect.x + icon_rect.width - 1,
+                                    icon_rect.y + icon_rect.height - 1,
+                                    pointer_x,
+                                    pointer_y);
+        if (line_height)
+                *line_height = icon_rect.height;
+
+        return TRUE;
+}
+
 static void
 mg_show_win32_emoji_panel (GtkEntry *entry)
 {
         INPUT input[4];
-        GdkRectangle icon_rect;
-        GtkWidget *widget;
-        GdkWindow *window;
-        gint pointer_x, pointer_y;
+        gint pointer_x;
+        gint pointer_y;
 
-        widget = GTK_WIDGET (entry);
-        if (gtk_widget_get_realized (widget))
-        {
-                window = gtk_widget_get_window (widget);
-                if (window)
-                {
-                        gtk_entry_get_icon_area (entry, GTK_ENTRY_ICON_SECONDARY, &icon_rect);
-                        gdk_window_get_root_coords (window,
-                                                    icon_rect.x + (icon_rect.width / 2),
-                                                    icon_rect.y,
-                                                    &pointer_x,
-                                                    &pointer_y);
-                        SetCursorPos (pointer_x, pointer_y);
-                }
-        }
+        if (mg_win32_get_emoji_anchor (entry, &pointer_x, &pointer_y, NULL))
+                SetCursorPos (pointer_x, pointer_y);
 
         ZeroMemory (input, sizeof (input));
 
@@ -4407,6 +4429,35 @@ mg_win32_filter (GdkXEvent *xevent, GdkEvent *event, gpointer data)
 			return GDK_FILTER_CONTINUE;
 
 		PostMessage (hover_hwnd, msg->message, msg->wParam, msg->lParam);
+		return GDK_FILTER_REMOVE;
+	}
+
+	if (msg->message == WM_IME_REQUEST && msg->wParam == IMR_QUERYCHARPOSITION)
+	{
+		IMECHARPOSITION *char_pos = (IMECHARPOSITION *)msg->lParam;
+		GtkWidget *entry_widget;
+		gint pointer_x;
+		gint pointer_y;
+		gint line_height;
+
+		if (!char_pos || !current_sess || !current_sess->gui)
+			return GDK_FILTER_CONTINUE;
+
+		entry_widget = current_sess->gui->input_box;
+		if (!entry_widget)
+			return GDK_FILTER_CONTINUE;
+
+		if (!mg_win32_get_emoji_anchor (GTK_ENTRY (entry_widget), &pointer_x, &pointer_y, &line_height))
+			return GDK_FILTER_CONTINUE;
+
+		char_pos->dwSize = sizeof (IMECHARPOSITION);
+		char_pos->pt.x = pointer_x;
+		char_pos->pt.y = pointer_y;
+		char_pos->cLineHeight = line_height > 0 ? (UINT)line_height : 1;
+		char_pos->rcDocument.left = pointer_x;
+		char_pos->rcDocument.top = pointer_y;
+		char_pos->rcDocument.right = pointer_x + 1;
+		char_pos->rcDocument.bottom = pointer_y + 1;
 		return GDK_FILTER_REMOVE;
 	}
 	
