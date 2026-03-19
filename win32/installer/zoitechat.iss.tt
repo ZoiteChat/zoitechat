@@ -198,6 +198,13 @@ BeveledLabel= {#APPNAM}
 
 [Code]
 #ifndef USE_INNO_DOWNLOAD_PLUGIN
+var
+	FallbackDownloadUrls: array of String;
+	FallbackDownloadFiles: array of String;
+
+function URLDownloadToFile(Caller: Integer; URL: String; FileName: String; Reserved: Integer; StatusCB: Integer): Integer;
+external 'URLDownloadToFileW@urlmon.dll stdcall delayload';
+
 // The Inno Download Plugin isn't always installed in CI environments.
 // Provide no-op fallback procedures so installer compilation still succeeds.
 procedure idpDownloadAfter(PageID: Integer);
@@ -206,10 +213,40 @@ end;
 
 procedure idpClearFiles;
 begin
+	SetArrayLength(FallbackDownloadUrls, 0);
+	SetArrayLength(FallbackDownloadFiles, 0);
 end;
 
 procedure idpAddFile(URL: String; Filename: String);
+var
+	I: Integer;
 begin
+	I := GetArrayLength(FallbackDownloadUrls);
+	SetArrayLength(FallbackDownloadUrls, I + 1);
+	SetArrayLength(FallbackDownloadFiles, I + 1);
+	FallbackDownloadUrls[I] := URL;
+	FallbackDownloadFiles[I] := Filename;
+end;
+
+function idpDownloadQueuedFiles(): Boolean;
+var
+	I: Integer;
+	ResultCode: Integer;
+begin
+	Result := True;
+	for I := 0 to GetArrayLength(FallbackDownloadUrls) - 1 do
+	begin
+		if not FileExists(FallbackDownloadFiles[I]) then
+		begin
+			ResultCode := URLDownloadToFile(0, FallbackDownloadUrls[I], FallbackDownloadFiles[I], 0, 0);
+			if ResultCode <> 0 then
+			begin
+				MsgBox('Unable to download required installer dependency:' + #13#10 + FallbackDownloadUrls[I], mbError, MB_OK);
+				Result := False;
+				Exit;
+			end;
+		end;
+	end;
 end;
 #endif
 
@@ -332,6 +369,17 @@ end;
 /////////////////////////////////////////////////////////////////////
 function NextButtonClick(CurPageID: Integer): Boolean;
 begin
+	Result := True;
+
+#ifndef USE_INNO_DOWNLOAD_PLUGIN
+	if CurPageID = wpReady then
+		if not idpDownloadQueuedFiles() then
+		begin
+			Result := False;
+			Exit;
+		end;
+#endif
+
 	if (CurPageID = wpSelectTasks) then
 		if (WizardForm.TasksList.Checked[1] = True) then
 			if (WizardDirValue() = ExpandConstant('{pf64}\ZoiteChat')) then
@@ -339,8 +387,6 @@ begin
 				WizardForm.TasksList.Checked[1] := False
 				MsgBox('Portable mode is only intended for use on portable drives and has been disabled.', mbInformation, MB_OK)
 			end;
-
-	Result := True; // Always continue
 end;
 
 /////////////////////////////////////////////////////////////////////
