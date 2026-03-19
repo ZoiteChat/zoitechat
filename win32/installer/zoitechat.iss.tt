@@ -61,6 +61,8 @@ Name: "langs"; Description: "Language Interfaces"; Types: custom; Flags: disable
 Name: "langs\lua"; Description: "Lua"; Types: normal custom; Flags: disablenouninstallwarning
 Name: "langs\perl"; Description: "Perl (requires Perl 5.42)"; Types: custom; Flags: disablenouninstallwarning
 Name: "langs\python"; Description: "Python (requires Python 3.14.3)"; Types: custom; Flags: disablenouninstallwarning
+Name: "deps"; Description: "Dependencies"; Types: custom; Flags: disablenouninstallwarning
+Name: "deps\vcredist2015"; Description: "Visual C++ Redistributable 2015"; Types: normal minimal custom; Flags: disablenouninstallwarning
 
 [Tasks]
 Name: portable; Description: "Yes"; GroupDescription: "Portable Mode: Stores configuration files within install directory for portable drives."; Flags: unchecked
@@ -81,7 +83,7 @@ Root: HKCR; Subkey: "ZoiteChat.Theme\shell\open\command"; ValueType: string; Val
 [Run]
 Filename: "{app}\zoitechat.exe"; Description: "Run ZoiteChat after closing the Wizard"; Flags: nowait postinstall skipifsilent
 Filename: "http://docs.zoitechat.org/en/latest/changelog.html"; Description: "See what's changed"; Flags: shellexec runasoriginaluser postinstall skipifsilent unchecked
-Filename: "{tmp}\vcredist.exe"; Parameters: "/install /quiet /norestart"; StatusMsg: "Installing Visual C++ Redistributable"; Flags: skipifdoesntexist; Tasks: not portable
+Filename: "{tmp}\vcredist.exe"; Parameters: "/install /quiet /norestart"; StatusMsg: "Installing Visual C++ Redistributable"; Components: deps\vcredist2015; Flags: skipifdoesntexist; Tasks: not portable
 Filename: "{tmp}\perl.msi"; StatusMsg: "Installing Perl"; Components: langs\perl; Flags: shellexec skipifdoesntexist; Tasks: not portable
 Filename: "{tmp}\python.msi"; StatusMsg: "Installing Python"; Components: langs\python; Flags: shellexec skipifdoesntexist; Tasks: not portable
 Filename: "{tmp}\python.exe"; Parameters: "InstallAllUsers=1 PrependPath=1"; StatusMsg: "Installing Python"; Components: langs\python; Flags: shellexec skipifdoesntexist; Tasks: not portable
@@ -196,6 +198,13 @@ BeveledLabel= {#APPNAM}
 
 [Code]
 #ifndef USE_INNO_DOWNLOAD_PLUGIN
+var
+	FallbackDownloadUrls: array of String;
+	FallbackDownloadFiles: array of String;
+
+function URLDownloadToFile(Caller: Integer; URL: String; FileName: String; Reserved: Integer; StatusCB: Integer): Integer;
+external 'URLDownloadToFileW@urlmon.dll stdcall delayload';
+
 // The Inno Download Plugin isn't always installed in CI environments.
 // Provide no-op fallback procedures so installer compilation still succeeds.
 procedure idpDownloadAfter(PageID: Integer);
@@ -204,10 +213,40 @@ end;
 
 procedure idpClearFiles;
 begin
+	SetArrayLength(FallbackDownloadUrls, 0);
+	SetArrayLength(FallbackDownloadFiles, 0);
 end;
 
 procedure idpAddFile(URL: String; Filename: String);
+var
+	I: Integer;
 begin
+	I := GetArrayLength(FallbackDownloadUrls);
+	SetArrayLength(FallbackDownloadUrls, I + 1);
+	SetArrayLength(FallbackDownloadFiles, I + 1);
+	FallbackDownloadUrls[I] := URL;
+	FallbackDownloadFiles[I] := Filename;
+end;
+
+function idpDownloadQueuedFiles(): Boolean;
+var
+	I: Integer;
+	ResultCode: Integer;
+begin
+	Result := True;
+	for I := 0 to GetArrayLength(FallbackDownloadUrls) - 1 do
+	begin
+		if not FileExists(FallbackDownloadFiles[I]) then
+		begin
+			ResultCode := URLDownloadToFile(0, FallbackDownloadUrls[I], FallbackDownloadFiles[I], 0, 0);
+			if ResultCode <> 0 then
+			begin
+				MsgBox('Unable to download required installer dependency:' + #13#10 + FallbackDownloadUrls[I], mbError, MB_OK);
+				Result := False;
+				Exit;
+			end;
+		end;
+	end;
 end;
 #endif
 
@@ -239,8 +278,30 @@ end;
 
 /////////////////////////////////////////////////////////////////////
 function CheckVCInstall(): Boolean;
+var
+	Installed: Cardinal;
 begin
-	Result := FileExists(GetSysDir() + 'vcruntime140.dll');;
+	Result := False;
+	if RegQueryDWordValue(HKLM64, 'SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x64', 'Installed', Installed) then
+		Result := Installed = 1
+	else if RegQueryDWordValue(HKLM, 'SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x64', 'Installed', Installed) then
+		Result := Installed = 1;
+end;
+
+procedure UpdateVCRedistComponentState;
+var
+	I: Integer;
+	Installed: Boolean;
+begin
+	Installed := CheckVCInstall();
+	for I := 0 to WizardForm.ComponentsList.Items.Count - 1 do
+	begin
+		if WizardForm.ComponentsList.ItemCaption[I] = 'Visual C++ Redistributable 2015' then
+		begin
+			WizardForm.ComponentsList.Checked[I] := not Installed;
+			WizardForm.ComponentsList.ItemEnabled[I] := not Installed;
+		end;
+	end;
 end;
 
 
@@ -268,6 +329,9 @@ var
 	PY3: String;
 	SPELL: String;
 begin
+  if (CurPageID = wpSelectComponents) then
+    UpdateVCRedistComponentState();
+
   if(CurPageID = wpReady) then
   begin
     idpClearFiles;
@@ -275,12 +339,12 @@ begin
 	if not IsTaskSelected('portable') then
 	begin
 
-		REDIST := 'https://github.com/zoitechat/gvsbuild/releases/download/zoitechat-2.16.2/vcredist_2015_x64.exe';
+		REDIST := 'https://github.com/ZoiteChat/gvsbuild/releases/download/zoitechat-2.18.0-pre4/vc_redist.x64.exe';
 		PERL := 'https://github.com/StrawberryPerl/Perl-Dist-Strawberry/releases/download/SP_54201_64bit/strawberry-perl-5.42.0.1-64bit.msi';
 		PY3 := 'https://www.python.org/ftp/python/3.14.3/python-3.14.3-amd64.exe';
 		SPELL := 'https://github.com/zoitechat/gvsbuild/releases/download/zoitechat-2.16.2/ZoiteChat.Spelling.Dictionaries.r2.exe';
 
-		if not CheckVCInstall() then
+		if IsComponentSelected('deps\vcredist2015') and not CheckVCInstall() then
 			idpAddFile(REDIST, ExpandConstant('{tmp}\vcredist.exe'));
 
 		if IsComponentSelected('spell') and not CheckSpellInstall() then
@@ -305,6 +369,17 @@ end;
 /////////////////////////////////////////////////////////////////////
 function NextButtonClick(CurPageID: Integer): Boolean;
 begin
+	Result := True;
+
+#ifndef USE_INNO_DOWNLOAD_PLUGIN
+	if CurPageID = wpReady then
+		if not idpDownloadQueuedFiles() then
+		begin
+			Result := False;
+			Exit;
+		end;
+#endif
+
 	if (CurPageID = wpSelectTasks) then
 		if (WizardForm.TasksList.Checked[1] = True) then
 			if (WizardDirValue() = ExpandConstant('{pf64}\ZoiteChat')) then
@@ -312,8 +387,6 @@ begin
 				WizardForm.TasksList.Checked[1] := False
 				MsgBox('Portable mode is only intended for use on portable drives and has been disabled.', mbInformation, MB_OK)
 			end;
-
-	Result := True; // Always continue
 end;
 
 /////////////////////////////////////////////////////////////////////
