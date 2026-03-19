@@ -241,8 +241,14 @@ end;
 
 /////////////////////////////////////////////////////////////////////
 function CheckVCInstall(): Boolean;
+var
+	Installed: Cardinal;
 begin
-	Result := FileExists(GetSysDir() + 'vcruntime140.dll');;
+	Result := False;
+	if RegQueryDWordValue(HKLM64, 'SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x64', 'Installed', Installed) then
+		Result := Installed = 1
+	else if RegQueryDWordValue(HKLM, 'SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x64', 'Installed', Installed) then
+		Result := Installed = 1;
 end;
 
 procedure UpdateVCRedistComponentState;
