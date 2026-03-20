@@ -3376,6 +3376,23 @@ mg_rightpane_cb (GtkPaned *pane, GParamSpec *param, session_gui *gui)
         prefs.hex_gui_pane_right_size = allocation.width - gtk_paned_get_position (pane) - handle_size;
 }
 
+static void
+mg_restore_rightpane_cb (GtkWidget *widget, GtkAllocation *allocation, gpointer data)
+{
+        int handle_size;
+        int saved_size;
+        /* only restore once, then disconnect */
+        g_signal_handlers_disconnect_by_func (widget, mg_restore_rightpane_cb, data);
+        /* use the value captured at connect time, since notify::position may
+         * have already overwritten prefs.hex_gui_pane_right_size during the
+         * initial layout pass */
+        saved_size = GPOINTER_TO_INT (data);
+        if (saved_size < 1)
+                return;
+        gtk_widget_style_get (widget, "handle-size", &handle_size, NULL);
+        gtk_paned_set_position (GTK_PANED (widget), allocation->width - saved_size - handle_size);
+}
+
 static gboolean
 mg_add_pane_signals (session_gui *gui)
 {
@@ -3408,6 +3425,13 @@ mg_create_center (session *sess, session_gui *gui, GtkWidget *box)
 
 	/* sep between xtext and right side */
 	gui->hpane_right = gtk_paned_new (GTK_ORIENTATION_HORIZONTAL);
+
+	/* restore right pane position after first allocation (needs widget width).
+	 * capture the saved size now because notify::position will overwrite the
+	 * pref during the initial layout before size-allocate fires. */
+	g_signal_connect (gui->hpane_right, "size-allocate",
+	                  G_CALLBACK (mg_restore_rightpane_cb),
+	                  GINT_TO_POINTER (prefs.hex_gui_pane_right_size));
 
         if (prefs.hex_gui_win_swap)
         {
