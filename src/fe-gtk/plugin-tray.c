@@ -125,6 +125,7 @@ static void tray_menu_notify_cb (GObject *tray, GParamSpec *pspec, gpointer user
 static void tray_update_toggle_item_label (void);
 static gboolean tray_window_state_cb (GtkWidget *widget, GdkEventWindowState *event, gpointer userdata);
 static void tray_window_visibility_cb (GtkWidget *widget, gpointer userdata);
+static void tray_toggle_item_destroy_cb (GtkWidget *widget, gpointer userdata);
 #if HAVE_APPINDICATOR_BACKEND
 static void tray_menu_show_cb (GtkWidget *menu, gpointer userdata) G_GNUC_UNUSED;
 #endif
@@ -408,7 +409,8 @@ tray_app_indicator_cleanup (void)
 
 	if (tray_menu)
 	{
-		gtk_widget_destroy (tray_menu);
+		if (GTK_IS_WIDGET (tray_menu))
+			gtk_widget_destroy (tray_menu);
 		tray_menu = NULL;
 	}
 }
@@ -1026,10 +1028,15 @@ blink_item (unsigned int *setting, GtkWidget *menu, char *label)
 static void
 tray_menu_destroy (GtkWidget *menu, gpointer userdata)
 {
-	(void)userdata;
+	GtkWidget **menu_ptr = userdata;
 
-	gtk_widget_destroy (menu);
-	g_object_unref (menu);
+	if (menu_ptr && *menu_ptr == menu)
+		*menu_ptr = NULL;
+
+	if (GTK_IS_WIDGET (menu))
+		gtk_widget_destroy (menu);
+	if (G_IS_OBJECT (menu))
+		g_object_unref (menu);
 #ifdef WIN32
 	g_source_remove (tray_menu_timer);
 #endif
@@ -1089,6 +1096,8 @@ tray_menu_populate (GtkWidget *menu)
 	zoitechat_set_context (ph, zoitechat_find_context (ph, NULL, NULL));
 
 	tray_toggle_item = tray_make_item (menu, _("_Hide Window"), tray_menu_restore_cb, NULL);
+	g_signal_connect (G_OBJECT (tray_toggle_item), "destroy",
+		G_CALLBACK (tray_toggle_item_destroy_cb), NULL);
 	tray_update_toggle_item_label ();
 	tray_make_item (menu, NULL, tray_menu_quit_cb, NULL);
 
@@ -1129,11 +1138,21 @@ tray_menu_clear (GtkWidget *menu)
 
 	children = gtk_container_get_children (GTK_CONTAINER (menu));
 	for (iter = children; iter; iter = iter->next)
-		gtk_widget_destroy (GTK_WIDGET (iter->data));
+		if (GTK_IS_WIDGET (iter->data))
+			gtk_widget_destroy (GTK_WIDGET (iter->data));
 	g_list_free (children);
 	tray_toggle_item = NULL;
 }
 #endif
+
+static void
+tray_toggle_item_destroy_cb (GtkWidget *widget, gpointer userdata)
+{
+	(void)userdata;
+
+	if (tray_toggle_item == widget)
+		tray_toggle_item = NULL;
+}
 
 static void
 tray_update_toggle_item_label (void)
@@ -1142,6 +1161,11 @@ tray_update_toggle_item_label (void)
 
 	if (!tray_toggle_item)
 		return;
+	if (!GTK_IS_MENU_ITEM (tray_toggle_item))
+	{
+		tray_toggle_item = NULL;
+		return;
+	}
 
 	if (tray_get_window_status () == WS_HIDDEN)
 		label = _("_Restore Window");
@@ -1194,10 +1218,9 @@ tray_menu_cb (GtkWidget *widget, guint button, guint time, gpointer userdata)
 	(void)time;
 	(void)userdata;
 
-	/* close any old menu */
-	if (G_IS_OBJECT (menu))
+	if (menu)
 	{
-		tray_menu_destroy (menu, NULL);
+		tray_menu_destroy (menu, &menu);
 	}
 
 	menu = gtk_menu_new ();
@@ -1207,8 +1230,9 @@ tray_menu_cb (GtkWidget *widget, guint button, guint time, gpointer userdata)
 	g_object_ref (menu);
 	g_object_ref_sink (menu);
 	g_object_unref (menu);
+	g_object_add_weak_pointer (G_OBJECT (menu), (gpointer *)&menu);
 	g_signal_connect (G_OBJECT (menu), "selection-done",
-		G_CALLBACK (tray_menu_destroy), NULL);
+		G_CALLBACK (tray_menu_destroy), &menu);
 #ifdef WIN32
 	g_signal_connect (G_OBJECT (menu), "leave-notify-event",
 		G_CALLBACK (tray_menu_left_cb), NULL);
