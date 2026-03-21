@@ -1120,7 +1120,9 @@ gtkutil_treeview_get_selected (GtkTreeView *view, GtkTreeIter *iter_ret, ...)
 gboolean
 gtkutil_tray_icon_supported (GtkWindow *window)
 {
-#ifdef GDK_WINDOWING_X11
+#if defined(HAVE_AYATANA_APPINDICATOR) || defined(HAVE_APPINDICATOR)
+	return TRUE;
+#elif defined(GDK_WINDOWING_X11)
 	GdkScreen *screen = gtk_window_get_screen (window);
 	GdkDisplay *display = gdk_screen_get_display (screen);
 	if (!GDK_IS_X11_DISPLAY (display))

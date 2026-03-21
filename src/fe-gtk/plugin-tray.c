@@ -364,8 +364,8 @@ tray_app_indicator_set_icon (TrayIcon icon)
 	if (!icon_name)
 		return;
 
-	app_indicator_set_icon_full (tray_indicator, icon_name, _(DISPLAY_NAME));
 	app_indicator_set_status (tray_indicator, APP_INDICATOR_STATUS_ACTIVE);
+	app_indicator_set_icon_full (tray_indicator, icon_name, _(DISPLAY_NAME));
 
 	g_free (icon_name_alloc);
 }
@@ -431,7 +431,6 @@ tray_app_indicator_init (void)
 	g_signal_connect (G_OBJECT (tray_menu), "map",
 		G_CALLBACK (tray_menu_show_cb), NULL);
 	app_indicator_set_menu (tray_indicator, GTK_MENU (tray_menu));
-	app_indicator_set_status (tray_indicator, APP_INDICATOR_STATUS_ACTIVE);
 
 	klass = G_OBJECT_GET_CLASS (tray_indicator);
 	if (klass && g_object_class_find_property (klass, "connected"))
@@ -1390,9 +1389,14 @@ tray_apply_setup (void)
 	}
 	else
 	{
+#if HAVE_APPINDICATOR_BACKEND
+		if (prefs.hex_gui_tray)
+			tray_init ();
+#else
 		GtkWindow *window = GTK_WINDOW(zoitechat_get_info (ph, "gtkwin_ptr"));
 		if (prefs.hex_gui_tray && gtkutil_tray_icon_supported (window))
 			tray_init ();
+#endif
 	}
 }
 
@@ -1439,7 +1443,11 @@ tray_plugin_init (zoitechat_plugin *plugin_handle, char **plugin_name,
 			G_CALLBACK (tray_window_visibility_cb), NULL);
 	}
 
+#if HAVE_APPINDICATOR_BACKEND
+	if (prefs.hex_gui_tray)
+#else
 	if (prefs.hex_gui_tray && gtkutil_tray_icon_supported (window))
+#endif
 		tray_init ();
 
 	return 1;       /* return 1 for success */

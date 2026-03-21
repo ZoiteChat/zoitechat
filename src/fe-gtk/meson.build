@@ -65,8 +65,8 @@ if host_machine.system() != 'windows'
       if appindicator_dep.found()
         zoitechat_gtk_deps += appindicator_dep
         zoitechat_gtk_cflags += '-DHAVE_APPINDICATOR'
-      elif appindicator_opt.enabled()
-        error('appindicator=enabled, but neither ayatana-appindicator3-0.1 nor appindicator3-0.1 was found')
+      elif appindicator_opt.enabled() or (appindicator_opt.auto() and host_machine.system() == 'linux')
+        error('tray support requires ayatana-appindicator3-0.1 or appindicator3-0.1 on Linux (use -Dappindicator=disabled to override)')
       endif
     endif
   endif
