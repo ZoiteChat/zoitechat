@@ -723,6 +723,7 @@ theme_preferences_manager_dialog_response_cb (GtkDialog *dialog, gint response_i
                 if (theme_preferences_stage.active)
                 {
                         ThemeSemanticToken token;
+                        ThemeWidgetStyleValues style_values;
 
                         for (token = THEME_TOKEN_MIRC_0; token < THEME_TOKEN_COUNT; token++)
                         {
@@ -733,6 +734,12 @@ theme_preferences_manager_dialog_response_cb (GtkDialog *dialog, gint response_i
                                 theme_preferences_stage.staged[token] = rgba;
                                 theme_preferences_stage.staged_valid[token] = TRUE;
                         }
+                        theme_get_widget_style_values_for_widget (GTK_WIDGET (dialog), &style_values);
+                        theme_preferences_stage.staged[THEME_TOKEN_TEXT_FOREGROUND] = style_values.foreground;
+                        theme_preferences_stage.staged_valid[THEME_TOKEN_TEXT_FOREGROUND] = TRUE;
+                        theme_preferences_stage.staged[THEME_TOKEN_TEXT_BACKGROUND] = style_values.background;
+                        theme_preferences_stage.staged_valid[THEME_TOKEN_TEXT_BACKGROUND] = TRUE;
+                        theme_preferences_stage_sync_runtime_to_staged ();
                         theme_preferences_stage_recompute_changed ();
                         if (ui->color_change_flag)
                                 *ui->color_change_flag = theme_preferences_stage.changed;

@@ -2197,8 +2197,8 @@ setup_ok_cb (GtkWidget *but, GtkWidget *win)
         char buffer[192];
 
         memcpy (&old_prefs, &prefs, sizeof (prefs));
-        theme_preferences_stage_apply ();
         setup_apply (&setup_prefs);
+        theme_preferences_stage_apply ();
         save_result = preferences_persistence_save_all ();
         if (save_result.success)
         {

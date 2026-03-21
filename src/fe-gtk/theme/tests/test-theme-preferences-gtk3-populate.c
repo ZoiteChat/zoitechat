@@ -69,6 +69,16 @@ theme_get_color (ThemeSemanticToken token, GdkRGBA *color)
 }
 
 void
+theme_get_widget_style_values_for_widget (GtkWidget *widget, ThemeWidgetStyleValues *out_values)
+{
+        (void)widget;
+        if (!out_values)
+                return;
+        gdk_rgba_parse (&out_values->foreground, "#111111");
+        gdk_rgba_parse (&out_values->background, "#f0f0f0");
+}
+
+void
 theme_manager_set_token_color (unsigned int dark_mode, ThemeSemanticToken token, const GdkRGBA *color, gboolean *changed)
 {
         (void)dark_mode;
