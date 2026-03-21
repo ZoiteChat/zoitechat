@@ -1714,11 +1714,11 @@ setup_create_sound_page (void)
 
         vbox2 = gtkutil_box_new (GTK_ORIENTATION_VERTICAL, FALSE, 0);
         gtk_widget_show (vbox2);
-        gtk_container_add (GTK_CONTAINER (vbox1), vbox2);
+        gtk_box_pack_start (GTK_BOX (vbox1), vbox2, TRUE, TRUE, 0);
 
         scrolledwindow1 = gtk_scrolled_window_new (NULL, NULL);
         gtk_widget_show (scrolledwindow1);
-        gtk_container_add (GTK_CONTAINER (vbox2), scrolledwindow1);
+        gtk_box_pack_start (GTK_BOX (vbox2), scrolledwindow1, TRUE, TRUE, 0);
         gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow1),
                                                                                           GTK_POLICY_AUTOMATIC, GTK_POLICY_ALWAYS);
         gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scrolledwindow1),
@@ -1793,7 +1793,7 @@ setup_add_page (const char *title, GtkWidget *book, GtkWidget *tab)
         gtk_widget_set_margin_bottom (label, 1);
         gtk_box_pack_start (GTK_BOX (vvbox), label, FALSE, FALSE, 2);
 
-        gtk_container_add (GTK_CONTAINER (vvbox), tab);
+        gtk_box_pack_start (GTK_BOX (vvbox), tab, TRUE, TRUE, 0);
 
         sw = GTK_SCROLLED_WINDOW(gtk_scrolled_window_new (NULL, NULL));
         gtk_scrolled_window_set_shadow_type (sw, GTK_SHADOW_IN);
