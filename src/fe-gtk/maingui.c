@@ -4375,10 +4375,37 @@ mg_win32_filter (GdkXEvent *xevent, GdkEvent *event, gpointer data)
 			{
 				if (strcmp (command, "__WIN32_TASKBAR_TOGGLE__") == 0)
 				{
-					if (gtk_widget_get_visible (current_sess->gui->window))
-						fe_ctrl_gui (current_sess, FE_GUI_ICONIFY, 0);
+					GtkWidget *widget = current_sess->gui->window;
+					GdkWindow *gdk_window = NULL;
+					gboolean hidden = TRUE;
+
+					if (widget)
+					{
+						hidden = !gtk_widget_get_visible (widget);
+						gdk_window = gtk_widget_get_window (widget);
+						if (!hidden && gdk_window &&
+						    (gdk_window_get_state (gdk_window) & GDK_WINDOW_STATE_ICONIFIED))
+							hidden = TRUE;
+					}
+
+					if (hidden)
+					{
+						if (widget)
+						{
+							gtk_widget_show (widget);
+							gtk_window_deiconify (GTK_WINDOW (widget));
+							gtk_window_present (GTK_WINDOW (widget));
+						}
+						else
+							fe_ctrl_gui (current_sess, FE_GUI_SHOW, 0);
+					}
 					else
-						fe_ctrl_gui (current_sess, FE_GUI_SHOW, 0);
+					{
+						if (widget)
+							gtk_window_iconify (GTK_WINDOW (widget));
+						else
+							fe_ctrl_gui (current_sess, FE_GUI_ICONIFY, 0);
+					}
 				}
 				else
 				{

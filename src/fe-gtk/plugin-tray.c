@@ -582,23 +582,33 @@ tray_backend_cleanup (void)
 	tray_backend_active = FALSE;
 }
 
+static gboolean
+tray_window_is_hidden (GtkWidget *widget)
+{
+	GdkWindow *gdk_win;
+
+	if (!widget || !gtk_widget_get_visible (widget))
+		return TRUE;
+
+	gdk_win = gtk_widget_get_window (widget);
+	if (gdk_win && (gdk_window_get_state (gdk_win) & GDK_WINDOW_STATE_ICONIFIED))
+		return TRUE;
+
+	return FALSE;
+}
+
 static WinStatus
 tray_get_window_status (void)
 {
 	GtkWindow *win;
 	GtkWidget *widget;
-	GdkWindow *gdk_win;
 	const char *st;
 
 	win = GTK_WINDOW (zoitechat_get_info (ph, "gtkwin_ptr"));
 	if (win)
 	{
 		widget = GTK_WIDGET (win);
-		if (!gtk_widget_get_visible (widget))
-			return WS_HIDDEN;
-
-		gdk_win = gtk_widget_get_window (widget);
-		if (gdk_win && (gdk_window_get_state (gdk_win) & GDK_WINDOW_STATE_ICONIFIED))
+		if (tray_window_is_hidden (widget))
 			return WS_HIDDEN;
 	}
 
@@ -853,6 +863,8 @@ tray_toggle_visibility (gboolean force_hide)
 	static int maximized;
 	static int fullscreen;
 	GtkWindow *win;
+	GtkWidget *widget;
+	gboolean hidden;
 
 	if (!tray_backend_active)
 		return FALSE;
@@ -868,7 +880,10 @@ tray_toggle_visibility (gboolean force_hide)
 	if (!win)
 		return FALSE;
 
-	if (force_hide || gtk_widget_get_visible (GTK_WIDGET (win)))
+	widget = GTK_WIDGET (win);
+	hidden = tray_window_is_hidden (widget);
+
+	if (force_hide || !hidden)
 	{
 		if (prefs.hex_gui_tray_away)
 			zoitechat_command (ph, "ALLSERV AWAY");
