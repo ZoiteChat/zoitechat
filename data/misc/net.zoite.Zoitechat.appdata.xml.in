@@ -29,6 +29,45 @@
     <id>zoitechat.desktop</id>
   </provides>
 <releases>
+  <release date="2026-03-22" version="2.18.0~pre5">
+    <description>
+      <p>Preferences and config saving:</p>
+      <ul>
+        <li>Overhauled preferences/config saving: fully staged and transactional, debounced with flush on close, write failures now surfaced.</li>
+      </ul>
+      <p>GTK theme and UI:</p>
+      <ul>
+        <li>Overhauled GTK theme handling: live preview, correct colour reset persistence, proper <code>file://</code> import paths, consistent menubar CSS.</li>
+        <li>Fixed GTK entry scroll artifact in the input box.</li>
+        <li>Split topic/mode rows in channel bar, tighten spacing, persist userlist column widths.</li>
+        <li>Preserve saved right-pane size on first layout.</li>
+        <li>Fixed sounds prefs section.</li>
+        <li>Fixed chanview tree layout and header alignment; tighten topic URL hit-testing.</li>
+      </ul>
+      <p>Tray:</p>
+      <ul>
+        <li>Hardened tray menu lifetime; fixed stale pointer crash on menu destruction.</li>
+        <li>Fixed AppIndicator tray init for Wayland/source builds; skip redundant X11 tray probe for AppIndicator builds.</li>
+      </ul>
+      <p>Build and packaging:</p>
+      <ul>
+        <li>Dropped <code>realpath()</code> in favour of GLib-only absolute path build.</li>
+        <li>Made About dialog links explicit; added GPL licence URL.</li>
+        <li>Added licence headers to new source files.</li>
+        <li>Windows installer: fixed VC++ redist URL, added non-plugin download fallback, switched to registry-based runtime detection.</li>
+        <li>Made <code>libayatana-appindicator</code> a required dep in PKGBUILD.</li>
+        <li>Cleaned up Meson libperl detection.</li>
+      </ul>
+    </description>
+  </release>
+  <release date="2026-03-22" version="2.18.0~pre5">
+    <description>
+      <p>Version metadata update:</p>
+      <ul>
+        <li>Bumped release version references to <code>2.18.0~pre5</code> across build and packaging files.</li>
+      </ul>
+    </description>
+  </release>
   <release date="2026-03-14" version="2.18.0~pre4">
     <description>
       <p>UI fixes, topic bar improvements, and selection styling updates:</p>

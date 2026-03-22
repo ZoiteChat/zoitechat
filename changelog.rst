@@ -1,6 +1,28 @@
 ZoiteChat ChangeLog
 =================
 
+2.18.0~pre5 (2026-03-22)
+------------------------
+- Overhauled preferences/config saving: fully staged and transactional, debounced
+  with flush on close, write failures now surfaced.
+- Overhauled GTK theme handling: live preview, correct colour reset persistence,
+  proper file:// import paths, consistent menubar CSS.
+- Fixed GTK entry scroll artifact in the input box.
+- Hardened tray menu lifetime; fixed stale pointer crash on menu destruction.
+- Fixed AppIndicator tray init for Wayland/source builds; skip redundant X11
+  tray probe for AppIndicator builds.
+- Split topic/mode rows in channel bar, tighten spacing, persist userlist column widths.
+- Preserve saved right-pane size on first layout.
+- Fixed sounds prefs section.
+- Fixed chanview tree layout and header alignment; tighten topic URL hit-testing.
+- Dropped realpath() in favour of GLib-only absolute path build.
+- Made About dialog links explicit; added GPL licence URL.
+- Added licence headers to new source files.
+- Windows installer: fixed VC++ redist URL, added non-plugin download fallback,
+  switched to registry-based runtime detection.
+- Made libayatana-appindicator a required dep in PKGBUILD.
+- Cleaned up Meson libperl detection.
+
 2.18.0~pre4 (2026-03-15)
 ------------------------
 
