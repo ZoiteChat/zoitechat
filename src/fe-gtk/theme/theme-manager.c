@@ -216,8 +216,6 @@ theme_manager_queue_auto_refresh (GtkSettings *settings, GParamSpec *pspec, gpoi
 void
 theme_manager_init (void)
 {
-	GtkSettings *settings;
-
 	if (!theme_manager_listeners)
 		theme_manager_listeners = g_hash_table_new_full (g_direct_hash, g_direct_equal, NULL,
 									 theme_listener_free);
@@ -225,21 +223,10 @@ theme_manager_init (void)
 	if (!theme_manager_setup_listener_id)
 		theme_manager_setup_listener_id = theme_listener_register ("setup.apply", theme_manager_setup_apply_listener, NULL);
 
-	settings = gtk_settings_get_default ();
-	if (settings)
-		fe_set_auto_dark_mode_state (theme_policy_system_prefers_dark ());
-
+	fe_set_auto_dark_mode_state (FALSE);
 	theme_application_apply_mode (prefs.hex_gui_dark_mode, NULL);
 	theme_gtk3_init ();
 	zoitechat_set_theme_post_apply_callback (theme_manager_handle_theme_applied);
-
-	if (settings)
-	{
-		g_signal_connect (settings, "notify::gtk-application-prefer-dark-theme",
-					  G_CALLBACK (theme_manager_queue_auto_refresh), NULL);
-		g_signal_connect (settings, "notify::gtk-theme-name",
-					  G_CALLBACK (theme_manager_queue_auto_refresh), NULL);
-	}
 }
 
 gboolean
@@ -494,7 +481,6 @@ theme_manager_apply_wayland_kde_csd (GtkWidget *window)
 static void
 theme_manager_apply_platform_window_theme (GtkWidget *window)
 {
-#ifdef G_OS_WIN32
 	GtkStyleContext *context;
 	gboolean dark;
 
@@ -516,6 +502,7 @@ theme_manager_apply_platform_window_theme (GtkWidget *window)
 		gtk_style_context_remove_class (context, "zoitechat-light");
 		gtk_style_context_add_class (context, dark ? "zoitechat-dark" : "zoitechat-light");
 	}
+#ifdef G_OS_WIN32
 	fe_win32_apply_native_titlebar (window, dark);
 #else
 	theme_manager_apply_wayland_kde_csd (window);
