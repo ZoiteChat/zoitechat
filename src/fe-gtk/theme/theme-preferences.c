@@ -1350,6 +1350,19 @@ theme_preferences_gtk3_sync_remove_state (theme_preferences_ui *ui)
         gtk_widget_set_sensitive (ui->gtk3_remove, source == ZOITECHAT_GTK3_THEME_SOURCE_USER);
 }
 
+static gboolean
+theme_preferences_gtk3_apply_and_refresh (GError **error)
+{
+        if (!theme_gtk3_apply_current (error))
+                return FALSE;
+        theme_manager_dispatch_changed (THEME_CHANGED_REASON_THEME_PACK |
+                                        THEME_CHANGED_REASON_PALETTE |
+                                        THEME_CHANGED_REASON_WIDGET_STYLE |
+                                        THEME_CHANGED_REASON_USERLIST |
+                                        THEME_CHANGED_REASON_MODE);
+        return TRUE;
+}
+
 static void
 theme_preferences_gtk3_changed_cb (GtkComboBox *combo, gpointer user_data)
 {
@@ -1380,7 +1393,7 @@ theme_preferences_gtk3_changed_cb (GtkComboBox *combo, gpointer user_data)
                 ui->setup_prefs->hex_gui_gtk3_variant = prefs.hex_gui_gtk3_variant;
         }
 
-        if (selection_changed && !theme_gtk3_apply_current (&error))
+        if (selection_changed && !theme_preferences_gtk3_apply_and_refresh (&error))
         {
                 theme_preferences_show_message (ui, GTK_MESSAGE_ERROR,
                                                 error ? error->message : _("Failed to apply GTK3 theme."));
@@ -1557,7 +1570,7 @@ theme_preferences_populate_gtk3 (theme_preferences_ui *ui)
                 g_free (final_id);
         }
 
-        if (should_apply && !theme_gtk3_apply_current (&error))
+        if (should_apply && !theme_preferences_gtk3_apply_and_refresh (&error))
         {
                 theme_preferences_show_message (ui, GTK_MESSAGE_ERROR,
                                                 error ? error->message : _("Failed to apply GTK3 theme."));

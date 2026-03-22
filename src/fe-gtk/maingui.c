@@ -4206,7 +4206,7 @@ mg_create_menu (session_gui *gui, GtkWidget *table, int away_state)
                                                                                         gui->menu_item);
         gtk_widget_set_hexpand (gui->menu, TRUE);
         gtk_widget_set_vexpand (gui->menu, FALSE);
-        gtk_widget_set_halign (gui->menu, GTK_ALIGN_FILL);
+        gtk_widget_set_halign (gui->menu, GTK_ALIGN_START);
         gtk_widget_set_valign (gui->menu, GTK_ALIGN_FILL);
         gtk_grid_attach (GTK_GRID (table), gui->menu, 0, 0, 3, 1);
 }

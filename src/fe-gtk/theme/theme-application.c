@@ -26,16 +26,29 @@
 #include "theme-runtime.h"
 #include "theme-gtk3.h"
 #include "../maingui.h"
-
-#ifdef G_OS_WIN32
 #include <gtk/gtk.h>
 
+#if defined(__GNUC__) || defined(__clang__)
+extern char *theme_css_build_toplevel_classes (void) __attribute__ ((weak));
+#else
+extern char *theme_css_build_toplevel_classes (void);
+#endif
+
+static char *
+theme_application_build_toplevel_css (void)
+{
+	if (theme_css_build_toplevel_classes)
+		return theme_css_build_toplevel_classes ();
+
+	return g_strdup ("");
+}
+
 static void
-theme_application_apply_windows_theme (gboolean dark)
+theme_application_apply_toplevel_theme (gboolean dark)
 {
 	GtkSettings *settings = gtk_settings_get_default ();
-	static GtkCssProvider *win_theme_provider = NULL;
-	static gboolean win_theme_provider_installed = FALSE;
+	static GtkCssProvider *theme_provider = NULL;
+	static gboolean theme_provider_installed = FALSE;
 	GdkScreen *screen;
 	gboolean prefer_dark = dark;
 	char *css;
@@ -56,33 +69,21 @@ theme_application_apply_windows_theme (gboolean dark)
 	if (!screen)
 		return;
 
-	if (theme_gtk3_is_active ())
-	{
-		if (win_theme_provider_installed && win_theme_provider)
-		{
-			gtk_style_context_remove_provider_for_screen (screen,
-				GTK_STYLE_PROVIDER (win_theme_provider));
-			win_theme_provider_installed = FALSE;
-		}
-		return;
-	}
+	if (!theme_provider)
+		theme_provider = gtk_css_provider_new ();
 
-	if (!win_theme_provider)
-		win_theme_provider = gtk_css_provider_new ();
-
-	css = theme_css_build_toplevel_classes ();
-	gtk_css_provider_load_from_data (win_theme_provider, css, -1, NULL);
+	css = theme_application_build_toplevel_css ();
+	gtk_css_provider_load_from_data (theme_provider, css, -1, NULL);
 	g_free (css);
 
-	if (!win_theme_provider_installed)
+	if (!theme_provider_installed)
 	{
 		gtk_style_context_add_provider_for_screen (screen,
-			GTK_STYLE_PROVIDER (win_theme_provider),
+			GTK_STYLE_PROVIDER (theme_provider),
 			GTK_STYLE_PROVIDER_PRIORITY_APPLICATION + 1);
-		win_theme_provider_installed = TRUE;
+		theme_provider_installed = TRUE;
 	}
 }
-#endif
 
 gboolean
 theme_application_apply_mode (unsigned int mode, gboolean *palette_changed)
@@ -91,10 +92,7 @@ theme_application_apply_mode (unsigned int mode, gboolean *palette_changed)
 
 	theme_runtime_load ();
 	dark = theme_runtime_apply_mode (mode, palette_changed);
-
-#ifdef G_OS_WIN32
-	theme_application_apply_windows_theme (dark);
-#endif
+	theme_application_apply_toplevel_theme (dark);
 
 	theme_application_reload_input_style ();
 

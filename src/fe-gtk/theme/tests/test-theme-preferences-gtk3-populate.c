@@ -102,6 +102,12 @@ theme_manager_save_preferences (void)
 	return TRUE;
 }
 
+void
+theme_manager_dispatch_changed (ThemeChangedReason reasons)
+{
+        (void)reasons;
+}
+
 ThemePaletteBehavior
 theme_manager_get_userlist_palette_behavior (const PangoFontDescription *font_desc)
 {
