@@ -394,18 +394,15 @@ theme_manager_handle_theme_applied (void)
 static gboolean
 theme_manager_is_kde_wayland (void)
 {
-	const char *wayland_display;
 	const char *desktop;
 	char *desktop_lower;
 	gboolean is_kde;
 
-	wayland_display = g_getenv ("WAYLAND_DISPLAY");
-	if (!wayland_display || !wayland_display[0])
-		return FALSE;
-
 	desktop = g_getenv ("XDG_CURRENT_DESKTOP");
 	if (!desktop || !desktop[0])
 		desktop = g_getenv ("XDG_SESSION_DESKTOP");
+	if ((!desktop || !desktop[0]) && g_getenv ("KDE_FULL_SESSION"))
+		return TRUE;
 	if (!desktop || !desktop[0])
 		return FALSE;
 
@@ -441,7 +438,7 @@ theme_manager_apply_wayland_kde_csd (GtkWidget *window)
 
 			headerbar = gtk_header_bar_new ();
 			gtk_header_bar_set_show_close_button (GTK_HEADER_BAR (headerbar), TRUE);
-			gtk_header_bar_set_decoration_layout (GTK_HEADER_BAR (headerbar), "menu:minimize,maximize,close");
+			gtk_header_bar_set_decoration_layout (GTK_HEADER_BAR (headerbar), ":minimize,maximize,close");
 			icon_pixbuf = gdk_pixbuf_new_from_resource_at_scale ("/icons/zoitechat.svg", 32, 32, TRUE, NULL);
 			if (!icon_pixbuf)
 				icon_pixbuf = gdk_pixbuf_new_from_resource_at_scale ("/icons/zoitechat.png", 32, 32, TRUE, NULL);
