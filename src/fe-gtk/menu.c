@@ -1888,22 +1888,37 @@ about_dialog_button_openurl (GtkButton *button, gpointer data)
 static void
 about_dialog_add_links (GtkAboutDialog *dialog)
 {
-	GtkWidget *content = gtk_dialog_get_content_area (GTK_DIALOG (dialog));
-	GtkWidget *row = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 8);
+	GtkWidget *actions = gtk_dialog_get_action_area (GTK_DIALOG (dialog));
 	GtkWidget *website = gtk_button_new_with_label ("Website");
 	GtkWidget *license = gtk_button_new_with_label ("License");
+
 	g_signal_connect (G_OBJECT (website), "clicked", G_CALLBACK (about_dialog_button_openurl), "http://zoitechat.zoite.net");
 	g_signal_connect (G_OBJECT (license), "clicked", G_CALLBACK (about_dialog_button_openurl), "https://www.gnu.org/licenses/old-licenses/gpl-2.0.html");
-	gtk_box_pack_start (GTK_BOX (row), website, FALSE, FALSE, 0);
-	gtk_box_pack_start (GTK_BOX (row), license, FALSE, FALSE, 0);
-	gtk_box_pack_start (GTK_BOX (content), row, FALSE, FALSE, 0);
-	gtk_widget_show_all (row);
+	gtk_box_pack_start (GTK_BOX (actions), website, FALSE, FALSE, 0);
+	gtk_box_pack_start (GTK_BOX (actions), license, FALSE, FALSE, 0);
+	gtk_button_box_set_child_secondary (GTK_BUTTON_BOX (actions), website, TRUE);
+	gtk_button_box_set_child_secondary (GTK_BUTTON_BOX (actions), license, TRUE);
+	gtk_widget_show_all (actions);
+}
+
+static void
+about_dialog_strip_actions (GtkDialog *dialog)
+{
+	GtkWidget *area = gtk_dialog_get_action_area (dialog);
+	GList *children = gtk_container_get_children (GTK_CONTAINER (area));
+	GList *node;
+
+	for (node = children; node != NULL; node = node->next)
+		gtk_widget_destroy (GTK_WIDGET (node->data));
+
+	g_list_free (children);
 }
 
 static void
 menu_about (GtkWidget *wid, gpointer sess)
 {
 	GtkAboutDialog *dialog = GTK_ABOUT_DIALOG(gtk_about_dialog_new());
+	static const gchar *empty_people[] = { NULL };
 	theme_manager_attach_window (GTK_WIDGET (dialog));
 	char comment[512];
 	g_snprintf  (comment, sizeof(comment), ""
@@ -1920,14 +1935,20 @@ menu_about (GtkWidget *wid, gpointer sess)
 
 	gtk_about_dialog_set_program_name (dialog, _(DISPLAY_NAME));
 	gtk_about_dialog_set_version (dialog, PACKAGE_VERSION);
-	gtk_about_dialog_set_authors (dialog, NULL);
-	gtk_about_dialog_set_documenters (dialog, NULL);
-	gtk_about_dialog_set_artists (dialog, NULL);
-	gtk_about_dialog_set_translator_credits (dialog, NULL);
+	gtk_about_dialog_set_authors (dialog, empty_people);
+	gtk_about_dialog_set_documenters (dialog, empty_people);
+	gtk_about_dialog_set_artists (dialog, empty_people);
+	gtk_about_dialog_set_translator_credits (dialog, "");
+	gtk_about_dialog_set_website (dialog, NULL);
+	gtk_about_dialog_set_website_label (dialog, NULL);
+	gtk_about_dialog_set_license (dialog, NULL);
+	gtk_about_dialog_set_wrap_license (dialog, FALSE);
 	gtk_about_dialog_set_logo (dialog, pix_zoitechat);
 	gtk_about_dialog_set_copyright (dialog, "\302\251 1998-2010 Peter \305\275elezn\303\275\n\302\251 2009-2014 Berke Viktor\n\302\251 2015-2025 Patrick Griffis\n\302\251 2026 deepend");
 	gtk_about_dialog_set_comments (dialog, comment);
+	about_dialog_strip_actions (GTK_DIALOG (dialog));
 	about_dialog_add_links (dialog);
+	gtk_dialog_add_button (GTK_DIALOG (dialog), _("_Close"), GTK_RESPONSE_CLOSE);
 
 	gtk_window_set_transient_for (GTK_WINDOW(dialog), GTK_WINDOW(parent_window));
 	g_signal_connect (G_OBJECT(dialog), "response", G_CALLBACK(about_dialog_close), NULL);
