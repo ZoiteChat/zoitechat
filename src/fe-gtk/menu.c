@@ -1880,14 +1880,20 @@ about_dialog_openurl (GtkAboutDialog *dialog, char *uri, gpointer data)
 }
 
 static void
+about_dialog_button_openurl (GtkButton *button, gpointer data)
+{
+	fe_open_url ((const char *)data);
+}
+
+static void
 about_dialog_add_links (GtkAboutDialog *dialog)
 {
 	GtkWidget *content = gtk_dialog_get_content_area (GTK_DIALOG (dialog));
 	GtkWidget *row = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 8);
-	GtkWidget *website = gtk_link_button_new_with_label ("http://zoitechat.zoite.net", "Website");
-	GtkWidget *license = gtk_link_button_new_with_label ("https://www.gnu.org/licenses/old-licenses/gpl-2.0.html", "License");
-	gtk_button_set_relief (GTK_BUTTON (website), GTK_RELIEF_NONE);
-	gtk_button_set_relief (GTK_BUTTON (license), GTK_RELIEF_NONE);
+	GtkWidget *website = gtk_button_new_with_label ("Website");
+	GtkWidget *license = gtk_button_new_with_label ("License");
+	g_signal_connect (G_OBJECT (website), "clicked", G_CALLBACK (about_dialog_button_openurl), "http://zoitechat.zoite.net");
+	g_signal_connect (G_OBJECT (license), "clicked", G_CALLBACK (about_dialog_button_openurl), "https://www.gnu.org/licenses/old-licenses/gpl-2.0.html");
 	gtk_box_pack_start (GTK_BOX (row), website, FALSE, FALSE, 0);
 	gtk_box_pack_start (GTK_BOX (row), license, FALSE, FALSE, 0);
 	gtk_box_pack_start (GTK_BOX (content), row, FALSE, FALSE, 0);
@@ -1919,7 +1925,7 @@ menu_about (GtkWidget *wid, gpointer sess)
 	gtk_about_dialog_set_artists (dialog, NULL);
 	gtk_about_dialog_set_translator_credits (dialog, NULL);
 	gtk_about_dialog_set_logo (dialog, pix_zoitechat);
-	gtk_about_dialog_set_copyright (dialog, "\302\251 1998-2010 Peter \305\275elezn\303\275\n\302\251 2009-2014 Berke Viktor\n\302\251 2026 deepend");
+	gtk_about_dialog_set_copyright (dialog, "\302\251 1998-2010 Peter \305\275elezn\303\275\n\302\251 2009-2014 Berke Viktor\n\302\251 2015-2025 Patrick Griffis\n\302\251 2026 deepend");
 	gtk_about_dialog_set_comments (dialog, comment);
 	about_dialog_add_links (dialog);
 
