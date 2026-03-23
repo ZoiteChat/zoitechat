@@ -1802,6 +1802,44 @@ menu_change_layout (void)
 	}
 }
 
+void
+menu_update_quit_accel (void)
+{
+	GSList *list;
+
+	list = sess_list;
+	while (list)
+	{
+		session *sess = list->data;
+		session_gui *gui = sess->gui;
+		GtkWidget *item;
+		GtkAccelGroup *accel_group;
+		int enabled;
+
+		list = list->next;
+		if (!gui)
+			continue;
+
+		item = gui->menu_item[MENU_ID_QUIT];
+		if (!item)
+			continue;
+
+		enabled = GPOINTER_TO_INT (g_object_get_data (G_OBJECT (item), "zc-ctrlq-enabled"));
+		if (enabled == (int)prefs.hex_gui_ctrlq_quit)
+			continue;
+
+		accel_group = g_object_get_data (G_OBJECT (item), "zc-quit-accel-group");
+		if (!accel_group)
+			continue;
+
+		if (prefs.hex_gui_ctrlq_quit)
+			gtk_widget_add_accelerator (item, "activate", accel_group, GDK_KEY_q, STATE_CTRL, GTK_ACCEL_VISIBLE);
+		else
+			gtk_widget_remove_accelerator (item, accel_group, GDK_KEY_q, STATE_CTRL);
+		g_object_set_data (G_OBJECT (item), "zc-ctrlq-enabled", GINT_TO_POINTER (prefs.hex_gui_ctrlq_quit));
+	}
+}
+
 static void
 menu_layout_cb (GtkWidget *item, gpointer none)
 {
@@ -1977,7 +2015,7 @@ static struct mymenu mymenu[] = {
 #define CLOSE_OFFSET (13)
 	{0, menu_close, 0, M_MENUITEM, 0, 0, 1},
 	{0, 0, 0, M_SEP, 0, 0, 0},
-	{N_("_Quit"), menu_quit, 0, M_MENUITEM, 0, 0, 1, GDK_KEY_q},	/* 15 */
+	{N_("_Quit"), menu_quit, 0, M_MENUITEM, MENU_ID_QUIT, 0, 1, GDK_KEY_q},	/* 15 */
 
 	{N_("_View"), 0, 0, M_NEWMENU, 0, 0, 1},
 #define MENUBAR_OFFSET (17)
@@ -2661,7 +2699,7 @@ menu_create_main (void *accel_group, int bar, int away, int toplevel,
 		case M_MENUITEM:
 			item = gtk_menu_item_new_with_mnemonic (_(mymenu[i].text));
 normalitem:
-			if (mymenu[i].key != 0)
+			if (mymenu[i].key != 0 && !(mymenu[i].id == MENU_ID_QUIT && !prefs.hex_gui_ctrlq_quit))
 				gtk_widget_add_accelerator (item, "activate", accel_group,
 									mymenu[i].key,
 									mymenu[i].key == GDK_KEY_F1 ? 0 :
@@ -2671,6 +2709,11 @@ normalitem:
 										STATE_SHIFT | STATE_CTRL :
 										STATE_CTRL,
 									GTK_ACCEL_VISIBLE);
+			if (mymenu[i].id == MENU_ID_QUIT)
+			{
+				g_object_set_data (G_OBJECT (item), "zc-quit-accel-group", accel_group);
+				g_object_set_data (G_OBJECT (item), "zc-ctrlq-enabled", GINT_TO_POINTER (prefs.hex_gui_ctrlq_quit));
+			}
 			if (mymenu[i].callback)
 				g_signal_connect (G_OBJECT (item), "activate",
 										G_CALLBACK (mymenu[i].callback), 0);

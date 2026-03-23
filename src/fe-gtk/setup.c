@@ -536,6 +536,7 @@ static const setting general_settings[] =
         {ST_TOGGLE,     N_("WHOIS on notify"), P_OFFINTNL(hex_notify_whois_online), N_("Sends a /WHOIS when a user comes online in your notify list."), 0, 0},
         {ST_TOGGLE,     N_("Hide join and part messages"), P_OFFINTNL(hex_irc_conf_mode), N_("Hide channel join/part messages by default."), 0, 0},
         {ST_TOGGLE,     N_("Hide nick change messages"), P_OFFINTNL(hex_irc_hide_nickchange), 0, 0, 0},
+        {ST_TOGGLE,     N_("Enable Ctrl+Q to quit"), P_OFFINTNL(hex_gui_ctrlq_quit), 0, 0, 0},
 
         {ST_END, 0, 0, 0, 0, 0}
 };
@@ -2070,6 +2071,7 @@ setup_apply_real (const ThemeChangedEvent *event)
         }
 
         mg_apply_setup ();
+        menu_update_quit_accel ();
         tray_apply_setup ();
         zoitechat_reinit_timers ();
 

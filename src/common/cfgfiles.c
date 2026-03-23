@@ -411,6 +411,7 @@ const struct prefs vars[] =
 	{"gui_chanlist_width_topic", P_OFFINT (hex_gui_chanlist_width_topic), TYPE_INT},
 	{"gui_chanlist_width_users", P_OFFINT (hex_gui_chanlist_width_users), TYPE_INT},
 	{"gui_compact", P_OFFINT (hex_gui_compact), TYPE_BOOL},
+	{"gui_ctrlq_quit", P_OFFINT (hex_gui_ctrlq_quit), TYPE_BOOL},
 	{"gui_dialog_height", P_OFFINT (hex_gui_dialog_height), TYPE_INT},
 	{"gui_dialog_left", P_OFFINT (hex_gui_dialog_left), TYPE_INT},
 	{"gui_dialog_top", P_OFFINT (hex_gui_dialog_top), TYPE_INT},
@@ -765,6 +766,7 @@ load_default_config(void)
 #ifdef HAVE_GTK_MAC
 	prefs.hex_gui_hide_menu = 1;
 #endif
+	prefs.hex_gui_ctrlq_quit = 1;
 	prefs.hex_gui_input_attr = 1;
 	prefs.hex_gui_input_icon = 1;
 	prefs.hex_gui_input_nick = 1;

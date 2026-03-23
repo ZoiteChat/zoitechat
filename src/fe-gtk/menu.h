@@ -38,6 +38,7 @@ void menu_create (GtkWidget *menu, GSList *list, char *target, int check_path);
 void menu_bar_toggle (void);
 void menu_add_plugin_items (GtkWidget *menu, char *root, char *target);
 void menu_change_layout (void);
+void menu_update_quit_accel (void);
 
 void menu_set_away (session_gui *gui, int away);
 void menu_set_fullscreen (session_gui *gui, int fullscreen);
@@ -63,8 +64,9 @@ void menu_set_fullscreen (session_gui *gui, int fullscreen);
 #define MENU_ID_USERMENU 12
 #define MENU_ID_FULLSCREEN 13
 #define MENU_ID_ZOITECHAT 14
+#define MENU_ID_QUIT 15
 
-#if (MENU_ID_NUM < MENU_ID_ZOITECHAT)
+#if (MENU_ID_NUM < MENU_ID_QUIT)
 #error MENU_ID_NUM is set wrong
 #endif
 
