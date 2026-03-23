@@ -44,13 +44,28 @@
 enum
 {
 	COL_PIX=0,		/* GdkPixbuf * */
-	COL_NICK=1,		/* char * */
-	COL_HOST=2,		/* char * */
-	COL_USER=3,		/* struct User * */
-	COL_GDKCOLOR=4	/* GdkRGBA */
+	COL_PREFIX=1,	/* char * */
+	COL_NICK=2,		/* char * */
+	COL_HOST=3,		/* char * */
+	COL_USER=4,		/* struct User * */
+	COL_GDKCOLOR=5	/* GdkRGBA */
 };
 
 static void userlist_store_color (GtkListStore *store, GtkTreeIter *iter, ThemeSemanticToken token, gboolean has_token);
+
+static const char *
+userlist_prefix_color (char prefix)
+{
+	switch (prefix)
+	{
+		case '~': return "#d46a6a";
+		case '@': return "#5ea36a";
+		case '%': return "#d39a5f";
+		case '&': return "#79aecd";
+		case '+': return "#d2bf6a";
+		default: return NULL;
+	}
+}
 
 static void
 userlist_column_width_notify_cb (GtkTreeViewColumn *column, GParamSpec *pspec, gpointer userdata)
@@ -500,6 +515,11 @@ fe_userlist_insert (session *sess, struct User *newuser, gboolean sel)
 	GdkPixbuf *pix = get_user_icon (sess->server, newuser);
 	GtkTreeIter iter;
 	char *nick;
+	char *nick_escaped;
+	char *prefix = NULL;
+	char *prefix_escaped;
+	char prefix_text[2];
+	const char *prefix_color;
 	ThemeSemanticToken nick_token = THEME_TOKEN_TEXT_FOREGROUND;
 	gboolean have_nick_token = FALSE;
 
@@ -519,30 +539,36 @@ fe_userlist_insert (session *sess, struct User *newuser, gboolean sel)
 		}
 	}
 
-	nick = newuser->nick;
+	nick_escaped = g_markup_escape_text (newuser->nick, -1);
+	nick = nick_escaped;
 	if (!prefs.hex_gui_ulist_icons)
 	{
-		nick = g_malloc (strlen (newuser->nick) + 2);
-		nick[0] = newuser->prefix[0];
-		if (nick[0] == '\0' || nick[0] == ' ')
-			strcpy (nick, newuser->nick);
-		else
-			strcpy (nick + 1, newuser->nick);
+		if (newuser->prefix[0] != '\0' && newuser->prefix[0] != ' ')
+		{
+			prefix_text[0] = newuser->prefix[0];
+			prefix_text[1] = '\0';
+			prefix_escaped = g_markup_escape_text (prefix_text, -1);
+			prefix_color = userlist_prefix_color (newuser->prefix[0]);
+			if (prefix_color)
+				prefix = g_strdup_printf ("<b><span foreground=\"%s\">%s</span></b>", prefix_color, prefix_escaped);
+			else
+				prefix = g_strdup_printf ("<b>%s</b>", prefix_escaped);
+			g_free (prefix_escaped);
+		}
 		pix = NULL;
 	}
 
 	gtk_list_store_insert_with_values (GTK_LIST_STORE (model), &iter, 0,
 									COL_PIX, pix,
+									COL_PREFIX, prefix,
 									COL_NICK, nick,
 									COL_HOST, newuser->hostname,
 									COL_USER, newuser,
 								  -1);
 	userlist_store_color (GTK_LIST_STORE (model), &iter, nick_token, have_nick_token);
 
-	if (!prefs.hex_gui_ulist_icons)
-	{
-		g_free (nick);
-	}
+	g_free (prefix);
+	g_free (nick_escaped);
 
 	userlist_row_map_set (sess, model, newuser, &iter);
 
@@ -671,8 +697,8 @@ userlist_create_model (session *sess)
 	GtkTreeIterCompareFunc cmp_func;
 	GtkSortType sort_type;
 
-	store = gtk_list_store_new (5, GDK_TYPE_PIXBUF, G_TYPE_STRING, G_TYPE_STRING,
-										G_TYPE_POINTER, THEME_GTK_COLOR_TYPE);
+	store = gtk_list_store_new (6, GDK_TYPE_PIXBUF, G_TYPE_STRING, G_TYPE_STRING,
+										G_TYPE_STRING, G_TYPE_POINTER, THEME_GTK_COLOR_TYPE);
 
 	switch (prefs.hex_gui_ulist_sort)
 	{
@@ -717,19 +743,29 @@ userlist_add_columns (GtkTreeView * treeview)
 		g_object_set (G_OBJECT (renderer), "ypad", 0, NULL);
 	gtk_tree_view_insert_column_with_attributes (GTK_TREE_VIEW (treeview),
 																-1, NULL, renderer,
-																"pixbuf", 0, NULL);
+																"pixbuf", COL_PIX, NULL);
 	column = gtk_tree_view_get_column (GTK_TREE_VIEW (treeview), 0);
 	gtk_tree_view_column_set_sizing (column, GTK_TREE_VIEW_COLUMN_FIXED);
 
 	/* nick column */
+	column = gtk_tree_view_column_new ();
+	gtk_tree_view_append_column (GTK_TREE_VIEW (treeview), column);
+
+	renderer = gtk_cell_renderer_text_new ();
+	if (prefs.hex_gui_compact)
+		g_object_set (G_OBJECT (renderer), "ypad", 0, NULL);
+	gtk_cell_renderer_text_set_fixed_height_from_font (GTK_CELL_RENDERER_TEXT (renderer), 1);
+	gtk_tree_view_column_pack_start (column, renderer, FALSE);
+	gtk_tree_view_column_add_attribute (column, renderer, "markup", COL_PREFIX);
+
 	renderer = gtk_cell_renderer_text_new ();
 	if (prefs.hex_gui_compact)
 		g_object_set (G_OBJECT (renderer), "ypad", 0, NULL);
 	g_object_set (G_OBJECT (renderer), "ellipsize", PANGO_ELLIPSIZE_END, NULL);
 	gtk_cell_renderer_text_set_fixed_height_from_font (GTK_CELL_RENDERER_TEXT (renderer), 1);
-	gtk_tree_view_insert_column_with_attributes (GTK_TREE_VIEW (treeview),
-																-1, NULL, renderer,
-													"text", 1, THEME_GTK_FOREGROUND_PROPERTY, 4, NULL);
+	gtk_tree_view_column_pack_start (column, renderer, TRUE);
+	gtk_tree_view_column_add_attribute (column, renderer, "markup", COL_NICK);
+	gtk_tree_view_column_add_attribute (column, renderer, THEME_GTK_FOREGROUND_PROPERTY, COL_GDKCOLOR);
 	column = gtk_tree_view_get_column (GTK_TREE_VIEW (treeview), 1);
 	gtk_tree_view_column_set_sizing (column, GTK_TREE_VIEW_COLUMN_FIXED);
 	gtk_tree_view_column_set_expand (column, TRUE);
@@ -750,7 +786,7 @@ userlist_add_columns (GtkTreeView * treeview)
 		gtk_cell_renderer_text_set_fixed_height_from_font (GTK_CELL_RENDERER_TEXT (renderer), 1);
 		gtk_tree_view_insert_column_with_attributes (GTK_TREE_VIEW (treeview),
 																	-1, NULL, renderer,
-																	"text", 2, NULL);
+																	"text", COL_HOST, NULL);
 		column = gtk_tree_view_get_column (GTK_TREE_VIEW (treeview), 2);
 		gtk_tree_view_column_set_sizing (column, GTK_TREE_VIEW_COLUMN_FIXED);
 		gtk_tree_view_column_set_expand (column, TRUE);
