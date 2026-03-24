@@ -109,7 +109,6 @@ url_add (char *urltext, int len)
 {
 	char *data;
 	int size;
-	GUri *parsed;
 
 	if (!prefs.hex_url_grabber && !prefs.hex_url_logging)
 	{
@@ -132,16 +131,6 @@ url_add (char *urltext, int len)
 	{
 		data[len - 1] = 0;
 	}
-
-	parsed = g_uri_parse (data, G_URI_FLAGS_NONE, NULL);
-	if (parsed == NULL || g_uri_get_host (parsed) == NULL || *g_uri_get_host (parsed) == '\0')
-	{
-		if (parsed)
-			g_uri_unref (parsed);
-		g_free (data);
-		return;
-	}
-	g_uri_unref (parsed);
 
 	if (prefs.hex_url_logging)
 	{
