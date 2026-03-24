@@ -35,11 +35,13 @@ GTree *url_btree = NULL;
 static gboolean regex_match (const GRegex *re, const char *word,
 							 int *start, int *end);
 static const GRegex *re_url (void);
+static const GRegex *re_email (void);
 static const GRegex *re_nick (void);
 static const GRegex *re_channel (void);
 static gboolean match_nick (const char *word, int *start, int *end);
 static gboolean match_channel (const char *word, int *start, int *end);
 static gboolean match_url (const char *word, int *start, int *end);
+static gboolean match_email (const char *word, int *start, int *end);
 
 static int
 url_free (char *url, void *data)
@@ -107,8 +109,14 @@ url_add (char *urltext, int len)
 {
 	char *data;
 	int size;
+	GUri *parsed;
 
 	if (!prefs.hex_url_grabber && !prefs.hex_url_logging)
+	{
+		return;
+	}
+
+	if (len <= 0)
 	{
 		return;
 	}
@@ -124,6 +132,16 @@ url_add (char *urltext, int len)
 	{
 		data[len - 1] = 0;
 	}
+
+	parsed = g_uri_parse (data, G_URI_FLAGS_NONE, NULL);
+	if (parsed == NULL || g_uri_get_host (parsed) == NULL || *g_uri_get_host (parsed) == '\0')
+	{
+		if (parsed)
+			g_uri_unref (parsed);
+		g_free (data);
+		return;
+	}
+	g_uri_unref (parsed);
 
 	if (prefs.hex_url_logging)
 	{
@@ -182,6 +200,7 @@ url_check_word (const char *word)
 		int type;
 	} m[] = {
 	   { match_url,     WORD_URL },
+	   { match_email,   WORD_EMAIL },
 	   { match_channel, WORD_CHANNEL },
 	   { match_nick,    WORD_NICK },
 	   { NULL,          0}
@@ -259,6 +278,12 @@ static gboolean
 match_url (const char *word, int *start, int *end)
 {
 	return regex_match (re_url (), word, start, end);
+}
+
+static gboolean
+match_email (const char *word, int *start, int *end)
+{
+	return regex_match (re_email (), word, start, end);
 }
 
 /* List of IRC commands for which contents (and thus possible URLs)
@@ -425,6 +450,8 @@ struct
 	{ "ftp" },
 	{ "gopher" },
 	{ "gemini" },
+	{ "irc" },
+	{ "ircs" },
 	{ NULL }
 };
 
@@ -459,6 +486,22 @@ re_url (void)
 	g_free (grist);
 
 	return url_ret;
+}
+
+#define EMAIL_LOCAL_ATOM "[\\pL\\pN!#$%&'*+/=?^_`{|}~-]+"
+#define EMAIL_LOCAL EMAIL_LOCAL_ATOM "(\\." EMAIL_LOCAL_ATOM ")*"
+#define EMAIL EMAIL_LOCAL "@" DOMAIN TLD
+
+static const GRegex *
+re_email (void)
+{
+	static GRegex *email_ret;
+
+	if (email_ret) return email_ret;
+
+	email_ret = make_re ("(" EMAIL ")");
+
+	return email_ret;
 }
 
 /*	NICK description --- */
