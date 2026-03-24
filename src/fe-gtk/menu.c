@@ -1905,8 +1905,18 @@ menu_metres_both (GtkWidget *item, gpointer none)
 }
 
 static void
-about_dialog_close (GtkDialog *dialog, int response, gpointer data)
+about_dialog_response (GtkDialog *dialog, int response, gpointer data)
 {
+	if (response == GTK_RESPONSE_HELP)
+	{
+		fe_open_url ("http://zoitechat.zoite.net");
+		return;
+	}
+	if (response == GTK_RESPONSE_APPLY)
+	{
+		fe_open_url ("https://www.gnu.org/licenses/old-licenses/gpl-2.0.html");
+		return;
+	}
 	gtk_widget_destroy (GTK_WIDGET(dialog));
 }
 
@@ -1918,44 +1928,13 @@ about_dialog_openurl (GtkAboutDialog *dialog, char *uri, gpointer data)
 }
 
 static void
-about_dialog_button_openurl (GtkButton *button, gpointer data)
-{
-	fe_open_url ((const char *)data);
-}
-
-static void
-about_dialog_add_links (GtkAboutDialog *dialog)
-{
-	GtkWidget *actions = gtk_dialog_get_action_area (GTK_DIALOG (dialog));
-	GtkWidget *website = gtk_button_new_with_label ("Website");
-	GtkWidget *license = gtk_button_new_with_label ("License");
-
-	g_signal_connect (G_OBJECT (website), "clicked", G_CALLBACK (about_dialog_button_openurl), "http://zoitechat.zoite.net");
-	g_signal_connect (G_OBJECT (license), "clicked", G_CALLBACK (about_dialog_button_openurl), "https://www.gnu.org/licenses/old-licenses/gpl-2.0.html");
-	gtk_box_pack_start (GTK_BOX (actions), website, FALSE, FALSE, 0);
-	gtk_box_pack_start (GTK_BOX (actions), license, FALSE, FALSE, 0);
-	gtk_button_box_set_child_secondary (GTK_BUTTON_BOX (actions), website, TRUE);
-	gtk_button_box_set_child_secondary (GTK_BUTTON_BOX (actions), license, TRUE);
-	gtk_widget_show_all (actions);
-}
-
-static void
-about_dialog_strip_actions (GtkDialog *dialog)
-{
-	GtkWidget *area = gtk_dialog_get_action_area (dialog);
-	GList *children = gtk_container_get_children (GTK_CONTAINER (area));
-	GList *node;
-
-	for (node = children; node != NULL; node = node->next)
-		gtk_widget_destroy (GTK_WIDGET (node->data));
-
-	g_list_free (children);
-}
-
-static void
 menu_about (GtkWidget *wid, gpointer sess)
 {
-	GtkAboutDialog *dialog = GTK_ABOUT_DIALOG(gtk_about_dialog_new());
+	GtkAboutDialog *dialog = GTK_ABOUT_DIALOG (g_object_new (GTK_TYPE_ABOUT_DIALOG, "use-header-bar", FALSE, NULL));
+	GtkWidget *website;
+	GtkWidget *license;
+	GtkWidget *close;
+	GtkWidget *actions;
 	static const gchar *empty_people[] = { NULL };
 	theme_manager_attach_window (GTK_WIDGET (dialog));
 	char comment[512];
@@ -1984,12 +1963,16 @@ menu_about (GtkWidget *wid, gpointer sess)
 	gtk_about_dialog_set_logo (dialog, pix_zoitechat);
 	gtk_about_dialog_set_copyright (dialog, "\302\251 1998-2010 Peter \305\275elezn\303\275\n\302\251 2009-2014 Berke Viktor\n\302\251 2015-2025 Patrick Griffis\n\302\251 2026 deepend");
 	gtk_about_dialog_set_comments (dialog, comment);
-	about_dialog_strip_actions (GTK_DIALOG (dialog));
-	about_dialog_add_links (dialog);
-	gtk_dialog_add_button (GTK_DIALOG (dialog), _("_Close"), GTK_RESPONSE_CLOSE);
+	website = gtk_dialog_add_button (GTK_DIALOG (dialog), "Website", GTK_RESPONSE_HELP);
+	license = gtk_dialog_add_button (GTK_DIALOG (dialog), "License", GTK_RESPONSE_APPLY);
+	close = gtk_dialog_add_button (GTK_DIALOG (dialog), _("_Close"), GTK_RESPONSE_CLOSE);
+	actions = gtk_widget_get_parent (website);
+	gtk_button_box_set_child_secondary (GTK_BUTTON_BOX (actions), website, TRUE);
+	gtk_button_box_set_child_secondary (GTK_BUTTON_BOX (actions), license, TRUE);
+	gtk_button_box_set_child_secondary (GTK_BUTTON_BOX (actions), close, FALSE);
 
 	gtk_window_set_transient_for (GTK_WINDOW(dialog), GTK_WINDOW(parent_window));
-	g_signal_connect (G_OBJECT(dialog), "response", G_CALLBACK(about_dialog_close), NULL);
+	g_signal_connect (G_OBJECT(dialog), "response", G_CALLBACK(about_dialog_response), NULL);
 	g_signal_connect (G_OBJECT(dialog), "activate-link", G_CALLBACK(about_dialog_openurl), NULL);
 	
 	gtk_widget_show_all (GTK_WIDGET(dialog));
