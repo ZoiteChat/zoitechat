@@ -83,7 +83,7 @@ Root: HKCR; Subkey: "ZoiteChat.Theme\shell\open\command"; ValueType: string; Val
 [Run]
 Filename: "{app}\zoitechat.exe"; Description: "Run ZoiteChat after closing the Wizard"; Flags: nowait postinstall skipifsilent
 Filename: "http://docs.zoitechat.org/en/latest/changelog.html"; Description: "See what's changed"; Flags: shellexec runasoriginaluser postinstall skipifsilent unchecked
-Filename: "{tmp}\vcredist.exe"; Parameters: "/install /quiet /norestart"; StatusMsg: "Installing Visual C++ Redistributable"; Components: deps\vcredist2015; Flags: skipifdoesntexist; Tasks: not portable
+Filename: "{tmp}\vcredist.exe"; Parameters: "/install /quiet /norestart"; StatusMsg: "Installing Visual C++ Redistributable"; Components: deps\vcredist2015; Tasks: not portable
 Filename: "{tmp}\perl.msi"; StatusMsg: "Installing Perl"; Components: langs\perl; Flags: shellexec skipifdoesntexist; Tasks: not portable
 Filename: "{tmp}\python.msi"; StatusMsg: "Installing Python"; Components: langs\python; Flags: shellexec skipifdoesntexist; Tasks: not portable
 Filename: "{tmp}\python.exe"; Parameters: "InstallAllUsers=1 PrependPath=1"; StatusMsg: "Installing Python"; Components: langs\python; Flags: shellexec skipifdoesntexist; Tasks: not portable
@@ -339,7 +339,7 @@ begin
 	if not IsTaskSelected('portable') then
 	begin
 
-		REDIST := 'https://github.com/ZoiteChat/gvsbuild/releases/download/zoitechat-2.18.0-pre4/vc_redist.x64.exe';
+		REDIST := 'https://aka.ms/vs/17/release/vc_redist.x64.exe';
 		PERL := 'https://github.com/StrawberryPerl/Perl-Dist-Strawberry/releases/download/SP_54201_64bit/strawberry-perl-5.42.0.1-64bit.msi';
 		PY3 := 'https://www.python.org/ftp/python/3.14.3/python-3.14.3-amd64.exe';
 		SPELL := 'https://github.com/zoitechat/gvsbuild/releases/download/zoitechat-2.16.2/ZoiteChat.Spelling.Dictionaries.r2.exe';
@@ -387,6 +387,14 @@ begin
 				WizardForm.TasksList.Checked[1] := False
 				MsgBox('Portable mode is only intended for use on portable drives and has been disabled.', mbInformation, MB_OK)
 			end;
+
+	if CurPageID = wpReady then
+		if IsComponentSelected('deps\vcredist2015') and not CheckVCInstall() and not FileExists(ExpandConstant('{tmp}\vcredist.exe')) then
+		begin
+			MsgBox('Visual C++ Redistributable could not be downloaded. Please retry setup or install it manually and rerun setup.', mbError, MB_OK);
+			Result := False;
+			Exit;
+		end;
 end;
 
 /////////////////////////////////////////////////////////////////////
