@@ -29,6 +29,7 @@
 #ifdef WIN32
 #include <windows.h>
 #include <dwmapi.h>
+#include <glib/gwin32.h>
 #else
 #include <unistd.h>
 #endif
@@ -301,9 +302,28 @@ fe_args (int argc, char *argv[])
 	GOptionContext *context;
 	char *buffer;
 	const char *desktop_id = "net.zoite.Zoitechat";
+#ifdef WIN32
+	char *base_path = NULL;
+	char *locale_path = NULL;
+#endif
 
 #ifdef ENABLE_NLS
+#ifdef WIN32
+	base_path = g_win32_get_package_installation_directory_of_module (NULL);
+	if (base_path)
+	{
+		locale_path = g_build_filename (base_path, "share", "locale", NULL);
+		bindtextdomain (GETTEXT_PACKAGE, locale_path);
+	}
+	else
+	{
+		bindtextdomain (GETTEXT_PACKAGE, LOCALEDIR);
+	}
+	g_free (locale_path);
+	g_free (base_path);
+#else
 	bindtextdomain (GETTEXT_PACKAGE, LOCALEDIR);
+#endif
 	bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
 	textdomain (GETTEXT_PACKAGE);
 #endif
