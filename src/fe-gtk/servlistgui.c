@@ -152,6 +152,8 @@ servlist_generate_client_cert_cb (GtkWidget *button, gpointer userdata)
 	char *key_file;
 	char *crt_file;
 	char *subject;
+	char *openssl_conf;
+	const char *conf_data;
 	char *key_data;
 	char *crt_data;
 	char *pem_data;
@@ -162,7 +164,7 @@ servlist_generate_client_cert_cb (GtkWidget *button, gpointer userdata)
 	gboolean spawned;
 	gboolean success;
 	gint status;
-	char *argv[18];
+	char *argv[20];
 
 	if (!net || !net->name || !net->name[0])
 		return;
@@ -172,6 +174,10 @@ servlist_generate_client_cert_cb (GtkWidget *button, gpointer userdata)
 	key_file = g_strdup_printf ("%s" G_DIR_SEPARATOR_S "%s.key", cert_dir, net->name);
 	crt_file = g_strdup_printf ("%s" G_DIR_SEPARATOR_S "%s.crt", cert_dir, net->name);
 	subject = g_strdup_printf ("/CN=%s", net->name);
+	openssl_conf = g_build_filename (cert_dir, "openssl.cnf", NULL);
+	conf_data = "[req]\n"
+					"distinguished_name=req_distinguished_name\n"
+					"[req_distinguished_name]\n";
 	key_data = NULL;
 	crt_data = NULL;
 	pem_data = NULL;
@@ -182,7 +188,8 @@ servlist_generate_client_cert_cb (GtkWidget *button, gpointer userdata)
 	success = FALSE;
 	status = 0;
 
-	if (g_mkdir_with_parents (cert_dir, 0700) == 0)
+	if (g_mkdir_with_parents (cert_dir, 0700) == 0 &&
+		 g_file_set_contents (openssl_conf, conf_data, -1, NULL))
 	{
 		argv[0] = "openssl";
 		argv[1] = "req";
@@ -199,9 +206,11 @@ servlist_generate_client_cert_cb (GtkWidget *button, gpointer userdata)
 		argv[12] = key_file;
 		argv[13] = "-out";
 		argv[14] = crt_file;
-		argv[15] = "-subj";
-		argv[16] = subject;
-		argv[17] = NULL;
+		argv[15] = "-config";
+		argv[16] = openssl_conf;
+		argv[17] = "-subj";
+		argv[18] = subject;
+		argv[19] = NULL;
 
 		spawned = g_spawn_sync (NULL, argv, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL,
 									 &stdout_data, &stderr_data, &status, NULL);
@@ -220,6 +229,7 @@ servlist_generate_client_cert_cb (GtkWidget *button, gpointer userdata)
 
 	g_remove (key_file);
 	g_remove (crt_file);
+	g_remove (openssl_conf);
 
 	if (success)
 	{
@@ -254,6 +264,7 @@ servlist_generate_client_cert_cb (GtkWidget *button, gpointer userdata)
 	g_free (subject);
 	g_free (crt_file);
 	g_free (key_file);
+	g_free (openssl_conf);
 	g_free (cert_file);
 	g_free (cert_dir);
 #else
