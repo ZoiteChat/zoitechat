@@ -348,24 +348,13 @@ gtk_entry_find_position (GtkEntry *entry, gint x)
 static void
 insert_hiddenchar (SexySpellEntry *entry, guint start, guint end)
 {
-	/* FIXME: Pango does not properly reflect the new widths after a char
-	 * is 'hidden' */
-#if 0
 	PangoAttribute *hattr;
-	PangoRectangle *rect = g_new (PangoRectangle, 1);
+	PangoRectangle rect = { 0 };
 
-	rect->x = 0;
-	rect->y = 0;
-	rect->width = 0;
-	rect->height = 0;
-
-	hattr = pango_attr_shape_new (rect, rect);
+	hattr = pango_attr_shape_new (&rect, &rect);
 	hattr->start_index = start;
 	hattr->end_index = end;
 	pango_attr_list_insert (entry->priv->attr_list, hattr);
-
-	g_free (rect);
-#endif
 }
 
 static void
@@ -1089,6 +1078,7 @@ check_attributes (SexySpellEntry *entry, const char *text, int len)
 			break;
 
 		case ATTR_COLOR:
+			insert_hiddenchar (entry, i, i + 1);
 			parsing_color = 1;
 			offset = 1;
 			break;
@@ -1102,6 +1092,7 @@ check_color:
 			{
 				if (text[i] == ',' && parsing_color <= 3)
 				{
+					insert_hiddenchar (entry, i, i + 1);
 					parsing_color = 3;
 					offset++;
 					continue;
@@ -1118,21 +1109,25 @@ check_color:
 			{
 			case 1:
 				fg_color[0] = text[i];
+				insert_hiddenchar (entry, i, i + 1);
 				parsing_color++;
 				offset++;
 				continue;
 			case 2:
 				fg_color[1] = text[i];
+				insert_hiddenchar (entry, i, i + 1);
 				parsing_color++;
 				offset++;
 				continue;
 			case 3:
 				bg_color[0] = text[i];
+				insert_hiddenchar (entry, i, i + 1);
 				parsing_color++;
 				offset++;
 				continue;
 			case 4:
 				bg_color[1] = text[i];
+				insert_hiddenchar (entry, i, i + 1);
 				parsing_color++;
 				offset++;
 				continue;
@@ -1162,13 +1157,31 @@ check_color:
 			}
 		}
 	}
+
+	if (parsing_color)
+	{
+		if (bg_color[0] != 0)
+		{
+			insert_hiddenchar (entry, len - offset, len);
+			insert_color (entry, len, atoi (fg_color), atoi (bg_color));
+		}
+		else if (fg_color[0] != 0)
+		{
+			insert_hiddenchar (entry, len - offset, len);
+			insert_color (entry, len, atoi (fg_color), -1);
+		}
+		else
+		{
+			insert_hiddenchar (entry, len - offset, len - offset + 1);
+			insert_color (entry, len, -1, -1);
+		}
+	}
 }
 
 static gboolean
 attr_list_has_attrs (PangoAttrList *attrs)
 {
 	PangoAttrIterator *it;
-	GSList *list;
 	gboolean has = FALSE;
 
 	if (!attrs)
@@ -1178,9 +1191,15 @@ attr_list_has_attrs (PangoAttrList *attrs)
 	if (!it)
 		return FALSE;
 
-	list = pango_attr_iterator_get_attrs (it);
-	has = (list != NULL);
-	g_slist_free_full (list, (GDestroyNotify) pango_attribute_destroy);
+	do
+	{
+		GSList *list = pango_attr_iterator_get_attrs (it);
+		has = (list != NULL);
+		g_slist_free_full (list, (GDestroyNotify) pango_attribute_destroy);
+		if (has)
+			break;
+	}
+	while (pango_attr_iterator_next (it));
 	pango_attr_iterator_destroy (it);
 
 	return has;
