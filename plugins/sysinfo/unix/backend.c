@@ -121,7 +121,6 @@ char *sysinfo_backend_get_cpu(void)
 char *sysinfo_backend_get_gpu(void)
 {
 	char vid_card[bsize];
-	char agp_bridge[bsize];
 	char buffer[bsize];
 	int ret;
 
@@ -130,17 +129,28 @@ char *sysinfo_backend_get_gpu(void)
 		return NULL;
 	}
 
-	if (xs_parse_agpbridge (agp_bridge) != 0)
-	{
-		g_snprintf (buffer, bsize, "%s", vid_card);
-	}
-	else
-	{
-		g_snprintf (buffer, bsize, "%s @ %s", vid_card, agp_bridge);
-	}
+	g_snprintf (buffer, bsize, "%s", vid_card);
 
 	return g_strdup (buffer);
 }
+
+char *sysinfo_backend_get_chipset(void)
+{
+	char agp_bridge[bsize];
+	char buffer[bsize];
+	int ret;
+
+	if ((ret = xs_parse_agpbridge (agp_bridge)) != 0)
+	{
+		return NULL;
+	}
+
+	g_snprintf (buffer, bsize, "%s", agp_bridge);
+
+	return g_strdup (buffer);
+
+}
+
 
 char *sysinfo_backend_get_sound(void)
 {
