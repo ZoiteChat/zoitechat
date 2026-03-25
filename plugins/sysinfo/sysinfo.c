@@ -54,16 +54,11 @@ typedef struct
 static char *
 get_client (void)
 {
-	char *ui = sysinfo_backend_get_ui();
-	const char *ver = zoitechat_get_info(ph, "version");
+		const char *ver = zoitechat_get_info(ph, "version");
 	char *out;
 
-	if (ui != NULL && *ui != '\0')
-		out = g_strdup_printf ("ZoiteChat %s (%s)", ver, ui);
-	else
 		out = g_strdup_printf ("ZoiteChat %s", ver);
 
-	g_free (ui);
 	return out;
 }
 
