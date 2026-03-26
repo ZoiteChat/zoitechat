@@ -427,7 +427,6 @@ enum
         GTK3_THEME_COL_ID = 0,
         GTK3_THEME_COL_LABEL,
         GTK3_THEME_COL_SOURCE,
-        GTK3_THEME_COL_THUMBNAIL,
         GTK3_THEME_COL_COUNT
 };
 
@@ -1403,25 +1402,6 @@ theme_preferences_gtk3_changed_cb (GtkComboBox *combo, gpointer user_data)
         g_free (id);
 }
 
-static GdkPixbuf *
-theme_preferences_load_thumbnail (const char *path)
-{
-	GError *error = NULL;
-	GdkPixbuf *pixbuf;
-
-	if (!path)
-		return NULL;
-
-	pixbuf = gdk_pixbuf_new_from_file_at_scale (path, 48, 48, TRUE, &error);
-	if (!pixbuf)
-	{
-		g_clear_error (&error);
-		return NULL;
-	}
-
-	return pixbuf;
-}
-
 static int
 theme_preferences_gtk3_find_system_theme_index (GPtrArray *themes)
 {
@@ -1480,22 +1460,15 @@ theme_preferences_populate_gtk3 (theme_preferences_ui *ui)
                 ZoitechatGtk3Theme *theme = g_ptr_array_index (themes, i);
                 char *label = g_strdup_printf ("%s (%s)", theme->display_name,
                                                theme->source == ZOITECHAT_GTK3_THEME_SOURCE_USER ? _("user") : _("system"));
-                GdkPixbuf *thumbnail = NULL;
-
-		if (theme->thumbnail_path && g_file_test (theme->thumbnail_path, G_FILE_TEST_IS_REGULAR))
-			thumbnail = theme_preferences_load_thumbnail (theme->thumbnail_path);
 
                 gtk_tree_store_append (store, &iter, NULL);
                 gtk_tree_store_set (store, &iter,
                                     GTK3_THEME_COL_ID, theme->id,
                                     GTK3_THEME_COL_LABEL, label,
                                     GTK3_THEME_COL_SOURCE, theme->source,
-                                    GTK3_THEME_COL_THUMBNAIL, thumbnail,
                                     -1);
                 if (g_strcmp0 (prefs.hex_gui_gtk3_theme, theme->id) == 0)
                         active = i;
-                if (thumbnail)
-                        g_object_unref (thumbnail);
                 g_free (label);
         }
         if (active < 0 && using_system_default)
@@ -1680,13 +1653,9 @@ theme_preferences_create_page (GtkWindow *parent,
         gtk3_store = gtk_tree_store_new (GTK3_THEME_COL_COUNT,
                                          G_TYPE_STRING,
                                          G_TYPE_STRING,
-                                         G_TYPE_INT,
-                                         GDK_TYPE_PIXBUF);
+                                         G_TYPE_INT);
         ui->gtk3_combo = gtk_combo_box_new_with_model (GTK_TREE_MODEL (gtk3_store));
         g_object_unref (gtk3_store);
-        renderer = gtk_cell_renderer_pixbuf_new ();
-        gtk_cell_layout_pack_start (GTK_CELL_LAYOUT (ui->gtk3_combo), renderer, FALSE);
-        gtk_cell_layout_add_attribute (GTK_CELL_LAYOUT (ui->gtk3_combo), renderer, "pixbuf", GTK3_THEME_COL_THUMBNAIL);
         renderer = gtk_cell_renderer_text_new ();
         gtk_cell_layout_pack_start (GTK_CELL_LAYOUT (ui->gtk3_combo), renderer, TRUE);
         gtk_cell_layout_add_attribute (GTK_CELL_LAYOUT (ui->gtk3_combo), renderer, "text", GTK3_THEME_COL_LABEL);
