@@ -2998,7 +2998,7 @@ mg_create_topicbar (session *sess, GtkWidget *box)
                 sess->res->tab = NULL;
 
         gui->topic_entry = topic = gtk_text_view_new ();
-        gtk_widget_set_name (topic, "zoitechat-inputbox");
+        gtk_widget_set_name (topic, "zoitechat-topicbox");
         gtk_text_view_set_wrap_mode (GTK_TEXT_VIEW (topic), GTK_WRAP_WORD_CHAR);
         gtk_text_view_set_justification (GTK_TEXT_VIEW (topic), GTK_JUSTIFY_LEFT);
         gtk_text_view_set_left_margin (GTK_TEXT_VIEW (topic), 4);
