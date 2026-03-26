@@ -2311,7 +2311,16 @@ gtk_xtext_motion_notify (GtkWidget * widget, GdkEventMotion * event)
 	if (!window)
 		return FALSE;
 
-	gtk_xtext_get_pointer (window, &x, &y, &mask);
+	if (event->is_hint)
+	{
+		gtk_xtext_get_pointer (window, &x, &y, &mask);
+	}
+	else
+	{
+		x = (int)event->x;
+		y = (int)event->y;
+		mask = event->state;
+	}
 
 	if (xtext->moving_separator)
 	{
@@ -2487,9 +2496,12 @@ gtk_xtext_button_release (GtkWidget * widget, GdkEventButton * event)
 	GtkXText *xtext = GTK_XTEXT (widget);
 	unsigned char *word;
 	int old;
+	int event_x, event_y;
 	GtkAllocation allocation;
 
 	gtk_widget_get_allocation (widget, &allocation);
+	event_x = (int)event->x;
+	event_y = (int)event->y;
 
 	if (xtext->moving_separator)
 	{
@@ -2539,8 +2551,8 @@ gtk_xtext_button_release (GtkWidget * widget, GdkEventButton * event)
 			return FALSE;
 		}
 
-		if (xtext->select_start_x == event->x &&
-			 xtext->select_start_y == event->y &&
+		if (xtext->select_start_x == event_x &&
+			 xtext->select_start_y == event_y &&
 			 xtext->buffer->last_ent_start)
 		{
 			gtk_xtext_unselect (xtext);
@@ -2550,7 +2562,7 @@ gtk_xtext_button_release (GtkWidget * widget, GdkEventButton * event)
 
 		if (!gtk_xtext_is_selecting (xtext))
 		{
-			word = gtk_xtext_get_word (xtext, event->x, event->y, 0, 0, 0, 0);
+			word = gtk_xtext_get_word (xtext, event_x, event_y, 0, 0, 0, 0);
 			g_signal_emit (G_OBJECT (xtext), xtext_signals[WORD_CLICK], 0, word ? word : NULL, event);
 		}
 	}
@@ -2572,7 +2584,9 @@ gtk_xtext_button_press (GtkWidget * widget, GdkEventButton * event)
 	if (!window)
 		return FALSE;
 
-	gtk_xtext_get_pointer (window, &x, &y, &mask);
+	x = (int)event->x;
+	y = (int)event->y;
+	mask = event->state;
 
 	if (event->button == 3 || event->button == 2) /* right/middle click */
 	{
