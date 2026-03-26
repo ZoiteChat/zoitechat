@@ -326,7 +326,8 @@ theme_runtime_get_color (ThemeSemanticToken token, GdkRGBA *out_rgba)
 gboolean
 theme_runtime_mode_has_user_colors (gboolean dark_mode)
 {
-	(void) dark_mode;
+	if (dark_mode)
+		return dark_user_colors_valid;
 	return user_colors_valid;
 }
 
@@ -467,7 +468,6 @@ theme_runtime_load (void)
 
 	active_palette = light_palette;
 	dark_mode_active = FALSE;
-	user_colors_valid = TRUE;
 }
 
 static gboolean

@@ -49,14 +49,14 @@ GType gtk_xtext_get_type (void);
 #define ATTR_UNDERLINE		'\037'
 
 /* these match palette.h */
-#define XTEXT_MIRC_COLS 32
-#define XTEXT_COLS 37		/* 32 plus 5 for extra stuff below */
-#define XTEXT_MARK_FG 32	/* for marking text */
-#define XTEXT_MARK_BG 33
-#define XTEXT_FG 34
-#define XTEXT_BG 35
-#define XTEXT_MARKER 36		/* for marker line */
-#define XTEXT_MAX_COLOR 41
+#define XTEXT_MIRC_COLS 99
+#define XTEXT_COLS 104		/* 99 plus 5 for extra stuff below */
+#define XTEXT_MARK_FG 99	/* for marking text */
+#define XTEXT_MARK_BG 100
+#define XTEXT_FG 101
+#define XTEXT_BG 102
+#define XTEXT_MARKER 103	/* for marker line */
+#define XTEXT_MAX_COLOR 98
 typedef struct textentry textentry;
 
 /*
