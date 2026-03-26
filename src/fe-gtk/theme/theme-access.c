@@ -89,7 +89,7 @@ theme_access_get_gtk_palette_map (GtkWidget *widget, ThemeGtkPaletteMap *out_map
 	GdkRGBA accent;
 
 	g_return_val_if_fail (out_map != NULL, FALSE);
-	if (!theme_gtk3_is_active () || widget == NULL)
+	if (!theme_gtk3_is_active () || widget == NULL || !GTK_IS_WIDGET (widget))
 		return FALSE;
 
 	context = gtk_widget_get_style_context (widget);
@@ -208,7 +208,8 @@ theme_get_xtext_colors_for_widget (GtkWidget *widget, XTextColor *palette, size_
 	theme_get_widget_style_values_for_widget (widget, &style_values);
 	theme_runtime_get_xtext_colors (palette, palette_len);
 	has_user_colors = theme_runtime_mode_has_user_colors (theme_runtime_is_dark_active ());
-	theme_access_apply_default_99_palette (palette, palette_len, !has_user_colors);
+	if (palette_len >= THEME_XTEXT_MIRC_COLS)
+		theme_access_apply_default_99_palette (palette, palette_len, !has_user_colors);
 	if (palette_len > THEME_XTEXT_MARK_FG_INDEX)
 	{
 		palette[THEME_XTEXT_MARK_FG_INDEX].red = style_values.selection_foreground.red;

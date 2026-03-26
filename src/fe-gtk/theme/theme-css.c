@@ -93,7 +93,7 @@ theme_css_apply_widget_provider (GtkWidget *widget, GtkStyleProvider *provider)
 {
 	GtkStyleContext *context;
 
-	if (!widget || !provider)
+	if (!widget || !provider || !GTK_IS_WIDGET (widget))
 		return;
 
 	context = gtk_widget_get_style_context (widget);
@@ -276,7 +276,7 @@ theme_css_apply_palette_widget (GtkWidget *widget, const GdkRGBA *bg, const GdkR
 	gchar *sel_bg_color = NULL;
 	gchar *sel_fg_color = NULL;
 
-	if (!widget)
+	if (!widget || !GTK_IS_WIDGET (widget))
 		return;
 
 	provider = g_object_get_data (G_OBJECT (widget), theme_css_palette_provider_key);
