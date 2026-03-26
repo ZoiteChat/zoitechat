@@ -1410,16 +1410,26 @@ mg_populate (session *sess)
         {
                 GtkTextBuffer *topic_buffer;
 
+                GtkTextIter start;
+                GtkTextIter end;
+
                 topic_buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (gui->topic_entry));
                 gtk_text_buffer_set_text (topic_buffer, res->topic_text, -1);
+                gtk_text_buffer_get_bounds (topic_buffer, &start, &end);
+                gtk_text_buffer_apply_tag_by_name (topic_buffer, "zoitechat-topic-left", &start, &end);
                 g_free (res->topic_text);
                 res->topic_text = NULL;
         } else
         {
                 GtkTextBuffer *topic_buffer;
 
+                GtkTextIter start;
+                GtkTextIter end;
+
                 topic_buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (gui->topic_entry));
                 gtk_text_buffer_set_text (topic_buffer, "", -1);
+                gtk_text_buffer_get_bounds (topic_buffer, &start, &end);
+                gtk_text_buffer_apply_tag_by_name (topic_buffer, "zoitechat-topic-left", &start, &end);
         }
         mg_restore_speller (gui->input_box, &res->input_text);
         mg_restore_entry (gui->key_entry, &res->key_text);
@@ -2990,8 +3000,11 @@ mg_create_topicbar (session *sess, GtkWidget *box)
         gui->topic_entry = topic = gtk_text_view_new ();
         gtk_widget_set_name (topic, "zoitechat-inputbox");
         gtk_text_view_set_wrap_mode (GTK_TEXT_VIEW (topic), GTK_WRAP_WORD_CHAR);
+        gtk_text_view_set_justification (GTK_TEXT_VIEW (topic), GTK_JUSTIFY_LEFT);
         gtk_text_view_set_left_margin (GTK_TEXT_VIEW (topic), 4);
         gtk_text_view_set_right_margin (GTK_TEXT_VIEW (topic), 4);
+        gtk_text_buffer_create_tag (gtk_text_view_get_buffer (GTK_TEXT_VIEW (topic)), "zoitechat-topic-left",
+                                    "justification", GTK_JUSTIFY_LEFT, NULL);
         gtk_box_pack_start (GTK_BOX (hbox), topic, TRUE, TRUE, 0);
         mg_apply_emoji_fallback_widget (topic);
         gtk_widget_add_events (topic, GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK |
