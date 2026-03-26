@@ -1136,7 +1136,6 @@ check_color:
 			{
 				if (text[i] == ',' && parsing_color <= 3)
 				{
-					insert_hiddenchar (entry, i, i + 1);
 					parsing_color = 3;
 					offset++;
 					continue;
@@ -1153,25 +1152,21 @@ check_color:
 			{
 			case 1:
 				fg_color[0] = text[i];
-				insert_hiddenchar (entry, i, i + 1);
 				parsing_color++;
 				offset++;
 				continue;
 			case 2:
 				fg_color[1] = text[i];
-				insert_hiddenchar (entry, i, i + 1);
 				parsing_color++;
 				offset++;
 				continue;
 			case 3:
 				bg_color[0] = text[i];
-				insert_hiddenchar (entry, i, i + 1);
 				parsing_color++;
 				offset++;
 				continue;
 			case 4:
 				bg_color[1] = text[i];
-				insert_hiddenchar (entry, i, i + 1);
 				parsing_color++;
 				offset++;
 				continue;
@@ -1206,17 +1201,14 @@ check_color:
 	{
 		if (bg_color[0] != 0)
 		{
-			insert_hiddenchar (entry, len - offset, len);
 			insert_color (entry, len, atoi (fg_color), atoi (bg_color));
 		}
 		else if (fg_color[0] != 0)
 		{
-			insert_hiddenchar (entry, len - offset, len);
 			insert_color (entry, len, atoi (fg_color), -1);
 		}
 		else
 		{
-			insert_hiddenchar (entry, len - offset, len - offset + 1);
 			insert_color (entry, len, -1, -1);
 		}
 	}
