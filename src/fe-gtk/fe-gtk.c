@@ -792,18 +792,21 @@ fe_set_topic (session *sess, char *topic, char *stripped_topic)
 {
 	if (!sess->gui->is_tab || sess == current_tab)
 	{
+		GtkTextBuffer *topic_buffer;
+		GtkTextIter start;
+		GtkTextIter end;
+
+		topic_buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (sess->gui->topic_entry));
 		if (prefs.hex_text_stripcolor_topic)
 		{
-			gtk_text_buffer_set_text (
-				gtk_text_view_get_buffer (GTK_TEXT_VIEW (sess->gui->topic_entry)),
-				stripped_topic, -1);
+			gtk_text_buffer_set_text (topic_buffer, stripped_topic, -1);
 		}
 		else
 		{
-			gtk_text_buffer_set_text (
-				gtk_text_view_get_buffer (GTK_TEXT_VIEW (sess->gui->topic_entry)),
-				topic, -1);
+			gtk_text_buffer_set_text (topic_buffer, topic, -1);
 		}
+		gtk_text_buffer_get_bounds (topic_buffer, &start, &end);
+		gtk_text_buffer_apply_tag_by_name (topic_buffer, "zoitechat-topic-left", &start, &end);
 		mg_set_topic_tip (sess);
 	}
 	else
