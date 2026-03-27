@@ -41,7 +41,8 @@ jobs:
             perl \
             python \
             python-cffi \
-            pciutils
+            pciutils \
+            imagemagick
 
       - name: Checkout repository
         uses: actions/checkout@v5

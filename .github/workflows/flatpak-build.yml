@@ -25,6 +25,11 @@ jobs:
         with:
           submodules: true
 
+      - name: Install ImageMagick
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends imagemagick
+
       - name: Build Flatpak
         id: flatpak_builder
         uses: flatpak/flatpak-github-actions/flatpak-builder@v6

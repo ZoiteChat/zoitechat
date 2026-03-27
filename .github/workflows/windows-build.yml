@@ -39,6 +39,7 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install cffi
           python -m pip install zstandard
+          choco install imagemagick -y --no-progress
 
           $ProgressPreference = 'SilentlyContinue'
           function Download-WithRetry {
