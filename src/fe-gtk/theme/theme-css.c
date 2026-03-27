@@ -28,6 +28,8 @@
 
 static const char *theme_css_selector_input = "#zoitechat-inputbox";
 static const char *theme_css_selector_input_text = "#zoitechat-inputbox text";
+static const char *theme_css_selector_topic = "#zoitechat-topicbox";
+static const char *theme_css_selector_topic_text = "#zoitechat-topicbox text";
 static const char *theme_css_selector_palette_class = "zoitechat-palette";
 static const char *theme_css_selector_dark_class = "zoitechat-dark";
 static const char *theme_css_selector_light_class = "zoitechat-light";
@@ -159,33 +161,37 @@ theme_css_build_input (const char *theme_name, guint16 fg_red, guint16 fg_green,
 
 	if (g_str_has_prefix (theme_name, "Adwaita") || g_str_has_prefix (theme_name, "Yaru"))
 	{
-		g_string_append_printf (css, "%s { background-image: none; }", theme_css_selector_input);
+		g_string_append_printf (css, "%s, %s { background-image: none; }",
+			theme_css_selector_input, theme_css_selector_topic);
 	}
 
 	g_string_append_printf (css,
-		"%s {"
+		"%s, %s {"
 		"background-color: #%02x%02x%02x;"
 		"color: #%02x%02x%02x;"
 		"caret-color: #%02x%02x%02x;"
 		"word-spacing: normal;"
 		"letter-spacing: normal;"
 		"}"
-		"%s {"
+		"%s, %s {"
 		"color: #%02x%02x%02x;"
 		"caret-color: #%02x%02x%02x;"
 		"word-spacing: normal;"
 		"letter-spacing: normal;"
 		"}"
+		"%s selection, %s text selection, %s:focus selection, %s:focus text selection, %s *:selected, %s *:selected:focus,"
 		"%s selection, %s text selection, %s:focus selection, %s:focus text selection, %s *:selected, %s *:selected:focus {"
 		"background-color: #%02x%02x%02x;"
 		"color: #%02x%02x%02x;"
 		"text-shadow: none;"
 		"}",
 		theme_css_selector_input,
+		theme_css_selector_topic,
 		(bg_red >> 8), (bg_green >> 8), (bg_blue >> 8),
 		(fg_red >> 8), (fg_green >> 8), (fg_blue >> 8),
 		(fg_red >> 8), (fg_green >> 8), (fg_blue >> 8),
 		theme_css_selector_input_text,
+		theme_css_selector_topic_text,
 		(fg_red >> 8), (fg_green >> 8), (fg_blue >> 8),
 		(fg_red >> 8), (fg_green >> 8), (fg_blue >> 8),
 		theme_css_selector_input,
@@ -194,6 +200,12 @@ theme_css_build_input (const char *theme_name, guint16 fg_red, guint16 fg_green,
 		theme_css_selector_input,
 		theme_css_selector_input,
 		theme_css_selector_input,
+		theme_css_selector_topic,
+		theme_css_selector_topic,
+		theme_css_selector_topic,
+		theme_css_selector_topic,
+		theme_css_selector_topic,
+		theme_css_selector_topic,
 		(sel_bg_red >> 8), (sel_bg_green >> 8), (sel_bg_blue >> 8),
 		(sel_fg_red >> 8), (sel_fg_green >> 8), (sel_fg_blue >> 8));
 
