@@ -3854,6 +3854,29 @@ mg_apply_emoji_fallback_widget (GtkWidget *widget)
 #define SEARCH_PREVIOUS         3
 #define SEARCH_REFRESH          4
 
+static session *
+search_find_channel (session *sess, const gchar *text)
+{
+	GSList *list;
+	session *item;
+
+	if (!text || !text[0])
+		return NULL;
+
+	list = sess_list;
+	while (list)
+	{
+		item = list->data;
+		if (item->server == sess->server &&
+			item->type == SESS_CHANNEL &&
+			nocasestrstr (item->channel, text))
+			return item;
+		list = list->next;
+	}
+
+	return NULL;
+}
+
 static void
 search_handle_event(int search_type, session *sess)
 {
@@ -3875,6 +3898,32 @@ search_handle_event(int search_type, session *sess)
 
         if (search_type != SEARCH_REFRESH)
                 text = gtk_entry_get_text (GTK_ENTRY(sess->gui->shentry));
+
+        if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (sess->gui->shchan)))
+        {
+                if (search_type == SEARCH_CHANGE || search_type == SEARCH_REFRESH)
+                {
+                        gtk_entry_set_icon_from_icon_name (GTK_ENTRY (sess->gui->shentry), GTK_ENTRY_ICON_SECONDARY, NULL);
+                        return;
+                }
+                session *match = search_find_channel (sess, text);
+                if (match)
+                {
+                        gtk_entry_set_icon_from_icon_name (GTK_ENTRY (sess->gui->shentry), GTK_ENTRY_ICON_SECONDARY, NULL);
+                        mg_bring_tofront_sess (match);
+                }
+                else if (text && text[0])
+                {
+                        gtk_entry_set_icon_from_icon_name (GTK_ENTRY (sess->gui->shentry), GTK_ENTRY_ICON_SECONDARY, ICON_ENTRY_ERROR);
+                        gtk_entry_set_icon_tooltip_text (GTK_ENTRY (sess->gui->shentry), GTK_ENTRY_ICON_SECONDARY, _("No channels found."));
+                }
+                else
+                {
+                        gtk_entry_set_icon_from_icon_name (GTK_ENTRY (sess->gui->shentry), GTK_ENTRY_ICON_SECONDARY, NULL);
+                }
+                return;
+        }
+
         last = gtk_xtext_search (GTK_XTEXT (sess->gui->xtext), text, flags, &err);
 
         if (err)
@@ -3970,7 +4019,7 @@ search_handle_esc (GtkWidget *win, GdkEventKey *key, session *sess)
 static void
 mg_create_search(session *sess, GtkWidget *box)
 {
-        GtkWidget *entry, *label, *next, *previous, *highlight, *matchcase, *regex, *close;
+        GtkWidget *entry, *label, *next, *previous, *highlight, *matchcase, *regex, *close, *channels;
         session_gui *gui = sess->gui;
 
         gui->shbox = mg_box_new (GTK_ORIENTATION_HORIZONTAL, FALSE, 5);
@@ -4032,6 +4081,12 @@ mg_create_search(session *sess, GtkWidget *box)
         g_signal_connect (G_OBJECT (regex), "toggled", G_CALLBACK (search_set_option), &prefs.hex_text_search_regexp);
         gtk_box_pack_start(GTK_BOX(gui->shbox), regex, FALSE, FALSE, 0);
         gtk_widget_set_tooltip_text (regex, _("Regard search string as a regular expression."));
+
+        gui->shchan = channels = gtk_check_button_new_with_mnemonic (_("_Channels only"));
+        gtk_widget_set_can_focus (channels, FALSE);
+        gtk_box_pack_start (GTK_BOX (gui->shbox), channels, FALSE, FALSE, 0);
+        gtk_widget_set_tooltip_text (channels, _("Search channel names in your current channel list."));
+        g_signal_connect (G_OBJECT (channels), "toggled", G_CALLBACK (search_handle_refresh), sess);
 }
 
 static void

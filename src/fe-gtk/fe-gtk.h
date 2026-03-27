@@ -167,7 +167,7 @@ typedef struct session_gui
 		*limit_entry,		  /* +l */
 		*key_entry;		  /* +k */
 
-		GtkWidget *shbox, *shentry;	/* search bar hbox */
+		GtkWidget *shbox, *shentry, *shchan;	/* search bar hbox */
 		gulong search_changed_signal; /* hook for search change event so blanking the box doesn't suck */
 
 #define MENU_ID_NUM 15
