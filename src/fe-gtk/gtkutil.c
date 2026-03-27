@@ -148,16 +148,7 @@ gtkutil_button_new_from_stock (const char *stock, const char *label)
 {
 	GtkWidget *button = label ? gtk_button_new_with_mnemonic (label) : gtk_button_new ();
 
-	if (stock)
-	{
-		GtkWidget *image = gtkutil_image_new_from_stock (stock, GTK_ICON_SIZE_BUTTON);
-
-		if (image)
-		{
-			gtk_button_set_image (GTK_BUTTON (button), image);
-			gtk_button_set_always_show_image (GTK_BUTTON (button), TRUE);
-		}
-	}
+	(void)stock;
 
 	return button;
 }
@@ -873,21 +864,14 @@ GtkWidget *
 gtkutil_button (GtkWidget *box, char *stock, char *tip, void *callback,
 					 void *userdata, char *labeltext)
 {
-	GtkWidget *wid, *img, *bbox;
+	GtkWidget *wid, *bbox;
 
+	(void)stock;
 	wid = gtk_button_new ();
 
 	if (labeltext)
 	{
 		gtk_button_set_label (GTK_BUTTON (wid), labeltext);
-		img = NULL;
-		if (stock)
-			img = gtkutil_image_new_from_stock (stock, GTK_ICON_SIZE_BUTTON);
-		if (img)
-		{
-			gtk_button_set_image (GTK_BUTTON (wid), img);
-			gtk_button_set_always_show_image (GTK_BUTTON (wid), TRUE);
-		}
 		gtk_button_set_use_underline (GTK_BUTTON (wid), TRUE);
 		if (box)
 			gtk_container_add (GTK_CONTAINER (box), wid);
@@ -897,16 +881,6 @@ gtkutil_button (GtkWidget *box, char *stock, char *tip, void *callback,
 		bbox = gtkutil_box_new (GTK_ORIENTATION_HORIZONTAL, FALSE, 0);
 		gtk_container_add (GTK_CONTAINER (wid), bbox);
 		gtk_widget_show (bbox);
-
-		img = NULL;
-		if (stock)
-			img = gtkutil_image_new_from_stock (stock, GTK_ICON_SIZE_BUTTON);
-		if (img)
-		{
-			gtk_container_add (GTK_CONTAINER (bbox), img);
-			gtk_widget_show (img);
-			gtk_button_set_always_show_image (GTK_BUTTON (wid), TRUE);
-		}
 		gtk_box_pack_start (GTK_BOX (box), wid, 0, 0, 0);
 	}
 

@@ -66,28 +66,6 @@
 
 static GSList *submenu_list;
 
-static gboolean
-menu_icon_exists_in_resource (const char *icon_name)
-{
-	char *resource_path;
-	gboolean found;
-
-	if (!icon_name || !g_str_has_prefix (icon_name, "zc-menu-"))
-		return FALSE;
-
-	resource_path = g_strdup_printf ("/icons/menu/light/%s.png", icon_name + strlen ("zc-menu-"));
-	found = g_resources_get_info (resource_path, G_RESOURCE_LOOKUP_FLAGS_NONE, NULL, NULL, NULL);
-	if (!found)
-	{
-		g_free (resource_path);
-		resource_path = g_strdup_printf ("/icons/menu/light/%s.svg", icon_name + strlen ("zc-menu-"));
-		found = g_resources_get_info (resource_path, G_RESOURCE_LOOKUP_FLAGS_NONE, NULL, NULL, NULL);
-	}
-	g_free (resource_path);
-
-	return found;
-}
-
 static GtkWidget *
 menu_icon_widget_new (const char *icon)
 {
@@ -111,14 +89,7 @@ menu_icon_widget_new (const char *icon)
 	}
 	else
 	{
-		char *menu_icon_name = g_strdup_printf ("zc-menu-%s", icon);
-
-		if (menu_icon_exists_in_resource (menu_icon_name))
-			img = gtkutil_image_new_from_stock (menu_icon_name, GTK_ICON_SIZE_MENU);
-		else
-			img = gtkutil_image_new_from_stock (icon, GTK_ICON_SIZE_MENU);
-
-		g_free (menu_icon_name);
+		img = gtkutil_image_new_from_stock (icon, GTK_ICON_SIZE_MENU);
 	}
 
 	g_free (path);
@@ -1541,24 +1512,6 @@ menu_join (GtkWidget * wid, gpointer none)
 									_("_OK"), GTK_RESPONSE_ACCEPT,
 									NULL);
 	theme_manager_attach_window (dialog);
-	{
-		GtkWidget *button;
-
-		button = gtk_dialog_get_widget_for_response (GTK_DIALOG (dialog), GTK_RESPONSE_HELP);
-		if (button)
-			gtk_button_set_image (GTK_BUTTON (button),
-										 gtk_image_new_from_icon_name ("help-browser", GTK_ICON_SIZE_BUTTON));
-
-		button = gtk_dialog_get_widget_for_response (GTK_DIALOG (dialog), GTK_RESPONSE_REJECT);
-		if (button)
-			gtk_button_set_image (GTK_BUTTON (button),
-										 gtkutil_image_new_from_stock ("gtk-cancel", GTK_ICON_SIZE_BUTTON));
-
-		button = gtk_dialog_get_widget_for_response (GTK_DIALOG (dialog), GTK_RESPONSE_ACCEPT);
-		if (button)
-			gtk_button_set_image (GTK_BUTTON (button),
-										 gtkutil_image_new_from_stock ("gtk-ok", GTK_ICON_SIZE_BUTTON));
-	}
 	content_area = gtk_dialog_get_content_area (GTK_DIALOG (dialog));
 	gtk_box_set_homogeneous (GTK_BOX (content_area), TRUE);
 	gtk_window_set_position (GTK_WINDOW (dialog), GTK_WIN_POS_MOUSE);
