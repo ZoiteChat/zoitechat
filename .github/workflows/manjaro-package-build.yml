@@ -43,6 +43,10 @@ jobs:
             python-cffi \
             pciutils \
             imagemagick
+          if ! command -v magick >/dev/null 2>&1 && command -v convert >/dev/null 2>&1; then
+            printf '%s\n' '#!/bin/sh' 'exec convert "$@"' > /usr/local/bin/magick
+            chmod +x /usr/local/bin/magick
+          fi
 
       - name: Checkout repository
         uses: actions/checkout@v5

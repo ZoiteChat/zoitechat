@@ -40,6 +40,12 @@ jobs:
           python -m pip install cffi
           python -m pip install zstandard
           choco install imagemagick -y --no-progress
+          if (-not (Get-Command magick -ErrorAction SilentlyContinue)) {
+            $magickDir = Get-ChildItem 'C:\Program Files\ImageMagick-*' -Directory -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+            if ($magickDir) {
+              $magickDir.FullName | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+            }
+          }
 
           $ProgressPreference = 'SilentlyContinue'
           function Download-WithRetry {

@@ -29,6 +29,10 @@ jobs:
         run: |
           apt-get update
           apt-get install -y --no-install-recommends imagemagick
+          if ! command -v magick >/dev/null 2>&1 && command -v convert >/dev/null 2>&1; then
+            printf '%s\n' '#!/bin/sh' 'exec convert "$@"' > /usr/local/bin/magick
+            chmod +x /usr/local/bin/magick
+          fi
 
       - name: Build Flatpak
         id: flatpak_builder
