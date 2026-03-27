@@ -382,12 +382,9 @@ static GtkWidget *
 servlist_icon_button_new (const char *label, const char *icon_name)
 {
 	GtkWidget *button;
-	GtkWidget *image;
 
+	(void)icon_name;
 	button = gtk_button_new_with_mnemonic (label);
-	image = gtkutil_image_new_from_stock (icon_name, GTK_ICON_SIZE_BUTTON);
-	gtk_button_set_image (GTK_BUTTON (button), image);
-	gtk_button_set_always_show_image (GTK_BUTTON (button), TRUE);
 
 	return button;
 }

@@ -297,25 +297,10 @@ resolve_bundled_variant (const IconRegistryEntry *entry, IconResolverThemeVarian
 	const char *variant_name = variant == ICON_RESOLVER_THEME_DARK ? "dark" : "light";
 	char *path;
 
-	if (entry->role == ICON_RESOLVER_ROLE_MENU_ACTION)
-	{
-		path = g_strdup_printf ("/icons/menu/%s/%s.png", variant_name, entry->resource_name);
-		if (resource_exists (path))
-			return path;
-		g_free (path);
-
-		path = g_strdup_printf ("/icons/menu/%s/%s.svg", variant_name, entry->resource_name);
-		if (resource_exists (path))
-			return path;
-		g_free (path);
-	}
-	else
-	{
-		path = g_strdup_printf ("/icons/%s-%s.png", entry->resource_name, variant_name);
-		if (resource_exists (path))
-			return path;
-		g_free (path);
-	}
+	path = g_strdup_printf ("/icons/%s-%s.png", entry->resource_name, variant_name);
+	if (resource_exists (path))
+		return path;
+	g_free (path);
 
 	return NULL;
 }
@@ -325,25 +310,10 @@ resolve_bundled_neutral (const IconRegistryEntry *entry)
 {
 	char *path;
 
-	if (entry->role == ICON_RESOLVER_ROLE_MENU_ACTION)
-	{
-		path = g_strdup_printf ("/icons/menu/light/%s.png", entry->resource_name);
-		if (resource_exists (path))
-			return path;
-		g_free (path);
-
-		path = g_strdup_printf ("/icons/menu/light/%s.svg", entry->resource_name);
-		if (resource_exists (path))
-			return path;
-		g_free (path);
-	}
-	else
-	{
-		path = g_strdup_printf ("/icons/%s.png", entry->resource_name);
-		if (resource_exists (path))
-			return path;
-		g_free (path);
-	}
+	path = g_strdup_printf ("/icons/%s.png", entry->resource_name);
+	if (resource_exists (path))
+		return path;
+	g_free (path);
 
 	return NULL;
 }

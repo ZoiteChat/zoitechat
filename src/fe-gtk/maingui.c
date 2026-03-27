@@ -1772,16 +1772,12 @@ mg_open_quit_dialog (gboolean minimize_button)
         }
 
         button = gtk_button_new_with_mnemonic (_("_Cancel"));
-        gtk_button_set_image (GTK_BUTTON (button),
-                              gtkutil_image_new_from_stock ("gtk-cancel", GTK_ICON_SIZE_BUTTON));
         gtk_widget_show (button);
         gtk_dialog_add_action_widget (GTK_DIALOG (dialog), button,
                                                                                         GTK_RESPONSE_CANCEL);
         gtk_widget_grab_focus (button);
 
         button = gtk_button_new_with_mnemonic (_("_Quit"));
-        gtk_button_set_image (GTK_BUTTON (button),
-                              gtk_image_new_from_icon_name ("application-exit", GTK_ICON_SIZE_BUTTON));
         gtk_widget_show (button);
         gtk_dialog_add_action_widget (GTK_DIALOG (dialog), button, 0);
 
