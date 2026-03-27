@@ -1915,7 +1915,14 @@ menu_about (GtkWidget *wid, gpointer sess)
 	gtk_about_dialog_set_website_label (dialog, NULL);
 	gtk_about_dialog_set_license (dialog, NULL);
 	gtk_about_dialog_set_wrap_license (dialog, FALSE);
-	gtk_about_dialog_set_logo (dialog, pix_zoitechat);
+	GdkPixbuf *about_logo;
+
+	about_logo = gdk_pixbuf_new_from_resource_at_scale ("/icons/zoitechat.svg", 48, 48, TRUE, NULL);
+	if (!about_logo && pix_zoitechat)
+		about_logo = gdk_pixbuf_scale_simple (pix_zoitechat, 48, 48, GDK_INTERP_BILINEAR);
+	gtk_about_dialog_set_logo (dialog, about_logo ? about_logo : pix_zoitechat);
+	if (about_logo)
+		g_object_unref (about_logo);
 	gtk_about_dialog_set_copyright (dialog, "\302\251 1998-2010 Peter \305\275elezn\303\275\n\302\251 2009-2014 Berke Viktor\n\302\251 2015-2025 Patrick Griffis\n\302\251 2026 deepend");
 	gtk_about_dialog_set_comments (dialog, comment);
 	actions = gtk_dialog_get_action_area (GTK_DIALOG (dialog));

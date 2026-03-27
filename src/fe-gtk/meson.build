@@ -117,9 +117,29 @@ if get_option('plugin')
   zoitechat_gtk_sources += 'plugingui.c'
 endif
 
+find_program('magick', required: true)
+
+zoitechat_png_generated = custom_target('zoitechat_resource_png',
+  input: '../../data/icons/zoitechat.svg',
+  output: 'zoitechat.png',
+  command: [find_program('../../data/icons/generate_icons.py'), '@INPUT@', '@OUTPUT@', '--size', '256'],
+)
+
+zoitechat_gresource_conf = configuration_data()
+zoitechat_gresource_conf.set('ZOITECHAT_PNG', 'zoitechat.png')
+zoitechat_gresource_xml = configure_file(
+  input: '../../data/zoitechat.gresource.xml.in',
+  output: 'zoitechat.gresource.xml',
+  configuration: zoitechat_gresource_conf,
+)
+
 resources = gnome.compile_resources('resources',
-  '../../data/zoitechat.gresource.xml',
-  source_dir: '../../data',
+  zoitechat_gresource_xml,
+  source_dir: [
+    meson.current_build_dir(),
+    '../../data',
+  ],
+  dependencies: [zoitechat_png_generated],
   c_name: 'zoitechat',
   extra_args: ['--manual-register']
 )
