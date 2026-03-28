@@ -27,8 +27,6 @@ typedef struct
 	GtkWidget *b2;		/* button2 */
 } tabview;
 
-#define ICON_CHANVIEW_CLOSE "gtk-close"
-
 static void chanview_populate (chanview *cv);
 
 /* ignore "toggled" signal? */
@@ -334,12 +332,6 @@ tab_scroll_cb (GtkWidget *widget, GdkEventScroll *event, gpointer cv)
 	return FALSE;
 }
 
-static void
-cv_tabs_xclick_cb (GtkWidget *button, chanview *cv)
-{
-	cv->cb_xbutton (cv, cv->focused, cv->focused->tag, cv->focused->userdata);
-}
-
 /* make a Scroll (arrow) button */
 
 static GtkWidget *
@@ -384,7 +376,6 @@ cv_tabs_init (chanview *cv)
 	GtkWidget *box, *hbox = NULL;
 	GtkWidget *viewport;
 	GtkWidget *outer;
-	GtkWidget *button;
 
 	if (cv->vertical)
 	{
@@ -450,11 +441,6 @@ cv_tabs_init (chanview *cv)
 		gtk_box_pack_start (GTK_BOX (outer), ((tabview *)cv)->b2, 0, 0, 0);
 		gtk_box_pack_start (GTK_BOX (outer), ((tabview *)cv)->b1, 0, 0, 0);
 	}
-
-	button = gtkutil_button (outer, ICON_CHANVIEW_CLOSE, NULL, cv_tabs_xclick_cb,
-									 cv, 0);
-	gtk_button_set_relief (GTK_BUTTON (button), GTK_RELIEF_NONE);
-	gtk_widget_set_can_focus (button, FALSE);
 
 	gtk_container_add (GTK_CONTAINER (cv->box), outer);
 }
@@ -659,20 +645,126 @@ tab_toggled_cb (GtkToggleButton *tab, chan *ch)
 static gboolean
 tab_click_cb (GtkWidget *wid, GdkEventButton *event, chan *ch)
 {
+	GtkWidget *close_button;
+	gint close_x;
+	gint close_y;
+	GtkAllocation close_alloc;
+
+	if (event->button == 1 && event->type == GDK_BUTTON_PRESS)
+	{
+		close_button = g_object_get_data (G_OBJECT (wid), "tab-close-button");
+		if (close_button &&
+			gtk_widget_translate_coordinates (close_button, wid, 0, 0, &close_x, &close_y))
+		{
+			gtk_widget_get_allocation (close_button, &close_alloc);
+			if (event->x >= close_x && event->x < close_x + close_alloc.width &&
+				event->y >= close_y && event->y < close_y + close_alloc.height)
+			{
+				ch->cv->cb_xbutton (ch->cv, ch, ch->tag, ch->userdata);
+				return TRUE;
+			}
+		}
+	}
+
 	return ch->cv->cb_contextmenu (ch->cv, ch, ch->tag, ch->userdata, event);
+}
+
+static gboolean
+tab_close_motion_cb (GtkWidget *wid, GdkEventMotion *event, chan *ch)
+{
+	GtkWidget *close_button;
+	gint close_x;
+	gint close_y;
+	GtkAllocation close_alloc;
+	gboolean hover = FALSE;
+
+	close_button = g_object_get_data (G_OBJECT (wid), "tab-close-button");
+	if (close_button &&
+		gtk_widget_translate_coordinates (close_button, wid, 0, 0, &close_x, &close_y))
+	{
+		gtk_widget_get_allocation (close_button, &close_alloc);
+		hover = event->x >= close_x && event->x < close_x + close_alloc.width &&
+			event->y >= close_y && event->y < close_y + close_alloc.height;
+	}
+
+	if (hover)
+	{
+		GdkCursor *cursor;
+		gtk_widget_set_state_flags (close_button, GTK_STATE_FLAG_PRELIGHT, TRUE);
+		if (gtk_widget_get_window (wid))
+		{
+			cursor = gdk_cursor_new_for_display (gtk_widget_get_display (wid), GDK_HAND2);
+			gdk_window_set_cursor (gtk_widget_get_window (wid), cursor);
+			g_object_unref (cursor);
+		}
+	}
+	else
+	{
+		gtk_widget_unset_state_flags (close_button, GTK_STATE_FLAG_PRELIGHT);
+		if (gtk_widget_get_window (wid))
+			gdk_window_set_cursor (gtk_widget_get_window (wid), NULL);
+	}
+
+	return FALSE;
+}
+
+static gboolean
+tab_close_leave_cb (GtkWidget *wid, GdkEventCrossing *event, chan *ch)
+{
+	GtkWidget *close_button;
+
+	close_button = g_object_get_data (G_OBJECT (wid), "tab-close-button");
+	if (close_button)
+		gtk_widget_unset_state_flags (close_button, GTK_STATE_FLAG_PRELIGHT);
+	if (gtk_widget_get_window (wid))
+		gdk_window_set_cursor (gtk_widget_get_window (wid), NULL);
+	return FALSE;
+}
+
+static GtkWidget *
+tab_get_label (GtkWidget *tab)
+{
+	GtkWidget *label;
+
+	label = g_object_get_data (G_OBJECT (tab), "tab-label");
+	if (label)
+		return label;
+
+	return gtk_bin_get_child (GTK_BIN (tab));
 }
 
 static void *
 cv_tabs_add (chanview *cv, chan *ch, char *name, GtkTreeIter *parent)
 {
 	GtkWidget *but;
+	GtkWidget *hbox;
+	GtkWidget *label;
+	GtkWidget *close_button;
+	GtkWidget *close_icon;
 
-	but = gtk_toggle_button_new_with_label (name);
+	but = gtk_toggle_button_new ();
 	gtk_widget_set_name (but, "zoitechat-tab");
+	gtk_widget_add_events (but, GDK_POINTER_MOTION_MASK | GDK_LEAVE_NOTIFY_MASK);
+	hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 4);
+	label = gtk_label_new (name);
+	close_button = gtk_button_new ();
+	close_icon = gtk_image_new_from_icon_name ("window-close-symbolic", GTK_ICON_SIZE_MENU);
+	gtk_button_set_always_show_image (GTK_BUTTON (close_button), TRUE);
+	gtk_widget_set_can_focus (close_button, FALSE);
+	gtk_container_add (GTK_CONTAINER (close_button), close_icon);
+	gtk_box_pack_start (GTK_BOX (hbox), label, FALSE, FALSE, 0);
+	gtk_box_pack_start (GTK_BOX (hbox), close_button, FALSE, FALSE, 0);
+	gtk_container_add (GTK_CONTAINER (but), hbox);
+	g_object_set_data (G_OBJECT (but), "tab-label", label);
+	g_object_set_data (G_OBJECT (but), "tab-close-button", close_button);
 	g_object_set_data (G_OBJECT (but), "c", ch);
 	/* used to trap right-clicks */
 	g_signal_connect (G_OBJECT (but), "button-press-event",
 						 	G_CALLBACK (tab_click_cb), ch);
+	g_signal_connect (G_OBJECT (but), "motion-notify-event",
+						 	G_CALLBACK (tab_close_motion_cb), ch);
+	g_signal_connect (G_OBJECT (but), "leave-notify-event",
+						 	G_CALLBACK (tab_close_leave_cb), ch);
 	/* avoid prelights */
 	g_signal_connect (G_OBJECT (but), "enter-notify-event",
 						 	G_CALLBACK (tab_ignore_cb), NULL);
@@ -684,6 +776,7 @@ cv_tabs_add (chanview *cv, chan *ch, char *name, GtkTreeIter *parent)
 	g_signal_connect (G_OBJECT (but), "toggled",
 						 	G_CALLBACK (tab_toggled_cb), ch);
 	g_object_set_data (G_OBJECT (but), "u", ch->userdata);
+	gtk_widget_show_all (hbox);
 
 	tab_add_real (cv, but, ch);
 
@@ -892,7 +985,7 @@ cv_tabs_cleanup (chanview *cv)
 static void
 cv_tabs_set_color (chan *ch, PangoAttrList *list)
 {
-	gtk_label_set_attributes (GTK_LABEL (gtk_bin_get_child (GTK_BIN (ch->impl))), list);
+	gtk_label_set_attributes (GTK_LABEL (tab_get_label (ch->impl)), list);
 }
 
 static void
@@ -901,16 +994,16 @@ cv_tabs_rename (chan *ch, char *name)
 	PangoAttrList *attr;
 	GtkWidget *tab = ch->impl;
 
-	attr = gtk_label_get_attributes (GTK_LABEL (gtk_bin_get_child (GTK_BIN (tab))));
+	attr = gtk_label_get_attributes (GTK_LABEL (tab_get_label (tab)));
 	if (attr)
 		pango_attr_list_ref (attr);
 
-	gtk_button_set_label (GTK_BUTTON (tab), name);
+	gtk_label_set_text (GTK_LABEL (tab_get_label (tab)), name);
 	gtk_widget_queue_resize (gtk_widget_get_parent(gtk_widget_get_parent(gtk_widget_get_parent(tab))));
 
 	if (attr)
 	{
-		gtk_label_set_attributes (GTK_LABEL (gtk_bin_get_child (GTK_BIN (tab))), attr);
+		gtk_label_set_attributes (GTK_LABEL (tab_get_label (tab)), attr);
 		pango_attr_list_unref (attr);
 	}
 }
