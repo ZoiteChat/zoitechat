@@ -117,8 +117,6 @@ if get_option('plugin')
   zoitechat_gtk_sources += 'plugingui.c'
 endif
 
-find_program('magick', required: true)
-
 zoitechat_png_generated = custom_target('zoitechat_resource_png',
   input: '../../data/icons/zoitechat.svg',
   output: 'zoitechat.png',

@@ -106,7 +106,6 @@ def parse_args():
 
 def main():
     args = parse_args()
-    magick_cmd()
     svg = pathlib.Path(args.input_svg)
     out_png = pathlib.Path(args.output_png)
     out_png.parent.mkdir(parents=True, exist_ok=True)

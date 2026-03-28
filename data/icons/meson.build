@@ -1,5 +1,5 @@
 icon_gen = find_program('generate_icons.py')
-find_program('magick', required: true)
+find_program('magick', required: host_machine.system() == 'windows')
 
 icondir = join_paths(get_option('datadir'), 'icons/hicolor')
 custom_target('zoitechat_png',
