@@ -415,6 +415,24 @@ theme_manager_is_kde_wayland (void)
 	return is_kde;
 }
 
+static gint
+theme_manager_get_system_headerbar_height (void)
+{
+	GtkWidget *probe;
+	gint minimum;
+	gint natural;
+
+	probe = gtk_header_bar_new ();
+	gtk_header_bar_set_show_close_button (GTK_HEADER_BAR (probe), TRUE);
+	gtk_header_bar_set_decoration_layout (GTK_HEADER_BAR (probe), "menu:minimize,maximize,close");
+	gtk_widget_show (probe);
+	gtk_widget_get_preferred_height (probe, &minimum, &natural);
+	gtk_widget_destroy (probe);
+	if (natural > 0)
+		return natural;
+	return minimum;
+}
+
 static void
 theme_manager_apply_wayland_kde_csd (GtkWidget *window)
 {
@@ -442,10 +460,16 @@ theme_manager_apply_wayland_kde_csd (GtkWidget *window)
 			headerbar = gtk_header_bar_new ();
 			gtk_header_bar_set_show_close_button (GTK_HEADER_BAR (headerbar), TRUE);
 			gtk_header_bar_set_decoration_layout (GTK_HEADER_BAR (headerbar), "menu:minimize,maximize,close");
-			icon_pixbuf = gdk_pixbuf_new_from_resource_at_scale ("/icons/zoitechat.svg", 32, 32, TRUE, NULL);
+			g_object_set (G_OBJECT (headerbar), "spacing", 0, NULL);
+			gtk_widget_set_size_request (headerbar, -1, theme_manager_get_system_headerbar_height ());
+			icon_pixbuf = gdk_pixbuf_new_from_resource_at_scale ("/icons/zoitechat.svg", 24, 24, TRUE, NULL);
 			if (!icon_pixbuf)
-				icon_pixbuf = gdk_pixbuf_new_from_resource_at_scale ("/icons/zoitechat.png", 32, 32, TRUE, NULL);
+				icon_pixbuf = gdk_pixbuf_new_from_resource_at_scale ("/icons/zoitechat.png", 24, 24, TRUE, NULL);
 			icon_image = icon_pixbuf ? gtk_image_new_from_pixbuf (icon_pixbuf) : gtk_image_new_from_resource ("/icons/zoitechat.png");
+			gtk_widget_set_margin_start (icon_image, 0);
+			gtk_widget_set_margin_end (icon_image, 0);
+			gtk_widget_set_margin_top (icon_image, 0);
+			gtk_widget_set_margin_bottom (icon_image, 0);
 			if (icon_pixbuf)
 				g_object_unref (icon_pixbuf);
 			gtk_header_bar_pack_start (GTK_HEADER_BAR (headerbar), icon_image);
