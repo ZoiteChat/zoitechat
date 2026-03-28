@@ -40,6 +40,7 @@
 SET SOLUTIONDIR=$(SolutionDir)..\
 if not exist "$(ZoiteChatBin)" mkdir "$(ZoiteChatBin)"
 powershell -File "$(SolutionDir)..\win32\version-template.ps1" "$(SolutionDir)..\win32\installer\zoitechat.iss.tt" "$(ZoiteChatBin)zoitechat.iss"
+"$(Python3Path)\python.exe" "$(SolutionDir)..\data\icons\generate_icons.py" "$(DataDir)icons\zoitechat.svg" "$(DataDir)icons\zoitechat.png" --size 256 --ico "$(DataDir)icons\zoitechat.ico"
 $(IsccPath) /dPROJECTDIR="$(ProjectDir)" /dAPPARCH="$(Platform)" "$(ZoiteChatBin)zoitechat.iss"
       ]]>
       </Command>
