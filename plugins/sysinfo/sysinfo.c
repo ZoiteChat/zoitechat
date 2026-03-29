@@ -68,7 +68,7 @@ static hwinfo hwinfos[] = {
 	{"os", "OS", sysinfo_backend_get_os},
 	{"cpu", "CPU", sysinfo_backend_get_cpu},
 	{"memory", "Memory", sysinfo_backend_get_memory},
-	{"storage", "Storage", sysinfo_backend_get_disk},
+	{"storage", "Storage", sysinfo_backend_get_disk, TRUE},
 	{"gpu", "GPU", sysinfo_backend_get_gpu},
 	{"chipset", "CHIPSET", sysinfo_backend_get_chipset, TRUE},
 	{"sound", "Sound", sysinfo_backend_get_sound, TRUE},
