@@ -367,6 +367,12 @@ theme_css_build_toplevel_classes (void)
 		"color: @theme_fg_color;"
 		"border-color: @theme_bg_color;"
 		"}"
+		"window.%s menuitem:hover, window.%s menuitem:selected {"
+		"background-color: @theme_selected_bg_color;"
+		"background-image: none;"
+		"color: @theme_selected_fg_color;"
+		"border-color: @theme_selected_bg_color;"
+		"}"
 		"window.%s, window.%s:backdrop, .%s {"
 		"background-color: #f6f6f6;"
 		"color: #101010;"
@@ -377,6 +383,12 @@ theme_css_build_toplevel_classes (void)
 		"background-image: none;"
 		"color: @theme_fg_color;"
 		"border-color: @theme_bg_color;"
+		"}"
+		"window.%s menuitem:hover, window.%s menuitem:selected {"
+		"background-color: @theme_selected_bg_color;"
+		"background-image: none;"
+		"color: @theme_selected_fg_color;"
+		"border-color: @theme_selected_bg_color;"
 		"}",
 		theme_css_selector_dark_class,
 		theme_css_selector_dark_class,
@@ -387,6 +399,10 @@ theme_css_build_toplevel_classes (void)
 		theme_css_selector_dark_class,
 		theme_css_selector_dark_class,
 		theme_css_selector_dark_class,
+		theme_css_selector_dark_class,
+		theme_css_selector_dark_class,
+		theme_css_selector_light_class,
+		theme_css_selector_light_class,
 		theme_css_selector_light_class,
 		theme_css_selector_light_class,
 		theme_css_selector_light_class,
