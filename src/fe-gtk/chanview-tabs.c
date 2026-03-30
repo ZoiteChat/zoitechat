@@ -744,6 +744,7 @@ cv_tabs_add (chanview *cv, chan *ch, char *name, GtkTreeIter *parent)
 
 	but = gtk_toggle_button_new ();
 	gtk_widget_set_name (but, "zoitechat-tab");
+	gtk_widget_set_size_request (but, -1, 18);
 	gtk_widget_add_events (but, GDK_POINTER_MOTION_MASK | GDK_LEAVE_NOTIFY_MASK);
 	hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 4);
 	label = gtk_label_new (name);
