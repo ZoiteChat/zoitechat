@@ -91,6 +91,7 @@ static GtkWidget *edit_label_real;
 static GtkWidget *edit_label_user;
 static GtkWidget *edit_trees[N_TREES];
 static GtkWidget *edit_button_cert_generate;
+static GtkWidget *edit_button_cert_import;
 static GtkWidget *edit_button_cert_info;
 static GtkWidget *edit_button_cert_delete;
 
@@ -135,10 +136,96 @@ servlist_update_cert_buttons (ircnet *net)
 
 	if (edit_button_cert_generate)
 		gtk_widget_set_visible (edit_button_cert_generate, !has_cert);
+	if (edit_button_cert_import)
+		gtk_widget_set_visible (edit_button_cert_import, !has_cert);
 	if (edit_button_cert_info)
 		gtk_widget_set_visible (edit_button_cert_info, has_cert);
 	if (edit_button_cert_delete)
 		gtk_widget_set_visible (edit_button_cert_delete, has_cert);
+}
+
+static void
+servlist_import_client_cert_cb (GtkWidget *button, gpointer userdata)
+{
+	ircnet *net = (ircnet *)userdata;
+	GtkWidget *dialog;
+	GtkWidget *message;
+	GtkFileFilter *filter;
+	char *cert_dir;
+	char *cert_file;
+	char *source_file;
+	char *contents;
+	gsize length;
+
+	if (!net || !net->name || !net->name[0])
+		return;
+
+	dialog = gtk_file_chooser_dialog_new (_("Import Client Certificate"),
+													 GTK_WINDOW (edit_win),
+													 GTK_FILE_CHOOSER_ACTION_OPEN,
+													 _("_Cancel"), GTK_RESPONSE_CANCEL,
+													 _("_Open"), GTK_RESPONSE_ACCEPT,
+													 NULL);
+	filter = gtk_file_filter_new ();
+	gtk_file_filter_set_name (filter, _("Certificate files"));
+	gtk_file_filter_add_pattern (filter, "*.pem");
+	gtk_file_filter_add_pattern (filter, "*.crt");
+	gtk_file_filter_add_pattern (filter, "*.cer");
+	gtk_file_chooser_add_filter (GTK_FILE_CHOOSER (dialog), filter);
+	filter = gtk_file_filter_new ();
+	gtk_file_filter_set_name (filter, _("All files"));
+	gtk_file_filter_add_pattern (filter, "*");
+	gtk_file_chooser_add_filter (GTK_FILE_CHOOSER (dialog), filter);
+	theme_manager_attach_window (dialog);
+
+	if (gtk_dialog_run (GTK_DIALOG (dialog)) != GTK_RESPONSE_ACCEPT)
+	{
+		gtk_widget_destroy (dialog);
+		return;
+	}
+
+	source_file = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (dialog));
+	gtk_widget_destroy (dialog);
+	if (!source_file)
+		return;
+
+	cert_dir = g_build_filename (get_xdir (), "certs", NULL);
+	cert_file = servlist_get_cert_file (net);
+	contents = NULL;
+	length = 0;
+
+	if (cert_file &&
+		 g_mkdir_with_parents (cert_dir, 0700) == 0 &&
+		 g_file_get_contents (source_file, &contents, &length, NULL) &&
+		 g_file_set_contents (cert_file, contents, length, NULL))
+	{
+		chmod (cert_file, 0600);
+		servlist_update_cert_buttons (net);
+		message = gtk_message_dialog_new (GTK_WINDOW (edit_win),
+													 GTK_DIALOG_DESTROY_WITH_PARENT | GTK_DIALOG_MODAL,
+													 GTK_MESSAGE_INFO,
+													 GTK_BUTTONS_CLOSE,
+													 _("Client certificate imported for \"%s\"."),
+													 net->name);
+	}
+	else
+	{
+		message = gtk_message_dialog_new (GTK_WINDOW (edit_win),
+													 GTK_DIALOG_DESTROY_WITH_PARENT | GTK_DIALOG_MODAL,
+													 GTK_MESSAGE_ERROR,
+													 GTK_BUTTONS_CLOSE,
+													 _("Failed to import client certificate for \"%s\"."),
+													 net->name);
+	}
+
+	theme_manager_attach_window (message);
+	g_signal_connect_swapped (message, "response", G_CALLBACK (gtk_widget_destroy), message);
+	gtk_widget_show (message);
+
+	g_free (contents);
+	g_free (cert_file);
+	g_free (cert_dir);
+	g_free (source_file);
 }
 
 static void
@@ -2284,6 +2371,11 @@ servlist_open_edit (GtkWidget *parent, ircnet *net)
 	g_signal_connect (G_OBJECT (edit_button_cert_generate), "clicked",
 							G_CALLBACK (servlist_generate_client_cert_cb), net);
 	gtk_box_pack_start (GTK_BOX (hbox_cert_buttons), edit_button_cert_generate, FALSE, FALSE, 0);
+
+	edit_button_cert_import = gtk_button_new_with_mnemonic (_("Import client SSL cert"));
+	g_signal_connect (G_OBJECT (edit_button_cert_import), "clicked",
+							G_CALLBACK (servlist_import_client_cert_cb), net);
+	gtk_box_pack_start (GTK_BOX (hbox_cert_buttons), edit_button_cert_import, FALSE, FALSE, 0);
 
 	edit_button_cert_info = gtk_button_new_with_mnemonic (_("Client SSL cert info"));
 	g_signal_connect (G_OBJECT (edit_button_cert_info), "clicked",
