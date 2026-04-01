@@ -445,6 +445,7 @@ const struct prefs vars[] =
 	{"gui_dark_mode", P_OFFINT (hex_gui_dark_mode), TYPE_INT},
 	{"gui_gtk3_variant", P_OFFINT (hex_gui_gtk3_variant), TYPE_INT},
 	{"gui_tab_layout", P_OFFINT (hex_gui_tab_layout), TYPE_INT},
+	{"gui_tab_closebuttons", P_OFFINT (hex_gui_tab_closebuttons), TYPE_BOOL},
 	{"gui_tab_middleclose", P_OFFINT (hex_gui_tab_middleclose), TYPE_BOOL},
 	{"gui_tab_newtofront", P_OFFINT (hex_gui_tab_newtofront), TYPE_INT},
 	{"gui_tab_pos", P_OFFINT (hex_gui_tab_pos), TYPE_INT},
@@ -777,6 +778,7 @@ load_default_config(void)
 	prefs.hex_gui_tab_chans = 1;
 	prefs.hex_gui_tab_dialogs = 1;
 	prefs.hex_gui_tab_icons = 1;
+	prefs.hex_gui_tab_closebuttons = 1;
 	prefs.hex_gui_tab_middleclose = 1;
 	prefs.hex_gui_tab_server = 1;
 	prefs.hex_gui_tab_sort = 1;
