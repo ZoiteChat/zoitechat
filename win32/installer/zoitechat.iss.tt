@@ -61,6 +61,9 @@ Name: "langs"; Description: "Language Interfaces"; Types: custom; Flags: disable
 Name: "langs\lua"; Description: "Lua"; Types: normal custom; Flags: disablenouninstallwarning
 Name: "langs\perl"; Description: "Perl (requires Perl 5.42)"; Types: custom; Flags: disablenouninstallwarning
 Name: "langs\python"; Description: "Python (requires Python 3.14.3)"; Types: custom; Flags: disablenouninstallwarning
+Name: "themes"; Description: "GTK3 Themes"; Types: normal minimal custom; Flags: disablenouninstallwarning
+Name: "themes\windows10"; Description: "Windows 10"; Types: normal minimal custom; Flags: disablenouninstallwarning
+Name: "themes\windows10dark"; Description: "Windows 10 Dark"; Types: normal minimal custom; Flags: disablenouninstallwarning
 Name: "deps"; Description: "Dependencies"; Types: custom; Flags: disablenouninstallwarning
 Name: "deps\vcredist2015"; Description: "Visual C++ Redistributable 2015"; Types: normal minimal custom; Flags: disablenouninstallwarning
 
@@ -88,6 +91,11 @@ Filename: "{tmp}\perl.msi"; StatusMsg: "Installing Perl"; Components: langs\perl
 Filename: "{tmp}\python.msi"; StatusMsg: "Installing Python"; Components: langs\python; Flags: shellexec skipifdoesntexist; Tasks: not portable
 Filename: "{tmp}\python.exe"; Parameters: "InstallAllUsers=1 PrependPath=1"; StatusMsg: "Installing Python"; Components: langs\python; Flags: shellexec skipifdoesntexist; Tasks: not portable
 Filename: "{tmp}\spelling-dicts.exe"; Parameters: "/verysilent"; StatusMsg: "Installing Spelling Dictionaries"; Components: spell; Flags: skipifdoesntexist; Tasks: not portable
+Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -Command ""Expand-Archive -LiteralPath '{tmp}\Windows-10-3.2.1.zip' -DestinationPath '{userappdata}\ZoiteChat\gtk3-themes' -Force"""; StatusMsg: "Installing GTK3 Theme: Windows 10"; Components: themes\windows10; Flags: runhidden waituntilterminated skipifdoesntexist
+Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -Command ""Expand-Archive -LiteralPath '{tmp}\Windows-10-Dark-3.2.1-dark.zip' -DestinationPath '{userappdata}\ZoiteChat\gtk3-themes' -Force"""; StatusMsg: "Installing GTK3 Theme: Windows 10 Dark"; Components: themes\windows10dark; Flags: runhidden waituntilterminated skipifdoesntexist
+
+[Dirs]
+Name: "{userappdata}\ZoiteChat\gtk3-themes"; Components: themes
 
 [Files]
 Source: "portable-mode"; DestDir: "{app}"; Tasks: portable
@@ -195,6 +203,10 @@ Name: "{commonappdata}\Microsoft\Internet Explorer\Quick Launch\ZoiteChat"; File
 
 [Messages]
 BeveledLabel= {#APPNAM}
+
+[UninstallDelete]
+Type: filesandordirs; Name: "{userappdata}\ZoiteChat\gtk3-themes\Windows-10-3.2.1"; Components: themes\windows10
+Type: filesandordirs; Name: "{userappdata}\ZoiteChat\gtk3-themes\Windows-10-Dark-3.2.1-dark"; Components: themes\windows10dark
 
 [Code]
 #ifndef USE_INNO_DOWNLOAD_PLUGIN
@@ -336,6 +348,12 @@ begin
   begin
     idpClearFiles;
 
+	if IsComponentSelected('themes\windows10') then
+		idpAddFile('https://dl.zoitechat.zoite.net/themes/GTK3Themes/Windows-10-3.2.1.zip', ExpandConstant('{tmp}\Windows-10-3.2.1.zip'));
+
+	if IsComponentSelected('themes\windows10dark') then
+		idpAddFile('https://dl.zoitechat.zoite.net/themes/GTK3Themes/Windows-10-Dark-3.2.1-dark.zip', ExpandConstant('{tmp}\Windows-10-Dark-3.2.1-dark.zip'));
+
 	if not IsTaskSelected('portable') then
 	begin
 
@@ -389,12 +407,28 @@ begin
 			end;
 
 	if CurPageID = wpReady then
+	begin
+		if IsComponentSelected('themes\windows10') and not FileExists(ExpandConstant('{tmp}\Windows-10-3.2.1.zip')) then
+		begin
+			MsgBox('Windows 10 GTK3 theme could not be downloaded. Please retry setup and rerun setup.', mbError, MB_OK);
+			Result := False;
+			Exit;
+		end;
+
+		if IsComponentSelected('themes\windows10dark') and not FileExists(ExpandConstant('{tmp}\Windows-10-Dark-3.2.1-dark.zip')) then
+		begin
+			MsgBox('Windows 10 Dark GTK3 theme could not be downloaded. Please retry setup and rerun setup.', mbError, MB_OK);
+			Result := False;
+			Exit;
+		end;
+
 		if IsComponentSelected('deps\vcredist2015') and not CheckVCInstall() and not FileExists(ExpandConstant('{tmp}\vcredist.exe')) then
 		begin
 			MsgBox('Visual C++ Redistributable could not be downloaded. Please retry setup or install it manually and rerun setup.', mbError, MB_OK);
 			Result := False;
 			Exit;
 		end;
+	end;
 end;
 
 /////////////////////////////////////////////////////////////////////
