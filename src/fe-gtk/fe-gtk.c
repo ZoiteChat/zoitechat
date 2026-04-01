@@ -1308,17 +1308,38 @@ maybe_escape_uri (const char *uri)
 	return g_strdup (uri);
 }
 
+#ifndef WIN32
+static gchar **
+fe_open_url_env_sanitized (void)
+{
+	gchar **env = g_get_environ ();
+	const char *vars[] = {"LD_LIBRARY_PATH", "LD_PRELOAD", "APPDIR", "APPIMAGE", "ARGV0", NULL};
+	int i;
+
+	for (i = 0; vars[i]; i++)
+	{
+		gchar **tmp_env = env;
+		env = g_environ_unsetenv (tmp_env, vars[i]);
+		if (env != tmp_env)
+			g_strfreev (tmp_env);
+	}
+
+	return env;
+}
+#endif
+
 static void
 fe_open_url_inner (const char *url)
 {
 	GError *error = NULL;
 	char *escaped_url = maybe_escape_uri (url);
-	gboolean opened = g_app_info_launch_default_for_uri (escaped_url, NULL, &error);
+	gboolean opened = FALSE;
 
+#ifdef WIN32
+	opened = g_app_info_launch_default_for_uri (escaped_url, NULL, &error);
 	if (!opened)
 	{
 		g_clear_error (&error);
-#ifdef WIN32
 		gunichar2 *url_utf16 = g_utf8_to_utf16 (escaped_url, -1, NULL, NULL, NULL);
 
 		if (url_utf16 != NULL)
@@ -1326,22 +1347,11 @@ fe_open_url_inner (const char *url)
 			opened = ((INT_PTR) ShellExecuteW (0, L"open", url_utf16, NULL, NULL, SW_SHOWNORMAL)) > 32;
 			g_free (url_utf16);
 		}
+	}
 #else
+	{
 		gchar *xdg_open_argv[] = {(gchar *) "xdg-open", escaped_url, NULL};
-		gchar **spawn_env = NULL;
-
-		spawn_env = g_get_environ ();
-		{
-			gchar **tmp_env = spawn_env;
-			spawn_env = g_environ_unsetenv (tmp_env, "LD_LIBRARY_PATH");
-			if (spawn_env != tmp_env)
-				g_strfreev (tmp_env);
-
-			tmp_env = spawn_env;
-			spawn_env = g_environ_unsetenv (tmp_env, "LD_PRELOAD");
-			if (spawn_env != tmp_env)
-				g_strfreev (tmp_env);
-		}
+		gchar **spawn_env = fe_open_url_env_sanitized ();
 
 		if (g_spawn_async (NULL, xdg_open_argv, spawn_env,
 							 G_SPAWN_SEARCH_PATH | G_SPAWN_STDOUT_TO_DEV_NULL | G_SPAWN_STDERR_TO_DEV_NULL,
@@ -1354,18 +1364,25 @@ fe_open_url_inner (const char *url)
 			g_clear_error (&error);
 		}
 
-		if (!opened && gtk_show_uri_on_window (NULL, escaped_url, GDK_CURRENT_TIME, &error))
-		{
-			opened = TRUE;
-		}
-		else if (!opened)
-		{
-			g_clear_error (&error);
-		}
-
 		g_strfreev (spawn_env);
-#endif
 	}
+
+	if (!opened)
+	{
+		opened = g_app_info_launch_default_for_uri (escaped_url, NULL, &error);
+		if (!opened)
+			g_clear_error (&error);
+	}
+
+	if (!opened && gtk_show_uri_on_window (NULL, escaped_url, GDK_CURRENT_TIME, &error))
+	{
+		opened = TRUE;
+	}
+	else if (!opened)
+	{
+		g_clear_error (&error);
+	}
+#endif
 
 	if (!opened)
 	{
