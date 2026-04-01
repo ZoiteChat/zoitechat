@@ -653,7 +653,7 @@ tab_click_cb (GtkWidget *wid, GdkEventButton *event, chan *ch)
 	if (event->button == 1 && event->type == GDK_BUTTON_PRESS)
 	{
 		close_button = g_object_get_data (G_OBJECT (wid), "tab-close-button");
-		if (close_button &&
+		if (prefs.hex_gui_tab_closebuttons && close_button &&
 			gtk_widget_translate_coordinates (close_button, wid, 0, 0, &close_x, &close_y))
 		{
 			gtk_widget_get_allocation (close_button, &close_alloc);
@@ -679,7 +679,7 @@ tab_close_motion_cb (GtkWidget *wid, GdkEventMotion *event, chan *ch)
 	gboolean hover = FALSE;
 
 	close_button = g_object_get_data (G_OBJECT (wid), "tab-close-button");
-	if (close_button &&
+	if (prefs.hex_gui_tab_closebuttons && close_button &&
 		gtk_widget_translate_coordinates (close_button, wid, 0, 0, &close_x, &close_y))
 	{
 		gtk_widget_get_allocation (close_button, &close_alloc);
@@ -714,7 +714,7 @@ tab_close_leave_cb (GtkWidget *wid, GdkEventCrossing *event, chan *ch)
 	GtkWidget *close_button;
 
 	close_button = g_object_get_data (G_OBJECT (wid), "tab-close-button");
-	if (close_button)
+	if (prefs.hex_gui_tab_closebuttons && close_button)
 		gtk_widget_unset_state_flags (close_button, GTK_STATE_FLAG_PRELIGHT);
 	if (gtk_widget_get_window (wid))
 		gdk_window_set_cursor (gtk_widget_get_window (wid), NULL);
@@ -780,6 +780,8 @@ cv_tabs_add (chanview *cv, chan *ch, char *name, GtkTreeIter *parent)
 						 	G_CALLBACK (tab_toggled_cb), ch);
 	g_object_set_data (G_OBJECT (but), "u", ch->userdata);
 	gtk_widget_show_all (hbox);
+	if (!prefs.hex_gui_tab_closebuttons)
+		gtk_widget_hide (close_button);
 
 	tab_add_real (cv, but, ch);
 
