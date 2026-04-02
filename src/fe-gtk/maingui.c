@@ -4431,7 +4431,7 @@ mg_create_topwindow (session *sess)
 
 #ifdef G_OS_WIN32
 	parent_win = gtk_widget_get_window (win);
-	gdk_window_add_filter (parent_win, mg_win32_filter, NULL);
+	gdk_window_add_filter (parent_win, mg_win32_filter, win);
 #endif
 }
 
@@ -4464,6 +4464,8 @@ static GdkFilterReturn
 mg_win32_filter (GdkXEvent *xevent, GdkEvent *event, gpointer data)
 {
         MSG *msg = (MSG*)xevent;
+        GtkWidget *win = GTK_IS_WIDGET (data) ? GTK_WIDGET (data) : NULL;
+        static gboolean handling_syscommand = FALSE;
 
 	if (!msg)
 		return GDK_FILTER_CONTINUE;
@@ -4478,6 +4480,30 @@ mg_win32_filter (GdkXEvent *xevent, GdkEvent *event, gpointer data)
 	{
 		theme_manager_refresh_auto_mode ();
 		return GDK_FILTER_CONTINUE;
+	}
+
+	if (msg->message == WM_SYSCOMMAND && win && !handling_syscommand)
+	{
+		const UINT command = ((UINT) msg->wParam) & 0xFFF0u;
+
+		if (command == SC_MINIMIZE || command == SC_RESTORE)
+		{
+			handling_syscommand = TRUE;
+
+			if (command == SC_MINIMIZE)
+			{
+				ShowWindow (msg->hwnd, SW_MINIMIZE);
+			}
+			else
+			{
+				ShowWindow (msg->hwnd, SW_RESTORE);
+				ShowWindow (msg->hwnd, SW_SHOW);
+				SetForegroundWindow (msg->hwnd);
+			}
+
+			handling_syscommand = FALSE;
+			return GDK_FILTER_REMOVE;
+		}
 	}
 
 	if (msg->message == WM_COPYDATA)
@@ -4609,7 +4635,7 @@ mg_create_tabwindow (session *sess)
 
 #ifdef G_OS_WIN32
 	parent_win = gtk_widget_get_window (win);
-	gdk_window_add_filter (parent_win, mg_win32_filter, NULL);
+	gdk_window_add_filter (parent_win, mg_win32_filter, win);
 #endif
 }
 
