@@ -13,10 +13,10 @@ if get_option('gtk-frontend')
       install_dir: metainfodir
     )
 
-    appstream_util = find_program('appstream-util', required: false)
-    if appstream_util.found()
-      test('Validate net.zoite.Zoitechat.appdata.xml', appstream_util,
-        args: ['validate-relax', zoitechat_appdata]
+    appstreamcli = find_program('appstreamcli', required: false)
+    if appstreamcli.found()
+      test('Validate net.zoite.Zoitechat.appdata.xml', appstreamcli,
+        args: ['validate', zoitechat_appdata]
       )
     endif
   endif
