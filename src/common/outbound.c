@@ -4883,6 +4883,9 @@ xit:
 static int
 handle_user_input (session *sess, char *text, int history, int nocommand)
 {
+	char cmd_char = prefs.hex_input_command_char[0];
+	unsigned int i;
+
 	if (*text == '\0')
 		return 1;
 
@@ -4890,50 +4893,22 @@ handle_user_input (session *sess, char *text, int history, int nocommand)
 		history_add (&sess->history, text);
 
 	/* is it NOT a command, just text? */
-	if (nocommand || text[0] != prefs.hex_input_command_char[0])
+	if (nocommand || text[0] != cmd_char)
 	{
 		handle_say (sess, text, TRUE);
 		return 1;
 	}
 
-	/* check for // */
-	if (text[0] == prefs.hex_input_command_char[0] && text[1] == prefs.hex_input_command_char[0])
+	for (i = 1; text[i]; i++)
 	{
-		handle_say (sess, text + 1, TRUE);
-		return 1;
+		if (text[i] == cmd_char)
+		{
+			handle_say (sess, text, TRUE);
+			return 1;
+		}
+		if (text[i] == ' ')
+			break;
 	}
-
-#if 0 /* Who would remember all this? */
-	if (prefs.hex_input_command_char[0] == '/')
-	{
-		int i;
-		const char *unix_dirs [] = {
-			"/bin/",
-			"/boot/",
-			"/dev/",
-			"/etc/",
-			"/home/",
-			"/lib/",
-			"/lost+found/",
-			"/mnt/",
-			"/opt/",
-			"/proc/",
-			"/root/",
-			"/sbin/",
-			"/tmp/",
-			"/usr/",
-			"/var/",
-			"/gnome/",
-			NULL
-		};
-		for (i = 0; unix_dirs[i] != NULL; i++)
-			if (strncmp (text, unix_dirs[i], strlen (unix_dirs[i]))==0)
-			{
-				handle_say (sess, text, TRUE);
-				return 1;
-			}
-	}
-#endif
 
 	return handle_command (sess, text + 1, TRUE);
 }
