@@ -58,9 +58,9 @@ Name: "plugins\sysinfo"; Description: "SysInfo"; Types: custom; Flags: disableno
 Name: "plugins\upd"; Description: "Update Checker"; Types: normal custom; Flags: disablenouninstallwarning
 Name: "plugins\winamp"; Description: "Winamp"; Types: custom; Flags: disablenouninstallwarning
 Name: "langs"; Description: "Language Interfaces"; Types: custom; Flags: disablenouninstallwarning
-Name: "langs\lua"; Description: "Lua"; Types: normal custom; Flags: disablenouninstallwarning
-Name: "langs\perl"; Description: "Perl (requires Perl 5.42)"; Types: custom; Flags: disablenouninstallwarning
-Name: "langs\python"; Description: "Python (requires Python 3.14.3)"; Types: custom; Flags: disablenouninstallwarning
+Name: "langs\lua"; Description: "Lua (LuaJIT 2.1)"; Types: normal custom; Flags: disablenouninstallwarning
+Name: "langs\perl"; Description: "Perl (Strawberry Perl 5.42.0.1)"; Types: custom; Flags: disablenouninstallwarning
+Name: "langs\python"; Description: "Python (Python 3.14.3)"; Types: custom; Flags: disablenouninstallwarning
 Name: "themes"; Description: "GTK3 Themes"; Types: normal minimal custom; Flags: disablenouninstallwarning
 Name: "themes\windows10"; Description: "Windows 10"; Types: normal minimal custom; Flags: disablenouninstallwarning
 Name: "themes\windows10dark"; Description: "Windows 10 Dark"; Types: normal minimal custom; Flags: disablenouninstallwarning
