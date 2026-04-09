@@ -29,11 +29,14 @@
 
 #include "../gtkutil.h"
 #include "../../common/fe.h"
+#include "../../common/cfgfiles.h"
 #include "../../common/util.h"
 #include "../../common/gtk3-theme-service.h"
 #include "theme-gtk3.h"
 #include "theme-manager.h"
 #include "theme-preferences.h"
+
+extern void load_text_events (void);
 
 typedef struct
 {
@@ -932,6 +935,21 @@ theme_preferences_show_import_error (GtkWidget *button, const char *message)
         gtk_widget_destroy (dialog);
 }
 
+static void
+theme_preferences_show_import_info (GtkWidget *button, const char *message)
+{
+        GtkWidget *dialog;
+
+        dialog = gtk_message_dialog_new (GTK_WINDOW (gtk_widget_get_toplevel (button)),
+                                         GTK_DIALOG_MODAL,
+                                         GTK_MESSAGE_INFO,
+                                         GTK_BUTTONS_CLOSE,
+                                         "%s",
+                                         message);
+        gtk_dialog_run (GTK_DIALOG (dialog));
+        gtk_widget_destroy (dialog);
+}
+
 static gboolean
 theme_preferences_parse_cfg_color (const char *cfg,
                                    const char *key,
@@ -1042,8 +1060,11 @@ theme_preferences_import_colors_conf_cb (GtkWidget *button, gpointer user_data)
         char *path;
         char *lower_path;
         char *cfg;
+        char *pevents_cfg = NULL;
         GError *error = NULL;
         gboolean any_imported = FALSE;
+        gboolean imported_from_hct = FALSE;
+        gboolean imported_pevents = FALSE;
         ThemeSemanticToken token;
         GtkFileFilter *filter;
 
@@ -1074,6 +1095,7 @@ theme_preferences_import_colors_conf_cb (GtkWidget *button, gpointer user_data)
         lower_path = g_ascii_strdown (path, -1);
         if (g_str_has_suffix (lower_path, ".hct"))
         {
+                imported_from_hct = TRUE;
                 if (!zoitechat_gtk3_theme_service_read_archive_text_file (path, "colors.conf", &cfg, &error))
                 {
                         theme_preferences_show_import_error (button, _("Failed to read colors.conf from .hct file."));
@@ -1082,6 +1104,19 @@ theme_preferences_import_colors_conf_cb (GtkWidget *button, gpointer user_data)
                         g_free (path);
                         return;
                 }
+                if (zoitechat_gtk3_theme_service_read_archive_text_file (path, "pevents.conf", &pevents_cfg, &error))
+                {
+                        char *pevents_path = g_build_filename (get_xdir (), "pevents.conf", NULL);
+                        if (g_file_set_contents (pevents_path, pevents_cfg, -1, &error))
+                        {
+                                load_text_events ();
+                                imported_pevents = TRUE;
+                        }
+                        g_free (pevents_path);
+                        g_clear_error (&error);
+                }
+                else
+                        g_clear_error (&error);
         }
         else if (!g_file_get_contents (path, &cfg, NULL, &error))
         {
@@ -1106,9 +1141,22 @@ theme_preferences_import_colors_conf_cb (GtkWidget *button, gpointer user_data)
 
         if (!any_imported)
                 theme_preferences_show_import_error (button, _("No importable colors were found in that colors.conf file."));
+        else if (imported_from_hct)
+        {
+                char *message = g_strdup_printf (imported_pevents ?
+                                                 _("Imported colors.conf and pevents.conf from %s.") :
+                                                 _("Imported colors.conf from %s."),
+                                                 path);
+                theme_preferences_show_import_info (button, message);
+                g_free (message);
+        }
         else if (color_change_flag)
                 *color_change_flag = theme_preferences_stage.active ? theme_preferences_stage.changed : *color_change_flag;
 
+        if (any_imported && color_change_flag)
+                *color_change_flag = theme_preferences_stage.active ? theme_preferences_stage.changed : *color_change_flag;
+
+        g_free (pevents_cfg);
         g_free (cfg);
         g_free (path);
 }
