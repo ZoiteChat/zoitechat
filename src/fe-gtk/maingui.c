@@ -862,12 +862,34 @@ fe_set_title (session *sess)
         gtk_window_set_title (GTK_WINDOW (sess->gui->window), tbuf);
 }
 
+static void
+mg_topicbar_update_height (GtkWidget *topic);
+
+static session *
+mg_session_from_window (GtkWidget *wid)
+{
+        GSList *list;
+        session *sess;
+
+        list = sess_list;
+        while (list)
+        {
+                sess = list->data;
+                if (sess && sess->gui && sess->gui->window == wid)
+                        return sess;
+                list = list->next;
+        }
+
+        return current_sess;
+}
+
 static gboolean
 mg_windowstate_cb (GtkWindow *wid, GdkEventWindowState *event, gpointer userdata)
 {
 	guint win_state;
 	guint win_fullscreen;
 	gboolean changed = FALSE;
+        session *sess;
 
 	if ((event->changed_mask & GDK_WINDOW_STATE_ICONIFIED) &&
 		 (event->new_window_state & GDK_WINDOW_STATE_ICONIFIED) &&
@@ -903,6 +925,20 @@ mg_windowstate_cb (GtkWindow *wid, GdkEventWindowState *event, gpointer userdata
 		mg_schedule_config_save ();
 	}
 
+        sess = mg_session_from_window (GTK_WIDGET (wid));
+	if (sess && sess->gui && GTK_IS_WIDGET (sess->gui->topic_entry))
+	{
+		mg_topicbar_update_height (sess->gui->topic_entry);
+		gtk_widget_queue_draw (sess->gui->topic_entry);
+	}
+	if (sess && sess->gui && GTK_IS_XTEXT (sess->gui->xtext))
+	{
+		gtk_xtext_refresh (GTK_XTEXT (sess->gui->xtext));
+		gtk_widget_queue_draw (sess->gui->xtext);
+	}
+        if (sess && sess->gui && GTK_IS_WIDGET (sess->gui->window))
+                gtk_widget_queue_draw (sess->gui->window);
+
         menu_set_fullscreen (current_sess->gui, prefs.hex_gui_win_fullscreen);
 
 #ifdef G_OS_WIN32
@@ -916,6 +952,7 @@ static gboolean
 mg_configure_cb (GtkWidget *wid, GdkEventConfigure *event, session *sess)
 {
         gboolean changed = FALSE;
+        session *target_sess;
 
         if (sess == NULL)
         {
@@ -996,6 +1033,23 @@ mg_configure_cb (GtkWidget *wid, GdkEventConfigure *event, session *sess)
         {
                 mg_config_prefs_dirty = TRUE;
                 mg_schedule_config_save ();
+        }
+
+        target_sess = mg_session_from_window (wid);
+        if (target_sess && target_sess->gui)
+        {
+                if (GTK_IS_WIDGET (target_sess->gui->topic_entry))
+                {
+                        mg_topicbar_update_height (target_sess->gui->topic_entry);
+                        gtk_widget_queue_draw (target_sess->gui->topic_entry);
+                }
+                if (GTK_IS_XTEXT (target_sess->gui->xtext))
+                {
+                        gtk_xtext_refresh (GTK_XTEXT (target_sess->gui->xtext));
+                        gtk_widget_queue_draw (target_sess->gui->xtext);
+                }
+                if (GTK_IS_WIDGET (target_sess->gui->window))
+                        gtk_widget_queue_draw (target_sess->gui->window);
         }
 
         return FALSE;
@@ -2969,13 +3023,36 @@ mg_create_dialogbuttons (GtkWidget *box)
 }
 
 static void
-mg_configure_topic_scroller (GtkWidget *scroller, GtkWidget *topic)
+mg_topicbar_update_height (GtkWidget *topic)
 {
+	GtkWidget *scroller;
+	GtkTextBuffer *buffer;
+	GtkTextIter start;
+	GtkTextIter end;
+	PangoLayout *layout;
+	char *text;
+	int width;
+	int line_height;
+	int line_count;
+	int target_height;
 	PangoContext *context;
 	PangoFontMetrics *metrics;
-	int line_height;
-	int min_height;
-	int max_height;
+
+	if (!topic || !GTK_IS_TEXT_VIEW (topic))
+		return;
+
+	scroller = gtk_widget_get_parent (topic);
+
+	buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (topic));
+	gtk_text_buffer_get_bounds (buffer, &start, &end);
+	text = gtk_text_buffer_get_text (buffer, &start, &end, FALSE);
+	layout = gtk_widget_create_pango_layout (topic, text && text[0] ? text : " ");
+	g_free (text);
+
+	width = gtk_widget_get_allocated_width (topic) - 8;
+	if (width > 0)
+		pango_layout_set_width (layout, width * PANGO_SCALE);
+	pango_layout_set_wrap (layout, PANGO_WRAP_WORD_CHAR);
 
 	context = gtk_widget_get_pango_context (topic);
 	metrics = pango_context_get_metrics (context,
@@ -2984,26 +3061,52 @@ mg_configure_topic_scroller (GtkWidget *scroller, GtkWidget *topic)
 	line_height = PANGO_PIXELS (pango_font_metrics_get_ascent (metrics) +
 		pango_font_metrics_get_descent (metrics));
 	pango_font_metrics_unref (metrics);
-
 	if (line_height <= 0)
 		line_height = 16;
+	line_count = pango_layout_get_line_count (layout);
+	if (line_count <= 0)
+		line_count = 1;
+	target_height = line_height * line_count;
+	if (target_height < line_height)
+		target_height = line_height;
 
-	min_height = line_height + 8;
-	max_height = line_height * 4 + 8;
+	gtk_widget_set_size_request (topic, -1, target_height);
+	if (scroller && GTK_IS_SCROLLED_WINDOW (scroller))
+	{
+		gtk_scrolled_window_set_max_content_height (GTK_SCROLLED_WINDOW (scroller), -1);
+		gtk_scrolled_window_set_min_content_height (GTK_SCROLLED_WINDOW (scroller), -1);
+		gtk_scrolled_window_set_max_content_height (GTK_SCROLLED_WINDOW (scroller), target_height);
+		gtk_scrolled_window_set_min_content_height (GTK_SCROLLED_WINDOW (scroller), target_height);
+		gtk_widget_set_size_request (scroller, -1, target_height);
+		gtk_widget_queue_resize (scroller);
+	}
+	else
+	{
+		gtk_widget_queue_resize (topic);
+	}
+	gtk_widget_queue_draw (topic);
+	g_object_unref (layout);
+}
 
-	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scroller),
-		GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
-	gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scroller), GTK_SHADOW_NONE);
-	gtk_scrolled_window_set_propagate_natural_height (GTK_SCROLLED_WINDOW (scroller), TRUE);
-	gtk_scrolled_window_set_min_content_height (GTK_SCROLLED_WINDOW (scroller), min_height);
-	gtk_scrolled_window_set_max_content_height (GTK_SCROLLED_WINDOW (scroller), max_height);
+static void
+mg_topicbar_buffer_changed_cb (GtkTextBuffer *buffer, gpointer userdata)
+{
+	(void) buffer;
+	mg_topicbar_update_height (GTK_WIDGET (userdata));
+}
+
+static void
+mg_topicbar_size_allocate_cb (GtkWidget *widget, GtkAllocation *allocation, gpointer userdata)
+{
+	(void) allocation;
+	(void) userdata;
+	mg_topicbar_update_height (widget);
 }
 
 void
 mg_apply_session_font_prefs (session_gui *gui)
 {
 	const PangoFontDescription *font = NULL;
-	GtkWidget *topic_scroller;
 
 	if (!gui)
 		return;
@@ -3014,9 +3117,7 @@ mg_apply_session_font_prefs (session_gui *gui)
 	if (gui->topic_entry)
 	{
 		theme_manager_apply_entry_palette (gui->topic_entry, font);
-		topic_scroller = gtk_widget_get_parent (gui->topic_entry);
-		if (topic_scroller && GTK_IS_SCROLLED_WINDOW (topic_scroller))
-			mg_configure_topic_scroller (topic_scroller, gui->topic_entry);
+		mg_topicbar_update_height (gui->topic_entry);
 	}
 
 	if (gui->input_box && prefs.hex_gui_input_style)
@@ -3034,7 +3135,7 @@ mg_apply_session_font_prefs (session_gui *gui)
 static void
 mg_create_topicbar (session *sess, GtkWidget *box)
 {
-	GtkWidget *vbox, *hbox, *mode_hbox, *topic, *bbox, *topic_scroller;
+	GtkWidget *vbox, *hbox, *mode_hbox, *topic, *bbox;
 	session_gui *gui = sess->gui;
 
 	gui->topic_bar = vbox = mg_box_new (GTK_ORIENTATION_VERTICAL, FALSE, 0);
@@ -3048,14 +3149,21 @@ mg_create_topicbar (session *sess, GtkWidget *box)
 
         gui->topic_entry = topic = gtk_text_view_new ();
         gtk_widget_set_name (topic, "zoitechat-topicbox");
-        gtk_text_view_set_wrap_mode (GTK_TEXT_VIEW (topic), GTK_WRAP_WORD);
+        gtk_text_view_set_wrap_mode (GTK_TEXT_VIEW (topic), GTK_WRAP_WORD_CHAR);
         gtk_text_view_set_left_margin (GTK_TEXT_VIEW (topic), 4);
         gtk_text_view_set_right_margin (GTK_TEXT_VIEW (topic), 4);
-        topic_scroller = gtk_scrolled_window_new (NULL, NULL);
-        gtk_container_add (GTK_CONTAINER (topic_scroller), topic);
+        gtk_text_view_set_top_margin (GTK_TEXT_VIEW (topic), 4);
+        gtk_text_view_set_bottom_margin (GTK_TEXT_VIEW (topic), 4);
+        gtk_text_view_set_pixels_above_lines (GTK_TEXT_VIEW (topic), 0);
+        gtk_text_view_set_pixels_below_lines (GTK_TEXT_VIEW (topic), 0);
+        gtk_text_view_set_pixels_inside_wrap (GTK_TEXT_VIEW (topic), 0);
         theme_manager_apply_entry_palette (topic, input_style ? input_style->font_desc : NULL);
-        mg_configure_topic_scroller (topic_scroller, topic);
-        gtk_box_pack_start (GTK_BOX (hbox), topic_scroller, TRUE, TRUE, 0);
+        g_signal_connect (gtk_text_view_get_buffer (GTK_TEXT_VIEW (topic)), "changed",
+                                                        G_CALLBACK (mg_topicbar_buffer_changed_cb), topic);
+        g_signal_connect (G_OBJECT (topic), "size-allocate",
+                                                        G_CALLBACK (mg_topicbar_size_allocate_cb), NULL);
+        mg_topicbar_update_height (topic);
+        gtk_box_pack_start (GTK_BOX (hbox), topic, TRUE, TRUE, 0);
         gtk_widget_add_events (topic, GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK |
                                       GDK_POINTER_MOTION_MASK | GDK_LEAVE_NOTIFY_MASK);
         g_signal_connect (G_OBJECT (topic), "key-press-event",
