@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="addon">
+  <id>org.Zoitechat.Plugin.@NAME@</id>
+  <extends>org.Zoitechat</extends>
+  <name>@NAME@ Plugin</name>
+  <summary>@SUMMARY@</summary>
+  <url type="homepage">https://zoitechat.org/</url>
+  <project_license>@LICENSE@</project_license>
+  <metadata_license>CC0-1.0</metadata_license>
+  <update_contact>deepend_AT_zoite.net</update_contact>
+</component>

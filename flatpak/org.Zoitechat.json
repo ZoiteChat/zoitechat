@@ -1,0 +1,84 @@
+{
+  "app-id": "org.Zoitechat",
+  "branch": "master",
+  "runtime": "org.gnome.Platform",
+  "runtime-version": "49",
+  "sdk": "org.gnome.Sdk",
+  "command": "zoitechat",
+  "finish-args": [
+    "--share=ipc",
+    "--socket=x11",
+    "--share=network",
+    "--socket=pulseaudio",
+    "--filesystem=xdg-download",
+    "--filesystem=xdg-data/themes:ro",
+    "--filesystem=xdg-data/icons:ro",
+    "--filesystem=~/.themes:ro",
+    "--filesystem=~/.icons:ro",
+    "--filesystem=xdg-run/tray-icon:create",
+    "--env=GTK_CSD=1",
+    "--talk-name=org.freedesktop.Notifications",
+    "--talk-name=org.kde.StatusNotifierWatcher",
+    "--talk-name=com.canonical.AppMenu.Registrar",
+    "--talk-name=org.mpris.MediaPlayer2.*"
+  ],
+  "add-extensions": {
+    "org.Zoitechat.Plugin": {
+      "version": "49",
+      "directory": "extensions",
+      "add-ld-path": "lib",
+      "merge-dirs": "lib/zoitechat/plugins",
+      "subdirectories": true,
+      "no-autodownload": true,
+      "autodelete": true
+    }
+  },
+  "modules": [
+    "shared-modules/dbus-glib/dbus-glib.json",
+    "shared-modules/lua5.4/lua-5.4.json",
+    "shared-modules/libcanberra/libcanberra.json",
+    "shared-modules/libayatana-appindicator/libayatana-appindicator-gtk3.json",
+    "python3-cffi.json",
+    "perl.json",
+    {
+      "name": "lgi",
+      "buildsystem": "meson",
+      "sources": [
+        {
+          "type": "git",
+          "url": "https://github.com/pavouk/lgi.git",
+          "commit": "c9b8e4473c6421f2a215d8c06c0d94b86eb0b26a"
+        }
+      ]
+    },
+    {
+      "name": "zoitechat",
+      "buildsystem": "meson",
+      "config-opts": [
+        "-Ddbus-service-use-appid=true",
+        "-Dwith-perl=perl",
+        "-Dwith-python=python3",
+        "-Dwith-lua=lua"
+      ],
+      "build-options": {
+        "cflags": "-Wno-error=missing-include-dirs"
+      },
+      "cleanup": [
+        "/share/man"
+      ],
+      "post-install": [
+        "install -d /app/extensions"
+      ],
+      "sources": [
+        {
+          "type": "dir",
+          "path": ".."
+        },
+        {
+          "type": "patch",
+          "path": "Load-plugins-from-Flatpak-extensions.patch"
+        }
+      ]
+    }
+  ]
+}
