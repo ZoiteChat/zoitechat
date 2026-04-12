@@ -80,7 +80,7 @@ typedef GIcon *TrayIcon;
 typedef GIcon *TrayCustomIcon;
 #define tray_icon_free(i) g_object_unref(i)
 
-#define ICON_NORMAL_NAME "net.zoite.Zoitechat"
+#define ICON_NORMAL_NAME "org.Zoitechat"
 #define ICON_MSG_NAME "mail-unread"
 #define ICON_HILIGHT_NAME "dialog-warning"
 #define ICON_FILE_NAME "folder-download"

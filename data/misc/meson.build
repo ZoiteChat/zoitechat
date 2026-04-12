@@ -6,8 +6,8 @@ desktop_utils = find_program('desktop-file-validate', required: false)
 if get_option('gtk-frontend')
   if get_option('install-appdata')
     zoitechat_appdata = i18n.merge_file(
-      input: 'net.zoite.Zoitechat.appdata.xml.in',
-      output: 'net.zoite.Zoitechat.appdata.xml',
+      input: 'org.Zoitechat.appdata.xml.in',
+      output: 'org.Zoitechat.appdata.xml',
       po_dir: '../../po',
       install: true,
       install_dir: metainfodir
@@ -15,7 +15,7 @@ if get_option('gtk-frontend')
 
     appstreamcli = find_program('appstreamcli', required: false)
     if appstreamcli.found()
-      test('Validate net.zoite.Zoitechat.appdata.xml', appstreamcli,
+      test('Validate org.Zoitechat.appdata.xml', appstreamcli,
         args: ['validate', zoitechat_appdata]
       )
     endif
@@ -29,14 +29,14 @@ if get_option('gtk-frontend')
   endif
 
   desktop_file = configure_file(
-    input: 'net.zoite.Zoitechat.desktop.in.in',
-    output: 'net.zoite.Zoitechat.desktop.in',
+    input: 'org.Zoitechat.desktop.in.in',
+    output: 'org.Zoitechat.desktop.in',
     configuration: desktop_conf
   )
 
   zoitechat_desktop = i18n.merge_file(
     input: desktop_file,
-    output: 'net.zoite.Zoitechat.desktop',
+    output: 'org.Zoitechat.desktop',
     po_dir: '../../po',
     type: 'desktop',
     install: true,
@@ -44,7 +44,7 @@ if get_option('gtk-frontend')
   )
 
   if desktop_utils.found()
-    test('Validate net.zoite.Zoitechat.desktop', desktop_utils,
+    test('Validate org.Zoitechat.desktop', desktop_utils,
       args: [zoitechat_desktop]
     )
   endif
@@ -98,14 +98,14 @@ if get_option('plugin')
     conf.set('LICENSE', metainfo[2])
 
     plugin_appdata = configure_file(
-      input: 'net.zoite.Zoitechat.Plugin.metainfo.xml.in',
-      output: 'net.zoite.Zoitechat.Plugin.@0@.metainfo.xml'.format(name),
+      input: 'org.Zoitechat.Plugin.metainfo.xml.in',
+      output: 'org.Zoitechat.Plugin.@0@.metainfo.xml'.format(name),
       configuration: conf,
       install_dir: get_option('install-plugin-metainfo') ? metainfodir : '',
     )
 
     if appstreamcli.found()
-      test('Validate net.zoite.Zoitechat.Plugin.@0@.metainfo.xml'.format(name), appstreamcli,
+      test('Validate org.Zoitechat.Plugin.@0@.metainfo.xml'.format(name), appstreamcli,
         args: ['validate', plugin_appdata]
     )
     endif

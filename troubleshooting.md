@@ -2,11 +2,11 @@
 
 ## Flatpak
 
-If `flatpak run net.zoite.Zoitechat` only prints `Gtk-WARNING **: cannot open display`,
+If `flatpak run org.Zoitechat` only prints `Gtk-WARNING **: cannot open display`,
 collect extra diagnostics with:
 
 ```bash
-flatpak run --devel --command=sh net.zoite.Zoitechat
+flatpak run --devel --command=sh org.Zoitechat
 ```
 
 Then inside that shell:
@@ -20,24 +20,24 @@ env G_MESSAGES_DEBUG=all zoitechat 2>&1 | tee /tmp/zoitechat-debug.log
 To inspect sandbox permissions from the host:
 
 ```bash
-flatpak info --show-permissions net.zoite.Zoitechat
-flatpak override --user --show net.zoite.Zoitechat
+flatpak info --show-permissions org.Zoitechat
+flatpak override --user --show org.Zoitechat
 ```
 
 If needed, try running with direct access to your active display stack:
 
 ```bash
 # X11 sessions
-flatpak override --user --socket=x11 net.zoite.Zoitechat
+flatpak override --user --socket=x11 org.Zoitechat
 
 # Wayland sessions
-flatpak override --user --socket=wayland net.zoite.Zoitechat
+flatpak override --user --socket=wayland org.Zoitechat
 ```
 
 You can reset overrides after testing:
 
 ```bash
-flatpak override --user --reset net.zoite.Zoitechat
+flatpak override --user --reset org.Zoitechat
 ```
 
 ## Theme palette migration and legacy keys

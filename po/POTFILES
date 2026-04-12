@@ -1,6 +1,6 @@
-data/misc/net.zoite.Zoitechat.appdata.xml.in
-data/misc/net.zoite.Zoitechat.desktop.in.in
-data/misc/net.zoite.Zoitechat.ThemeManager.desktop.in
+data/misc/org.Zoitechat.appdata.xml.in
+data/misc/org.Zoitechat.desktop.in.in
+data/misc/org.Zoitechat.ThemeManager.desktop.in
 src/common/cfgfiles.c
 src/common/chanopt.c
 src/common/dcc.c

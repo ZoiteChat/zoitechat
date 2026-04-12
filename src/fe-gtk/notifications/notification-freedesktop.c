@@ -56,7 +56,7 @@ notification_backend_show (const char *title, const char *text)
     g_variant_builder_init (&params, G_VARIANT_TYPE ("(susssasa{sv}i)"));
     g_variant_builder_add (&params, "s", "zoitechat"); /* App name */
     g_variant_builder_add (&params, "u", 0); /* ID, 0 means don't replace */
-    g_variant_builder_add (&params, "s", "io.github.Hexchat"); /* App icon */
+    g_variant_builder_add (&params, "s", "org.Zoitechat"); /* App icon */
     g_variant_builder_add (&params, "s", title);
     g_variant_builder_add (&params, "s", text);
     g_variant_builder_add (&params, "as", NULL); /* Actions */
@@ -65,7 +65,7 @@ notification_backend_show (const char *title, const char *text)
     g_variant_builder_open (&params, G_VARIANT_TYPE ("a{sv}"));
     g_variant_builder_open (&params, G_VARIANT_TYPE ("{sv}"));
     g_variant_builder_add (&params, "s", "desktop-entry");
-    g_variant_builder_add (&params, "v", g_variant_new_string ("io.github.Hexchat"));
+    g_variant_builder_add (&params, "v", g_variant_new_string ("org.Zoitechat"));
     g_variant_builder_close (&params);
     g_variant_builder_close (&params);
 

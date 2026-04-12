@@ -301,7 +301,7 @@ fe_args (int argc, char *argv[])
 	GError *error = NULL;
 	GOptionContext *context;
 	char *buffer;
-	const char *desktop_id = "net.zoite.Zoitechat";
+	const char *desktop_id = "org.Zoitechat";
 #ifdef WIN32
 	char *base_path = NULL;
 	char *locale_path = NULL;
