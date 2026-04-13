@@ -59,6 +59,17 @@ fe_open_url (const char *url)
         (void)url;
 }
 
+char *
+get_xdir (void)
+{
+        return (char *)"/tmp";
+}
+
+void
+load_text_events (void)
+{
+}
+
 gboolean
 theme_get_color (ThemeSemanticToken token, GdkRGBA *color)
 {
