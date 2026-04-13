@@ -45,6 +45,8 @@ cv_tree_sel_cb (GtkTreeSelection *sel, chanview *cv)
 	GtkTreeModel *model;
 	GtkTreeIter prev_iter;
 	GtkTreeIter iter;
+	GtkTreePath *path;
+	GtkTreeView *view;
 	chan *ch;
 	chan *prev_ch;
 	gboolean has_prev;
@@ -60,6 +62,20 @@ cv_tree_sel_cb (GtkTreeSelection *sel, chanview *cv)
 		if (has_prev)
 		{
 			gtk_tree_model_get (model, &prev_iter, COL_CHAN, &prev_ch, -1);
+			if (prev_ch != ch && gtk_tree_store_is_ancestor (cv->store, &iter, &prev_iter))
+			{
+				view = gtk_tree_selection_get_tree_view (sel);
+				path = gtk_tree_model_get_path (model, &iter);
+				if (path)
+				{
+					if (!gtk_tree_view_row_expanded (view, path))
+					{
+						gtk_tree_path_free (path);
+						return;
+					}
+					gtk_tree_path_free (path);
+				}
+			}
 			if (prev_ch != ch)
 				gtk_tree_store_set (cv->store, &prev_iter, COL_UNDERLINE, PANGO_UNDERLINE_NONE, -1);
 		}
