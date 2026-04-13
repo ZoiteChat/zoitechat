@@ -2497,6 +2497,7 @@ mg_topic_word_is_clickable (const char *word, int word_pos)
 {
         int start;
         int end;
+        int word_type;
 
         if (!word || word[0] == 0)
                 return FALSE;
@@ -2504,7 +2505,8 @@ mg_topic_word_is_clickable (const char *word, int word_pos)
         if (strcmp (word, "/") == 0)
                 return FALSE;
 
-        if (url_check_word (word) == 0)
+        word_type = url_check_word (word);
+        if (word_type != WORD_URL && word_type != WORD_HOST && word_type != WORD_HOST6)
                 return FALSE;
 
         url_last (&start, &end);
@@ -2553,7 +2555,8 @@ mg_topic_button_release_cb (GtkWidget *entry, GdkEventButton *event, gpointer us
         if (!word)
                 return FALSE;
 
-        if (mg_topic_word_is_clickable (word, word_pos))
+        if ((event->state & 13) == prefs.hex_gui_url_mod &&
+            mg_topic_word_is_clickable (word, word_pos))
         {
                 url_last (&start, &end);
                 word[end] = 0;
