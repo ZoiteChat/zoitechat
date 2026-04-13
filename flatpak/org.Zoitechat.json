@@ -1,5 +1,5 @@
 {
-  "app-id": "org.Zoitechat",
+  "app-id": "org.Zoitechat.ZoiteChat",
   "branch": "master",
   "runtime": "org.gnome.Platform",
   "runtime-version": "49",
