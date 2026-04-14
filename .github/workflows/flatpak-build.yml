@@ -25,6 +25,9 @@ jobs:
         with:
           submodules: true
 
+      - name: Generate PSL list
+        run: curl -fsSL https://publicsuffix.org/list/public_suffix_list.dat -o src/common/public_suffix_list.dat
+
       - name: Build Flatpak
         id: flatpak_builder
         uses: flatpak/flatpak-github-actions/flatpak-builder@v6
