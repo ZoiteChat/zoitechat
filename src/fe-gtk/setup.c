@@ -367,7 +367,7 @@ static const setting filexfer_settings[] =
         {ST_TOGGLE, N_("Receive window"), P_OFFINTNL(hex_gui_autoopen_recv), 0, 0, 0},
         {ST_TOGGLE, N_("Chat window"), P_OFFINTNL(hex_gui_autoopen_chat), 0, 0, 0},
 
-        {ST_HEADER, N_("Maximum File Transfer Speeds (Byte per Second)"), 0, 0, 0},
+        {ST_HEADER, N_("Maximum File Transfer Speeds (KiB/s or MiB/s)"), 0, 0, 0},
         {ST_NUMBER,     N_("One upload:"), P_OFFINTNL(hex_dcc_max_send_cps), 
                                         N_("Maximum speed for one transfer"), 0, 10000000},
         {ST_NUMBER,     N_("One download:"), P_OFFINTNL(hex_dcc_max_get_cps),
@@ -873,6 +873,67 @@ setup_create_italic_label (char *text)
         return label;
 }
 
+typedef struct
+{
+        const setting *set;
+        GtkSpinButton *spin;
+        GtkComboBox *unit;
+} setup_dcc_speed_data;
+
+static gboolean
+setup_is_dcc_speed_setting (const setting *set)
+{
+        return set->offset == P_OFFINTNL (hex_dcc_max_send_cps)
+                || set->offset == P_OFFINTNL (hex_dcc_max_get_cps)
+                || set->offset == P_OFFINTNL (hex_dcc_global_max_send_cps)
+                || set->offset == P_OFFINTNL (hex_dcc_global_max_get_cps);
+}
+
+static int
+setup_dcc_speed_multiplier (GtkComboBox *combo)
+{
+        return gtk_combo_box_get_active (combo) == 1 ? 1024 * 1024 : 1024;
+}
+
+static void
+setup_dcc_speed_spin_range (setup_dcc_speed_data *data)
+{
+        int max = data->set->extra / setup_dcc_speed_multiplier (data->unit);
+        gtk_spin_button_set_range (data->spin, 0, max > 0 ? max : 0);
+}
+
+static void
+setup_dcc_speed_store (setup_dcc_speed_data *data)
+{
+        int value = gtk_spin_button_get_value_as_int (data->spin);
+        int speed = value * setup_dcc_speed_multiplier (data->unit);
+        if (speed > data->set->extra)
+                speed = data->set->extra;
+        setup_set_int (&setup_prefs, data->set, speed);
+}
+
+static void
+setup_dcc_speed_spin_cb (GtkSpinButton *spin, setup_dcc_speed_data *data)
+{
+        (void)spin;
+        setup_dcc_speed_store (data);
+}
+
+static void
+setup_dcc_speed_unit_cb (GtkComboBox *combo, setup_dcc_speed_data *data)
+{
+        int speed = setup_get_int (&setup_prefs, data->set);
+        int multiplier;
+        int value;
+
+        (void)combo;
+        setup_dcc_speed_spin_range (data);
+        multiplier = setup_dcc_speed_multiplier (data->unit);
+        value = (speed + (multiplier / 2)) / multiplier;
+        gtk_spin_button_set_value (data->spin, value);
+        setup_dcc_speed_store (data);
+}
+
 static void
 setup_spin_cb (GtkSpinButton *spin, const setting *set)
 {
@@ -902,11 +963,43 @@ setup_create_spin (GtkWidget *table, int row, const setting *set)
         g_object_set_data (G_OBJECT (wid), "lbl", label);
         if (set->tooltip)
                 gtk_widget_set_tooltip_text (wid, _(set->tooltip));
-        gtk_spin_button_set_value (GTK_SPIN_BUTTON (wid),
+        if (setup_is_dcc_speed_setting (set))
+        {
+                GtkWidget *unit;
+                setup_dcc_speed_data *data = g_new0 (setup_dcc_speed_data, 1);
+                int speed = setup_get_int (&setup_prefs, set);
+                int use_mib = speed >= (1024 * 1024) && speed % (1024 * 1024) == 0;
+                int multiplier;
+
+                data->set = set;
+                data->spin = GTK_SPIN_BUTTON (wid);
+
+                unit = gtk_combo_box_text_new ();
+                gtk_combo_box_text_append_text (GTK_COMBO_BOX_TEXT (unit), _("KiB/s"));
+                gtk_combo_box_text_append_text (GTK_COMBO_BOX_TEXT (unit), _("MiB/s"));
+                gtk_combo_box_set_wrap_width (GTK_COMBO_BOX (unit), 1);
+                gtk_combo_box_set_active (GTK_COMBO_BOX (unit), use_mib ? 1 : 0);
+                data->unit = GTK_COMBO_BOX (unit);
+
+                setup_dcc_speed_spin_range (data);
+                multiplier = setup_dcc_speed_multiplier (data->unit);
+                gtk_spin_button_set_value (GTK_SPIN_BUTTON (wid), (speed + (multiplier / 2)) / multiplier);
+
+                g_signal_connect (G_OBJECT (wid), "value-changed",
+                                                        G_CALLBACK (setup_dcc_speed_spin_cb), data);
+                g_signal_connect (G_OBJECT (unit), "changed",
+                                                        G_CALLBACK (setup_dcc_speed_unit_cb), data);
+
+                gtk_box_pack_start (GTK_BOX (rbox), wid, 0, 0, 0);
+                gtk_box_pack_start (GTK_BOX (rbox), unit, 0, 0, 6);
+        } else
+        {
+                gtk_spin_button_set_value (GTK_SPIN_BUTTON (wid),
                                                                                 setup_get_int (&setup_prefs, set));
-        g_signal_connect (G_OBJECT (wid), "value-changed",
+                g_signal_connect (G_OBJECT (wid), "value-changed",
                                                         G_CALLBACK (setup_spin_cb), (gpointer)set);
-        gtk_box_pack_start (GTK_BOX (rbox), wid, 0, 0, 0);
+                gtk_box_pack_start (GTK_BOX (rbox), wid, 0, 0, 0);
+        }
 
         if (set->list)
         {
