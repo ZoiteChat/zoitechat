@@ -61,28 +61,19 @@ static tab_scroll_animation *tab_right_animation;
  */
 
 static inline gint
-cv_tabs_get_viewport_size (GdkWindow *parent_win, gboolean vertical)
+cv_tabs_get_viewport_size (GtkAdjustment *adj)
 {
-	gint viewport_size = 0;
-
-	if (vertical)
-		viewport_size = gdk_window_get_height (parent_win);
-	else
-		viewport_size = gdk_window_get_width (parent_win);
-
-	return viewport_size;
+	return (gint) gtk_adjustment_get_page_size (adj);
 }
 
 static void
 cv_tabs_sizealloc (GtkWidget *widget, GtkAllocation *allocation, chanview *cv)
 {
-	GdkWindow *parent_win;
 	GtkAdjustment *adj;
 	GtkWidget *inner;
 	gint viewport_size;
 
 	inner = ((tabview *)cv)->inner;
-	parent_win = gtk_widget_get_window (gtk_widget_get_parent (inner));
 
 	if (cv->vertical)
 	{
@@ -92,16 +83,20 @@ cv_tabs_sizealloc (GtkWidget *widget, GtkAllocation *allocation, chanview *cv)
 		adj = gtk_scrollable_get_hadjustment (GTK_SCROLLABLE (gtk_widget_get_parent (inner)));
 	}
 
-	viewport_size = cv_tabs_get_viewport_size (parent_win, cv->vertical);
+	viewport_size = cv_tabs_get_viewport_size (adj);
 
 	if (gtk_adjustment_get_upper (adj) <= viewport_size)
 	{
-		gtk_widget_hide (((tabview *)cv)->b1);
-		gtk_widget_hide (((tabview *)cv)->b2);
+		if (((tabview *)cv)->b1)
+			gtk_widget_hide (((tabview *)cv)->b1);
+		if (((tabview *)cv)->b2)
+			gtk_widget_hide (((tabview *)cv)->b2);
 	} else
 	{
-		gtk_widget_show (((tabview *)cv)->b1);
-		gtk_widget_show (((tabview *)cv)->b2);
+		if (((tabview *)cv)->b1)
+			gtk_widget_show (((tabview *)cv)->b1);
+		if (((tabview *)cv)->b2)
+			gtk_widget_show (((tabview *)cv)->b2);
 	}
 }
 
@@ -241,10 +236,8 @@ tab_scroll_left_up_clicked (GtkWidget *widget, chanview *cv)
 	gint viewport_size;
 	gfloat new_value;
 	GtkWidget *inner;
-	GdkWindow *parent_win;
 
 	inner = ((tabview *)cv)->inner;
-	parent_win = gtk_widget_get_window (gtk_widget_get_parent (inner));
 
 	if (cv->vertical)
 	{
@@ -254,7 +247,7 @@ tab_scroll_left_up_clicked (GtkWidget *widget, chanview *cv)
 		adj = gtk_scrollable_get_hadjustment (GTK_SCROLLABLE (gtk_widget_get_parent(inner)));
 	}
 
-	viewport_size = cv_tabs_get_viewport_size (parent_win, cv->vertical);
+	viewport_size = cv_tabs_get_viewport_size (adj);
 
 	new_value = tab_search_offset (inner, gtk_adjustment_get_value (adj), 0, cv->vertical);
 
@@ -279,10 +272,8 @@ tab_scroll_right_down_clicked (GtkWidget *widget, chanview *cv)
 	gint viewport_size;
 	gfloat new_value;
 	GtkWidget *inner;
-	GdkWindow *parent_win;
 
 	inner = ((tabview *)cv)->inner;
-	parent_win = gtk_widget_get_window (gtk_widget_get_parent (inner));
 
 	if (cv->vertical)
 	{
@@ -292,7 +283,7 @@ tab_scroll_right_down_clicked (GtkWidget *widget, chanview *cv)
 		adj = gtk_scrollable_get_hadjustment (GTK_SCROLLABLE (gtk_widget_get_parent(inner)));
 	}
 
-	viewport_size = cv_tabs_get_viewport_size (parent_win, cv->vertical);
+	viewport_size = cv_tabs_get_viewport_size (adj);
 
 	new_value = tab_search_offset (inner, gtk_adjustment_get_value (adj), 1, cv->vertical);
 
@@ -332,48 +323,10 @@ tab_scroll_cb (GtkWidget *widget, GdkEventScroll *event, gpointer cv)
 	return FALSE;
 }
 
-/* make a Scroll (arrow) button */
-
-static GtkWidget *
-make_sbutton (GtkArrowType type, void *click_cb, void *userdata)
-{
-	GtkWidget *button, *arrow;
-	const char *icon_name = "pan-end-symbolic";
-
-	button = gtk_button_new ();
-	switch (type)
-	{
-	case GTK_ARROW_UP:
-		icon_name = "pan-up-symbolic";
-		break;
-	case GTK_ARROW_DOWN:
-		icon_name = "pan-down-symbolic";
-		break;
-	case GTK_ARROW_LEFT:
-		icon_name = "pan-start-symbolic";
-		break;
-	case GTK_ARROW_RIGHT:
-	default:
-		icon_name = "pan-end-symbolic";
-		break;
-	}
-
-	arrow = gtk_image_new_from_icon_name (icon_name, GTK_ICON_SIZE_BUTTON);
-	gtk_container_add (GTK_CONTAINER (button), arrow);
-	gtk_button_set_relief (GTK_BUTTON (button), GTK_RELIEF_NONE);
-	g_signal_connect (G_OBJECT (button), "clicked",
-							G_CALLBACK (click_cb), userdata);
-	g_signal_connect (G_OBJECT (button), "scroll-event",
-							G_CALLBACK (tab_scroll_cb), userdata);
-	gtk_widget_show (arrow);
-
-	return button;
-}
-
 static void
 cv_tabs_init (chanview *cv)
 {
-	GtkWidget *box, *hbox = NULL;
+	GtkWidget *box;
 	GtkWidget *viewport;
 	GtkWidget *outer;
 
@@ -390,12 +343,19 @@ cv_tabs_init (chanview *cv)
 							G_CALLBACK (cv_tabs_sizealloc), cv);
 	gtk_widget_show (outer);
 
-	viewport = gtk_viewport_new (0, 0);
-	gtk_viewport_set_shadow_type (GTK_VIEWPORT (viewport), GTK_SHADOW_NONE);
+	viewport = gtk_scrolled_window_new (0, 0);
+	gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (viewport), GTK_SHADOW_NONE);
+	gtk_scrolled_window_set_overlay_scrolling (GTK_SCROLLED_WINDOW (viewport), FALSE);
 	if (cv->vertical)
-		gtk_widget_set_size_request (viewport, -1, 1);
+		gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (viewport),
+												  GTK_POLICY_NEVER, GTK_POLICY_ALWAYS);
 	else
-		gtk_widget_set_size_request (viewport, 1, -1);
+		gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (viewport),
+												  GTK_POLICY_ALWAYS, GTK_POLICY_NEVER);
+	gtk_scrolled_window_set_min_content_width (GTK_SCROLLED_WINDOW (viewport), 1);
+	gtk_scrolled_window_set_min_content_height (GTK_SCROLLED_WINDOW (viewport), 1);
+	gtk_widget_set_hexpand (viewport, TRUE);
+	gtk_widget_set_vexpand (viewport, TRUE);
 	g_signal_connect (G_OBJECT (viewport), "scroll-event",
 							G_CALLBACK (tab_scroll_cb), cv);
 	gtk_box_pack_start (GTK_BOX (outer), viewport, 1, 1, 0);
@@ -412,35 +372,6 @@ cv_tabs_init (chanview *cv)
 	((tabview *)cv)->inner = box;
 	gtk_container_add (GTK_CONTAINER (viewport), box);
 	gtk_widget_show (box);
-
-	/* if vertical, the buttons can be side by side */
-	if (cv->vertical)
-	{
-		hbox = gtkutil_box_new (GTK_ORIENTATION_HORIZONTAL, FALSE, 0);
-		gtk_box_pack_start (GTK_BOX (outer), hbox, 0, 0, 0);
-		gtk_widget_show (hbox);
-	}
-
-	/* make the Scroll buttons */
-	((tabview *)cv)->b2 = make_sbutton (cv->vertical ?
-													GTK_ARROW_UP : GTK_ARROW_LEFT,
-													tab_scroll_left_up_clicked,
-													cv);
-
-	((tabview *)cv)->b1 = make_sbutton (cv->vertical ?
-													GTK_ARROW_DOWN : GTK_ARROW_RIGHT,
-													tab_scroll_right_down_clicked,
-													cv);
-
-	if (hbox)
-	{
-		gtk_container_add (GTK_CONTAINER (hbox), ((tabview *)cv)->b2);
-		gtk_container_add (GTK_CONTAINER (hbox), ((tabview *)cv)->b1);
-	} else
-	{
-		gtk_box_pack_start (GTK_BOX (outer), ((tabview *)cv)->b2, 0, 0, 0);
-		gtk_box_pack_start (GTK_BOX (outer), ((tabview *)cv)->b1, 0, 0, 0);
-	}
 
 	gtk_container_add (GTK_CONTAINER (cv->box), outer);
 }
