@@ -3567,6 +3567,44 @@ mg_theme_userlist_changed (const ThemeChangedEvent *event, gpointer userdata)
 }
 
 static void
+mg_theme_refresh_menu_widget (GtkWidget *widget)
+{
+	GtkRequisition minimum;
+	GtkRequisition natural;
+
+	if (!widget)
+		return;
+
+	gtk_widget_queue_resize (widget);
+	gtk_widget_get_preferred_size (widget, &minimum, &natural);
+}
+
+static void
+mg_theme_refresh_menu_tree (GtkWidget *menu)
+{
+	GList *children;
+	GList *node;
+
+	if (!menu || !GTK_IS_MENU_SHELL (menu))
+		return;
+
+	children = gtk_container_get_children (GTK_CONTAINER (menu));
+	for (node = children; node; node = node->next)
+	{
+		GtkWidget *item = GTK_WIDGET (node->data);
+		GtkWidget *submenu = NULL;
+
+		if (GTK_IS_MENU_ITEM (item))
+			submenu = gtk_menu_item_get_submenu (GTK_MENU_ITEM (item));
+		if (submenu)
+			mg_theme_refresh_menu_tree (submenu);
+		mg_theme_refresh_menu_widget (item);
+	}
+	g_list_free (children);
+	mg_theme_refresh_menu_widget (menu);
+}
+
+static void
 mg_theme_window_changed (const ThemeChangedEvent *event, gpointer userdata)
 {
 	session_gui *gui = userdata;
@@ -3576,8 +3614,11 @@ mg_theme_window_changed (const ThemeChangedEvent *event, gpointer userdata)
 	    !theme_changed_event_has_reason (event, THEME_CHANGED_REASON_WIDGET_STYLE))
 		return;
 
-	if (gui)
-		theme_manager_apply_to_window (gui->window);
+	if (!gui)
+		return;
+
+	theme_manager_apply_to_window (gui->window);
+	mg_theme_refresh_menu_tree (gui->menu);
 }
 
 static void
