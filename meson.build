@@ -18,7 +18,7 @@ libgmodule_dep = dependency('gmodule-2.0')
 
 libcanberra_dep = dependency('libcanberra', version: '>= 0.22',
                              required: get_option('libcanberra'))
-dbus_glib_dep = dependency('dbus-glib-1', required: get_option('dbus'))
+dbus_dep = dependency('gio-2.0', required: get_option('dbus'))
 
 global_deps = []
 if cc.get_id() == 'msvc'
@@ -39,7 +39,7 @@ config_h.set10('ENABLE_NLS', true)
 # Optional features
 config_h.set('USE_OPENSSL', libssl_dep.found())
 config_h.set('USE_LIBCANBERRA', libcanberra_dep.found())
-config_h.set('USE_DBUS', dbus_glib_dep.found())
+config_h.set('USE_DBUS', dbus_dep.found())
 config_h.set('USE_PLUGIN', get_option('plugin'))
 config_h.set('USE_GTK_FRONTEND', get_option('gtk-frontend'))
 
@@ -181,7 +181,7 @@ if meson.version().version_compare('>= 0.55.0')
     'GTK Frontend': get_option('gtk-frontend') ? 'enabled (GTK+ 3.22+)' : 'disabled',
     'TLS (openssl)': libssl_dep.found(),
     'Plugin Support': get_option('plugin'),
-    'DBus Support': dbus_glib_dep.found(),
+    'DBus Support': dbus_dep.found(),
     'libcanberra': libcanberra_dep.found(),
   }, section: 'Features')
 

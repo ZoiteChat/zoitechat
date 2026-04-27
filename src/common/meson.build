@@ -115,7 +115,7 @@ if libssl_dep.found()
   common_deps += libssl_dep
 endif
 
-if dbus_glib_dep.found()
+if dbus_dep.found()
   subdir('dbus')
   common_deps += zoitechat_dbus_dep
   common_includes += include_directories('dbus')

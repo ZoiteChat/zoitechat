@@ -22,7 +22,7 @@ if get_option('gtk-frontend')
   endif
 
   desktop_conf = configuration_data()
-  if dbus_glib_dep.found()
+  if dbus_dep.found()
     desktop_conf.set('exec_command', 'zoitechat --existing %U')
   else
     desktop_conf.set('exec_command', 'zoitechat %U')
