@@ -204,7 +204,7 @@ zoitechat_remote_win32 (void)
 	}
 	else if (arg_existing)
 	{
-		sent = zoitechat_send_command_to_existing (hwnd, "__WIN32_TASKBAR_TOGGLE__") || sent;
+		sent = zoitechat_send_command_to_existing (hwnd, "gui show") || sent;
 	}
 
 	if (arg_urls)
