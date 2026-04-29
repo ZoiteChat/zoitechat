@@ -493,7 +493,6 @@ plugin_auto_load (session *sess)
 	for_files (lib_dir, "hcperl.dll", plugin_auto_load_cb);
 	for_files (lib_dir, "hcpython3.dll", plugin_auto_load_cb);
 	for_files (lib_dir, "hcupd.dll", plugin_auto_load_cb);
-	for_files (lib_dir, "hcwinamp.dll", plugin_auto_load_cb);
 	for_files (lib_dir, "hcsysinfo.dll", plugin_auto_load_cb);
 #else
 	for_files (lib_dir, "*."PLUGIN_SUFFIX, plugin_auto_load_cb);

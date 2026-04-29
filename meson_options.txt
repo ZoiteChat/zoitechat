@@ -59,9 +59,6 @@ option('with-sysinfo', type: 'boolean',
 option('with-upd', type: 'boolean',
   description: 'Update plugin, Windows only'
 )
-option('with-winamp', type: 'boolean',
-  description: 'Winamp plugin, Windows only'
-)
 option('with-perl-legacy-api', type: 'boolean', value: false,
   description: 'Enables the legacy IRC perl module for compatibility with old scripts'
 )

@@ -9,9 +9,6 @@ if host_machine.system() == 'windows'
     subdir('upd')
   endif
 
-  if get_option('with-winamp')
-    subdir('winamp')
-  endif
 endif
 
 if get_option('with-checksum')
