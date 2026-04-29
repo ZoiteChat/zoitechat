@@ -44,7 +44,7 @@ option('with-exec', type: 'boolean',
 option('with-fishlim', type: 'boolean',
   description: 'Fish encryption plugin, requires openssl'
 )
-option('with-lua', type: 'string', value: 'luajit',
+option('with-lua', type: 'string', value: 'lua-5.4',
   description: 'Lua scripting plugin, value is pkg-config name to use or "false"'
 )
 option('with-perl', type: 'string', value: 'perl',
