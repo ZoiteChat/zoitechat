@@ -1973,8 +1973,37 @@ replace_handle (GtkWidget *t)
 			{
 				ptrdiff_t found_offset = found - text;
 				ptrdiff_t found_end_offset = found_offset + (ptrdiff_t) pop_len;
+				gboolean start_ok;
+				gboolean end_ok;
 				int rank;
 				ptrdiff_t distance;
+				const char *before = found;
+				const char *after = found + pop_len;
+
+				if (before > text)
+				{
+					before = g_utf8_find_prev_char (text, before);
+					start_ok = !before || (!g_unichar_isalnum (g_utf8_get_char (before)) && g_utf8_get_char (before) != '_');
+				}
+				else
+				{
+					start_ok = TRUE;
+				}
+
+				if (*after != '\0')
+				{
+					end_ok = !g_unichar_isalnum (g_utf8_get_char (after)) && g_utf8_get_char (after) != '_';
+				}
+				else
+				{
+					end_ok = TRUE;
+				}
+
+				if (!start_ok || !end_ok)
+				{
+					found++;
+					continue;
+				}
 
 				if (cursor_byte_offset >= found_offset && cursor_byte_offset <= found_end_offset)
 				{
