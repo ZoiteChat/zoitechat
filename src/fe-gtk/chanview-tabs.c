@@ -306,17 +306,18 @@ tab_scroll_cb (GtkWidget *widget, GdkEventScroll *event, gpointer cv)
 {
 	if (prefs.hex_gui_tab_scrollchans)
 	{
-		if (event->direction == GDK_SCROLL_DOWN)
-			mg_switch_page (1, 1);
-		else if (event->direction == GDK_SCROLL_UP)
-			mg_switch_page (1, -1);
+		int direction = cv_scroll_direction (event);
+
+		if (direction != 0)
+			mg_switch_page (1, direction);
 	}
 	else
 	{
-		/* mouse wheel scrolling */
-		if (event->direction == GDK_SCROLL_UP)
+		int direction = cv_scroll_direction (event);
+
+		if (direction < 0)
 			tab_scroll_left_up_clicked (widget, cv);
-		else if (event->direction == GDK_SCROLL_DOWN)
+		else if (direction > 0)
 			tab_scroll_right_down_clicked (widget, cv);
 	}
 
@@ -356,6 +357,7 @@ cv_tabs_init (chanview *cv)
 	gtk_scrolled_window_set_min_content_height (GTK_SCROLLED_WINDOW (viewport), 1);
 	gtk_widget_set_hexpand (viewport, TRUE);
 	gtk_widget_set_vexpand (viewport, TRUE);
+	cv_add_scroll_events (viewport);
 	g_signal_connect (G_OBJECT (viewport), "scroll-event",
 							G_CALLBACK (tab_scroll_cb), cv);
 	gtk_box_pack_start (GTK_BOX (outer), viewport, 1, 1, 0);
@@ -677,9 +679,11 @@ cv_tabs_add (chanview *cv, chan *ch, char *name, GtkTreeIter *parent)
 	gtk_widget_set_name (but, "zoitechat-tab");
 	gtk_widget_set_size_request (but, -1, 14);
 	gtk_widget_add_events (but, GDK_POINTER_MOTION_MASK | GDK_LEAVE_NOTIFY_MASK);
+	cv_add_scroll_events (but);
 	hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 2);
 	label = gtk_label_new (name);
 	close_button = gtk_button_new ();
+	cv_add_scroll_events (close_button);
 	gtk_style_context_add_class (gtk_widget_get_style_context (close_button), "flat");
 	close_icon = gtk_image_new_from_icon_name ("window-close-symbolic", GTK_ICON_SIZE_MENU);
 	gtk_image_set_pixel_size (GTK_IMAGE (close_icon), 8);
@@ -695,6 +699,10 @@ cv_tabs_add (chanview *cv, chan *ch, char *name, GtkTreeIter *parent)
 	/* used to trap right-clicks */
 	g_signal_connect (G_OBJECT (but), "button-press-event",
 						 	G_CALLBACK (tab_click_cb), ch);
+	g_signal_connect (G_OBJECT (but), "scroll-event",
+							G_CALLBACK (tab_scroll_cb), cv);
+	g_signal_connect (G_OBJECT (close_button), "scroll-event",
+							G_CALLBACK (tab_scroll_cb), cv);
 	g_signal_connect (G_OBJECT (but), "motion-notify-event",
 						 	G_CALLBACK (tab_close_motion_cb), ch);
 	g_signal_connect (G_OBJECT (but), "leave-notify-event",

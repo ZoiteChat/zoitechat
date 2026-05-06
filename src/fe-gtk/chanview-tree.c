@@ -111,12 +111,12 @@ cv_tree_scroll_event_cb (GtkWidget *widget, GdkEventScroll *event, gpointer user
 {
 	if (prefs.hex_gui_tab_scrollchans)
 	{
-		if (event->direction == GDK_SCROLL_DOWN)
-			mg_switch_page (1, 1);
-		else if (event->direction == GDK_SCROLL_UP)
-			mg_switch_page (1, -1);
+		int direction = cv_scroll_direction (event);
 
-		return TRUE;
+		if (direction != 0)
+			mg_switch_page (1, direction);
+
+		return direction != 0;
 	}
 
 	return FALSE;
@@ -141,6 +141,7 @@ cv_tree_init (chanview *cv)
 	win = gtk_scrolled_window_new (0, 0);
 	gtk_widget_set_hexpand (win, TRUE);
 	gtk_widget_set_vexpand (win, TRUE);
+	cv_add_scroll_events (win);
 
 	/*gtk_container_set_border_width (GTK_CONTAINER (win), 1);*/
 	gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (win),
@@ -154,6 +155,7 @@ cv_tree_init (chanview *cv)
 	view = gtk_tree_view_new_with_model (GTK_TREE_MODEL (cv->store));
 	gtk_widget_set_hexpand (view, TRUE);
 	gtk_widget_set_vexpand (view, TRUE);
+	cv_add_scroll_events (view);
 	gtk_widget_set_name (view, "zoitechat-tree");
 	{
 		ThemeWidgetStyleValues style_values;

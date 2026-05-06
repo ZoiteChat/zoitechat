@@ -782,6 +782,7 @@ load_default_config(void)
 	prefs.hex_gui_tab_middleclose = 1;
 	prefs.hex_gui_tab_server = 1;
 	prefs.hex_gui_tab_sort = 1;
+	prefs.hex_gui_tab_scrollchans = 1;
 	prefs.hex_gui_topicbar = 1;
 	prefs.hex_gui_transparency = 255;
 	prefs.hex_gui_tray = 1;
