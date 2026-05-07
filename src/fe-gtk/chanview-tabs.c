@@ -346,13 +346,12 @@ cv_tabs_init (chanview *cv)
 
 	viewport = gtk_scrolled_window_new (0, 0);
 	gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (viewport), GTK_SHADOW_NONE);
-	gtk_scrolled_window_set_overlay_scrolling (GTK_SCROLLED_WINDOW (viewport), FALSE);
 	if (cv->vertical)
 		gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (viewport),
-												  GTK_POLICY_NEVER, GTK_POLICY_ALWAYS);
+												  GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
 	else
 		gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (viewport),
-												  GTK_POLICY_ALWAYS, GTK_POLICY_NEVER);
+												  GTK_POLICY_AUTOMATIC, GTK_POLICY_NEVER);
 	gtk_scrolled_window_set_min_content_width (GTK_SCROLLED_WINDOW (viewport), 1);
 	gtk_scrolled_window_set_min_content_height (GTK_SCROLLED_WINDOW (viewport), 1);
 	gtk_widget_set_hexpand (viewport, TRUE);

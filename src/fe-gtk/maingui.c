@@ -3413,8 +3413,13 @@ mg_create_textarea (session *sess, GtkWidget *box)
         inbox = mg_box_new (GTK_ORIENTATION_HORIZONTAL, FALSE, 2);
         gtk_box_pack_start (GTK_BOX (vbox), inbox, TRUE, TRUE, 0);
 
-        frame = gtk_frame_new (NULL);
-        gtk_frame_set_shadow_type (GTK_FRAME (frame), GTK_SHADOW_IN);
+        frame = gtk_scrolled_window_new (NULL, NULL);
+        gtk_widget_set_hexpand (frame, TRUE);
+        gtk_widget_set_vexpand (frame, TRUE);
+        gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (frame),
+                                             GTK_SHADOW_IN);
+        gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (frame),
+                                        GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
         gtk_box_pack_start (GTK_BOX (inbox), frame, TRUE, TRUE, 0);
 
         theme_get_xtext_colors_for_widget (frame, xtext_palette, XTEXT_COLS);
@@ -3431,9 +3436,7 @@ mg_create_textarea (session *sess, GtkWidget *box)
         g_signal_connect (G_OBJECT (xtext), "word_click",
                                                         G_CALLBACK (mg_word_clicked), NULL);
 
-        gui->vscrollbar = gtk_scrollbar_new (GTK_ORIENTATION_VERTICAL,
-                                             GTK_XTEXT (xtext)->adj);
-        gtk_box_pack_start (GTK_BOX (inbox), gui->vscrollbar, FALSE, TRUE, 0);
+        gui->vscrollbar = gtk_scrolled_window_get_vscrollbar (GTK_SCROLLED_WINDOW (frame));
 
         gtk_drag_dest_set (gui->vscrollbar, 5, dnd_dest_targets, 2,
                                                          GDK_ACTION_MOVE | GDK_ACTION_COPY | GDK_ACTION_LINK);

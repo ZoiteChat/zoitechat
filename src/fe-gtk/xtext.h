@@ -134,6 +134,9 @@ struct _GtkXText
 	xtext_buffer *selection_buffer;
 
 	GtkAdjustment *adj;
+	GtkAdjustment *hadj;
+	GtkScrollablePolicy hscroll_policy;
+	GtkScrollablePolicy vscroll_policy;
 	cairo_surface_t *background_surface;	/* 0 = use palette[19] */
 	cairo_surface_t *background_clip_surface;
 	GdkWindow *draw_window;			/* points to ->window */

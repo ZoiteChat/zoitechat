@@ -110,6 +110,15 @@ enum
 	TARGET_COMPOUND_TEXT
 };
 
+enum
+{
+	PROP_0,
+	PROP_HADJUSTMENT,
+	PROP_VADJUSTMENT,
+	PROP_HSCROLL_POLICY,
+	PROP_VSCROLL_POLICY
+};
+
 
 /* Selection targets for PRIMARY selection / copy-paste.
  *
@@ -158,7 +167,8 @@ gtk_xtext_install_selection_targets (GtkWidget *widget)
 
 static guint xtext_signals[LAST_SIGNAL];
 
-G_DEFINE_TYPE (GtkXText, gtk_xtext, GTK_TYPE_WIDGET)
+G_DEFINE_TYPE_WITH_CODE (GtkXText, gtk_xtext, GTK_TYPE_WIDGET,
+                         G_IMPLEMENT_INTERFACE (GTK_TYPE_SCROLLABLE, NULL))
 
 char *nocasestrstr (const char *text, const char *tofind);	/* util.c */
 int xtext_get_stamp_str (time_t, char **);
@@ -168,9 +178,13 @@ static gboolean gtk_xtext_is_selecting (GtkXText *xtext);
 static char *gtk_xtext_selection_get_text (GtkXText *xtext, int *len_ret);
 static textentry *gtk_xtext_nth (GtkXText *xtext, int line, int *subline);
 static void gtk_xtext_adjustment_changed (GtkAdjustment * adj,
-														GtkXText * xtext);
+												GtkXText * xtext);
 static void gtk_xtext_scroll_adjustments (GtkXText *xtext, GtkAdjustment *hadj,
 										GtkAdjustment *vadj);
+static void gtk_xtext_set_property (GObject *object, guint prop_id,
+										const GValue *value, GParamSpec *pspec);
+static void gtk_xtext_get_property (GObject *object, guint prop_id,
+										GValue *value, GParamSpec *pspec);
 static int gtk_xtext_render_ents (GtkXText * xtext, textentry *, textentry *);
 static void gtk_xtext_recalc_widths (xtext_buffer *buf, int);
 static void gtk_xtext_fix_indent (xtext_buffer *buf);
@@ -794,6 +808,9 @@ gtk_xtext_init (GtkXText * xtext)
 	xtext->recycle = FALSE;
 	xtext->dont_render = FALSE;
 	xtext->dont_render2 = FALSE;
+	xtext->hadj = NULL;
+	xtext->hscroll_policy = GTK_SCROLL_MINIMUM;
+	xtext->vscroll_policy = GTK_SCROLL_MINIMUM;
 	gtk_xtext_scroll_adjustments (xtext, NULL, NULL);
 
 	gtk_xtext_install_selection_targets (GTK_WIDGET (xtext));
@@ -886,6 +903,66 @@ gtk_xtext_adjustment_changed (GtkAdjustment * adj, GtkXText * xtext)
 	xtext->buffer->old_value = xtext_adj_get_value (adj);
 }
 
+static void
+gtk_xtext_set_property (GObject *object, guint prop_id, const GValue *value, GParamSpec *pspec)
+{
+	GtkXText *xtext = GTK_XTEXT (object);
+	GtkAdjustment *adj;
+
+	switch (prop_id)
+	{
+	case PROP_HADJUSTMENT:
+		adj = g_value_get_object (value);
+		if (xtext->hadj == adj)
+			break;
+		if (xtext->hadj)
+			g_object_unref (xtext->hadj);
+		xtext->hadj = adj ? g_object_ref (adj) : NULL;
+		g_object_notify (object, "hadjustment");
+		break;
+	case PROP_VADJUSTMENT:
+		gtk_xtext_scroll_adjustments (xtext, NULL, g_value_get_object (value));
+		g_object_notify (object, "vadjustment");
+		break;
+	case PROP_HSCROLL_POLICY:
+		xtext->hscroll_policy = g_value_get_enum (value);
+		g_object_notify (object, "hscroll-policy");
+		break;
+	case PROP_VSCROLL_POLICY:
+		xtext->vscroll_policy = g_value_get_enum (value);
+		g_object_notify (object, "vscroll-policy");
+		break;
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+		break;
+	}
+}
+
+static void
+gtk_xtext_get_property (GObject *object, guint prop_id, GValue *value, GParamSpec *pspec)
+{
+	GtkXText *xtext = GTK_XTEXT (object);
+
+	switch (prop_id)
+	{
+	case PROP_HADJUSTMENT:
+		g_value_set_object (value, xtext->hadj);
+		break;
+	case PROP_VADJUSTMENT:
+		g_value_set_object (value, xtext->adj);
+		break;
+	case PROP_HSCROLL_POLICY:
+		g_value_set_enum (value, xtext->hscroll_policy);
+		break;
+	case PROP_VSCROLL_POLICY:
+		g_value_set_enum (value, xtext->vscroll_policy);
+		break;
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+		break;
+	}
+}
+
 GtkWidget *
 gtk_xtext_new (const XTextColor *palette, int separator)
 {
@@ -952,6 +1029,11 @@ gtk_xtext_cleanup (GtkXText *xtext)
 		xtext->adj = NULL;
 	}
 
+	if (xtext->hadj)
+	{
+		g_object_unref (G_OBJECT (xtext->hadj));
+		xtext->hadj = NULL;
+	}
 
 	if (xtext->hand_cursor)
 	{
@@ -2923,6 +3005,13 @@ gtk_xtext_class_init (GtkXTextClass * class)
 	object_class = G_OBJECT_CLASS (class);
 	widget_class = (GtkWidgetClass *) class;
 	xtext_class = (GtkXTextClass *) class;
+
+	object_class->set_property = gtk_xtext_set_property;
+	object_class->get_property = gtk_xtext_get_property;
+	g_object_class_override_property (object_class, PROP_HADJUSTMENT, "hadjustment");
+	g_object_class_override_property (object_class, PROP_VADJUSTMENT, "vadjustment");
+	g_object_class_override_property (object_class, PROP_HSCROLL_POLICY, "hscroll-policy");
+	g_object_class_override_property (object_class, PROP_VSCROLL_POLICY, "vscroll-policy");
 
 	xtext_signals[WORD_CLICK] =
 		g_signal_new ("word_click",

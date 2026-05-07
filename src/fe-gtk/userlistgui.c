@@ -95,7 +95,11 @@ userlist_update_min_width (session *sess)
 {
 	GtkRequisition minimum;
 	GtkRequisition natural;
+	GtkRequisition scrollbar_minimum;
+	GtkRequisition scrollbar_natural;
 	GtkWidget *scrolled_window;
+	GtkWidget *scrollbar;
+	int scrollbar_width;
 	int width;
 
 	if (!sess || !sess->gui || !sess->gui->user_box || !sess->gui->namelistinfo || !sess->gui->user_tree)
@@ -106,10 +110,19 @@ userlist_update_min_width (session *sess)
 	if (width < 1)
 		width = 1;
 
+	scrollbar_width = 0;
 	scrolled_window = gtk_widget_get_parent (sess->gui->user_tree);
 	if (GTK_IS_SCROLLED_WINDOW (scrolled_window))
+	{
 		gtk_scrolled_window_set_min_content_width (GTK_SCROLLED_WINDOW (scrolled_window), width);
-	gtk_widget_set_size_request (sess->gui->user_box, width, -1);
+		scrollbar = gtk_scrolled_window_get_vscrollbar (GTK_SCROLLED_WINDOW (scrolled_window));
+		if (scrollbar)
+		{
+			gtk_widget_get_preferred_size (scrollbar, &scrollbar_minimum, &scrollbar_natural);
+			scrollbar_width = MAX (scrollbar_minimum.width, scrollbar_natural.width);
+		}
+	}
+	gtk_widget_set_size_request (sess->gui->user_box, width + scrollbar_width, -1);
 }
 
 GdkPixbuf *
@@ -909,17 +922,19 @@ userlist_create (GtkWidget *box)
 	};
 
 	sw = gtk_scrolled_window_new (NULL, NULL);
+	gtk_widget_set_hexpand (sw, TRUE);
+	gtk_widget_set_vexpand (sw, TRUE);
 	gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (sw),
-													 GTK_SHADOW_ETCHED_IN);
+													 GTK_SHADOW_IN);
 	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (sw),
-											  prefs.hex_gui_ulist_show_hosts ?
-												GTK_POLICY_AUTOMATIC :
-												GTK_POLICY_NEVER,
-											  GTK_POLICY_AUTOMATIC);
+										  GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
+	gtk_scrolled_window_set_min_content_width (GTK_SCROLLED_WINDOW (sw), 1);
 	gtk_box_pack_start (GTK_BOX (box), sw, TRUE, TRUE, 0);
 	gtk_widget_show (sw);
 
 	treeview = gtk_tree_view_new ();
+	gtk_widget_set_hexpand (treeview, TRUE);
+	gtk_widget_set_vexpand (treeview, TRUE);
 	gtk_widget_set_name (treeview, "zoitechat-userlist");
 	gtk_widget_set_can_focus (treeview, TRUE);
 	gtk_tree_view_set_headers_visible (GTK_TREE_VIEW (treeview), FALSE);
