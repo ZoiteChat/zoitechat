@@ -104,12 +104,14 @@ thread_sha256_file (GTask *task, GFile *file, gpointer task_data, GCancellable *
 		g_checksum_update (checksum, buffer, ret);
 
 	if (error) {
-		g_checksum_free (checksum);
 		g_task_return_error (task, error);
-		return;
+		goto cleanup;
 	}
 
 	g_task_return_pointer (task, g_strdup (g_checksum_get_string (checksum)), g_free);
+cleanup:
+	g_input_stream_close(G_INPUT_STREAM(istream), NULL, NULL);
+	g_object_unref(istream);
 	g_checksum_free (checksum);
 }
 
