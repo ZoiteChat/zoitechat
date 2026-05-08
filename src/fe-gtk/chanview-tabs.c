@@ -304,21 +304,28 @@ tab_scroll_right_down_clicked (GtkWidget *widget, chanview *cv)
 static gboolean
 tab_scroll_cb (GtkWidget *widget, GdkEventScroll *event, gpointer cv)
 {
+	int direction = cv_scroll_direction (event);
+
 	if (prefs.hex_gui_tab_scrollchans)
 	{
-		int direction = cv_scroll_direction (event);
-
 		if (direction != 0)
+		{
 			mg_switch_page (1, direction);
+			return TRUE;
+		}
 	}
 	else
 	{
-		int direction = cv_scroll_direction (event);
-
 		if (direction < 0)
+		{
 			tab_scroll_left_up_clicked (widget, cv);
+			return TRUE;
+		}
 		else if (direction > 0)
+		{
 			tab_scroll_right_down_clicked (widget, cv);
+			return TRUE;
+		}
 	}
 
 	return FALSE;
