@@ -2412,9 +2412,9 @@ mg_userlist_button (GtkWidget * box, char *label, char *cmd,
         g_signal_connect (G_OBJECT (wid), "clicked",
                                                         G_CALLBACK (userlist_button_cb), cmd);
         gtk_widget_set_hexpand (wid, TRUE);
-        gtk_widget_set_vexpand (wid, TRUE);
+        gtk_widget_set_vexpand (wid, FALSE);
         gtk_widget_set_halign (wid, GTK_ALIGN_FILL);
-        gtk_widget_set_valign (wid, GTK_ALIGN_FILL);
+        gtk_widget_set_valign (wid, GTK_ALIGN_CENTER);
         gtk_grid_attach (GTK_GRID (box), wid, a, c, b - a, d - c);
         show_and_unfocus (wid);
 }
@@ -3479,7 +3479,7 @@ mg_create_meters (session_gui *gui, GtkWidget *parent_box)
         GtkWidget *infbox, *wid, *box;
 
         gui->meter_box = infbox = box = mg_box_new (GTK_ORIENTATION_VERTICAL, FALSE, 1);
-        gtk_box_pack_start (GTK_BOX (parent_box), box, 0, 0, 0);
+        gtk_box_pack_end (GTK_BOX (parent_box), box, 0, 0, 0);
 
         if ((prefs.hex_gui_lagometer & 2) || (prefs.hex_gui_throttlemeter & 2))
         {

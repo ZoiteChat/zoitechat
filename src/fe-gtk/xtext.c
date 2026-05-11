@@ -4919,13 +4919,12 @@ gtk_xtext_check_marker_visibility (GtkXText * xtext)
 static void
 gtk_xtext_unstrip_color (gint start, gint end, GSList *slp, GList **gl, gint maxo)
 {
-	gint off1, off2, curlen;
+	gint off1, off2;
 	GSList *cursl;
 	offsets_t marks;
 	offlen_t *meta;
 
 	off1 = 0;
-	curlen = 0;
 	cursl = slp;
 	while (cursl)
 	{
@@ -4935,7 +4934,6 @@ gtk_xtext_unstrip_color (gint start, gint end, GSList *slp, GList **gl, gint max
 			off1 = meta->off + start;
 			break;
 		}
-		curlen += meta->len;
 		start -= meta->len;
 		end -= meta->len;
 		cursl = g_slist_next (cursl);
@@ -4950,7 +4948,6 @@ gtk_xtext_unstrip_color (gint start, gint end, GSList *slp, GList **gl, gint max
 			off2 = meta->off + end;
 			break;
 		}
-		curlen += meta->len;
 		end -= meta->len;
 		cursl = g_slist_next (cursl);
 	}
