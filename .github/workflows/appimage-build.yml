@@ -86,15 +86,17 @@ jobs:
             cp -a /usr/lib/x86_64-linux-gnu/python3/dist-packages AppDir/usr/lib/x86_64-linux-gnu/python3/
           fi
 
-          if [ -d "/usr/lib/x86_64-linux-gnu/perl" ]; then
-            install -d AppDir/usr/lib/x86_64-linux-gnu
-            cp -a /usr/lib/x86_64-linux-gnu/perl AppDir/usr/lib/x86_64-linux-gnu/
-          fi
+          for perl_dir in /usr/lib/*/perl-base; do
+            if [ -d "$perl_dir" ]; then
+              install -d "AppDir$(dirname "$perl_dir")"
+              cp -a "$perl_dir" "AppDir$perl_dir"
+            fi
+          done
 
-          if [ -d "/usr/share/perl" ]; then
-            install -d AppDir/usr/share
-            cp -a /usr/share/perl AppDir/usr/share/
-          fi
+          perl -MConfig -e 'print join "\n", grep { defined && length && -d } @Config{qw(privlibexp archlibexp vendorlibexp vendorarchexp sitelibexp sitearchexp)}' | while IFS= read -r perl_dir; do
+            install -d "AppDir$(dirname "$perl_dir")"
+            cp -a "$perl_dir" "AppDir$perl_dir"
+          done
 
           if [ -d "/usr/share/perl5" ]; then
             install -d AppDir/usr/share
@@ -210,6 +212,24 @@ jobs:
           fi
 
           unset GTK_MODULES
+
+          perl5lib_entries=""
+          for perl_dir in \
+            "$APPDIR/usr/lib"/*/perl-base \
+            "$APPDIR/usr/lib"/*/perl/* \
+            "$APPDIR/usr/lib"/*/perl5/* \
+            "$APPDIR/usr/local/lib"/*/perl/* \
+            "$APPDIR/usr/local/lib"/*/perl5/* \
+            "$APPDIR/usr/local/share/perl"/* \
+            "$APPDIR/usr/share/perl"/* \
+            "$APPDIR/usr/share/perl5"; do
+            if [ -d "$perl_dir" ]; then
+              perl5lib_entries="${perl5lib_entries:+$perl5lib_entries:}$perl_dir"
+            fi
+          done
+          if [ -n "$perl5lib_entries" ]; then
+            export PERL5LIB="$perl5lib_entries${PERL5LIB:+:$PERL5LIB}"
+          fi
 
           export PYTHONHOME="$APPDIR/usr"
           python_stdlib_dir="$(find "$APPDIR/usr/lib" -maxdepth 1 -type d -name 'python3.*' | head -n 1 || true)"
