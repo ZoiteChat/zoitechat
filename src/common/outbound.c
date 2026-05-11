@@ -4166,10 +4166,10 @@ const struct commands xc_cmds[] = {
 static int
 command_compare (const void *a, const void *b)
 {
-	return g_ascii_strcasecmp (a, ((struct commands *)b)->name);
+	return g_ascii_strcasecmp (a, ((const struct commands *)b)->name);
 }
 
-static struct commands *
+static const struct commands *
 find_internal_command (char *name)
 {
 	/* the "-1" is to skip the NULL terminator */
@@ -4205,7 +4205,7 @@ usercommand_show_help (session *sess, char *name)
 static void
 help (session *sess, char *tbuf, char *helpcmd, int quiet)
 {
-	struct commands *cmd;
+	const struct commands *cmd;
 
 	if (plugin_show_help (sess, helpcmd))
 		return;
@@ -4763,7 +4763,7 @@ handle_command (session *sess, char *cmd, int check_spch)
 	char *word[PDIWORDS+1];
 	char *word_eol[PDIWORDS+1];
 	static int command_level = 0;
-	struct commands *int_cmd;
+	const struct commands *int_cmd;
 	char *pdibuf;
 	char *tbuf;
 	int len;
