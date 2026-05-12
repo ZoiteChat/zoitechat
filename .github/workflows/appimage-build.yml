@@ -95,7 +95,7 @@ jobs:
 
           perl -MConfig -e 'print join "\n", grep { defined && length && -d } @Config{qw(privlibexp archlibexp vendorlibexp vendorarchexp sitelibexp sitearchexp)}' | while IFS= read -r perl_dir; do
             install -d "AppDir$(dirname "$perl_dir")"
-            cp -a "$perl_dir" "AppDir$perl_dir"
+            cp -aL "$perl_dir" "AppDir$perl_dir"
           done
 
           if [ -d "/usr/share/perl5" ]; then
