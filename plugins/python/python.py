@@ -320,9 +320,9 @@ def _on_say_command(word, word_eol, userdata):
         return 0
 
     try:
-        python = _cstr(word_eol[1])
+        python = __decode(_cstr(word_eol[1]))
     except Exception:
-        python = b''
+        python = ''
 
     if not python:
         return 1
