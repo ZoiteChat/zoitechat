@@ -522,6 +522,10 @@ gtkutil_file_req (GtkWindow *parent, const char *title, void *callback, void *us
 
 		g_signal_connect (native, "response",
 						G_CALLBACK (gtkutil_native_file_req_response), freq);
+
+		if (flags & FRF_MODAL)
+			gtk_native_dialog_set_modal (GTK_NATIVE_DIALOG (native), TRUE);
+
 		gtk_native_dialog_show (GTK_NATIVE_DIALOG (native));
 		return;
 	}
