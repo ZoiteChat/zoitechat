@@ -5241,9 +5241,14 @@ static void
 mg_handle_drop (GtkWidget *widget, int y, int *pos, int *other_pos)
 {
         int height;
+        GdkWindow *window;
         session_gui *gui = current_sess->gui;
 
-        height = gdk_window_get_height (gtk_widget_get_window (widget));
+        window = gtk_widget_get_window (widget);
+        if (!window)
+                return;
+
+        height = gdk_window_get_height (window);
 
         if (y < height / 2)
         {
@@ -5321,6 +5326,9 @@ mg_drag_begin_cb (GtkWidget *widget, GdkDragContext *context, gpointer userdata)
                 return FALSE;
 
         window = gtk_widget_get_window (widget);
+        if (!window)
+                return FALSE;
+
         width = gdk_window_get_width (window);
         height = gdk_window_get_height (window);
 
@@ -5398,11 +5406,16 @@ mg_drag_motion_cb (GtkWidget *widget, GdkDragContext *context, int x, int y, gui
                 width = allocation.width;
                 height = allocation.height;
                 window = gtk_widget_get_window (widget);
+                if (!window)
+                        return FALSE;
         }
         else
         {
                 ox = oy = 0;
                 window = gtk_widget_get_window (widget);
+                if (!window)
+                        return FALSE;
+
                 width = gdk_window_get_width (window);
                 height = gdk_window_get_height (window);
         }
