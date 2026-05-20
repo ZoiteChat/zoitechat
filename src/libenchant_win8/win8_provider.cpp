@@ -26,11 +26,18 @@
 #include <windows.h>
 
 #include <cstdlib>
+#include <climits>
 
 #include "typedef.h" // for ssize_t
 #include <enchant-provider.h>
 
 ENCHANT_PLUGIN_DECLARE ("win8")
+
+static int
+size_to_int (size_t value)
+{
+	return value > static_cast<size_t>(INT_MAX) ? INT_MAX : static_cast<int>(value);
+}
 
 static char *
 utf16_to_utf8 (const wchar_t * const str, bool from_bcp47)
@@ -136,7 +143,7 @@ static void
 win8_dict_add_to_personal (EnchantDict *dict, const char *const word, size_t len)
 {
 	auto checker = static_cast<ISpellChecker*>(dict->user_data);
-	wchar_t *wword = utf8_to_utf16 (word, static_cast<int>(len), false);
+	wchar_t *wword = utf8_to_utf16 (word, size_to_int (len), false);
 
 	checker->Add (wword);
 	std::free (wword);
@@ -146,7 +153,7 @@ static void
 win8_dict_add_to_session (EnchantDict *dict, const char *const word, size_t len)
 {
 	auto checker = static_cast<ISpellChecker*>(dict->user_data);
-	wchar_t *wword = utf8_to_utf16 (word, static_cast<int>(len), false);
+	wchar_t *wword = utf8_to_utf16 (word, size_to_int (len), false);
 
 	checker->Ignore (wword);
 	std::free (wword);
@@ -156,7 +163,7 @@ static int
 win8_dict_check (EnchantDict *dict, const char *const word, size_t len)
 {
 	auto checker = static_cast<ISpellChecker*>(dict->user_data);
-	wchar_t *wword = utf8_to_utf16 (word, static_cast<int>(len), false);
+	wchar_t *wword = utf8_to_utf16 (word, size_to_int (len), false);
 	IEnumSpellingError *errors;
 	ISpellingError *error = nullptr;
 	HRESULT hr;
@@ -184,7 +191,7 @@ static char **
 win8_dict_suggest (EnchantDict *dict, const char *const word, size_t len, size_t *out_n_suggs)
 {
 	auto checker = static_cast<ISpellChecker*>(dict->user_data);
-	wchar_t *wword = utf8_to_utf16 (word, static_cast<int>(len), false);
+	wchar_t *wword = utf8_to_utf16 (word, size_to_int (len), false);
 	IEnumString *suggestions;
 	HRESULT hr;
 
