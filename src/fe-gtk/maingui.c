@@ -952,7 +952,8 @@ mg_windowstate_cb (GtkWindow *wid, GdkEventWindowState *event, gpointer userdata
         if (sess && sess->gui && GTK_IS_WIDGET (sess->gui->window))
                 gtk_widget_queue_draw (sess->gui->window);
 
-        menu_set_fullscreen (current_sess->gui, prefs.hex_gui_win_fullscreen);
+        if (current_sess && current_sess->gui)
+                menu_set_fullscreen (current_sess->gui, prefs.hex_gui_win_fullscreen);
 
 #ifdef G_OS_WIN32
 	mg_win32_allow_autohide_taskbar (wid, event);
