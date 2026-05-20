@@ -22,6 +22,7 @@
 
 #include <ctype.h>
 #include <inttypes.h>
+#include <limits.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -74,6 +75,18 @@ typedef struct
 static bool string_builder_init (StringBuilder *builder);
 static void string_builder_free (StringBuilder *builder);
 static bool string_builder_append (StringBuilder *builder, const char *text);
+static int size_to_int (size_t value);
+
+static int
+size_to_int (size_t value)
+{
+	if (value > (size_t) INT_MAX)
+	{
+		return INT_MAX;
+	}
+
+	return (int) value;
+}
 
 char *
 sysinfo_get_cpu (void)
@@ -511,6 +524,7 @@ static char *read_hdd_info (IWbemClassObject *object)
 static char *bstr_to_utf8 (BSTR bstr)
 {
 	int utf8_len;
+	int wide_len;
 	char *utf8;
 
 	if (bstr == NULL)
@@ -518,7 +532,8 @@ static char *bstr_to_utf8 (BSTR bstr)
 		return NULL;
 	}
 
-	utf8_len = WideCharToMultiByte (CP_UTF8, 0, bstr, SysStringLen (bstr), NULL, 0, NULL, NULL);
+	wide_len = size_to_int ((size_t) SysStringLen (bstr));
+	utf8_len = WideCharToMultiByte (CP_UTF8, 0, bstr, wide_len, NULL, 0, NULL, NULL);
 	if (utf8_len <= 0)
 	{
 		return NULL;
@@ -530,7 +545,7 @@ static char *bstr_to_utf8 (BSTR bstr)
 		return NULL;
 	}
 
-	if (WideCharToMultiByte (CP_UTF8, 0, bstr, SysStringLen (bstr), utf8, utf8_len, NULL, NULL) <= 0)
+	if (WideCharToMultiByte (CP_UTF8, 0, bstr, wide_len, utf8, utf8_len, NULL, NULL) <= 0)
 	{
 		free (utf8);
 		return NULL;
