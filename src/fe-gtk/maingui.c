@@ -902,7 +902,12 @@ mg_windowstate_cb (GtkWindow *wid, GdkEventWindowState *event, gpointer userdata
 	if ((event->changed_mask & GDK_WINDOW_STATE_ICONIFIED) &&
 		 (event->new_window_state & GDK_WINDOW_STATE_ICONIFIED) &&
 		 prefs.hex_gui_tray_minimize && prefs.hex_gui_tray &&
-		 gtkutil_tray_icon_supported (wid))
+		 gtkutil_tray_icon_supported (wid)
+#ifndef WIN32
+		 )
+#else
+		 && !gtk_window_is_active (wid))
+#endif
 	{
 		tray_toggle_visibility (TRUE);
 	}
@@ -947,7 +952,8 @@ mg_windowstate_cb (GtkWindow *wid, GdkEventWindowState *event, gpointer userdata
         if (sess && sess->gui && GTK_IS_WIDGET (sess->gui->window))
                 gtk_widget_queue_draw (sess->gui->window);
 
-        menu_set_fullscreen (current_sess->gui, prefs.hex_gui_win_fullscreen);
+        if (current_sess && current_sess->gui)
+                menu_set_fullscreen (current_sess->gui, prefs.hex_gui_win_fullscreen);
 
 #ifdef G_OS_WIN32
 	mg_win32_allow_autohide_taskbar (wid, event);
@@ -4727,7 +4733,14 @@ mg_win32_filter (GdkXEvent *xevent, GdkEvent *event, gpointer data)
 			{
 				if (strcmp (command, "__WIN32_TASKBAR_TOGGLE__") == 0)
 				{
-					if (gtk_widget_get_visible (current_sess->gui->window))
+					GdkWindowState state = 0;
+					GdkWindow *gdk_window = gtk_widget_get_window (current_sess->gui->window);
+
+					if (gdk_window)
+						state = gdk_window_get_state (gdk_window);
+
+					if (gtk_widget_get_visible (current_sess->gui->window)
+						&& (state & GDK_WINDOW_STATE_ICONIFIED) == 0)
 						fe_ctrl_gui (current_sess, FE_GUI_ICONIFY, 0);
 					else
 						fe_ctrl_gui (current_sess, FE_GUI_SHOW, 0);

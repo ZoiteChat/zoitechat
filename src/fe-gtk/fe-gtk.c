@@ -125,6 +125,25 @@ create_msg_dialog (gchar *title, gchar *message)
 static char *win32_argv0_dir;
 
 static void
+win32_set_appusermodelid (void)
+{
+	HMODULE shell32;
+	HRESULT (WINAPI *set_appid) (PCWSTR);
+
+	shell32 = GetModuleHandleW (L"shell32.dll");
+	if (!shell32)
+		shell32 = LoadLibraryW (L"shell32.dll");
+	if (!shell32)
+		return;
+
+	set_appid = (HRESULT (WINAPI *) (PCWSTR)) GetProcAddress (shell32, "SetCurrentProcessExplicitAppUserModelID");
+	if (!set_appid)
+		return;
+
+	set_appid (L"ZoiteChat.Desktop.Notify");
+}
+
+static void
 win32_set_gsettings_schema_dir (void)
 {
 	char *base_path;
@@ -422,6 +441,7 @@ fe_args (int argc, char *argv[])
 
 #ifdef WIN32
 	win32_set_gsettings_schema_dir ();
+	win32_set_appusermodelid ();
 	win32_configure_pixbuf_loaders ();
 
 	/* this is mainly for irc:// URL handling. When windows calls us from */
