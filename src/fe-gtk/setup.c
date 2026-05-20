@@ -2180,7 +2180,7 @@ unslash (char *dir)
 {
         if (dir[0])
         {
-                int len = strlen (dir) - 1;
+                size_t len = strlen (dir) - 1;
 #ifdef WIN32
                 if (dir[len] == '/' || dir[len] == '\\')
 #else

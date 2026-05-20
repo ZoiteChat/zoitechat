@@ -452,7 +452,7 @@ void
 fe_add_chan_list (server *serv, char *chan, char *users, char *topic)
 {
 	chanlistrow *next_row;
-	int len = strlen (chan) + 1;
+	size_t len = strlen (chan) + 1;
 
 	/* we allocate the struct and channel string in one go */
 	next_row = g_malloc (sizeof (chanlistrow) + len);

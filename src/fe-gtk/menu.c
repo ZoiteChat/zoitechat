@@ -2309,7 +2309,7 @@ menu_reorder (GtkMenu *menu, GtkWidget *item, int pos)
 	if (pos < 0)	/* position offset from end/bottom */
 	{
 		GList *children = gtk_container_get_children (GTK_CONTAINER (menu));
-		int length = g_list_length (children);
+		gint length = (gint) g_list_length (children);
 
 		g_list_free (children);
 		gtk_menu_reorder_child (menu, item, (length + pos) - 1);
@@ -2381,7 +2381,7 @@ menu_add_sub (GtkWidget *menu, menu_entry *me)
 		if (pos < 0)	/* position offset from end/bottom */
 		{
 			GList *children = gtk_container_get_children (GTK_CONTAINER (menu));
-			int length = g_list_length (children);
+			gint length = (gint) g_list_length (children);
 
 			g_list_free (children);
 			pos = length + pos;

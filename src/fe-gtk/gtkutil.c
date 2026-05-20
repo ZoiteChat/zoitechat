@@ -976,7 +976,7 @@ gtkutil_copy_to_clipboard (GtkWidget *widget, GdkAtom selection,
 	win = gtk_widget_get_toplevel (GTK_WIDGET (widget));
 	if (gtk_widget_is_toplevel (win))
 	{
-		int len = strlen (str);
+		gint len = (gint) strlen (str);
 
 		if (selection)
 		{
