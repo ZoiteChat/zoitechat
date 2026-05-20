@@ -4732,7 +4732,14 @@ mg_win32_filter (GdkXEvent *xevent, GdkEvent *event, gpointer data)
 			{
 				if (strcmp (command, "__WIN32_TASKBAR_TOGGLE__") == 0)
 				{
-					if (gtk_widget_get_visible (current_sess->gui->window))
+					GdkWindowState state = 0;
+					GdkWindow *gdk_window = gtk_widget_get_window (current_sess->gui->window);
+
+					if (gdk_window)
+						state = gdk_window_get_state (gdk_window);
+
+					if (gtk_widget_get_visible (current_sess->gui->window)
+						&& (state & GDK_WINDOW_STATE_ICONIFIED) == 0)
 						fe_ctrl_gui (current_sess, FE_GUI_ICONIFY, 0);
 					else
 						fe_ctrl_gui (current_sess, FE_GUI_SHOW, 0);
