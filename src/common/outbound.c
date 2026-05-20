@@ -4397,7 +4397,7 @@ void
 check_special_chars (char *cmd, int do_ascii) /* check for %X */
 {
 	int occur = 0;
-	int len = strlen (cmd);
+	size_t len = strlen (cmd);
 	char *buf, *utf;
 	char tbuf[4];
 	int i = 0, j = 0;

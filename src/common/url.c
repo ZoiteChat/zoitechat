@@ -321,7 +321,7 @@ url_check_line (char *buf)
 	for (i = 0; i < ARRAY_SIZE (commands); i++)
 	{
 		char *cmd = commands[i];
-		int len = strlen (cmd);
+		size_t len = strlen (cmd);
 
 		if (strncmp (cmd, po, len) == 0)
 		{

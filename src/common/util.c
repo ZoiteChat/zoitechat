@@ -98,7 +98,7 @@ path_part (char *file, char *path, int pathlen)
 char *				/* like strstr(), but nocase */
 nocasestrstr (const char *s, const char *wanted)
 {
-	register const int len = strlen (wanted);
+	register const size_t len = strlen (wanted);
 
 	if (len == 0)
 		return (char *)s;
