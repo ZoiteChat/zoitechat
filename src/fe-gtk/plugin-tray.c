@@ -920,7 +920,10 @@ tray_menu_notify_cb (GObject *tray, GParamSpec *pspec, gpointer user_data)
 	{
 		if (!tray_backend_is_embedded ())
 		{
-			tray_restore_timer = g_timeout_add(500, (GSourceFunc)tray_menu_try_restore, NULL);
+			if (!tray_restore_timer)
+			{
+				tray_restore_timer = g_timeout_add (500, (GSourceFunc) tray_menu_try_restore, NULL);
+			}
 		}
 		else
 		{
@@ -936,9 +939,10 @@ tray_menu_notify_cb (GObject *tray, GParamSpec *pspec, gpointer user_data)
 static gboolean
 tray_menu_try_restore (void)
 {
-	tray_cleanup();
-	tray_init();
-	return TRUE;
+	tray_restore_timer = 0;
+	tray_cleanup ();
+	tray_init ();
+	return G_SOURCE_REMOVE;
 }
 
 static void
