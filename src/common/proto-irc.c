@@ -1017,7 +1017,7 @@ process_named_msg (session *sess, char *type, char *word[], char *word_eol[],
 	char *account;
 	char ip[128], nick[NICKLEN];
 	char *text, *ex;
-	int len = strlen (type);
+	size_t len = strlen (type);
 
 	/* fill in the "ip" and "nick" buffers */
 	ex = strchr (word[1], '!');

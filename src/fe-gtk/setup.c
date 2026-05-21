@@ -1364,7 +1364,7 @@ setup_entry_cb (GtkEntry *entry, setting *set)
         int size;
         int pos;
         unsigned char *p = (unsigned char*)gtk_entry_get_text (entry);
-        int len = strlen (p);
+        size_t len = strlen ((const char *) p);
 
         /* need to truncate? */
         if (len >= set->extra)
@@ -2180,7 +2180,7 @@ unslash (char *dir)
 {
         if (dir[0])
         {
-                int len = strlen (dir) - 1;
+                size_t len = strlen (dir) - 1;
 #ifdef WIN32
                 if (dir[len] == '/' || dir[len] == '\\')
 #else
