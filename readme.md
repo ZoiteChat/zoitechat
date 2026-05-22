@@ -32,7 +32,13 @@
 
 
 ZoiteChat is a GTK3 IRC client based on HexChat, available for Windows and UNIX-like operating systems.  
+
+Features include HexChat-compatible Python, Perl and Lua scripting support, a plugin API,
+multiple server/channel windows, spell checking, multiple authentication methods including SASL,
+and customizable notifications.
+
 See [IRCHelp.org](http://irchelp.org) for information about IRC in general.  
+
 For more information on ZoiteChat:
 
 - [Main Documentation](https://docs.zoitechat.org/) and [FAQ](https://docs.zoitechat.org/en/latest/faq.html)
