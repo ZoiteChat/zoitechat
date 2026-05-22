@@ -33,7 +33,10 @@
 
 ZoiteChat is a GTK3 IRC client based on HexChat, available for Windows and UNIX-like operating systems.  
 See [IRCHelp.org](http://irchelp.org) for information about IRC in general.  
-For more information on ZoiteChat please read our [documentation](https://docs.zoitechat.org/):
+For more information on ZoiteChat:
+
+- [Main Documentation](https://docs.zoitechat.org/) and [FAQ](https://docs.zoitechat.org/en/latest/faq.html)
+
 - [Downloads](https://zoitechat.org/download.php)
 
 
