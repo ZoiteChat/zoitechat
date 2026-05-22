@@ -1,7 +1,28 @@
 ZoiteChat ChangeLog
 =================
 
+2.18.1 (2026-05-21)
+-------------------
+
+- Migrated D-Bus handling to GDBus.
+- Enabled mouse wheel channel switching by default and consumed handled tab wheel events.
+- Switched main panes to native GTK scrollbars.
+- Tightened userlist button and meter layout.
+- Made the native Windows file chooser modal.
+- Set the Windows AppUserModelID before GTK startup.
+- Updated Windows CI to use the new GTK3 bundle zip.
+- Updated Windows installer architecture checks to use x64-compatible detection.
+- Bumped the Flatpak Perl runtime to 5.42.2.
+- Fixed palette color reads to preserve base GTK state.
+- Fixed auto-replace whole-word matching.
+- Fixed checksum file stream cleanup.
+- Fixed byte handling in the Python console.
+- Guarded GTK drag-and-drop handlers against null windows.
+- Fixed size_t and integer handling issues.
+- Removed the Winamp plugin.
+
 2.18.0 (2026-04-20)
+-------------------
 
 - Added optional close buttons on tabs.
 - Added Ctrl+W to close tabs and Ctrl+Shift+T to reopen recently closed tabs.
@@ -19,6 +40,7 @@ ZoiteChat ChangeLog
 - Improved AppStream metainfo validation.
 
 2.18.0~pre6 (2026-03-30)
+------------------------
 
 - Applied app theme CSS to the menubar consistently across the app.
 - Restored horizontal separator lines in menus.
