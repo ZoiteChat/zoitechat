@@ -11,8 +11,6 @@
     "--share=network",
     "--socket=pulseaudio",
     "--filesystem=xdg-download",
-    "--filesystem=xdg-data/themes:ro",
-    "--filesystem=xdg-data/icons:ro",
     "--filesystem=xdg-run/tray-icon:create",
     "--env=GTK_CSD=1",
     "--talk-name=org.freedesktop.Notifications",
@@ -103,7 +101,7 @@
         "/share/man"
       ],
       "post-install": [
-        "install -d /app/extensions"
+      "install -d /app/extensions"
       ],
       "sources": [
         {
