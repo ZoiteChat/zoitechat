@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="addon">
-  <id>net.zoite.Zoitechat.Plugin.@NAME@</id>
-  <extends>net.zoite.Zoitechat</extends>
+  <id>org.zoitechat.ZoiteChat.Plugin.@NAME@</id>
+  <extends>org.zoitechat.ZoiteChat</extends>
   <name>@NAME@ Plugin</name>
   <summary>@SUMMARY@</summary>
   <url type="homepage">https://zoitechat.org/</url>

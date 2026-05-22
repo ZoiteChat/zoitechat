@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop-application">
-  <id>net.zoite.Zoitechat</id>
+  <id>org.zoitechat.ZoiteChat</id>
   <name>ZoiteChat</name>
-  <launchable type="desktop-id">net.zoite.Zoitechat.desktop</launchable>
+  <launchable type="desktop-id">org.zoitechat.ZoiteChat.desktop</launchable>
 
   <developer id="net.zoite">
     <name translate="no">ZoiteChat</name>
@@ -26,7 +26,7 @@
     </screenshot>
   </screenshots>
   <provides>
-    <id>zoitechat.desktop</id>
+    <id>org.zoitechat.ZoiteChat.desktop</id>
   </provides>
 <releases>
 <release date="2026-05-21" version="2.18.1">
@@ -339,7 +339,7 @@
       <description>
         <p>This is largely a bug fix release though it has some large behind the scenes changes:</p>
         <ul>
-          <li>Rename data files to use *net.zoite.Zoitechat* name</li>
+          <li>Rename data files to use *org.zoitechat.ZoiteChat* name</li>
           <li>Add option (irc_reconnect_rejoin) to disable auto-rejoin on reconnect</li>
           <li>Add ability to set custom tray icon separate of app icon</li>
           <li>Fix Enchant 2.0+ support</li>
