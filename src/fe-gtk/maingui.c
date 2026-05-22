@@ -2705,7 +2705,6 @@ mg_changui_destroy (session *sess)
                 /* it fixes: Gdk-CRITICAL **: gdk_colormap_get_screen: */
                 /*           assertion `GDK_IS_COLORMAP (cmap)' failed */
                 ret = sess->gui->window;
-                g_free (sess->gui);
                 sess->gui = NULL;
         }
         return ret;
@@ -2727,13 +2726,17 @@ mg_link_irctab (session *sess, int focus)
                 return;
         }
 
+        session_gui *old_gui;
+
         mg_unpopulate (sess);
+        old_gui = sess->gui;
         win = mg_changui_destroy (sess);
         mg_changui_new (sess, sess->res, 1, focus);
         /* the buffer is now attached to a different widget */
         ((xtext_buffer *)sess->res->buffer)->xtext = (GtkXText *)sess->gui->xtext;
         if (win)
                 gtk_widget_destroy (win);
+        g_free (old_gui);
 }
 
 void
