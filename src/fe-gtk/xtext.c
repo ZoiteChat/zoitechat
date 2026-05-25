@@ -2300,6 +2300,12 @@ gtk_xtext_leave_notify (GtkWidget * widget, GdkEventCrossing * event)
 		xtext->hilight_ent = NULL;
 	}
 
+	if (xtext->tooltip_stamp_set)
+	{
+		gtk_widget_set_tooltip_text (widget, NULL);
+		xtext->tooltip_stamp_set = FALSE;
+	}
+
 	return FALSE;
 }
 
@@ -2466,7 +2472,7 @@ gtk_xtext_motion_notify (GtkWidget * widget, GdkEventMotion * event)
 	}
 
 	if (xtext->urlcheck_function == NULL)
-		return FALSE;
+		goto tooltip_check;
 
 	word_type = gtk_xtext_get_word_adjust (xtext, x, y, &word_ent, &offset, &len);
 	if (word_type > 0)
@@ -2502,6 +2508,46 @@ gtk_xtext_motion_notify (GtkWidget * widget, GdkEventMotion * event)
 			xtext->skip_stamp = FALSE;
 		}
 		return FALSE;
+	}
+
+tooltip_check:
+	if (xtext->buffer->time_stamp && xtext->buffer->indent > 0 && x >= 0 && x < xtext->stamp_width)
+	{
+		textentry *ent = gtk_xtext_find_char (xtext, x, y, NULL, NULL);
+		if (ent && (!xtext->tooltip_stamp_set || xtext->tooltip_stamp != ent->stamp))
+		{
+			char tooltip[96];
+			strftime_utf8 (tooltip, sizeof (tooltip), "%Y-%m-%d", ent->stamp);
+			gtk_widget_set_tooltip_text (widget, tooltip);
+			xtext->tooltip_stamp = ent->stamp;
+			xtext->tooltip_stamp_set = TRUE;
+		}
+		if (ent)
+			return FALSE;
+	}
+	else if (!xtext->buffer->time_stamp && x >= xtext->buffer->indent)
+	{
+		textentry *ent = gtk_xtext_find_char (xtext, x, y, NULL, NULL);
+		if (ent && ent->stamp && (!xtext->tooltip_stamp_set || xtext->tooltip_stamp != ent->stamp))
+		{
+			char tooltip[128];
+			char date[64];
+			char *stamp_text;
+			strftime_utf8 (date, sizeof (date), "%Y-%m-%d", ent->stamp);
+			xtext_get_stamp_str (ent->stamp, &stamp_text);
+			g_snprintf (tooltip, sizeof (tooltip), "%s %s", date, stamp_text);
+			gtk_widget_set_tooltip_text (widget, tooltip);
+			g_free (stamp_text);
+			xtext->tooltip_stamp = ent->stamp;
+			xtext->tooltip_stamp_set = TRUE;
+		}
+		if (ent)
+			return FALSE;
+	}
+	else if (xtext->tooltip_stamp_set)
+	{
+		gtk_widget_set_tooltip_text (widget, NULL);
+		xtext->tooltip_stamp_set = FALSE;
 	}
 
 	gtk_xtext_leave_notify (widget, NULL);

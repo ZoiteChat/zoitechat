@@ -190,6 +190,8 @@ struct _GtkXText
 	textentry *hilight_ent;
 	int hilight_start;
 	int hilight_end;
+	time_t tooltip_stamp;
+	unsigned int tooltip_stamp_set:1;
 
 	guint16 fontwidth[128];	  /* each char's width, only the ASCII ones */
 
