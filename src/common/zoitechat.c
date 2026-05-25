@@ -379,6 +379,7 @@ lag_check (void)
 	char tbuf[128];
 	time_t now = time (0);
 	time_t lag;
+	time_t ping_age;
 
 	tim = make_ping_time ();
 
@@ -388,7 +389,7 @@ lag_check (void)
 		if (serv->connected && serv->end_of_motd)
 		{
 			lag = now - serv->ping_recv;
-			if (prefs.hex_net_ping_timeout != 0 && lag > prefs.hex_net_ping_timeout && lag > 0)
+			if (serv->lag_sent && prefs.hex_net_ping_timeout != 0 && lag > prefs.hex_net_ping_timeout && lag > 0)
 			{
 				sprintf (tbuf, "%" G_GINT64_FORMAT, (gint64) lag);
 				EMIT_SIGNAL (XP_TE_PINGTIMEOUT, serv->server_session, tbuf, NULL,
@@ -398,11 +399,11 @@ lag_check (void)
 			}
 			else
 			{
-				g_snprintf (tbuf, sizeof (tbuf), "LAG%lu", tim);
-				serv->p_ping (serv, "", tbuf);
-				
-				if (!serv->lag_sent)
+				ping_age = now - serv->ping_recv;
+				if (!serv->lag_sent && prefs.hex_net_lag_check > 0 && ping_age >= prefs.hex_net_lag_check)
 				{
+					g_snprintf (tbuf, sizeof (tbuf), "LAG%lu", tim);
+					serv->p_ping (serv, "", tbuf);
 					serv->lag_sent = tim;
 					fe_set_lag (serv, -1);
 				}
@@ -525,7 +526,7 @@ zoitechat_reinit_timers (void)
 	if ((prefs.hex_net_ping_timeout != 0 || prefs.hex_gui_lagometer)
 	    && lag_check_tag == 0)
 	{
-		lag_check_tag = fe_timeout_add_seconds (30, zoitechat_lag_check, NULL);
+		lag_check_tag = fe_timeout_add_seconds (1, zoitechat_lag_check, NULL);
 	}
 	else if ((!prefs.hex_net_ping_timeout && !prefs.hex_gui_lagometer)
 					 && lag_check_tag != 0)

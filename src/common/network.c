@@ -34,6 +34,9 @@
 
 #ifndef WIN32
 #include <unistd.h>
+#ifdef HAVE_NETINET_TCP_H
+#include <netinet/tcp.h>
+#endif
 #endif
 
 #define WANTSOCKET
@@ -43,6 +46,9 @@
 
 #define NETWORK_PRIVATE
 #include "network.h"
+#include "zoitechat.h"
+
+extern struct zoitechatprefs prefs;
 
 #define RAND_INT(n) ((int)(rand() / (RAND_MAX + 1.0) * (n)))
 
@@ -58,6 +64,27 @@ net_set_socket_options (int sok)
 	setsockopt (sok, SOL_SOCKET, SO_REUSEADDR, (char *) &sw, sizeof (sw));
 	sw = 1;
 	setsockopt (sok, SOL_SOCKET, SO_KEEPALIVE, (char *) &sw, sizeof (sw));
+#ifdef TCP_KEEPIDLE
+	{
+		int keepidle = prefs.hex_net_keepalive_idle;
+		if (keepidle > 0)
+			setsockopt (sok, IPPROTO_TCP, TCP_KEEPIDLE, (char *) &keepidle, sizeof (keepidle));
+	}
+#endif
+#ifdef TCP_KEEPINTVL
+	{
+		int keepintvl = prefs.hex_net_keepalive_interval;
+		if (keepintvl > 0)
+			setsockopt (sok, IPPROTO_TCP, TCP_KEEPINTVL, (char *) &keepintvl, sizeof (keepintvl));
+	}
+#endif
+#ifdef TCP_KEEPCNT
+	{
+		int keepcnt = prefs.hex_net_keepalive_count;
+		if (keepcnt > 0)
+			setsockopt (sok, IPPROTO_TCP, TCP_KEEPCNT, (char *) &keepcnt, sizeof (keepcnt));
+	}
+#endif
 }
 
 char *
