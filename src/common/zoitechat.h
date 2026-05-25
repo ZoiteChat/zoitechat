@@ -267,6 +267,7 @@ struct zoitechatprefs
 	int hex_gui_tab_layout;
 	int hex_gui_tab_closebuttons;
 	int hex_gui_tab_middleclose;
+	int hex_gui_mouse_scroll_speed;
 	int hex_gui_tab_newtofront;
 	int hex_gui_tab_pos;
 	int hex_gui_tab_small;

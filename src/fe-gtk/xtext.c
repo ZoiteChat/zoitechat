@@ -2938,19 +2938,41 @@ gtk_xtext_scroll (GtkWidget *widget, GdkEventScroll *event)
 {
 	GtkXText *xtext = GTK_XTEXT (widget);
 	gfloat new_value;
+	gfloat step;
+	gdouble dx;
+	gdouble dy;
+	int direction = 0;
+	int speed = prefs.hex_gui_mouse_scroll_speed;
 
-	if (event->direction == GDK_SCROLL_UP)		/* mouse wheel pageUp */
+	if (speed < 1)
+		speed = 1;
+	step = (xtext_adj_get_page_increment (xtext->adj) * speed) / 100.0f;
+
+	if (event->direction == GDK_SCROLL_SMOOTH &&
+		gdk_event_get_scroll_deltas ((GdkEvent *)event, &dx, &dy))
+	{
+		if (dy > 0)
+			direction = 1;
+		else if (dy < 0)
+			direction = -1;
+	}
+	else if (event->direction == GDK_SCROLL_UP)
+		direction = -1;
+	else if (event->direction == GDK_SCROLL_DOWN)
+		direction = 1;
+
+	if (direction < 0)
 	{
 		new_value = xtext_adj_get_value (xtext->adj) -
-			(xtext_adj_get_page_increment (xtext->adj) / 10);
+			step;
 		if (new_value < xtext_adj_get_lower (xtext->adj))
 			new_value = xtext_adj_get_lower (xtext->adj);
 		xtext_adj_set_value (xtext->adj, new_value);
 	}
-	else if (event->direction == GDK_SCROLL_DOWN)	/* mouse wheel pageDn */
+	else if (direction > 0)
 	{
 		new_value = xtext_adj_get_value (xtext->adj) +
-			(xtext_adj_get_page_increment (xtext->adj) / 10);
+			step;
 		if (new_value > (xtext_adj_get_upper (xtext->adj) -
 			xtext_adj_get_page_size (xtext->adj)))
 			new_value = xtext_adj_get_upper (xtext->adj) -
@@ -2958,7 +2980,7 @@ gtk_xtext_scroll (GtkWidget *widget, GdkEventScroll *event)
 		xtext_adj_set_value (xtext->adj, new_value);
 	}
 
-	return FALSE;
+	return direction != 0;
 }
 
 static void

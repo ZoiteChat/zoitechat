@@ -305,12 +305,14 @@ static gboolean
 tab_scroll_cb (GtkWidget *widget, GdkEventScroll *event, gpointer cv)
 {
 	int direction = cv_scroll_direction (event);
+	int i;
 
 	if (prefs.hex_gui_tab_scrollchans)
 	{
 		if (direction != 0)
 		{
-			mg_switch_page (1, direction);
+			for (i = 0; i < cv_scroll_step_count (); i++)
+				mg_switch_page (1, direction);
 			return TRUE;
 		}
 	}
@@ -318,12 +320,14 @@ tab_scroll_cb (GtkWidget *widget, GdkEventScroll *event, gpointer cv)
 	{
 		if (direction < 0)
 		{
-			tab_scroll_left_up_clicked (widget, cv);
+			for (i = 0; i < cv_scroll_step_count (); i++)
+				tab_scroll_left_up_clicked (widget, cv);
 			return TRUE;
 		}
 		else if (direction > 0)
 		{
-			tab_scroll_right_down_clicked (widget, cv);
+			for (i = 0; i < cv_scroll_step_count (); i++)
+				tab_scroll_right_down_clicked (widget, cv);
 			return TRUE;
 		}
 	}

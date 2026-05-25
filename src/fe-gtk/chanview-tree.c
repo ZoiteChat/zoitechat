@@ -112,9 +112,11 @@ cv_tree_scroll_event_cb (GtkWidget *widget, GdkEventScroll *event, gpointer user
 	if (prefs.hex_gui_tab_scrollchans)
 	{
 		int direction = cv_scroll_direction (event);
+		int i;
 
 		if (direction != 0)
-			mg_switch_page (1, direction);
+			for (i = 0; i < cv_scroll_step_count (); i++)
+				mg_switch_page (1, direction);
 
 		return direction != 0;
 	}

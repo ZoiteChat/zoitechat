@@ -193,6 +193,7 @@ static const setting appearance_advanced_settings[] =
         {ST_HEADER,     N_("Advanced"),0,0,0},
         {ST_EFILE, N_ ("Background image:"), P_OFFSETNL (hex_text_background), 0, 0, sizeof prefs.hex_text_background},
         {ST_HSCALE, N_("Window opacity:"), P_OFFINTNL(hex_gui_transparency),0,0,0},
+        {ST_HSCALE, N_("Mouse wheel scroll speed (Slower ← → Faster):"), P_OFFINTNL(hex_gui_mouse_scroll_speed), 0, 0, 100},
 
         {ST_END, 0, 0, 0, 0, 0}
 };

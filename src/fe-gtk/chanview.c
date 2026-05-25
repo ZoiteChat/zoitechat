@@ -126,6 +126,15 @@ cv_scroll_direction (GdkEventScroll *event)
 	}
 }
 
+static int
+cv_scroll_step_count (void)
+{
+	int speed = prefs.hex_gui_mouse_scroll_speed;
+	if (speed < 1)
+		speed = 1;
+	return (speed + 9) / 10;
+}
+
 
 /* ======= TABS ======= */
 
