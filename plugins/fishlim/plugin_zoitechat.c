@@ -421,7 +421,7 @@ static int handle_keyx_notice(char *word[], char *word_eol[], void *userdata) {
             zoitechat_commandf(ph, "quote NOTICE %s :DH1080_FINISH %s%s", sender, pub_key, (mode == FISH_CBC_MODE) ? " CBC" : "");
             g_free(pub_key);
         } else {
-            zoitechat_print(ph, "Failed to generate keys");
+            zoitechat_printf(ph, "Failed to generate keys");
             goto cleanup;
         }
     } else if (!strcmp (dh_message, "DH1080_FINISH")) {
@@ -446,7 +446,7 @@ static int handle_keyx_notice(char *word[], char *word_eol[], void *userdata) {
         zoitechat_printf(ph, "Stored new key for %s (%s)", sender, fish_modes[mode]);
         g_free(secret_key);
     } else {
-        zoitechat_print(ph, "Failed to create secret key!");
+        zoitechat_printf(ph, "Failed to create secret key!");
     }
 
 cleanup:
@@ -548,7 +548,7 @@ static int handle_keyx(char *word[], char *word_eol[], void *userdata) {
     }
 
     if ((query_ctx && ctx_type != 3) || (!query_ctx && !irc_is_query(target))) {
-        zoitechat_print(ph, "You can only exchange keys with individuals");
+        zoitechat_printf(ph, "You can only exchange keys with individuals");
         return ZOITECHAT_EAT_ALL;
     }
 
@@ -560,7 +560,7 @@ static int handle_keyx(char *word[], char *word_eol[], void *userdata) {
 
         g_free(pub_key);
     } else {
-        zoitechat_print(ph, "Failed to generate keys");
+        zoitechat_printf(ph, "Failed to generate keys");
     }
 
     return ZOITECHAT_EAT_ALL;
@@ -577,7 +577,7 @@ static int handle_crypt_topic(char *word[], char *word_eol[], void *userdata) {
     GSList *encrypted_list;
 
     if (!*topic) {
-        zoitechat_print(ph, usage_topic);
+        zoitechat_printf(ph, "%s", usage_topic);
         return ZOITECHAT_EAT_ALL;
     }
 
@@ -624,7 +624,7 @@ static int handle_crypt_notice(char *word[], char *word_eol[], void *userdata) {
     GSList *encrypted_list, *encrypted_item;
 
     if (!*target || !*notice) {
-        zoitechat_print(ph, usage_notice);
+        zoitechat_printf(ph, "%s", usage_notice);
         return ZOITECHAT_EAT_ALL;
     }
 
@@ -676,7 +676,7 @@ static int handle_crypt_msg(char *word[], char *word_eol[], void *userdata) {
     GSList *encrypted_list, *encrypted_item;
 
     if (!*target || !*message) {
-        zoitechat_print(ph, usage_msg);
+        zoitechat_printf(ph, "%s", usage_msg);
         return ZOITECHAT_EAT_ALL;
     }
 
@@ -805,11 +805,15 @@ int zoitechat_plugin_init(zoitechat_plugin *plugin_handle,
     zoitechat_hook_server_attrs(ph, "TOPIC", ZOITECHAT_PRI_NORM, handle_incoming, NULL);
     zoitechat_hook_server_attrs(ph, "332", ZOITECHAT_PRI_NORM, handle_incoming, NULL);
 
-    if (!fish_init())
+    if (!fish_init()) {
+        zoitechat_printf(ph, "FiSHLiM failed to initialize crypto backend");
         return 0;
+    }
 
-    if (!dh1080_init())
+    if (!dh1080_init()) {
+        zoitechat_printf(ph, "FiSHLiM failed to initialize DH1080");
         return 0;
+    }
 
     pending_exchanges = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
 

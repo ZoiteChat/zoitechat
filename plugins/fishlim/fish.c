@@ -91,27 +91,13 @@ static const signed char fish_unbase64[256] = {
 #include <openssl/provider.h>
 static OSSL_PROVIDER *legacy_provider;
 static OSSL_PROVIDER *default_provider;
-static OSSL_LIB_CTX *ossl_ctx;
 #endif
 
 int fish_init(void)
 {
 #if OPENSSL_VERSION_NUMBER >= 0x30000000L
-    ossl_ctx = OSSL_LIB_CTX_new();
-    if (!ossl_ctx)
-        return 0;
-
-    legacy_provider = OSSL_PROVIDER_load(ossl_ctx, "legacy");
-    if (!legacy_provider) {
-        fish_deinit();
-        return 0;
-    }
-
-    default_provider = OSSL_PROVIDER_load(ossl_ctx, "default");
-    if (!default_provider) {
-        fish_deinit();
-        return 0;
-    }
+    legacy_provider = OSSL_PROVIDER_load(NULL, "legacy");
+    default_provider = OSSL_PROVIDER_load(NULL, "default");
 #endif
     return 1;
 }
@@ -129,10 +115,6 @@ void fish_deinit(void)
         default_provider = NULL;
     }
 
-    if (ossl_ctx) {
-        OSSL_LIB_CTX_free(ossl_ctx);
-        ossl_ctx = NULL;
-    }
 #endif
 }
 
@@ -278,7 +260,9 @@ char *fish_cipher(const char *plaintext, size_t plaintext_len, const char *key, 
         }
 
 #if OPENSSL_VERSION_NUMBER >= 0x30000000L
-        cipher = EVP_CIPHER_fetch(ossl_ctx, "BF-CBC", NULL);
+        cipher = EVP_CIPHER_fetch(NULL, "BF-CBC", NULL);
+        if (!cipher)
+            cipher = (EVP_CIPHER *) EVP_bf_cbc();
 #else
         cipher = (EVP_CIPHER *) EVP_bf_cbc();
 #endif
@@ -286,7 +270,9 @@ char *fish_cipher(const char *plaintext, size_t plaintext_len, const char *key, 
     } else if (mode == EVP_CIPH_ECB_MODE) {
 
 #if OPENSSL_VERSION_NUMBER >= 0x30000000L
-        cipher = EVP_CIPHER_fetch(ossl_ctx, "BF-ECB", NULL);
+        cipher = EVP_CIPHER_fetch(NULL, "BF-ECB", NULL);
+        if (!cipher)
+            cipher = (EVP_CIPHER *) EVP_bf_ecb();
 #else
         cipher = (EVP_CIPHER *) EVP_bf_ecb();
 #endif
