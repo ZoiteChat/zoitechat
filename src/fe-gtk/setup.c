@@ -583,6 +583,7 @@ static const setting advanced_settings[] =
         {ST_TOGGLE,     N_("Display lists in compact mode"), P_OFFINTNL(hex_gui_compact), N_("Use less spacing between user list/channel tree rows."), 0, 0},
         {ST_TOGGLE,     N_("Use server time if supported"), P_OFFINTNL(hex_irc_cap_server_time), N_("Display timestamps obtained from server if it supports the time-server extension."), 0, 0},
         {ST_TOGGLE,     N_("Automatically reconnect to servers on disconnect"), P_OFFINTNL(hex_net_auto_reconnect), 0, 0, 1},
+        {ST_NUMBER,     N_("Lag check interval:"), P_OFFINTNL(hex_net_lag_check), 0, (const char **)N_("seconds."), 9999},
         {ST_NUMBER,     N_("Auto reconnect delay:"), P_OFFINTNL(hex_net_reconnect_delay), 0, 0, 9999},
         {ST_NUMBER,     N_("Auto join delay:"), P_OFFINTNL(hex_irc_join_delay), 0, 0, 9999},
         {ST_MENU,       N_("Ban Type:"), P_OFFINTNL(hex_irc_ban_type), N_("Attempt to use this banmask when banning or quieting. (requires irc_who_join)"), bantypemenu, 0},
@@ -655,6 +656,11 @@ static const setting network_settings[] =
         {ST_NUMBER,     N_("Port:"), P_OFFINTNL(hex_net_proxy_port), 0, 0, 65535},
         {ST_MENU,       N_("Type:"), P_OFFINTNL(hex_net_proxy_type), 0, proxytypes, 0},
         {ST_MENU,       N_("Use proxy for:"), P_OFFINTNL(hex_net_proxy_use), 0, proxyuse, 0},
+
+        {ST_HEADER,     N_("Connection Health"), 0, 0, 0, 0},
+        {ST_NUMBER,     N_("TCP keepalive idle:"), P_OFFINTNL(hex_net_keepalive_idle), 0, (const char **)N_("seconds."), 7200},
+        {ST_NUMBER,     N_("TCP keepalive interval:"), P_OFFINTNL(hex_net_keepalive_interval), 0, (const char **)N_("seconds."), 600},
+        {ST_NUMBER,     N_("TCP keepalive probes:"), P_OFFINTNL(hex_net_keepalive_count), 0, 0, 20},
 
         {ST_HEADER,     N_("Proxy Authentication"), 0, 0, 0, 0},
         {ST_TOGGLE,     N_("Use authentication (HTTP or SOCKS5 only)"), P_OFFINTNL(hex_net_proxy_auth), 0, 0, 0},

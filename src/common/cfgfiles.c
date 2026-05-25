@@ -549,6 +549,10 @@ const struct prefs vars[] =
 #endif
 	{"net_bind_host", P_OFFSET (hex_net_bind_host), TYPE_STR},
 	{"net_ping_timeout", P_OFFINT (hex_net_ping_timeout), TYPE_INT, zoitechat_reinit_timers},
+	{"net_lag_check", P_OFFINT (hex_net_lag_check), TYPE_INT, zoitechat_reinit_timers},
+	{"net_keepalive_idle", P_OFFINT (hex_net_keepalive_idle), TYPE_INT},
+	{"net_keepalive_interval", P_OFFINT (hex_net_keepalive_interval), TYPE_INT},
+	{"net_keepalive_count", P_OFFINT (hex_net_keepalive_count), TYPE_INT},
 	{"net_proxy_auth", P_OFFINT (hex_net_proxy_auth), TYPE_BOOL},
 	{"net_proxy_host", P_OFFSET (hex_net_proxy_host), TYPE_STR},
 	{"net_proxy_pass", P_OFFSET (hex_net_proxy_pass), TYPE_STR},
@@ -860,6 +864,10 @@ load_default_config(void)
 	prefs.hex_irc_ban_type = 1;
 	prefs.hex_irc_join_delay = 5;
 	prefs.hex_net_ping_timeout = 60;
+	prefs.hex_net_lag_check = 60;
+	prefs.hex_net_keepalive_idle = 60;
+	prefs.hex_net_keepalive_interval = 20;
+	prefs.hex_net_keepalive_count = 3;
 	prefs.hex_net_reconnect_delay = 10;
 	prefs.hex_notify_timeout = 15;
 	prefs.hex_text_max_indent = 256;

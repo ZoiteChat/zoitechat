@@ -290,6 +290,10 @@ struct zoitechatprefs
 	int hex_irc_join_delay;
 	int hex_irc_notice_pos;
 	int hex_net_ping_timeout;
+	int hex_net_lag_check;
+	int hex_net_keepalive_idle;
+	int hex_net_keepalive_interval;
+	int hex_net_keepalive_count;
 	int hex_net_proxy_port;
 	int hex_net_proxy_type;				/* 0=disabled, 1=wingate 2=socks4, 3=socks5, 4=http */
 	int hex_net_proxy_use;				/* 0=all 1=IRC_ONLY 2=DCC_ONLY */
