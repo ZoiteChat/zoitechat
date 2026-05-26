@@ -273,13 +273,6 @@ gtkutil_apply_palette (GtkWidget *widget, const GdkRGBA *bg, const GdkRGBA *fg,
 }
 
 static void
-gtkutil_file_req_destroy (GtkWidget * wid, struct file_req *freq)
-{
-	freq->callback (freq->userdata, NULL);
-	g_free (freq);
-}
-
-static void
 gtkutil_check_file (char *filename, struct file_req *freq)
 {
 	int axs = FALSE;
@@ -390,26 +383,6 @@ gtkutil_file_req_done_chooser (GtkFileChooser *fs, struct file_req *freq)
 
 }
 
-static void
-gtkutil_file_req_done (GtkWidget * wid, struct file_req *freq)
-{
-	gtkutil_file_req_done_chooser (GTK_FILE_CHOOSER (freq->dialog), freq);
-	gtk_widget_destroy (freq->dialog);
-}
-
-static void
-gtkutil_file_req_response (GtkWidget *dialog, gint res, struct file_req *freq)
-{
-	if (res == GTK_RESPONSE_ACCEPT)
-	{
-		gtkutil_file_req_done (dialog, freq);
-		return;
-	}
-
-	gtk_widget_destroy (dialog);
-}
-
-#ifdef WIN32
 static gboolean
 gtkutil_native_dialog_unref_idle (gpointer native)
 {
@@ -423,27 +396,16 @@ gtkutil_native_file_req_response (GtkNativeDialog *dialog, gint res, struct file
 	if (res == GTK_RESPONSE_ACCEPT)
 		gtkutil_file_req_done_chooser (GTK_FILE_CHOOSER (dialog), freq);
 
-	/* Match gtk dialog flow by always sending NULL to indicate completion. */
 	freq->callback (freq->userdata, NULL);
 	g_free (freq);
-
-	/*
-	 * Defer unref until idle to avoid disposing the native chooser while
-	 * still in the button-release signal stack on Windows.
-	 */
 	g_idle_add (gtkutil_native_dialog_unref_idle, dialog);
 }
-#endif
 
 void
 gtkutil_file_req (GtkWindow *parent, const char *title, void *callback, void *userdata, char *filter, char *extensions,
 						int flags)
 {
 	struct file_req *freq;
-	GtkWidget *dialog;
-	GtkFileFilter *filefilter;
-	char *token;
-	char *tokenbuffer;
 	const char *xdir;
 	GtkWindow *effective_parent = parent;
 
@@ -453,7 +415,6 @@ gtkutil_file_req (GtkWindow *parent, const char *title, void *callback, void *us
 
 	xdir = get_xdir ();
 
-#ifdef WIN32
 	{
 		GtkFileChooserNative *native = gtk_file_chooser_native_new (
 			title,
@@ -529,107 +490,7 @@ gtkutil_file_req (GtkWindow *parent, const char *title, void *callback, void *us
 		gtk_native_dialog_show (GTK_NATIVE_DIALOG (native));
 		return;
 	}
-#endif
 
-	if (flags & FRF_WRITE)
-	{
-		dialog = gtk_file_chooser_dialog_new (title, NULL,
-												GTK_FILE_CHOOSER_ACTION_SAVE,
-												_("_Cancel"), GTK_RESPONSE_CANCEL,
-												_("_Save"), GTK_RESPONSE_ACCEPT,
-												NULL);
-
-		if (!(flags & FRF_NOASKOVERWRITE))
-			gtk_file_chooser_set_do_overwrite_confirmation (GTK_FILE_CHOOSER (dialog), TRUE);
-	}
-	else
-		dialog = gtk_file_chooser_dialog_new (title, NULL,
-												GTK_FILE_CHOOSER_ACTION_OPEN,
-												_("_Cancel"), GTK_RESPONSE_CANCEL,
-												_("_Open"), GTK_RESPONSE_ACCEPT,
-												NULL);
-
-	theme_manager_attach_window (dialog);
-
-	if (filter && filter[0] && (flags & FRF_FILTERISINITIAL))
-	{
-		if (flags & FRF_WRITE)
-		{
-			char temp[1024];
-			path_part (filter, temp, sizeof (temp));
-			if (temp[0] && g_file_test (temp, G_FILE_TEST_IS_DIR))
-				gtk_file_chooser_set_current_folder (GTK_FILE_CHOOSER (dialog), temp);
-			else if (xdir && xdir[0] && g_file_test (xdir, G_FILE_TEST_IS_DIR))
-				gtk_file_chooser_set_current_folder (GTK_FILE_CHOOSER (dialog), xdir);
-			gtk_file_chooser_set_current_name (GTK_FILE_CHOOSER (dialog), file_part (filter));
-		}
-		else
-		{
-			if (g_file_test (filter, G_FILE_TEST_IS_DIR))
-				gtk_file_chooser_set_current_folder (GTK_FILE_CHOOSER (dialog), filter);
-			else if (xdir && xdir[0] && g_file_test (xdir, G_FILE_TEST_IS_DIR))
-				gtk_file_chooser_set_current_folder (GTK_FILE_CHOOSER (dialog), xdir);
-		}
-	}
-	else if (!(flags & FRF_RECENTLYUSED))
-	{
-		if (xdir && xdir[0] && g_file_test (xdir, G_FILE_TEST_IS_DIR))
-			gtk_file_chooser_set_current_folder (GTK_FILE_CHOOSER (dialog), xdir);
-	}
-
-	if (flags & FRF_MULTIPLE)
-		gtk_file_chooser_set_select_multiple (GTK_FILE_CHOOSER (dialog), TRUE);
-	if (flags & FRF_CHOOSEFOLDER)
-		gtk_file_chooser_set_action (GTK_FILE_CHOOSER (dialog), GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER);
-
-	if ((flags & FRF_EXTENSIONS || flags & FRF_MIMETYPES) && extensions != NULL)
-	{
-		filefilter = gtk_file_filter_new ();
-		tokenbuffer = g_strdup (extensions);
-		token = strtok (tokenbuffer, ";");
-
-		while (token != NULL)
-		{
-			if (flags & FRF_EXTENSIONS)
-				gtk_file_filter_add_pattern (filefilter, token);
-			else
-				gtk_file_filter_add_mime_type (filefilter, token);
-			token = strtok (NULL, ";");
-		}
-
-		g_free (tokenbuffer);
-		gtk_file_chooser_set_filter (GTK_FILE_CHOOSER (dialog), filefilter);
-	}
-
-	if (xdir && xdir[0] && g_file_test (xdir, G_FILE_TEST_IS_DIR))
-	{
-		GError *shortcut_error = NULL;
-
-		gtk_file_chooser_add_shortcut_folder (GTK_FILE_CHOOSER (dialog), xdir, &shortcut_error);
-		if (shortcut_error)
-			g_error_free (shortcut_error);
-	}
-	freq = g_new (struct file_req, 1);
-	freq->dialog = dialog;
-	freq->flags = flags;
-	freq->callback = callback;
-	freq->userdata = userdata;
-
-	g_signal_connect (G_OBJECT (dialog), "response",
-							G_CALLBACK (gtkutil_file_req_response), freq);
-	g_signal_connect (G_OBJECT (dialog), "destroy",
-						   G_CALLBACK (gtkutil_file_req_destroy), (gpointer) freq);
-
-	if (effective_parent)
-		gtk_window_set_transient_for (GTK_WINDOW (dialog), effective_parent);
-
-	if (flags & FRF_MODAL)
-	{
-		g_assert (effective_parent);
-		gtk_window_set_modal (GTK_WINDOW (dialog), TRUE);
-	}
-
-	gtk_widget_show (dialog);
 }
 
 static gboolean
