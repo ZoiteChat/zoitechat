@@ -158,7 +158,8 @@ cv_tree_init (chanview *cv)
 	gtk_widget_set_hexpand (view, TRUE);
 	gtk_widget_set_vexpand (view, TRUE);
 	cv_add_scroll_events (view);
-	gtk_widget_set_name (view, "zoitechat-tree");
+	gtk_widget_set_name (view, "ZoiteChat channel switcher tree");
+	atk_object_set_name (gtk_widget_get_accessible (view), "ZoiteChat channel switcher tree");
 	{
 		ThemeWidgetStyleValues style_values;
 
