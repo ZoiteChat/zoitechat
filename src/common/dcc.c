@@ -57,6 +57,7 @@
 #include "text.h"
 #include "url.h"
 #include "zoitechatc.h"
+#include "upnp.h"
 
 /* Setting _FILE_OFFSET_BITS to 64 doesn't change lseek to use off64_t on Windows, so override lseek to the version that does */
 #if defined(WIN32) && (!defined(__MINGW32__) && !defined(__MINGW64__))
@@ -371,6 +372,12 @@ dcc_connect_sok (struct DCC *dcc)
 static void
 dcc_close (struct DCC *dcc, enum dcc_state dccstat, int destroy)
 {
+	if (dcc->port > 0)
+	{
+		if (prefs.hex_net_upnp)
+			upnp_rem_redir(dcc->port);
+	}
+
 	if (dcc->wiotag)
 	{
 		fe_input_remove (dcc->wiotag);
@@ -1711,6 +1718,8 @@ dcc_listen_init (struct DCC *dcc, session *sess)
 	set_blocking (dcc->sok);
 
 	dcc->iotag = fe_input_add (dcc->sok, FIA_READ|FIA_EX, dcc_accept, dcc);
+	if (prefs.hex_net_upnp)
+		upnp_add_redir(inet_ntoa(SAddr.sin_addr), dcc->port);
 
 	return TRUE;
 }

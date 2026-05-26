@@ -650,7 +650,7 @@ static const setting network_settings[] =
         {ST_NUMBER,     N_("First DCC listen port:"), P_OFFINTNL(hex_dcc_port_first), 0, 0, 65535},
         {ST_NUMBER,     N_("Last DCC listen port:"), P_OFFINTNL(hex_dcc_port_last), 0, 
                 (const char **)N_("!Leave ports at zero for full range."), 65535},
-
+        {ST_TOGGLE, N_("Enable UPnP port mapping for DCC"), P_OFFINTNL(hex_net_upnp), 0, 0, 0},
         {ST_HEADER,     N_("Proxy Server"), 0, 0, 0, 0},
         {ST_ENTRY,      N_("Hostname:"), P_OFFSETNL(hex_net_proxy_host), 0, 0, sizeof prefs.hex_net_proxy_host},
         {ST_NUMBER,     N_("Port:"), P_OFFINTNL(hex_net_proxy_port), 0, 0, 65535},

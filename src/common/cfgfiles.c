@@ -562,6 +562,7 @@ const struct prefs vars[] =
 	{"net_proxy_user", P_OFFSET (hex_net_proxy_user), TYPE_STR},
 	{"net_reconnect_delay", P_OFFINT (hex_net_reconnect_delay), TYPE_INT},
 	{"net_throttle", P_OFFINT (hex_net_throttle), TYPE_BOOL},
+	{"net_upnp", P_OFFINT (hex_net_upnp), TYPE_BOOL},
 
 	{"notify_timeout", P_OFFINT (hex_notify_timeout), TYPE_INT},
 	{"notify_whois_online", P_OFFINT (hex_notify_whois_online), TYPE_BOOL},
@@ -811,6 +812,7 @@ load_default_config(void)
 	prefs.hex_irc_whois_front = 1;
 	prefs.hex_net_auto_reconnect = 1;
 	prefs.hex_net_throttle = 1;
+	prefs.hex_net_upnp = 1;
 	prefs.hex_stamp_log = 1;
 	prefs.hex_stamp_text = 1;
 	prefs.hex_text_autocopy_text = 1;

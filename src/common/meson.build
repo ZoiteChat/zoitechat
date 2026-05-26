@@ -24,7 +24,8 @@ common_sources = [
   'tree.c',
   'url.c',
   'userlist.c',
-  'util.c'
+  'util.c',
+  'upnp.c'
 ]
 
 common_sysinfo_deps = []
@@ -113,6 +114,10 @@ textevents = custom_target('textevents',
 if libssl_dep.found()
   common_sources += 'ssl.c'
   common_deps += libssl_dep
+endif
+
+if miniupnpc_dep.found()
+  common_deps += miniupnpc_dep
 endif
 
 if dbus_dep.found()

@@ -54,6 +54,7 @@
 #include "text.h"
 #include "url.h"
 #include "zoitechatc.h"
+#include "upnp.h"
 
 #if ! GLIB_CHECK_VERSION (2, 36, 0)
 #include <glib-object.h>			/* for g_type_init() */
@@ -961,6 +962,8 @@ xchat_init (void)
 	sound_load ();
 	notify_load ();
 	ignore_load ();
+	if (prefs.hex_net_upnp)
+		upnp_init ();
 	sts_init ();
 
 	g_snprintf (buf, sizeof (buf),

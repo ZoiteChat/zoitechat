@@ -19,6 +19,9 @@ option('dbus', type: 'feature', value: 'auto',
 option('libcanberra', type: 'feature', value: 'auto',
   description: 'Support for sound alerts, Unix only'
 )
+option('miniupnpc', type: 'feature', value: 'auto',
+  description: 'Support for DCC Universal Plug & Play, Unix only'
+)
 option('appindicator', type: 'feature', value: 'auto',
   description: 'Use Ayatana/AppIndicator-based tray backend for GTK frontend (non-Windows only)'
 )

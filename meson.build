@@ -18,6 +18,8 @@ libgmodule_dep = dependency('gmodule-2.0')
 
 libcanberra_dep = dependency('libcanberra', version: '>= 0.22',
                              required: get_option('libcanberra'))
+miniupnpc_dep = dependency('miniupnpc', version: '>= 2.0.0',
+                           required: get_option('miniupnpc'))
 dbus_dep = dependency('gio-2.0', required: get_option('dbus'))
 
 global_deps = []
@@ -40,6 +42,7 @@ config_h.set10('ENABLE_NLS', true)
 config_h.set('USE_OPENSSL', libssl_dep.found())
 config_h.set('USE_LIBCANBERRA', libcanberra_dep.found())
 config_h.set('USE_DBUS', dbus_dep.found())
+config_h.set('USE_MINIUPNPC', miniupnpc_dep.found())
 config_h.set('USE_PLUGIN', get_option('plugin'))
 config_h.set('USE_GTK_FRONTEND', get_option('gtk-frontend'))
 
@@ -183,6 +186,7 @@ if meson.version().version_compare('>= 0.55.0')
     'Plugin Support': get_option('plugin'),
     'DBus Support': dbus_dep.found(),
     'libcanberra': libcanberra_dep.found(),
+    'miniupnpc': miniupnpc_dep.found(),
   }, section: 'Features')
 
   summary({
