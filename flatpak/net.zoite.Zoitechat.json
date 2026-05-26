@@ -19,7 +19,8 @@
     "--talk-name=org.freedesktop.Notifications",
     "--talk-name=org.kde.StatusNotifierWatcher",
     "--talk-name=com.canonical.AppMenu.Registrar",
-    "--talk-name=org.mpris.MediaPlayer2.*"
+    "--talk-name=org.mpris.MediaPlayer2.*",
+    "--talk-name=org.a11y.Bus"
   ],
   "add-extensions": {
     "net.zoite.Zoitechat.Plugin": {
