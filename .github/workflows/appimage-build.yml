@@ -86,9 +86,19 @@ jobs:
             cp -a /usr/lib/x86_64-linux-gnu/python3/dist-packages AppDir/usr/lib/x86_64-linux-gnu/python3/
           fi
 
+          if [ -d "/usr/lib/x86_64-linux-gnu/perl-base" ]; then
+            install -d AppDir/usr/lib/x86_64-linux-gnu
+            cp -a /usr/lib/x86_64-linux-gnu/perl-base AppDir/usr/lib/x86_64-linux-gnu/
+          fi
+
           if [ -d "/usr/lib/x86_64-linux-gnu/perl" ]; then
             install -d AppDir/usr/lib/x86_64-linux-gnu
             cp -a /usr/lib/x86_64-linux-gnu/perl AppDir/usr/lib/x86_64-linux-gnu/
+          fi
+
+          if [ -d "/usr/lib/x86_64-linux-gnu/perl5" ]; then
+            install -d AppDir/usr/lib/x86_64-linux-gnu
+            cp -a /usr/lib/x86_64-linux-gnu/perl5 AppDir/usr/lib/x86_64-linux-gnu/
           fi
 
           if [ -d "/usr/share/perl" ]; then
@@ -100,6 +110,10 @@ jobs:
             install -d AppDir/usr/share
             cp -a /usr/share/perl5 AppDir/usr/share/
           fi
+
+          perl -MFile::Spec -e 'print "Build host File::Spec: $INC{\"File/Spec.pm\"}\n"'
+          find AppDir/usr -path '*/File/Spec.pm' -print -quit | grep -q .
+
           if compgen -G '/usr/lib/x86_64-linux-gnu/libpython3*.so*' > /dev/null; then
             install -d AppDir/usr/lib/x86_64-linux-gnu
             cp -a /usr/lib/x86_64-linux-gnu/libpython3*.so* AppDir/usr/lib/x86_64-linux-gnu/
@@ -162,7 +176,7 @@ jobs:
 
           APPDIR="${APPDIR:-$(dirname "$(readlink -f "$0")")}"
 
-          export PATH="${PATH:-/usr/bin:/bin}:$APPDIR/usr/bin"
+          export PATH="$APPDIR/usr/bin:${PATH:-/usr/bin:/bin}"
           export LD_LIBRARY_PATH="$APPDIR/usr/lib:$APPDIR/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH:-}"
           export XDG_DATA_DIRS="$APPDIR/usr/share:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
           export GTK_EXE_PREFIX="$APPDIR/usr"
@@ -211,6 +225,23 @@ jobs:
 
           unset GTK_MODULES
 
+          perl5lib_entries=""
+          for dir in \
+            "$APPDIR/usr/lib/x86_64-linux-gnu/perl-base" \
+            "$APPDIR/usr/lib/x86_64-linux-gnu/perl"/* \
+            "$APPDIR/usr/lib/x86_64-linux-gnu/perl5"/* \
+            "$APPDIR/usr/share/perl"/* \
+            "$APPDIR/usr/share/perl5"
+          do
+            if [ -d "$dir" ]; then
+              perl5lib_entries="${perl5lib_entries:+$perl5lib_entries:}$dir"
+            fi
+          done
+
+          if [ -n "$perl5lib_entries" ]; then
+            export PERL5LIB="$perl5lib_entries${PERL5LIB:+:$PERL5LIB}"
+          fi
+
           export PYTHONHOME="$APPDIR/usr"
           python_stdlib_dir="$(find "$APPDIR/usr/lib" -maxdepth 1 -type d -name 'python3.*' | head -n 1 || true)"
           pythonpath_entries=""
@@ -255,7 +286,6 @@ jobs:
           exec "$APPDIR/usr/bin/zoitechat" "$@"
           EOF
           chmod +x AppRun
-
 
           VERSION="$(git describe --tags --always)"
 
