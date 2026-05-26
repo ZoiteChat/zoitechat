@@ -33,6 +33,7 @@ jobs:
             gtk3 \
             openssl \
             libcanberra \
+            miniupnpc \
             libayatana-appindicator \
             iso-codes \
             lua \

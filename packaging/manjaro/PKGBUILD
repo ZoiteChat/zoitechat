@@ -13,6 +13,7 @@ depends=(
   'iso-codes'
   'libayatana-appindicator'
   'libcanberra'
+  'miniupnpc'
   'lua'
   'openssl'
   'perl'

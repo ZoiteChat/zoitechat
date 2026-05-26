@@ -74,6 +74,7 @@
     <ClCompile Include="sysinfo\win32\backend.c" />
     <ClCompile Include="text.c" />
     <ClCompile Include="tree.c" />
+    <ClCompile Include="upnp.c" />
     <ClCompile Include="url.c" />
     <ClCompile Include="userlist.c" />
     <ClCompile Include="util.c" />

@@ -190,6 +190,9 @@
     <ClCompile Include="tree.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="upnp.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="url.c">
       <Filter>Source Files</Filter>
     </ClCompile>
