@@ -3471,7 +3471,7 @@ mg_create_infoframe (GtkWidget *box)
 
         frame = gtk_frame_new (0);
         gtk_frame_set_shadow_type ((GtkFrame*)frame, GTK_SHADOW_OUT);
-        gtk_box_pack_start (GTK_BOX (box), frame, FALSE, TRUE, 0);
+        gtk_box_pack_start (GTK_BOX (box), frame, TRUE, TRUE, 0);
 
         hbox = mg_box_new (GTK_ORIENTATION_HORIZONTAL, FALSE, 0);
         gtk_container_add (GTK_CONTAINER (frame), hbox);
@@ -3492,7 +3492,7 @@ mg_create_meters (session_gui *gui, GtkWidget *parent_box)
 
         if ((prefs.hex_gui_lagometer & 2) || (prefs.hex_gui_throttlemeter & 2))
         {
-                infbox = mg_box_new (GTK_ORIENTATION_HORIZONTAL, FALSE, 0);
+                infbox = mg_box_new (GTK_ORIENTATION_HORIZONTAL, TRUE, 0);
                 gtk_box_pack_start (GTK_BOX (box), infbox, 0, 0, 0);
         }
 
