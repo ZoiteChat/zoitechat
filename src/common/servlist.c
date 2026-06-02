@@ -33,8 +33,145 @@
 #include "text.h"
 #include "util.h" /* token_foreach */
 #include "zoitechatc.h"
+#include "secretstore.h"
 
 #include "servlist.h"
+
+#ifdef USE_OPENSSL
+#include <openssl/evp.h>
+#include <openssl/rand.h>
+#endif
+
+char *
+servlist_password_encrypt_for_storage (const char *pass)
+{
+	gchar *material;
+	unsigned char salt[16];
+	unsigned char iv[16];
+	unsigned char key[32];
+	unsigned char *ciphertext;
+	int outlen1;
+	int outlen2;
+	int inlen;
+	int cipherlen;
+	EVP_CIPHER_CTX *ctx;
+	char *b64;
+	char *ret;
+	if (!pass || !*pass)
+		return NULL;
+#ifdef USE_OPENSSL
+	if (RAND_bytes (salt, sizeof (salt)) != 1 || RAND_bytes (iv, sizeof (iv)) != 1)
+		return NULL;
+	material = g_strdup_printf ("%s|%s", g_get_user_name (), get_xdir ());
+	if (!PKCS5_PBKDF2_HMAC (material, -1, salt, sizeof (salt), 300000, EVP_sha256 (), sizeof (key), key))
+	{
+		g_free (material);
+		return NULL;
+	}
+	g_free (material);
+	inlen = (int) strlen (pass);
+	ciphertext = g_malloc (inlen + EVP_MAX_BLOCK_LENGTH);
+	ctx = EVP_CIPHER_CTX_new ();
+	if (!ctx)
+	{
+		memset (key, 0, sizeof (key));
+		g_free (ciphertext);
+		return NULL;
+	}
+	if (EVP_EncryptInit_ex (ctx, EVP_aes_256_cbc (), NULL, key, iv) != 1 ||
+		EVP_EncryptUpdate (ctx, ciphertext, &outlen1, (const unsigned char *) pass, inlen) != 1 ||
+		EVP_EncryptFinal_ex (ctx, ciphertext + outlen1, &outlen2) != 1)
+	{
+		EVP_CIPHER_CTX_free (ctx);
+		memset (key, 0, sizeof (key));
+		g_free (ciphertext);
+		return NULL;
+	}
+	EVP_CIPHER_CTX_free (ctx);
+	cipherlen = outlen1 + outlen2;
+	{
+		gsize payload_len = sizeof (salt) + sizeof (iv) + (gsize) cipherlen;
+		unsigned char *payload = g_malloc (payload_len);
+		memcpy (payload, salt, sizeof (salt));
+		memcpy (payload + sizeof (salt), iv, sizeof (iv));
+		memcpy (payload + sizeof (salt) + sizeof (iv), ciphertext, cipherlen);
+		b64 = g_base64_encode (payload, payload_len);
+		memset (payload, 0, payload_len);
+		g_free (payload);
+	}
+	memset (key, 0, sizeof (key));
+	memset (ciphertext, 0, inlen + EVP_MAX_BLOCK_LENGTH);
+	g_free (ciphertext);
+#else
+	b64 = g_base64_encode ((const guchar *) pass, strlen (pass));
+#endif
+	ret = g_strdup_printf ("enc:%s", b64);
+	g_free (b64);
+	return ret;
+}
+
+static char *
+servlist_decrypt_password (const char *enc)
+{
+	guchar *raw;
+	gsize len;
+	char *ret;
+	if (!enc || !*enc)
+		return NULL;
+	if (!g_str_has_prefix (enc, "enc:"))
+		return g_strdup (enc);
+	raw = g_base64_decode (enc + 4, &len);
+#ifdef USE_OPENSSL
+	if (len <= 32)
+	{
+		g_free (raw);
+		return NULL;
+	}
+	{
+		unsigned char *salt = raw;
+		unsigned char *iv = raw + 16;
+		unsigned char *ciphertext = raw + 32;
+		int cipherlen = (int) (len - 32);
+		unsigned char key[32];
+		gchar *material = g_strdup_printf ("%s|%s", g_get_user_name (), get_xdir ());
+		unsigned char *plaintext = g_malloc ((gsize) cipherlen + 1);
+		int outlen1;
+		int outlen2;
+		EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new ();
+		if (!ctx || !PKCS5_PBKDF2_HMAC (material, -1, salt, 16, 300000, EVP_sha256 (), sizeof (key), key))
+		{
+			g_free (material);
+			if (ctx)
+				EVP_CIPHER_CTX_free (ctx);
+			g_free (plaintext);
+			g_free (raw);
+			return NULL;
+		}
+		g_free (material);
+		if (EVP_DecryptInit_ex (ctx, EVP_aes_256_cbc (), NULL, key, iv) != 1 ||
+			EVP_DecryptUpdate (ctx, plaintext, &outlen1, ciphertext, cipherlen) != 1 ||
+			EVP_DecryptFinal_ex (ctx, plaintext + outlen1, &outlen2) != 1)
+		{
+			EVP_CIPHER_CTX_free (ctx);
+			memset (key, 0, sizeof (key));
+			memset (plaintext, 0, (gsize) cipherlen + 1);
+			g_free (plaintext);
+			g_free (raw);
+			return NULL;
+		}
+		EVP_CIPHER_CTX_free (ctx);
+		memset (key, 0, sizeof (key));
+		plaintext[outlen1 + outlen2] = 0;
+		ret = g_strdup ((const char *) plaintext);
+		memset (plaintext, 0, (gsize) cipherlen + 1);
+		g_free (plaintext);
+	}
+#else
+	ret = g_strndup ((const char *) raw, len);
+#endif
+	g_free (raw);
+	return ret;
+}
 
 
 struct defaultserver
@@ -344,10 +481,29 @@ servlist_connect (session *sess, ircnet *net, gboolean join)
 	}
 
 	serv->password[0] = 0;
-
-	if (net->pass)
+	if ((net->flags & FLAG_USE_KEYRING) && net->name)
 	{
-		safe_strcpy (serv->password, net->pass, sizeof (serv->password));
+		char *stored_pass = secretstore_get_network_password (net->name);
+		if (stored_pass && *stored_pass)
+		{
+			safe_strcpy (serv->password, stored_pass, sizeof (serv->password));
+		}
+		if (stored_pass)
+		{
+			memset (stored_pass, 0, strlen (stored_pass));
+			g_free (stored_pass);
+		}
+	}
+	else if (net->pass)
+	{
+		char *plain = servlist_decrypt_password (net->pass);
+		if (plain && *plain)
+			safe_strcpy (serv->password, plain, sizeof (serv->password));
+		if (plain)
+		{
+			memset (plain, 0, strlen (plain));
+			g_free (plain);
+		}
 	}
 
 	if (net->flags & FLAG_USE_GLOBAL)
@@ -982,24 +1138,6 @@ servlist_load (void)
 			 *
 			 * Should be removed at some point.
 			 */
-			case 'A':
-				if (!net->pass)
-				{
-					net->pass = g_strdup (buf + 2);
-					if (!net->logintype)
-					{
-						net->logintype = LOGIN_SASL;
-					}
-				}
-			case 'B':
-				if (!net->pass)
-				{
-					net->pass = g_strdup (buf + 2);
-					if (!net->logintype)
-					{
-						net->logintype = LOGIN_NICKSERV;
-					}
-				}
 			}
 		}
 		if (buf[0] == 'N')

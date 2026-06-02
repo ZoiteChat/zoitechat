@@ -29,6 +29,7 @@
 #include "../common/servlist.h"
 #include "../common/cfgfiles.h"
 #include "../common/fe.h"
+#include "../common/secretstore.h"
 #include "../common/util.h"
 
 #include "fe-gtk.h"
@@ -85,6 +86,11 @@ static GtkWidget *edit_entry_nick2;
 static GtkWidget *edit_entry_user;
 static GtkWidget *edit_entry_real;
 static GtkWidget *edit_entry_pass;
+static GtkWidget *edit_check_show_pass;
+static GtkWidget *edit_check_use_keyring;
+static GtkWidget *edit_button_load_pass;
+static int edit_pass_changed;
+static char *edit_loaded_password;
 static GtkWidget *edit_label_nick;
 static GtkWidget *edit_label_nick2;
 static GtkWidget *edit_label_real;
@@ -103,6 +109,68 @@ static session *servlist_sess;
 
 static void servlist_network_row_cb (GtkTreeSelection *sel, gpointer user_data);
 static GtkWidget *servlist_open_edit (GtkWidget *parent, ircnet *net);
+
+static void
+servlist_toggle_show_password_cb (GtkToggleButton *toggle, gpointer userdata)
+{
+	if (gtk_toggle_button_get_active (toggle))
+	{
+		if (edit_loaded_password)
+			gtk_entry_set_text (GTK_ENTRY (userdata), edit_loaded_password);
+		gtk_entry_set_visibility (GTK_ENTRY (userdata), TRUE);
+	}
+	else
+	{
+		gtk_entry_set_visibility (GTK_ENTRY (userdata), FALSE);
+		if (edit_loaded_password && !edit_pass_changed)
+			gtk_entry_set_text (GTK_ENTRY (userdata), "***");
+	}
+}
+
+
+static void
+servlist_toggle_keyring_cb (GtkToggleButton *toggle, gpointer userdata)
+{
+	gboolean active = gtk_toggle_button_get_active (toggle);
+	gtk_widget_set_sensitive (edit_button_load_pass, active);
+	gtk_widget_set_sensitive (edit_check_show_pass, active);
+	if (!active)
+		gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (edit_check_show_pass), FALSE);
+}
+
+static void
+servlist_password_changed_cb (GtkEditable *editable, gpointer userdata)
+{
+	edit_pass_changed = 1;
+	if (edit_loaded_password && strcmp (gtk_entry_get_text (GTK_ENTRY (editable)), "***"))
+	{
+		memset (edit_loaded_password, 0, strlen (edit_loaded_password));
+		g_free (edit_loaded_password);
+		edit_loaded_password = NULL;
+	}
+}
+
+static void
+servlist_load_password_cb (GtkWidget *button, gpointer userdata)
+{
+	ircnet *net = userdata;
+	char *password;
+	if (!net || !net->name)
+		return;
+	password = secretstore_get_network_password (net->name);
+	if (!password)
+		return;
+	if (edit_loaded_password)
+	{
+		memset (edit_loaded_password, 0, strlen (edit_loaded_password));
+		g_free (edit_loaded_password);
+	}
+	edit_loaded_password = g_strdup (password);
+	gtk_entry_set_text (GTK_ENTRY (edit_entry_pass), "***");
+	edit_pass_changed = 0;
+	memset (password, 0, strlen (password));
+	g_free (password);
+}
 
 static char *
 servlist_get_cert_file (ircnet *net)
@@ -1081,11 +1149,40 @@ servlist_update_from_entry (char **str, GtkWidget *entry)
 static void
 servlist_edit_update (ircnet *net)
 {
+	const char *password;
 	servlist_update_from_entry (&net->nick, edit_entry_nick);
 	servlist_update_from_entry (&net->nick2, edit_entry_nick2);
 	servlist_update_from_entry (&net->user, edit_entry_user);
 	servlist_update_from_entry (&net->real, edit_entry_real);
-	servlist_update_from_entry (&net->pass, edit_entry_pass);
+	password = gtk_entry_get_text (GTK_ENTRY (edit_entry_pass));
+	if (net && net->name)
+	{
+		if (!edit_pass_changed)
+			return;
+		if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (edit_check_use_keyring)))
+		{
+			net->flags |= FLAG_USE_KEYRING;
+			g_free (net->pass);
+			net->pass = NULL;
+			if (password && *password)
+			{
+				if (!secretstore_set_network_password (net->name, password))
+					fe_message (_("No system keyring is available. ZoiteChat can save this password using local encrypted fallback storage, but it is less protected than your desktop keyring."), FE_MSG_WARN);
+			}
+			else
+				secretstore_delete_network_password (net->name);
+		}
+		else
+		{
+			char *enc = NULL;
+			net->flags &= ~FLAG_USE_KEYRING;
+			secretstore_delete_network_password (net->name);
+			if (password && *password)
+				enc = servlist_password_encrypt_for_storage (password);
+			g_free (net->pass);
+			net->pass = enc;
+		}
+	}
 }
 
 static void
@@ -1093,6 +1190,12 @@ servlist_edit_close_cb (GtkWidget *button, gpointer userdata)
 {
 	if (selected_net)
 		servlist_edit_update (selected_net);
+	if (edit_loaded_password)
+	{
+		memset (edit_loaded_password, 0, strlen (edit_loaded_password));
+		g_free (edit_loaded_password);
+		edit_loaded_password = NULL;
+	}
 
 	gtk_widget_destroy (edit_win);
 	edit_win = NULL;
@@ -1125,6 +1228,10 @@ static void
 servlist_edit_cb (GtkWidget *but, gpointer none)
 {
 	if (!servlist_has_selection (GTK_TREE_VIEW (networks_tree)))
+		return;
+	if (!selected_net || !selected_net->name)
+		return;
+	if ((selected_net->flags & FLAG_USE_KEYRING) && !secretstore_require_unlock (selected_net->name))
 		return;
 
 	edit_win = servlist_open_edit (serverlist_win, selected_net);
@@ -2317,7 +2424,7 @@ servlist_open_edit (GtkWidget *parent, ircnet *net)
 
 
 	/* Checkboxes and entries */
-	table3 = gtkutil_grid_new (14, 2, FALSE);
+	table3 = gtkutil_grid_new (16, 2, FALSE);
 	gtk_box_pack_start (GTK_BOX (vbox5), table3, FALSE, FALSE, 0);
 	gtk_grid_set_row_spacing (GTK_GRID (table3), 2);
 	gtk_grid_set_column_spacing (GTK_GRID (table3), 8);
@@ -2336,38 +2443,86 @@ servlist_open_edit (GtkWidget *parent, ircnet *net)
 #endif
 	servlist_create_check (1, net->flags & FLAG_USE_GLOBAL, table3, 5, 0, _("Use global user information"));
 
-	edit_entry_nick = servlist_create_entry (table3, _("_Nick name:"), 6, net->nick, &edit_label_nick, 0);
-	edit_entry_nick2 = servlist_create_entry (table3, _("Second choice:"), 7, net->nick2, &edit_label_nick2, 0);
-	edit_entry_real = servlist_create_entry (table3, _("Rea_l name:"), 8, net->real, &edit_label_real, 0);
-	edit_entry_user = servlist_create_entry (table3, _("_User name:"), 9, net->user, &edit_label_user, 0);
+	edit_check_use_keyring = gtk_check_button_new_with_mnemonic (_("Use system keyring"));
+	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (edit_check_use_keyring), net->flags & FLAG_USE_KEYRING);
+	servlist_table_attach (table3, edit_check_use_keyring, 0, 2, 6, 7,
+					   FALSE, FALSE,
+					   SERVLIST_ALIGN_START, SERVLIST_ALIGN_CENTER,
+					   SERVLIST_X_PADDING, SERVLIST_Y_PADDING);
+	g_signal_connect (G_OBJECT (edit_check_use_keyring), "toggled",
+				  G_CALLBACK (servlist_toggle_keyring_cb), NULL);
+
+	edit_entry_nick = servlist_create_entry (table3, _("_Nick name:"), 7, net->nick, &edit_label_nick, 0);
+	edit_entry_nick2 = servlist_create_entry (table3, _("Second choice:"), 8, net->nick2, &edit_label_nick2, 0);
+	edit_entry_real = servlist_create_entry (table3, _("Rea_l name:"), 9, net->real, &edit_label_real, 0);
+	edit_entry_user = servlist_create_entry (table3, _("_User name:"), 10, net->user, &edit_label_user, 0);
 
 	label_logintype = gtk_label_new (_("Login method:"));
-	servlist_table_attach (table3, label_logintype, 0, 1, 10, 11,
+	servlist_table_attach (table3, label_logintype, 0, 1, 11, 12,
 						   FALSE, FALSE,
 						   SERVLIST_ALIGN_START, SERVLIST_ALIGN_CENTER,
 						   SERVLIST_X_PADDING, SERVLIST_Y_PADDING);
 	gtk_widget_set_halign (label_logintype, GTK_ALIGN_START);
 	gtk_widget_set_valign (label_logintype, GTK_ALIGN_CENTER);
 	combobox_logintypes = servlist_create_logintypecombo (notebook);
-	servlist_table_attach (table3, combobox_logintypes, 1, 2, 10, 11,
+	servlist_table_attach (table3, combobox_logintypes, 1, 2, 11, 12,
 						   FALSE, FALSE,
 						   SERVLIST_ALIGN_FILL, SERVLIST_ALIGN_FILL,
 						   4, 2);
 
-	edit_entry_pass = servlist_create_entry (table3, _("Password:"), 11, net->pass, 0, _("Password used for login. If in doubt, leave blank."));
+	edit_entry_pass = servlist_create_entry (table3, _("Password:"), 12, NULL, 0, _("Password used for login. If in doubt, leave blank."));
+	if (edit_loaded_password)
+	{
+		memset (edit_loaded_password, 0, strlen (edit_loaded_password));
+		g_free (edit_loaded_password);
+		edit_loaded_password = NULL;
+	}
+	edit_pass_changed = 0;
+	g_signal_connect (G_OBJECT (edit_entry_pass), "changed",
+					  G_CALLBACK (servlist_password_changed_cb), NULL);
+	if (net->flags & FLAG_USE_KEYRING)
+	{
+		char *stored = secretstore_get_network_password (net->name);
+		if (stored && *stored)
+			gtk_entry_set_text (GTK_ENTRY (edit_entry_pass), "***");
+		if (stored)
+		{
+			memset (stored, 0, strlen (stored));
+			g_free (stored);
+		}
+	}
+	else if (net->pass && *net->pass)
+	{
+		gtk_entry_set_text (GTK_ENTRY (edit_entry_pass), "***");
+	}
+	edit_pass_changed = 0;
 	gtk_entry_set_visibility (GTK_ENTRY (edit_entry_pass), FALSE);
 	if (selected_net && selected_net->logintype == LOGIN_SASLEXTERNAL)
 		gtk_widget_set_sensitive (edit_entry_pass, FALSE);
+	edit_button_load_pass = gtk_button_new_with_mnemonic (_("Load from keyring"));
+	servlist_table_attach (table3, edit_button_load_pass, 0, 1, 13, 14,
+						   FALSE, FALSE,
+						   SERVLIST_ALIGN_START, SERVLIST_ALIGN_CENTER,
+						   SERVLIST_X_PADDING, SERVLIST_Y_PADDING);
+	g_signal_connect (G_OBJECT (edit_button_load_pass), "clicked",
+					  G_CALLBACK (servlist_load_password_cb), net);
+	edit_check_show_pass = gtk_check_button_new_with_mnemonic (_("Show password"));
+	servlist_table_attach (table3, edit_check_show_pass, 1, 2, 13, 14,
+						   FALSE, FALSE,
+						   SERVLIST_ALIGN_START, SERVLIST_ALIGN_CENTER,
+						   4, 2);
+	g_signal_connect (G_OBJECT (edit_check_show_pass), "toggled",
+					  G_CALLBACK (servlist_toggle_show_password_cb), edit_entry_pass);
 
 	label34 = gtk_label_new (_("Character set:"));
-	servlist_table_attach (table3, label34, 0, 1, 12, 13,
+	servlist_table_attach (table3, label34, 0, 1, 14, 15,
 						   FALSE, FALSE,
 						   SERVLIST_ALIGN_START, SERVLIST_ALIGN_CENTER,
 						   SERVLIST_X_PADDING, SERVLIST_Y_PADDING);
 	gtk_widget_set_halign (label34, GTK_ALIGN_START);
 	gtk_widget_set_valign (label34, GTK_ALIGN_CENTER);
 	comboboxentry_charset = servlist_create_charsetcombo ();
-	servlist_table_attach (table3, comboboxentry_charset, 1, 2, 12, 13,
+	servlist_table_attach (table3, comboboxentry_charset, 1, 2, 14, 15,
 						   FALSE, FALSE,
 						   SERVLIST_ALIGN_FILL, SERVLIST_ALIGN_FILL,
 						   4, 2);
@@ -2393,7 +2548,7 @@ servlist_open_edit (GtkWidget *parent, ircnet *net)
 							G_CALLBACK (servlist_delete_client_cert_cb), net);
 	gtk_box_pack_start (GTK_BOX (hbox_cert_buttons), edit_button_cert_delete, FALSE, FALSE, 0);
 
-	servlist_table_attach (table3, hbox_cert_buttons, 0, 2, 13, 14,
+	servlist_table_attach (table3, hbox_cert_buttons, 0, 2, 15, 16,
 						   FALSE, FALSE,
 						   SERVLIST_ALIGN_START, SERVLIST_ALIGN_CENTER,
 						   SERVLIST_X_PADDING, SERVLIST_Y_PADDING);
@@ -2417,6 +2572,7 @@ servlist_open_edit (GtkWidget *parent, ircnet *net)
 	{
 		servlist_toggle_global_user (FALSE);
 	}
+	servlist_toggle_keyring_cb (GTK_TOGGLE_BUTTON (edit_check_use_keyring), NULL);
 
 	gtk_widget_grab_focus (button10);
 	gtk_widget_grab_default (button10);

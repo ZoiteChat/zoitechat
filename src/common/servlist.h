@@ -62,7 +62,8 @@ extern GSList *network_list;
 #define FLAG_USE_PROXY			16
 #define FLAG_ALLOW_INVALID		32
 #define FLAG_FAVORITE			64
-#define FLAG_COUNT				7
+#define FLAG_USE_KEYRING		128
+#define FLAG_COUNT				8
 
 /* Login methods. Use server password by default - if we had a NickServ password, it'd be set to 2 already by servlist_load() */
 #define LOGIN_DEFAULT_REAL		LOGIN_PASS		/* this is to set the default login method for unknown servers */
@@ -124,5 +125,6 @@ favchannel *servlist_favchan_copy (favchannel *fav);
 GSList *servlist_favchan_listadd (GSList *chanlist, char *channel, char *key);
 
 gboolean joinlist_is_in_list (server *serv, char *channel);
+char *servlist_password_encrypt_for_storage (const char *pass);
 
 #endif

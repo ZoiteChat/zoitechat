@@ -19,6 +19,7 @@ libgmodule_dep = dependency('gmodule-2.0')
 libcanberra_dep = dependency('libcanberra', version: '>= 0.22',
                              required: get_option('libcanberra'))
 dbus_dep = dependency('gio-2.0', required: get_option('dbus'))
+libsecret_dep = dependency('libsecret-1', required: false)
 
 global_deps = []
 if cc.get_id() == 'msvc'
@@ -40,6 +41,7 @@ config_h.set10('ENABLE_NLS', true)
 config_h.set('USE_OPENSSL', libssl_dep.found())
 config_h.set('USE_LIBCANBERRA', libcanberra_dep.found())
 config_h.set('USE_DBUS', dbus_dep.found())
+config_h.set('HAVE_LIBSECRET', libsecret_dep.found())
 config_h.set('USE_PLUGIN', get_option('plugin'))
 config_h.set('USE_GTK_FRONTEND', get_option('gtk-frontend'))
 

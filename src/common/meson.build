@@ -27,6 +27,8 @@ common_sources = [
   'util.c'
 ]
 
+secretstore_sources = files('secretstore.c')
+
 common_sysinfo_deps = []
 libarchive_dep = dependency('libarchive', required: host_machine.system() != 'windows')
 
@@ -37,6 +39,9 @@ common_deps = [
 
 if libarchive_dep.found()
   common_deps += libarchive_dep
+endif
+if libsecret_dep.found()
+  common_deps += libsecret_dep
 endif
 
 common_includes = [
@@ -127,7 +132,7 @@ if get_option('plugin')
 endif
 
 zoitechat_common = static_library('zoitechatcommon',
-  sources: [textevents, public_suffix_data] + marshal + common_sources,
+  sources: [textevents, public_suffix_data] + marshal + common_sources + secretstore_sources,
   include_directories: config_h_include,
   dependencies: common_deps + common_sysinfo_deps,
   c_args: common_cflags,
