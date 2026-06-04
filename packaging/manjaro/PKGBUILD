@@ -66,4 +66,5 @@ build() {
 
 package() {
   meson install -C build --destdir "$pkgdir"
+  test -f "$pkgdir/usr/share/doc/zoitechat/html/index.html"
 }

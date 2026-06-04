@@ -1717,7 +1717,32 @@ menu_ctcpguiopen (void)
 static void
 menu_docs (GtkWidget *wid, gpointer none)
 {
-	fe_open_url ("https://docs.zoitechat.org/en/latest/");
+	GNetworkMonitor *monitor;
+	char *offline_docs;
+	gboolean online;
+
+	offline_docs = g_build_filename (get_xdir (), "offline-docs", "index.html", NULL);
+	if (g_access (offline_docs, R_OK) == 0)
+	{
+		fe_open_url (offline_docs);
+		g_free (offline_docs);
+		return;
+	}
+	g_free (offline_docs);
+	offline_docs = g_build_filename (ZOITECHATDOCDIR, "index.html", NULL);
+	if (g_access (offline_docs, R_OK) == 0)
+	{
+		fe_open_url (offline_docs);
+		g_free (offline_docs);
+		return;
+	}
+	g_free (offline_docs);
+	online = TRUE;
+	monitor = g_network_monitor_get_default ();
+	if (monitor)
+		online = g_network_monitor_get_network_available (monitor);
+	if (online)
+		fe_open_url ("https://docs.zoitechat.org/en/latest/");
 }
 
 /*static void

@@ -32,8 +32,18 @@ config_h = configuration_data()
 config_h.set_quoted('PACKAGE_VERSION', meson.project_version())
 config_h.set_quoted('PACKAGE_NAME', meson.project_name())
 config_h.set_quoted('GETTEXT_PACKAGE', 'zoitechat')
+offline_docs_package = get_option('offline-docs-package')
+if offline_docs_package == ''
+  offline_docs_package = meson.project_name()
+endif
+offline_docs_dir = get_option('offline-docs-dir')
+if offline_docs_dir == ''
+  offline_docs_dir = join_paths(get_option('datadir'), 'doc', offline_docs_package, 'html')
+endif
 config_h.set_quoted('LOCALEDIR', join_paths(get_option('prefix'),
                                  get_option('datadir'), 'locale'))
+config_h.set_quoted('ZOITECHATDOCDIR', join_paths(get_option('prefix'),
+                                 offline_docs_dir))
 config_h.set10('ENABLE_NLS', true)
 
 # Optional features

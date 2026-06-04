@@ -56,7 +56,8 @@
         "-Ddbus-service-use-appid=true",
         "-Dwith-perl=perl",
         "-Dwith-python=python3",
-        "-Dwith-lua=lua"
+        "-Dwith-lua=lua",
+        "-Doffline-docs-package=net.zoite.Zoitechat"
       ],
       "build-options": {
         "cflags": "-Wno-error=missing-include-dirs"

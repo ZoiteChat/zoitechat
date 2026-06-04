@@ -62,3 +62,13 @@ option('with-upd', type: 'boolean',
 option('with-perl-legacy-api', type: 'boolean', value: false,
   description: 'Enables the legacy IRC perl module for compatibility with old scripts'
 )
+
+option('offline-docs-url', type: 'string', value: '',
+  description: 'URL for offline documentation archive (tar.gz)'
+)
+option('offline-docs-package', type: 'string', value: '',
+  description: 'Package or app id to use under the installed documentation directory'
+)
+option('offline-docs-dir', type: 'string', value: 'https://dl.zoitechat.org/offlinedocs/zoitechat-docs-html-2.18.1.tar.gz',
+  description: 'Installed offline documentation directory relative to prefix'
+)

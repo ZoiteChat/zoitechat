@@ -37,6 +37,12 @@ jobs:
           cache: false
           restore-cache: false
 
+      - name: Verify offline docs install
+        run: |
+          flatpak --user install -y zoitechat.flatpak
+          app_dir="$(flatpak info --user --show-location net.zoite.Zoitechat)"
+          test -f "$app_dir/files/share/doc/net.zoite.Zoitechat/html/index.html"
+
       - name: Upload Flatpak Bundle
         id: upload_flatpak
         uses: actions/upload-artifact@v6

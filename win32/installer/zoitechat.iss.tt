@@ -1,5 +1,6 @@
 #define APPNAM "ZoiteChat"
 #define APPVER "<#= [string]::Join('.', $versionParts) #>"
+#define OFFLINEDOCSURL "https://dl.zoitechat.org/offlinedocs/zoitechat-docs-html-{#APPVER}.tar.gz"
 ; These are defined by our installer project at build time
 ;#define APPARCH "x64"
 ;#define PROJECTDIR "C:\...\zoitechat\win32\installer\"
@@ -49,6 +50,7 @@ Name: "icons"; Description: "Create Shortcuts"; Types: custom; Flags: disablenou
 Name: "icons\desktopicon"; Description: "Create Desktop Shortcut"; Types: custom; Flags: disablenouninstallwarning
 Name: "icons\quicklaunchicon"; Description: "Create Quick Launch Shortcut"; Types: custom; Flags: disablenouninstallwarning
 Name: "translations"; Description: "Translations"; Types: normal custom; Flags: disablenouninstallwarning
+Name: "docs"; Description: "Offline Documentation"; Types: normal minimal custom; Flags: disablenouninstallwarning
 Name: "spell"; Description: "Spelling Dictionaries"; Types: custom; Flags: disablenouninstallwarning
 Name: "plugins"; Description: "Plugins"; Types: custom; Flags: disablenouninstallwarning
 Name: "plugins\checksum"; Description: "Checksum"; Types: custom; Flags: disablenouninstallwarning
@@ -95,6 +97,7 @@ Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile
 
 [Dirs]
 Name: "{userappdata}\ZoiteChat\gtk3-themes"; Components: themes
+Name: "{app}\offline-docs"; Components: docs
 
 [Files]
 Source: "portable-mode"; DestDir: "{app}"; Tasks: portable
@@ -105,6 +108,7 @@ Source: "cert.pem"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 Source: "share\xml\*"; DestDir: "{app}\share\xml"; Flags: ignoreversion createallsubdirs recursesubdirs; Components: libs
 Source: "share\doc\zoitechat\*"; DestDir: "{app}\share\doc\zoitechat"; Flags: ignoreversion createallsubdirs recursesubdirs; Components: libs
 Source: "share\doc\WinSparkle\*"; DestDir: "{app}\share\doc\WinSparkle"; Flags: ignoreversion createallsubdirs recursesubdirs; Components: libs
+Source: "offline-docs\*"; DestDir: "{app}\offline-docs"; Flags: ignoreversion createallsubdirs recursesubdirs; Components: docs
 Source: "share\themes\MS-Windows\*"; DestDir: "{app}\share\themes\MS-Windows"; Flags: ignoreversion createallsubdirs recursesubdirs skipifsourcedoesntexist; Components: libs
 Source: "share\glib-2.0\schemas\*"; DestDir: "{app}\share\glib-2.0\schemas"; Flags: ignoreversion createallsubdirs recursesubdirs skipifsourcedoesntexist; Components: libs
 Source: "share\icons\hicolor\*"; DestDir: "{app}\share\icons\hicolor"; Flags: ignoreversion createallsubdirs recursesubdirs skipifsourcedoesntexist; Components: libs
@@ -314,7 +318,34 @@ begin
 end;
 
 
-/////////////////////////////////////////////////////////////////////
+function InstallOfflineDocs(): Boolean;
+var
+	Archive: String;
+	DocsDir: String;
+	ResultCode: Integer;
+	Script: String;
+	WorkDir: String;
+begin
+	Result := True;
+	Archive := ExpandConstant('{tmp}\offline-docs.tar.gz');
+	DocsDir := ExpandConstant('{app}\offline-docs');
+	WorkDir := ExpandConstant('{tmp}\offline-docs-extract');
+	if not FileExists(Archive) then
+		Exit;
+	Script := 'Remove-Item -LiteralPath ''' + WorkDir + ''' -Recurse -Force -ErrorAction SilentlyContinue; ' +
+		'New-Item -ItemType Directory -LiteralPath ''' + WorkDir + ''' -Force | Out-Null; ' +
+		'tar -xzf ''' + Archive + ''' -C ''' + WorkDir + '''; ' +
+		'$i = Get-ChildItem -LiteralPath ''' + WorkDir + ''' -Recurse -Filter index.html | Select-Object -First 1; ' +
+		'if (-not $i) { exit 1 }; ' +
+		'Remove-Item -LiteralPath ''' + DocsDir + ''' -Recurse -Force -ErrorAction SilentlyContinue; ' +
+		'New-Item -ItemType Directory -LiteralPath ''' + DocsDir + ''' -Force | Out-Null; ' +
+		'Copy-Item -Path (Join-Path $i.DirectoryName ''*'') -Destination ''' + DocsDir + ''' -Recurse -Force';
+	if not Exec(GetSysDir() + 'WindowsPowerShell\v1.0\powershell.exe', '-NoProfile -ExecutionPolicy Bypass -Command "' + Script + '"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode) then
+		Result := False
+	else
+		Result := ResultCode = 0;
+end;
+
 function CheckSpellInstall(): Boolean;
 var
 	Version: TWindowsVersion;
@@ -350,6 +381,9 @@ begin
 
 	if IsComponentSelected('themes\windows10dark') then
 		idpAddFile('https://dl.zoitechat.zoite.net/themes/GTK3Themes/Windows-10-Dark-3.2.1-dark.zip', ExpandConstant('{tmp}\Windows-10-Dark-3.2.1-dark.zip'));
+
+	if IsComponentSelected('docs') then
+		idpAddFile('{#OFFLINEDOCSURL}', ExpandConstant('{tmp}\offline-docs.tar.gz'));
 
 	if not IsTaskSelected('portable') then
 	begin
@@ -415,6 +449,13 @@ begin
 		if IsComponentSelected('themes\windows10dark') and not FileExists(ExpandConstant('{tmp}\Windows-10-Dark-3.2.1-dark.zip')) then
 		begin
 			MsgBox('Windows 10 Dark GTK3 theme could not be downloaded. Please retry setup and rerun setup.', mbError, MB_OK);
+			Result := False;
+			Exit;
+		end;
+
+		if IsComponentSelected('docs') and not FileExists(ExpandConstant('{tmp}\offline-docs.tar.gz')) then
+		begin
+			MsgBox('Offline documentation could not be downloaded. Please retry setup or rerun setup with Offline Documentation deselected.', mbError, MB_OK);
 			Result := False;
 			Exit;
 		end;
@@ -496,5 +537,11 @@ begin
 			end;
 			DeleteFile(ExpandConstant('{app}\portable-mode'));
 		end;
+	end;
+
+	if (CurStep=ssPostInstall) and IsComponentSelected('docs') then
+	begin
+		if not InstallOfflineDocs() then
+			MsgBox('Offline documentation could not be installed from the downloaded archive.', mbError, MB_OK);
 	end;
 end;

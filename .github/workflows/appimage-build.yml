@@ -62,6 +62,11 @@ jobs:
           rm -rf AppDir
           DESTDIR="${PWD}/AppDir" ninja -C build install
 
+      - name: Verify offline docs install
+        run: |
+          set -eux
+          test -f AppDir/usr/share/doc/zoitechat/html/index.html
+
       - name: Bundle scripting runtimes in AppDir
         run: |
           set -eux

@@ -44,6 +44,7 @@ REM zoitechat.rc needs to be in UCS-2 or Resource Compiler will complain
 powershell "Get-Content -Encoding UTF8 '$(ZoiteChatLib)zoitechat.rc.utf8' | Out-File '$(ZoiteChatLib)zoitechat.rc'; Remove-Item '$(ZoiteChatLib)zoitechat.rc.utf8'"
 "$(DepsRoot)\bin\glib-compile-resources.exe" --generate-header --manual-register --sourcedir "$(DataDir)" --target "$(ZoiteChatLib)resources.h" "$(DataDir)zoitechat.gresource.xml"
 "$(DepsRoot)\bin\glib-compile-resources.exe" --generate-source --manual-register --sourcedir "$(DataDir)" --target "$(ZoiteChatLib)resources.c" "$(DataDir)zoitechat.gresource.xml"
+"$(Python3Path)\python.exe" "$(DataDir)misc\fetch_offline_docs.py" "$(OfflineDocsUrl)" "$(ZoiteChatRel)." "$(SolutionDir).."
       ]]></Command>
       <Message>Build zoitechat.rc and gresource file</Message>
     </PreBuildEvent>

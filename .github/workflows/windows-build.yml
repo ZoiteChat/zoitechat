@@ -132,6 +132,16 @@ jobs:
           msbuild win32\zoitechat.sln /m /verbosity:minimal /p:Configuration=Release /p:Platform=${{ matrix.platform }}
         shell: cmd
 
+      - name: Verify offline docs install
+        run: |
+          if not exist "..\zoitechat-build\${{ matrix.platform }}\rel\offline-docs\index.html" exit /b 1
+          findstr /C:"Name:" "..\zoitechat-build\${{ matrix.platform }}\bin\zoitechat.iss" | findstr /C:"docs"
+          findstr /C:"OFFLINEDOCSURL" "..\zoitechat-build\${{ matrix.platform }}\bin\zoitechat.iss"
+          findstr /C:"Source:" "..\zoitechat-build\${{ matrix.platform }}\bin\zoitechat.iss" | findstr /C:"offline-docs"
+          findstr /C:"offline-docs.tar.gz" "..\zoitechat-build\${{ matrix.platform }}\bin\zoitechat.iss"
+          findstr /C:"InstallOfflineDocs" "..\zoitechat-build\${{ matrix.platform }}\bin\zoitechat.iss"
+        shell: cmd
+
       - name: Preparing Artifacts
         run: |
           move ..\zoitechat-build\${{ matrix.platform }}\ZoiteChat-*.exe .\
