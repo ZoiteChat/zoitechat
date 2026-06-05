@@ -110,8 +110,14 @@ servlist_password_encrypt_for_storage (const char *pass)
 	return ret;
 }
 
-static char *
-servlist_decrypt_password (const char *enc)
+gboolean
+servlist_password_is_encrypted (const char *pass)
+{
+	return pass && g_str_has_prefix (pass, "enc:");
+}
+
+char *
+servlist_password_decrypt_for_storage (const char *enc)
 {
 	guchar *raw;
 	gsize len;
@@ -496,7 +502,7 @@ servlist_connect (session *sess, ircnet *net, gboolean join)
 	}
 	else if (net->pass)
 	{
-		char *plain = servlist_decrypt_password (net->pass);
+		char *plain = servlist_password_decrypt_for_storage (net->pass);
 		if (plain && *plain)
 			safe_strcpy (serv->password, plain, sizeof (serv->password));
 		if (plain)

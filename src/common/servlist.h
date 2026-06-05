@@ -126,5 +126,7 @@ GSList *servlist_favchan_listadd (GSList *chanlist, char *channel, char *key);
 
 gboolean joinlist_is_in_list (server *serv, char *channel);
 char *servlist_password_encrypt_for_storage (const char *pass);
+char *servlist_password_decrypt_for_storage (const char *pass);
+gboolean servlist_password_is_encrypted (const char *pass);
 
 #endif
