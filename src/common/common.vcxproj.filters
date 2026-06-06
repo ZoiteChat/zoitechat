@@ -74,6 +74,9 @@
     <ClInclude Include="servlist.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="secretstore.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="ssl.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -176,6 +179,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="servlist.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="secretstore.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="ssl.c">

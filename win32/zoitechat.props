@@ -128,7 +128,7 @@
 
 		<ArchiveDefs Condition="'$(ArchiveLib)'=='archive_static.lib' or '$(ArchiveLib)'=='libarchive_static.lib'">LIBARCHIVE_STATIC</ArchiveDefs>
 
-		<DepLibs>$(Gtk3Lib);$(Gdk3Lib);wininet.lib;winmm.lib;ws2_32.lib;atk-1.0.lib;gio-2.0.lib;gdk_pixbuf-2.0.lib;pangowin32-1.0.lib;pangocairo-1.0.lib;pango-1.0.lib;cairo.lib;gobject-2.0.lib;gmodule-2.0.lib;glib-2.0.lib;$(IntlLib);$(IconvLib);$(ZlibLib);$(Xml2Lib);$(JpegLib);$(PngLib);$(ArchiveLib);$(OpenSslLibs)</DepLibs>
+		<DepLibs>$(Gtk3Lib);$(Gdk3Lib);wininet.lib;winmm.lib;ws2_32.lib;advapi32.lib;atk-1.0.lib;gio-2.0.lib;gdk_pixbuf-2.0.lib;pangowin32-1.0.lib;pangocairo-1.0.lib;pango-1.0.lib;cairo.lib;gobject-2.0.lib;gmodule-2.0.lib;glib-2.0.lib;$(IntlLib);$(IconvLib);$(ZlibLib);$(Xml2Lib);$(JpegLib);$(PngLib);$(ArchiveLib);$(OpenSslLibs)</DepLibs>
 
 		<DataDir>$(SolutionDir)..\data\\</DataDir>
 		<ZoiteChatBuild>$(SolutionDir)..\..\zoitechat-build</ZoiteChatBuild>

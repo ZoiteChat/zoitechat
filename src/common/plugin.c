@@ -1213,8 +1213,6 @@ zoitechat_get_info (zoitechat_plugin *ph, const char *id)
 
 	case 0x4889ba9b: /* password */
 	case 0x438fdf9: /* nickserv */
-		if (sess->server->network)
-			return ((ircnet *)sess->server->network)->pass;
 		return NULL;
 
 	case 0xca022f43: /* server */

@@ -32,6 +32,7 @@
     <ClInclude Include="public_suffix_data.h" />
     <ClInclude Include="server.h" />
     <ClInclude Include="servlist.h" />
+    <ClInclude Include="secretstore.h" />
     <ClInclude Include="ssl.h" />
     <ClInclude Include="scram.h" />
     <ClInclude Include="sysinfo\sysinfo.h" />
@@ -68,6 +69,7 @@
     <ClCompile Include="proto-irc.c" />
     <ClCompile Include="server.c" />
     <ClCompile Include="servlist.c" />
+    <ClCompile Include="secretstore.c" />
     <ClCompile Include="ssl.c" />
     <ClCompile Include="scram.c" />
     <ClCompile Include="sts.c" />
