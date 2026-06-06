@@ -38,6 +38,7 @@
 #include "ignore.h"
 #include "fe.h"
 #include "modes.h"
+#include "network.h"
 #include "notify.h"
 #include "outbound.h"
 #include "inbound.h"
@@ -1476,14 +1477,13 @@ inbound_uback (server *serv, const message_tags_data *tags_data)
 void
 inbound_foundip (session *sess, char *ip, const message_tags_data *tags_data)
 {
-	struct hostent *HostAddr;
+	struct in_addr addr;
 
-	HostAddr = gethostbyname (ip);
-	if (HostAddr)
+	if (net_lookup_ipv4 (ip, &addr.s_addr))
 	{
-		sess->server->dcc_ip = ((struct in_addr *) HostAddr->h_addr_list[0])->s_addr;
+		sess->server->dcc_ip = addr.s_addr;
 		EMIT_SIGNAL_TIMESTAMP (XP_TE_FOUNDIP, sess->server->server_session,
-									  inet_ntoa (*((struct in_addr *) HostAddr->h_addr_list[0])),
+									  inet_ntoa (addr),
 									  NULL, NULL, NULL, 0, tags_data->timestamp);
 	}
 }

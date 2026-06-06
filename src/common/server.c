@@ -881,7 +881,7 @@ server_read_child (GIOChannel *source, GIOCondition condition, server *serv)
 			if (prefs.hex_net_auto_reconnectonfail)
 				auto_reconnect (serv, FALSE, -1);
 		break;
-	case '3':						  /* gethostbyname finished */
+	case '3':						  /* resolver finished */
 		waitline2 (source, host, sizeof host);
 		waitline2 (source, ip, sizeof ip);
 		waitline2 (source, outbuf, sizeof outbuf);
@@ -932,7 +932,7 @@ server_read_child (GIOChannel *source, GIOCondition condition, server *serv)
 		waitline2 (source, tbuf, sizeof tbuf);
 		prefs.local_ip = inet_addr (tbuf);
 		break;
-	case '7':						  /* gethostbyname (prefs.hex_net_bind_host) failed */
+	case '7':						  /* prefs.hex_net_bind_host resolve failed */
 		sprintf (outbuf,
 					_("Cannot resolve hostname %s\nCheck your IP Settings!\n"),
 					prefs.hex_net_bind_host);
