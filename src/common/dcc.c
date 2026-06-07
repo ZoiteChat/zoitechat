@@ -304,29 +304,24 @@ dcc_check_timeouts (void)
 static int
 dcc_lookup_proxy (char *host, struct sockaddr_in *addr)
 {
-	struct hostent *h;
 	static char *cache_host = NULL;
 	static guint32 cache_addr;
 
-	/* too lazy to thread this, so we cache results */
 	if (cache_host)
 	{
 		if (strcmp (host, cache_host) == 0)
 		{
-			memcpy (&addr->sin_addr, &cache_addr, 4);
+			addr->sin_addr.s_addr = cache_addr;
 			return TRUE;
 		}
 		g_free (cache_host);
 		cache_host = NULL;
 	}
 
-	h = gethostbyname (host);
-	if (h != NULL && h->h_length == 4 && h->h_addr_list[0] != NULL)
+	if (net_lookup_ipv4 (host, &addr->sin_addr.s_addr))
 	{
-		memcpy (&addr->sin_addr, h->h_addr_list[0], 4);
-		memcpy (&cache_addr, h->h_addr_list[0], 4);
+		cache_addr = addr->sin_addr.s_addr;
 		cache_host = g_strdup (host);
-		/* cppcheck-suppress memleak */
 		return TRUE;
 	}
 
@@ -1614,25 +1609,14 @@ dcc_accept (GIOChannel *source, GIOCondition condition, struct DCC *dcc)
 }
 
 guint32
-dcc_get_my_address (session *sess)	/* the address we'll tell the other person */
+dcc_get_my_address (session *sess)
 {
-	struct hostent *dns_query;
 	guint32 addr = 0;
 
 	if (prefs.hex_dcc_ip_from_server && sess->server->dcc_ip)
 		addr = sess->server->dcc_ip;
 	else if (prefs.hex_dcc_ip[0])
-	{
-	   dns_query = gethostbyname ((const char *) prefs.hex_dcc_ip);
-
-	   if (dns_query != NULL &&
-	       dns_query->h_length == 4 &&
-	       dns_query->h_addr_list[0] != NULL)
-		{
-			/*we're offered at least one IPv4 address: we take the first*/
-			addr = *((guint32*) dns_query->h_addr_list[0]);
-		}
-	}
+		net_lookup_ipv4 ((const char *) prefs.hex_dcc_ip, &addr);
 
 	return addr;
 }

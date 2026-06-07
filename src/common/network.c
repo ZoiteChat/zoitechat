@@ -96,6 +96,30 @@ net_ip (uint32_t addr)
 	return inet_ntoa (ia);
 }
 
+int
+net_lookup_ipv4 (const char *hostname, uint32_t *addr)
+{
+	struct addrinfo hints;
+	struct addrinfo *res;
+	struct sockaddr_in *sin;
+	int ret;
+
+	memset (&hints, 0, sizeof (hints));
+	hints.ai_family = AF_INET;
+	hints.ai_socktype = SOCK_STREAM;
+	hints.ai_flags = AI_ADDRCONFIG;
+
+	ret = getaddrinfo (hostname, NULL, &hints, &res);
+	if (ret != 0)
+		return FALSE;
+
+	sin = (struct sockaddr_in *) res->ai_addr;
+	*addr = sin->sin_addr.s_addr;
+	freeaddrinfo (res);
+
+	return TRUE;
+}
+
 void
 net_store_destroy (netstore * ns)
 {
