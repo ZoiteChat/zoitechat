@@ -268,13 +268,25 @@ char *fish_cipher(const char *plaintext, size_t plaintext_len, const char *key, 
 #endif
 
     } else if (mode == EVP_CIPH_ECB_MODE) {
+        if (encode == 1) {
+            iv = (unsigned char *) g_malloc0(8);
+            RAND_bytes(iv, 8);
+        } else {
+            if (plaintext_len <= 8) /* IV + DATA */
+                return NULL;
+
+            iv = (unsigned char *) plaintext;
+            block_size -= 8;
+            plaintext += 8;
+            plaintext_len -= 8;
+        }
 
 #if OPENSSL_VERSION_NUMBER >= 0x30000000L
-        cipher = EVP_CIPHER_fetch(NULL, "BF-ECB", NULL);
+        cipher = EVP_CIPHER_fetch(NULL, "BF-CBC", NULL);
         if (!cipher)
-            cipher = (EVP_CIPHER *) EVP_bf_ecb();
+            cipher = (EVP_CIPHER *) EVP_bf_cbc();
 #else
-        cipher = (EVP_CIPHER *) EVP_bf_ecb();
+        cipher = (EVP_CIPHER *) EVP_bf_cbc();
 #endif
     }
 
