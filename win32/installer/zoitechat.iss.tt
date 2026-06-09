@@ -1,6 +1,6 @@
 #define APPNAM "ZoiteChat"
 #define APPVER "<#= [string]::Join('.', $versionParts) #>"
-#define OFFLINEDOCSURL "https://dl.zoitechat.org/offlinedocs/zoitechat-docs-html-{#APPVER}.tar.gz"
+#define OFFLINEDOCSURL "https://dl.zoitechat.org/offlinedocs/zoitechat-docs-html-" + APPVER + ".tar.gz"
 ; These are defined by our installer project at build time
 ;#define APPARCH "x64"
 ;#define PROJECTDIR "C:\...\zoitechat\win32\installer\"
@@ -340,7 +340,7 @@ begin
 		'Remove-Item -LiteralPath ''' + DocsDir + ''' -Recurse -Force -ErrorAction SilentlyContinue; ' +
 		'New-Item -ItemType Directory -LiteralPath ''' + DocsDir + ''' -Force | Out-Null; ' +
 		'Copy-Item -Path (Join-Path $i.DirectoryName ''*'') -Destination ''' + DocsDir + ''' -Recurse -Force';
-	if not Exec(GetSysDir() + 'WindowsPowerShell\v1.0\powershell.exe', '-NoProfile -ExecutionPolicy Bypass -Command "' + Script + '"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode) then
+	if not Exec(ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe'), '-NoProfile -ExecutionPolicy Bypass -Command "' + Script + '"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode) then
 		Result := False
 	else
 		Result := ResultCode = 0;
