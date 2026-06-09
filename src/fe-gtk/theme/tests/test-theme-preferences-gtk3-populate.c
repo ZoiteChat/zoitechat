@@ -107,10 +107,21 @@ theme_manager_reset_mode_colors (unsigned int mode, gboolean *palette_changed)
                 *palette_changed = FALSE;
 }
 
+void
+theme_runtime_clear_gtk_mapped_custom_tokens (void)
+{
+}
+
 gboolean
 theme_manager_save_preferences (void)
 {
 	return TRUE;
+}
+
+void
+theme_manager_apply_to_window (GtkWidget *window)
+{
+        (void)window;
 }
 
 void
