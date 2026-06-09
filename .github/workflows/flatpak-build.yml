@@ -41,7 +41,7 @@ jobs:
         run: |
           flatpak --user install -y zoitechat.flatpak
           app_dir="$(flatpak info --user --show-location net.zoite.Zoitechat)"
-          test -f "$app_dir/files/share/doc/net.zoite.Zoitechat/html/index.html"
+          test -f "$app_dir/files/share/zoitechat/offline-docs/index.html"
 
       - name: Upload Flatpak Bundle
         id: upload_flatpak
