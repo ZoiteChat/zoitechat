@@ -47,6 +47,7 @@ gboolean theme_runtime_apply_dark_mode (gboolean enable);
 void theme_runtime_user_set_color (ThemeSemanticToken token, const GdkRGBA *col);
 void theme_runtime_dark_set_color (ThemeSemanticToken token, const GdkRGBA *col);
 void theme_runtime_reset_mode_colors (gboolean dark_mode);
+void theme_runtime_clear_gtk_mapped_custom_tokens (void);
 gboolean theme_runtime_get_color (ThemeSemanticToken token, GdkRGBA *out_rgba);
 gboolean theme_runtime_mode_has_user_colors (gboolean dark_mode);
 void theme_runtime_get_widget_style_values (ThemeWidgetStyleValues *out_values);

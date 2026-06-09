@@ -88,9 +88,15 @@ theme_application_apply_toplevel_theme (gboolean dark)
 gboolean
 theme_application_apply_mode (unsigned int mode, gboolean *palette_changed)
 {
+	static gboolean runtime_loaded = FALSE;
 	gboolean dark;
 
-	theme_runtime_load ();
+	if (!runtime_loaded)
+	{
+		theme_runtime_load ();
+		runtime_loaded = TRUE;
+	}
+
 	dark = theme_runtime_apply_mode (mode, palette_changed);
 	theme_application_apply_toplevel_theme (dark);
 

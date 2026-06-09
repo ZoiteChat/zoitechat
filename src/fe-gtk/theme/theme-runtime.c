@@ -411,6 +411,20 @@ theme_runtime_reset_mode_colors (gboolean dark_mode)
 }
 
 void
+theme_runtime_clear_gtk_mapped_custom_tokens (void)
+{
+	light_custom_tokens[THEME_TOKEN_TEXT_FOREGROUND] = FALSE;
+	light_custom_tokens[THEME_TOKEN_TEXT_BACKGROUND] = FALSE;
+	light_custom_tokens[THEME_TOKEN_SELECTION_FOREGROUND] = FALSE;
+	light_custom_tokens[THEME_TOKEN_SELECTION_BACKGROUND] = FALSE;
+
+	dark_custom_tokens[THEME_TOKEN_TEXT_FOREGROUND] = FALSE;
+	dark_custom_tokens[THEME_TOKEN_TEXT_BACKGROUND] = FALSE;
+	dark_custom_tokens[THEME_TOKEN_SELECTION_FOREGROUND] = FALSE;
+	dark_custom_tokens[THEME_TOKEN_SELECTION_BACKGROUND] = FALSE;
+}
+
+void
 theme_runtime_load (void)
 {
 	size_t i;
