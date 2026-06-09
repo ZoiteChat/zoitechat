@@ -1003,7 +1003,9 @@ mg_windowstate_cb (GtkWindow *wid, GdkEventWindowState *event, gpointer userdata
                 menu_set_fullscreen (current_sess->gui, prefs.hex_gui_win_fullscreen);
 
 #ifdef G_OS_WIN32
-	mg_win32_allow_autohide_taskbar (wid, event);
+	if (event->changed_mask &
+	    (GDK_WINDOW_STATE_MAXIMIZED | GDK_WINDOW_STATE_FULLSCREEN))
+		mg_win32_allow_autohide_taskbar (wid, event);
 #endif
 
         return FALSE;
