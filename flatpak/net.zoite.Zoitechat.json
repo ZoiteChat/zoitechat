@@ -57,7 +57,8 @@
         "-Dwith-perl=perl",
         "-Dwith-python=python3",
         "-Dwith-lua=lua",
-        "-Doffline-docs-package=net.zoite.Zoitechat"
+        "-Doffline-docs-package=net.zoite.Zoitechat",
+        "-Doffline-docs-dir=share/zoitechat/offline-docs"
       ],
       "build-options": {
         "cflags": "-Wno-error=missing-include-dirs"
