@@ -113,7 +113,7 @@ typedef GdkPixbuf* TrayCustomIcon;
 #define ICON_HILIGHT pix_tray_highlight
 #define ICON_FILE pix_tray_fileoffer
 #endif
-#if defined(GTK_DISABLE_DEPRECATED) && !HAVE_APPINDICATOR_BACKEND
+#if defined(GTK_DISABLE_DEPRECATED) && !HAVE_APPINDICATOR_BACKEND && !defined(WIN32)
 GtkStatusIcon *gtk_status_icon_new_from_pixbuf (GdkPixbuf *pixbuf);
 void gtk_status_icon_set_from_pixbuf (GtkStatusIcon *status_icon, GdkPixbuf *pixbuf);
 void gtk_status_icon_set_tooltip_text (GtkStatusIcon *status_icon, const gchar *text);
@@ -154,7 +154,7 @@ typedef struct
 static AppIndicator *tray_indicator;
 static GtkWidget *tray_menu;
 #endif
-#if !HAVE_APPINDICATOR_BACKEND
+#if !HAVE_APPINDICATOR_BACKEND && !defined(WIN32)
 static GtkStatusIcon *tray_status_icon;
 #endif
 #ifdef WIN32
@@ -471,7 +471,7 @@ static const TrayBackendOps tray_backend_ops = {
 };
 #endif
 
-#if !HAVE_APPINDICATOR_BACKEND
+#if !HAVE_APPINDICATOR_BACKEND && !defined(WIN32)
 static void
 tray_status_icon_set_icon (TrayIcon icon)
 {
@@ -528,6 +528,9 @@ tray_status_icon_init (void)
 	return TRUE;
 }
 
+#endif
+
+#if !HAVE_APPINDICATOR_BACKEND
 #ifdef WIN32
 static HICON
 tray_win32_pixbuf_to_hicon (GdkPixbuf *pixbuf)
@@ -916,57 +919,12 @@ tray_win32_init (void)
 	return TRUE;
 }
 
-static gboolean
-tray_win32_or_status_icon_init (void)
-{
-	if (tray_win32_init ())
-		return TRUE;
-
-	return tray_status_icon_init ();
-}
-
-static void
-tray_win32_or_status_icon_set_icon (TrayIcon icon)
-{
-	if (tray_win32_active)
-		tray_win32_set_icon (icon);
-	else
-		tray_status_icon_set_icon (icon);
-}
-
-static void
-tray_win32_or_status_icon_set_tooltip (const char *text)
-{
-	if (tray_win32_active)
-		tray_win32_set_tooltip (text);
-	else
-		tray_status_icon_set_tooltip (text);
-}
-
-static gboolean
-tray_win32_or_status_icon_is_embedded (void)
-{
-	if (tray_win32_active)
-		return tray_win32_is_embedded ();
-
-	return tray_status_icon_is_embedded ();
-}
-
-static void
-tray_win32_or_status_icon_cleanup (void)
-{
-	if (tray_win32_active || tray_win32_hwnd || tray_win32_icon)
-		tray_win32_cleanup ();
-	else
-		tray_status_icon_cleanup ();
-}
-
 static const TrayBackendOps tray_backend_ops = {
-	tray_win32_or_status_icon_init,
-	tray_win32_or_status_icon_set_icon,
-	tray_win32_or_status_icon_set_tooltip,
-	tray_win32_or_status_icon_is_embedded,
-	tray_win32_or_status_icon_cleanup
+	tray_win32_init,
+	tray_win32_set_icon,
+	tray_win32_set_tooltip,
+	tray_win32_is_embedded,
+	tray_win32_cleanup
 };
 #else
 static const TrayBackendOps tray_backend_ops = {

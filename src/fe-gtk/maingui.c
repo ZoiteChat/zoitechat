@@ -67,10 +67,24 @@
 #include <shellapi.h>
 #include <gdk/gdkwin32.h>
 
+static HWND
+mg_win32_get_hwnd (GtkWidget *widget)
+{
+	GdkWindow *gdk_window;
+
+	if (!widget)
+		return NULL;
+
+	gdk_window = gtk_widget_get_window (widget);
+	if (!gdk_window)
+		return NULL;
+
+	return gdk_win32_window_get_handle (gdk_window);
+}
+
 static void
 mg_win32_allow_autohide_taskbar (GtkWindow *window, GdkEventWindowState *event)
 {
-	GdkWindow *gdk_window;
 	HWND hwnd;
 
 	if (!window || !event)
@@ -79,11 +93,7 @@ mg_win32_allow_autohide_taskbar (GtkWindow *window, GdkEventWindowState *event)
 	if ((event->new_window_state & GDK_WINDOW_STATE_FULLSCREEN) != 0)
 		return;
 
-	gdk_window = gtk_widget_get_window (GTK_WIDGET (window));
-	if (!gdk_window)
-		return;
-
-	hwnd = gdk_win32_window_get_handle (gdk_window);
+	hwnd = mg_win32_get_hwnd (GTK_WIDGET (window));
 	if (!hwnd)
 		return;
 
@@ -543,7 +553,22 @@ mg_create_tab_colors (void)
 static void
 set_window_urgency (GtkWidget *win, gboolean set)
 {
+#ifdef G_OS_WIN32
+	FLASHWINFO flash;
+	HWND hwnd;
+
+	hwnd = mg_win32_get_hwnd (win);
+	if (!hwnd)
+		return;
+
+	ZeroMemory (&flash, sizeof (flash));
+	flash.cbSize = sizeof (flash);
+	flash.hwnd = hwnd;
+	flash.dwFlags = set ? FLASHW_TRAY | FLASHW_TIMERNOFG : FLASHW_STOP;
+	FlashWindowEx (&flash);
+#else
         gtk_window_set_urgency_hint (GTK_WINDOW (win), set);
+#endif
 }
 
 static gboolean
