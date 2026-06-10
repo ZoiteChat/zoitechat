@@ -35,6 +35,7 @@
 #ifdef WIN32
 #include <windows.h>
 #include <shellapi.h>
+#include <shobjidl.h>
 #include <gdk/gdkwin32.h>
 #endif
 #if defined(GTK_DISABLE_DEPRECATED)
@@ -131,6 +132,7 @@ static void tray_menu_notify_cb (GObject *tray, GParamSpec *pspec, gpointer user
 static void tray_update_toggle_item_label (void);
 static gboolean tray_window_state_cb (GtkWidget *widget, GdkEventWindowState *event, gpointer userdata);
 static void tray_window_visibility_cb (GtkWidget *widget, gpointer userdata);
+static WinStatus tray_get_window_status (void);
 static void tray_toggle_item_destroy_cb (GtkWidget *widget, gpointer userdata);
 #if HAVE_APPINDICATOR_BACKEND
 static void tray_menu_show_cb (GtkWidget *menu, gpointer userdata) G_GNUC_UNUSED;
@@ -158,6 +160,8 @@ static GtkStatusIcon *tray_status_icon;
 #ifdef WIN32
 static HWND tray_win32_hwnd;
 static HICON tray_win32_icon;
+static HICON tray_win32_overlay_icon;
+static ITaskbarList3 *tray_win32_taskbar;
 static gboolean tray_win32_active;
 static UINT tray_win32_taskbar_created;
 static const UINT tray_win32_callback_msg = WM_APP + 42;
@@ -606,6 +610,132 @@ tray_win32_pixbuf_to_hicon (GdkPixbuf *pixbuf)
 	return icon;
 }
 
+static HWND
+tray_win32_get_main_hwnd (void)
+{
+	GtkWindow *win;
+	GdkWindow *gdk_window;
+
+	win = GTK_WINDOW (zoitechat_get_info (ph, "gtkwin_ptr"));
+	if (!win)
+		return NULL;
+
+	gdk_window = gtk_widget_get_window (GTK_WIDGET (win));
+	if (!gdk_window)
+		return NULL;
+
+	return gdk_win32_window_get_handle (gdk_window);
+}
+
+static ITaskbarList3 *
+tray_win32_get_taskbar (void)
+{
+	HRESULT hr;
+
+	if (tray_win32_taskbar)
+		return tray_win32_taskbar;
+
+	hr = CoCreateInstance (&CLSID_TaskbarList, NULL, CLSCTX_INPROC_SERVER,
+		&IID_ITaskbarList3, (void **)&tray_win32_taskbar);
+	if (FAILED (hr))
+		return NULL;
+
+	hr = tray_win32_taskbar->lpVtbl->HrInit (tray_win32_taskbar);
+	if (FAILED (hr))
+	{
+		tray_win32_taskbar->lpVtbl->Release (tray_win32_taskbar);
+		tray_win32_taskbar = NULL;
+		return NULL;
+	}
+
+	return tray_win32_taskbar;
+}
+
+static void
+tray_win32_release_attention (void)
+{
+	if (tray_win32_overlay_icon)
+	{
+		DestroyIcon (tray_win32_overlay_icon);
+		tray_win32_overlay_icon = NULL;
+	}
+
+	if (tray_win32_taskbar)
+	{
+		tray_win32_taskbar->lpVtbl->Release (tray_win32_taskbar);
+		tray_win32_taskbar = NULL;
+	}
+}
+
+static void
+tray_win32_clear_attention (void)
+{
+	FLASHWINFO flash;
+	ITaskbarList3 *taskbar;
+	HWND hwnd;
+
+	hwnd = tray_win32_get_main_hwnd ();
+	if (!hwnd)
+		return;
+
+	ZeroMemory (&flash, sizeof (flash));
+	flash.cbSize = sizeof (flash);
+	flash.hwnd = hwnd;
+	flash.dwFlags = FLASHW_STOP;
+	FlashWindowEx (&flash);
+
+	taskbar = tray_win32_get_taskbar ();
+	if (taskbar)
+		taskbar->lpVtbl->SetOverlayIcon (taskbar, hwnd, NULL, L"");
+
+	if (tray_win32_overlay_icon)
+	{
+		DestroyIcon (tray_win32_overlay_icon);
+		tray_win32_overlay_icon = NULL;
+	}
+}
+
+static void
+tray_win32_set_attention (TrayIcon icon)
+{
+	FLASHWINFO flash;
+	ITaskbarList3 *taskbar;
+	HICON hicon;
+	HWND hwnd;
+
+	if (tray_get_window_status () == WS_FOCUSED)
+		return;
+
+	hwnd = tray_win32_get_main_hwnd ();
+	if (!hwnd)
+		return;
+
+	ZeroMemory (&flash, sizeof (flash));
+	flash.cbSize = sizeof (flash);
+	flash.hwnd = hwnd;
+	flash.dwFlags = FLASHW_TRAY | FLASHW_TIMERNOFG;
+	FlashWindowEx (&flash);
+
+	taskbar = tray_win32_get_taskbar ();
+	if (!taskbar)
+		return;
+
+	hicon = tray_win32_pixbuf_to_hicon (icon);
+	if (!hicon)
+		return;
+
+	if (SUCCEEDED (taskbar->lpVtbl->SetOverlayIcon (taskbar, hwnd, hicon, L"")))
+	{
+		if (tray_win32_overlay_icon)
+			DestroyIcon (tray_win32_overlay_icon);
+		tray_win32_overlay_icon = hicon;
+	}
+	else
+	{
+		DestroyIcon (hicon);
+	}
+}
+
 static void
 tray_win32_init_data (NOTIFYICONDATAW *nid)
 {
@@ -709,6 +839,8 @@ tray_win32_cleanup (void)
 		DestroyIcon (tray_win32_icon);
 		tray_win32_icon = NULL;
 	}
+
+	tray_win32_release_attention ();
 
 	if (tray_win32_hwnd)
 	{
@@ -1024,6 +1156,10 @@ tray_stop_flash (void)
 		g_source_remove (flash_tag);
 		flash_tag = 0;
 	}
+
+#ifdef WIN32
+	tray_win32_clear_attention ();
+#endif
 
 	if (tray_backend_active)
 	{
@@ -1641,6 +1777,9 @@ tray_hilight_cb (char *word[], void *userdata)
 	if (prefs.hex_input_tray_hilight)
 	{
 		tray_set_flash (ICON_HILIGHT, TRAY_ICON_HIGHLIGHT);
+#ifdef WIN32
+		tray_win32_set_attention (ICON_HILIGHT);
+#endif
 
 		/* FIXME: hides any previous private messages */
 		tray_hilight_count++;
@@ -1692,6 +1831,9 @@ tray_priv (char *from, char *text)
 	if (prefs.hex_input_tray_priv)
 	{
 		tray_set_flash (ICON_MSG, TRAY_ICON_MESSAGE);
+#ifdef WIN32
+		tray_win32_set_attention (ICON_MSG);
+#endif
 
 		tray_priv_count++;
 		if (tray_priv_count == 1)
@@ -1763,6 +1905,9 @@ tray_cleanup (void)
 
 	if (tray_backend_active)
 		tray_backend_cleanup ();
+#ifdef WIN32
+	tray_win32_release_attention ();
+#endif
 }
 
 void
