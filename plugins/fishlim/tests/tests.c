@@ -264,6 +264,84 @@ test_foreach_utf8_data_chunks(void)
     g_rand_free (rand);
 }
 
+/**
+ * ECB and CBC must produce different ciphertext for the same key and plaintext.
+ * This catches accidental mode aliasing (e.g. both paths calling the same cipher).
+ */
+static void
+test_ecb_cbc_differ(void)
+{
+    const char key[] = "testkey123";
+    const char message[] = "Hello FiSH!!!!!!!"; /* 17 bytes, > one Blowfish block */
+    size_t keylen = sizeof(key) - 1;
+    size_t message_len = sizeof(message) - 1;
+    char *ecb_b64 = fish_encrypt(key, keylen, message, message_len, FISH_ECB_MODE);
+    char *cbc_b64 = fish_encrypt(key, keylen, message, message_len, FISH_CBC_MODE);
+
+    g_assert_nonnull(ecb_b64);
+    g_assert_nonnull(cbc_b64);
+    g_assert_cmpstr(ecb_b64, !=, cbc_b64);
+
+    g_free(ecb_b64);
+    g_free(cbc_b64);
+}
+
+/**
+ * CBC wire convention: the caller prepends '*' before sending and strips it
+ * before decrypting (as fish_decrypt_from_nick does via ++data).
+ * Verify the round-trip survives that strip.
+ */
+static void
+test_cbc_wire_prefix(void)
+{
+    const char key[] = "wirekey";
+    const char message[] = "test wire prefix round-trip";
+    size_t keylen = sizeof(key) - 1;
+    size_t message_len = sizeof(message) - 1;
+    char *b64 = fish_encrypt(key, keylen, message, message_len, FISH_CBC_MODE);
+    g_assert_nonnull(b64);
+
+    /* Simulate prepending '*' then stripping it before decrypt */
+    char *wire = g_strdup_printf("*%s", b64);
+    const char *stripped = wire + 1; /* same as ++data in fish_decrypt_from_nick */
+    char *decrypted = fish_decrypt_str(key, keylen, stripped, FISH_CBC_MODE);
+
+    g_assert_cmpstr(decrypted, ==, message);
+
+    g_free(decrypted);
+    g_free(wire);
+    g_free(b64);
+}
+
+/**
+ * Two CBC encryptions of the same plaintext must produce different ciphertext
+ * because of the random IV, but both must decrypt back to the original.
+ */
+static void
+test_cbc_different_ivs(void)
+{
+    const char key[] = "ivtestkey";
+    const char message[] = "same plaintext, different IVs";
+    size_t keylen = sizeof(key) - 1;
+    size_t message_len = sizeof(message) - 1;
+    char *b64_a = fish_encrypt(key, keylen, message, message_len, FISH_CBC_MODE);
+    char *b64_b = fish_encrypt(key, keylen, message, message_len, FISH_CBC_MODE);
+
+    g_assert_nonnull(b64_a);
+    g_assert_nonnull(b64_b);
+    g_assert_cmpstr(b64_a, !=, b64_b);
+
+    char *dec_a = fish_decrypt_str(key, keylen, b64_a, FISH_CBC_MODE);
+    char *dec_b = fish_decrypt_str(key, keylen, b64_b, FISH_CBC_MODE);
+    g_assert_cmpstr(dec_a, ==, message);
+    g_assert_cmpstr(dec_b, ==, message);
+
+    g_free(dec_b);
+    g_free(dec_a);
+    g_free(b64_b);
+    g_free(b64_a);
+}
+
 int
 main(int argc, char *argv[]) {
 
@@ -277,6 +355,9 @@ main(int argc, char *argv[]) {
     g_test_add_func("/fishlim/base64_cbc_len", test_base64_cbc_len);
     g_test_add_func("/fishlim/max_text_command_len", test_max_text_command_len);
     g_test_add_func("/fishlim/foreach_utf8_data_chunks", test_foreach_utf8_data_chunks);
+    g_test_add_func("/fishlim/ecb_cbc_differ", test_ecb_cbc_differ);
+    g_test_add_func("/fishlim/cbc_wire_prefix", test_cbc_wire_prefix);
+    g_test_add_func("/fishlim/cbc_different_ivs", test_cbc_different_ivs);
 
     fish_init();
     int ret = g_test_run();
