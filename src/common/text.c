@@ -1809,12 +1809,97 @@ format_event (session *sess, int index, char **args, char *o, gsize sizeofo, uns
 		o[0] = 0;
 }
 
+static char *
+text_event_without_hostmask_format (const char *format, int host_arg)
+{
+	char token[3];
+	const char *arg;
+	const char *open;
+	const char *close;
+	const char *start;
+	char *out;
+	gsize prefix_len;
+
+	g_snprintf (token, sizeof (token), "$%d", host_arg);
+	arg = strstr (format, token);
+	if (!arg)
+		return NULL;
+
+	open = arg;
+	while (open > format && *open != '(' && *open != '\n')
+		open--;
+
+	close = arg + strlen (token);
+	while (*close && *close != ')' && *close != '\n')
+		close++;
+
+	if (*open != '(' || *close != ')')
+		return NULL;
+
+	start = open;
+	if (start > format && start[-1] == ' ')
+		start--;
+
+	prefix_len = start - format;
+	out = g_malloc (prefix_len + strlen (close + 1) + 1);
+	memcpy (out, format, prefix_len);
+	strcpy (out + prefix_len, close + 1);
+	return out;
+}
+
+static void
+display_event_string (session *sess, int event, char **args, char *format,
+						  unsigned int stripcolor_args, time_t timestamp)
+{
+	char *compiled;
+	char *saved;
+	char o[4096];
+	int max_arg;
+
+	if (pevt_build_string (format, &compiled, &max_arg) != 0)
+		return;
+
+	saved = pntevts[event];
+	pntevts[event] = compiled;
+	format_event (sess, event, args, o, sizeof (o), stripcolor_args);
+	pntevts[event] = saved;
+	g_free (compiled);
+
+	if (o[0])
+		PrintTextTimeStamp (sess, o, timestamp);
+}
+
 static void
 display_event (session *sess, int event, char **args, 
 					unsigned int stripcolor_args, time_t timestamp)
 {
 	char o[4096];
-	format_event (sess, event, args, o, sizeof (o), stripcolor_args);
+	char *format;
+	char *host;
+	int host_arg;
+
+	if (prefs.hex_irc_hide_join_part_hostmask &&
+		(event == XP_TE_JOIN || event == XP_TE_PART || event == XP_TE_PARTREASON))
+	{
+		host_arg = event == XP_TE_JOIN ? 3 : 2;
+		format = text_event_without_hostmask_format (pntevts_text[event], host_arg);
+		if (format)
+		{
+			display_event_string (sess, event, args, format, stripcolor_args, timestamp);
+			g_free (format);
+			return;
+		}
+
+		host = args[host_arg];
+		args[host_arg] = "";
+		format_event (sess, event, args, o, sizeof (o), stripcolor_args);
+		args[host_arg] = host;
+	}
+	else
+	{
+		format_event (sess, event, args, o, sizeof (o), stripcolor_args);
+	}
+
 	if (o[0])
 		PrintTextTimeStamp (sess, o, timestamp);
 }

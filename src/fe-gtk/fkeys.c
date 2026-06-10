@@ -80,7 +80,7 @@ void key_action_tab_clean (void);
  */
 
 /* Remember that the *number* of actions is this *plus* 1 --AGL */
-#define KEY_MAX_ACTIONS 14
+#define KEY_MAX_ACTIONS 16
 
 struct key_binding
 {
@@ -142,6 +142,13 @@ static int key_action_move_tab_family_right (GtkWidget * wid, GdkEventKey * evt,
 static int key_action_put_history (GtkWidget * wid, GdkEventKey * evt,
 												  char *d1, char *d2,
 												  struct session *sess);
+static int key_action_menu_shortcut (GtkWidget * wid, GdkEventKey * evt,
+											 char *d1, char *d2,
+											 struct session *sess);
+static int key_action_reopen_closed_tab (GtkWidget * wid, GdkEventKey * evt,
+												char *d1, char *d2,
+												struct session *sess);
+
 
 static GSList *keybind_list = NULL;
 
@@ -287,6 +294,10 @@ static const struct key_action key_actions[KEY_MAX_ACTIONS + 1] = {
 	 N_("This command moves the current tab family to the right")},
 	{key_action_put_history, "Push input line into history",
 	 N_("Push input line into history but doesn't send to server")},
+	{key_action_menu_shortcut, "Menu Shortcut",
+	 N_("Runs one of the built-in menu shortcuts. Set Data 1 to: network-list, new-server-tab, new-server-window, close, quit, menu-toggle, user-list-toggle, fullscreen-toggle, away-toggle, reset-marker, move-marker, copy-selection, search-text, search-next, search-previous or contents.")},
+	{key_action_reopen_closed_tab, "Reopen Closed Tab",
+	 N_("Reopens the most recently closed channel tab")},
 };
 
 #define default_kb_cfg \
@@ -329,7 +340,86 @@ static const struct key_action key_actions[KEY_MAX_ACTIONS + 1] = {
 	"ACCEL=<Alt>Right\nMove front tab right\nD1!\nD2!\n\n"\
 	"ACCEL=<Primary><Shift>Page_Up\nMove tab family left\nD1!\nD2!\n\n"\
 	"ACCEL=<Primary><Shift>Page_Down\nMove tab family right\nD1!\nD2!\n\n"\
-	"ACCEL=F9\nRun Command\nD1:/GUI MENU TOGGLE\nD2!\n\n"
+	"ACCEL=<Primary>s\nMenu Shortcut\nD1:network-list\nD2!\n\n"\
+	"ACCEL=<Primary>t\nMenu Shortcut\nD1:new-server-tab\nD2!\n\n"\
+	"ACCEL=<Primary>n\nMenu Shortcut\nD1:new-server-window\nD2!\n\n"\
+	"ACCEL=<Primary>w\nMenu Shortcut\nD1:close\nD2!\n\n"\
+	"ACCEL=<Primary>q\nMenu Shortcut\nD1:quit\nD2!\n\n"\
+	"ACCEL=<Primary>F9\nMenu Shortcut\nD1:menu-toggle\nD2!\n\n"\
+	"ACCEL=F7\nMenu Shortcut\nD1:user-list-toggle\nD2!\n\n"\
+	"ACCEL=F11\nMenu Shortcut\nD1:fullscreen-toggle\nD2!\n\n"\
+	"ACCEL=<Alt>a\nMenu Shortcut\nD1:away-toggle\nD2!\n\n"\
+	"ACCEL=<Primary>m\nMenu Shortcut\nD1:reset-marker\nD2!\n\n"\
+	"ACCEL=<Primary><Shift>M\nMenu Shortcut\nD1:move-marker\nD2!\n\n"\
+	"ACCEL=<Primary><Shift>C\nMenu Shortcut\nD1:copy-selection\nD2!\n\n"\
+	"ACCEL=<Primary>f\nMenu Shortcut\nD1:search-text\nD2!\n\n"\
+	"ACCEL=<Primary>g\nMenu Shortcut\nD1:search-next\nD2!\n\n"\
+	"ACCEL=<Primary><Shift>G\nMenu Shortcut\nD1:search-previous\nD2!\n\n"\
+	"ACCEL=F1\nMenu Shortcut\nD1:contents\nD2!\n\n"\
+	"ACCEL=<Primary><Shift>T\nReopen Closed Tab\nD1!\nD2!\n\n"
+
+static gboolean
+key_builtin_data_match (char *line, char *data)
+{
+	if (line[2] == '!')
+		return data == NULL || data[0] == 0;
+
+	if (line[2] == ':')
+		return !strcmp (&line[3], data ? data : "");
+
+	return FALSE;
+}
+
+static gboolean
+key_binding_is_builtin (struct key_binding *kb)
+{
+	char *buf, *ibuf;
+	char *action;
+	int pnt = 0;
+	int state = 0;
+	gboolean match = FALSE;
+	gboolean d1_match = FALSE;
+	off_t size;
+
+	if (kb->action < 0 || kb->action > KEY_MAX_ACTIONS)
+		return FALSE;
+
+	action = key_actions[kb->action].name;
+	ibuf = g_strdup (default_kb_cfg);
+	size = strlen (default_kb_cfg);
+
+	while (buf_get_line (ibuf, &buf, &pnt, size))
+	{
+		if (strlen (buf) == 0)
+			continue;
+
+		switch (state)
+		{
+		case 0:
+			state = 1;
+			break;
+		case 1:
+			match = !strcmp (buf, action);
+			state = 2;
+			break;
+		case 2:
+			d1_match = match && key_builtin_data_match (buf, kb->data1);
+			state = 3;
+			break;
+		case 3:
+			if (d1_match && key_builtin_data_match (buf, kb->data2))
+			{
+				g_free (ibuf);
+				return TRUE;
+			}
+			state = 0;
+			break;
+		}
+	}
+
+	g_free (ibuf);
+	return FALSE;
+}
 
 void
 key_init ()
@@ -443,28 +533,6 @@ key_handle_key_press (GtkWidget *wid, GdkEventKey *evt, session *sess)
 	if (!list)
 		return FALSE;
 	current_sess = sess;
-	if ((evt->state & GDK_CONTROL_MASK) &&
-		!(evt->state & (GDK_MOD1_MASK | GDK_META_MASK)))
-	{
-		if (!(evt->state & GDK_SHIFT_MASK) &&
-			(evt->keyval == GDK_KEY_w || evt->keyval == GDK_KEY_W))
-		{
-			if (sess->type == SESS_CHANNEL)
-			{
-				fe_close_window (sess);
-				g_signal_stop_emission_by_name (G_OBJECT (wid), "key-press-event");
-				return 1;
-			}
-		}
-		if ((evt->state & GDK_SHIFT_MASK) &&
-			(evt->keyval == GDK_KEY_t || evt->keyval == GDK_KEY_T))
-		{
-			mg_reopen_closed_channel_tab ();
-			g_signal_stop_emission_by_name (G_OBJECT (wid), "key-press-event");
-			return 1;
-		}
-	}
-
 	if (plugin_emit_keypress (sess, evt->state, evt->keyval, gdk_keyval_to_unicode (evt->keyval)))
 		return 1;
 
@@ -508,6 +576,31 @@ key_handle_key_press (GtkWidget *wid, GdkEventKey *evt, session *sess)
 	return 0;
 }
 
+gboolean
+key_get_menu_accel (const char *name, guint *keyval, GdkModifierType *mod)
+{
+	struct key_binding *kb;
+	GSList *list;
+
+	if (!name)
+		return FALSE;
+
+	list = keybind_list;
+	while (list)
+	{
+		kb = (struct key_binding*)list->data;
+		if (kb->action >= 0 && kb->action <= KEY_MAX_ACTIONS && kb->keyval != 0 && !strcmp (key_actions[kb->action].name, "Menu Shortcut") && kb->data1 && !strcmp (kb->data1, name))
+		{
+			*keyval = kb->keyval;
+			*mod = kb->mod;
+			return TRUE;
+		}
+		list = g_slist_next (list);
+	}
+
+	return FALSE;
+}
+
 
 /* ***** GUI code here ******************* */
 
@@ -518,6 +611,7 @@ enum
 	ACTION_COLUMN,
 	D1_COLUMN,
 	D2_COLUMN,
+	CUSTOM_COLUMN,
 	N_COLUMNS
 };
 
@@ -642,16 +736,32 @@ key_dialog_keypress (GtkWidget *wid, GdkEventKey *evt, gpointer userdata)
 
 	if (handled)
 	{
+		gboolean custom1, custom2;
+
 		sel = gtk_tree_view_get_selection (view);
-		gtk_tree_selection_get_selected (sel, &store, &iter1);
+		if (!gtk_tree_selection_get_selected (sel, &store, &iter1))
+			return FALSE;
+
 		path = gtk_tree_model_get_path (store, &iter1);
 		if (delta == 1)
 			gtk_tree_path_next (path);
-		else
-			gtk_tree_path_prev (path);
-		gtk_tree_model_get_iter (store, &iter2, path);
+		else if (!gtk_tree_path_prev (path))
+		{
+			gtk_tree_path_free (path);
+			return FALSE;
+		}
+
+		if (!gtk_tree_model_get_iter (store, &iter2, path))
+		{
+			gtk_tree_path_free (path);
+			return FALSE;
+		}
+
 		gtk_tree_path_free (path);
-		gtk_list_store_swap (GTK_LIST_STORE (store), &iter1, &iter2);
+		gtk_tree_model_get (store, &iter1, CUSTOM_COLUMN, &custom1, -1);
+		gtk_tree_model_get (store, &iter2, CUSTOM_COLUMN, &custom2, -1);
+		if (custom1 && custom2)
+			gtk_list_store_swap (GTK_LIST_STORE (store), &iter1, &iter2);
 	}
 
 	return handled;
@@ -663,14 +773,23 @@ key_dialog_selection_changed (GtkTreeSelection *sel, gpointer userdata)
 	GtkTreeModel *model;
 	GtkTreeIter iter;
 	GtkXText *xtext;
+	GtkWidget *delete_button;
 	char *actiontext;
+	gboolean custom;
 	int action;
 
+	delete_button = g_object_get_data (G_OBJECT (key_dialog), "delete_button");
 	if (!gtk_tree_selection_get_selected (sel, &model, &iter) || model == NULL)
+	{
+		if (delete_button)
+			gtk_widget_set_sensitive (delete_button, FALSE);
 		return;
+	}
 
 	xtext = GTK_XTEXT (g_object_get_data (G_OBJECT (key_dialog), "xtext"));
-	gtk_tree_model_get (model, &iter, ACTION_COLUMN, &actiontext, -1);
+	gtk_tree_model_get (model, &iter, ACTION_COLUMN, &actiontext, CUSTOM_COLUMN, &custom, -1);
+	if (delete_button)
+		gtk_widget_set_sensitive (delete_button, custom);
 
 	if (actiontext)
 	{
@@ -745,7 +864,10 @@ key_dialog_save (GtkWidget *wid, gpointer userdata)
 	}
 
 	if (key_save_kbs () == 0)
+	{
+		menu_update_quit_accel ();
 		key_dialog_close (wid, NULL);
+	}
 }
 
 static void
@@ -758,6 +880,7 @@ key_dialog_add (GtkWidget *wid, gpointer userdata)
 	GtkTreePath *path;
 
 	gtk_list_store_append (store, &iter);
+	gtk_list_store_set (store, &iter, CUSTOM_COLUMN, TRUE, -1);
 
 	/* make sure the new row is visible and selected */
 	path = gtk_tree_model_get_path (GTK_TREE_MODEL (store), &iter);
@@ -774,9 +897,14 @@ key_dialog_delete (GtkWidget *wid, gpointer userdata)
 	GtkListStore *store = GTK_LIST_STORE (gtk_tree_view_get_model (view));
 	GtkTreeIter iter;
 	GtkTreePath *path;
+	gboolean custom;
 
 	if (gtkutil_treeview_get_selected (view, &iter, -1))
 	{
+		gtk_tree_model_get (GTK_TREE_MODEL (store), &iter, CUSTOM_COLUMN, &custom, -1);
+		if (!custom)
+			return;
+
 		/* delete this row, select next one */
 		if (gtk_list_store_remove (store, &iter))
 		{
@@ -803,13 +931,13 @@ key_dialog_treeview_new (GtkWidget *box)
 	gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scroll), GTK_SHADOW_IN);
 
 	store = gtk_list_store_new (N_COLUMNS, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING,
-								G_TYPE_STRING, G_TYPE_STRING);
+								G_TYPE_STRING, G_TYPE_STRING, G_TYPE_BOOLEAN);
 	g_return_val_if_fail (store != NULL, NULL);
 
 	view = gtk_tree_view_new_with_model (GTK_TREE_MODEL (store));
 	gtk_tree_view_set_fixed_height_mode (GTK_TREE_VIEW (view), TRUE);
 	gtk_tree_view_set_enable_search (GTK_TREE_VIEW (view), FALSE);
-	gtk_tree_view_set_reorderable (GTK_TREE_VIEW (view), TRUE);
+	gtk_tree_view_set_reorderable (GTK_TREE_VIEW (view), FALSE);
 
 	g_signal_connect (G_OBJECT (view), "key-press-event",
 					G_CALLBACK (key_dialog_keypress), NULL);
@@ -879,7 +1007,8 @@ key_dialog_treeview_new (GtkWidget *box)
 					G_CALLBACK (key_dialog_combo_changed), combostore);
 	gtk_tree_view_insert_column_with_attributes (GTK_TREE_VIEW (view), ACTION_COLUMN,
 													"Action", render,
-													"text", ACTION_COLUMN, 
+													"text", ACTION_COLUMN,
+													"editable", CUSTOM_COLUMN,
 													NULL);
 
 	render = gtk_cell_renderer_text_new ();
@@ -890,6 +1019,7 @@ key_dialog_treeview_new (GtkWidget *box)
 							GTK_TREE_VIEW (view), D1_COLUMN,
 							"Data1", render,
 							"text", D1_COLUMN,
+							"editable", CUSTOM_COLUMN,
 							NULL);
 
 	render = gtk_cell_renderer_text_new ();
@@ -900,6 +1030,7 @@ key_dialog_treeview_new (GtkWidget *box)
 							GTK_TREE_VIEW (view), D2_COLUMN,
 							"Data2", render,
 							"text", D2_COLUMN,
+							"editable", CUSTOM_COLUMN,
 							NULL);
 
 	col = gtk_tree_view_get_column (GTK_TREE_VIEW (view), KEY_COLUMN);
@@ -945,7 +1076,8 @@ key_dialog_load (GtkListStore *store)
 							ACCEL_COLUMN, accel_text,
 							ACTION_COLUMN, key_actions[kb->action].name,
 							D1_COLUMN, kb->data1,
-							D2_COLUMN, kb->data2, -1);
+							D2_COLUMN, kb->data2,
+							CUSTOM_COLUMN, !key_binding_is_builtin (kb), -1);
 
 		g_free (accel_text);
 		g_free (label_text);
@@ -958,7 +1090,7 @@ void
 key_dialog_show ()
 {
 	GtkWidget *vbox, *box;
-	GtkWidget *view, *xtext;
+	GtkWidget *view, *xtext, *delete_button;
 	GtkListStore *store;
 	XTextColor xtext_palette[XTEXT_COLS];
 	char buf[128];
@@ -992,8 +1124,10 @@ key_dialog_show ()
 
 	gtkutil_button (box, ICON_FKEYS_NEW, NULL, key_dialog_add,
 					NULL, _("Add"));
-	gtkutil_button (box, ICON_FKEYS_DELETE, NULL, key_dialog_delete,
+	delete_button = gtkutil_button (box, ICON_FKEYS_DELETE, NULL, key_dialog_delete,
 					NULL, _("Delete"));
+	g_object_set_data (G_OBJECT (key_dialog), "delete_button", delete_button);
+	gtk_widget_set_sensitive (delete_button, FALSE);
 	gtkutil_button (box, ICON_FKEYS_CANCEL, NULL, key_dialog_close,
 					NULL, _("Cancel"));
 	gtkutil_button (box, ICON_FKEYS_SAVE, NULL, key_dialog_save,
@@ -1287,6 +1421,24 @@ key_action_handle_command (GtkWidget * wid, GdkEventKey * evt, char *d1,
 	handle_multiline (sess, out, 0, 0);
 	g_free (out);
 	return 0;
+}
+
+static int
+key_action_menu_shortcut (GtkWidget * wid, GdkEventKey * evt, char *d1,
+									 char *d2, struct session *sess)
+{
+	if (menu_key_action (d1, evt->keyval, evt->state))
+		return 2;
+
+	return 0;
+}
+
+static int
+key_action_reopen_closed_tab (GtkWidget * wid, GdkEventKey * evt, char *d1,
+										 char *d2, struct session *sess)
+{
+	mg_reopen_closed_channel_tab ();
+	return 2;
 }
 
 /*

@@ -1755,44 +1755,6 @@ menu_change_layout (void)
 	}
 }
 
-void
-menu_update_quit_accel (void)
-{
-	GSList *list;
-
-	list = sess_list;
-	while (list)
-	{
-		session *sess = list->data;
-		session_gui *gui = sess->gui;
-		GtkWidget *item;
-		GtkAccelGroup *accel_group;
-		int enabled;
-
-		list = list->next;
-		if (!gui)
-			continue;
-
-		item = gui->menu_item[MENU_ID_QUIT];
-		if (!item)
-			continue;
-
-		enabled = GPOINTER_TO_INT (g_object_get_data (G_OBJECT (item), "zc-ctrlq-enabled"));
-		if (enabled == (int)prefs.hex_gui_ctrlq_quit)
-			continue;
-
-		accel_group = g_object_get_data (G_OBJECT (item), "zc-quit-accel-group");
-		if (!accel_group)
-			continue;
-
-		if (prefs.hex_gui_ctrlq_quit)
-			gtk_widget_add_accelerator (item, "activate", accel_group, GDK_KEY_q, STATE_CTRL, GTK_ACCEL_VISIBLE);
-		else
-			gtk_widget_remove_accelerator (item, accel_group, GDK_KEY_q, STATE_CTRL);
-		g_object_set_data (G_OBJECT (item), "zc-ctrlq-enabled", GINT_TO_POINTER (prefs.hex_gui_ctrlq_quit));
-	}
-}
-
 static void
 menu_layout_cb (GtkWidget *item, gpointer none)
 {
@@ -1939,13 +1901,13 @@ menu_about (GtkWidget *wid, gpointer sess)
 
 static struct mymenu mymenu[] = {
 	{N_("_ZoiteChat"), 0, 0, M_NEWMENU, MENU_ID_ZOITECHAT, 0, 1},
-	{N_("Network Li_st"), menu_open_server_list, 0, M_MENUITEM, 0, 0, 1, GDK_KEY_s},
+	{N_("Network Li_st"), menu_open_server_list, 0, M_MENUITEM, 0, 0, 1},
 	{0, 0, 0, M_SEP, 0, 0, 0},
 
 	{N_("_New"), 0, 0, M_MENUSUB, 0, 0, 1},
-		{N_("Server Tab"), menu_newserver_tab, 0, M_MENUITEM, 0, 0, 1, GDK_KEY_t},
+		{N_("Server Tab"), menu_newserver_tab, 0, M_MENUITEM, 0, 0, 1},
 		{N_("Channel Tab"), menu_newchannel_tab, 0, M_MENUITEM, 0, 0, 1},
-		{N_("Server Window"), menu_newserver_window, 0, M_MENUITEM, 0, 0, 1, GDK_KEY_n},
+		{N_("Server Window"), menu_newserver_window, 0, M_MENUITEM, 0, 0, 1},
 		{N_("Channel Window"), menu_newchannel_window, 0, M_MENUITEM, 0, 0, 1},
 		{0, 0, 0, M_END, 0, 0, 0},
 	{0, 0, 0, M_SEP, 0, 0, 0},
@@ -1957,13 +1919,13 @@ static struct mymenu mymenu[] = {
 #define CLOSE_OFFSET (13)
 	{0, menu_close, 0, M_MENUITEM, 0, 0, 1},
 	{0, 0, 0, M_SEP, 0, 0, 0},
-	{N_("_Quit"), menu_quit, 0, M_MENUITEM, MENU_ID_QUIT, 0, 1, GDK_KEY_q},	/* 15 */
+	{N_("_Quit"), menu_quit, 0, M_MENUITEM, MENU_ID_QUIT, 0, 1},	/* 15 */
 
 	{N_("_View"), 0, 0, M_NEWMENU, 0, 0, 1},
 #define MENUBAR_OFFSET (17)
-	{N_("_Menu Bar"), menu_bar_toggle_cb, 0, M_MENUTOG, MENU_ID_MENUBAR, 0, 1, GDK_KEY_F9},
+	{N_("_Menu Bar"), menu_bar_toggle_cb, 0, M_MENUTOG, MENU_ID_MENUBAR, 0, 1},
 	{N_("_Topic Bar"), menu_topicbar_toggle, 0, M_MENUTOG, MENU_ID_TOPICBAR, 0, 1},
-	{N_("_User List"), menu_userlist_toggle, 0, M_MENUTOG, MENU_ID_USERLIST, 0, 1, GDK_KEY_F7},
+	{N_("_User List"), menu_userlist_toggle, 0, M_MENUTOG, MENU_ID_USERLIST, 0, 1},
 	{N_("U_ser List Buttons"), menu_ulbuttons_toggle, 0, M_MENUTOG, MENU_ID_ULBUTTONS, 0, 1},
 	{N_("M_ode Buttons"), menu_cmbuttons_toggle, 0, M_MENUTOG, MENU_ID_MODEBUTTONS, 0, 1},
 	{0, 0, 0, M_SEP, 0, 0, 0},
@@ -1980,7 +1942,7 @@ static struct mymenu mymenu[] = {
 		{N_("Both"), menu_metres_both, 0, M_MENURADIO, 0, 0, 1},
 		{0, 0, 0, M_END, 0, 0, 0},	/* 32 */
 	{ 0, 0, 0, M_SEP, 0, 0, 0 },
-	{N_ ("_Fullscreen"), menu_fullscreen_toggle, 0, M_MENUTOG, MENU_ID_FULLSCREEN, 0, 1, GDK_KEY_F11},
+	{N_ ("_Fullscreen"), menu_fullscreen_toggle, 0, M_MENUTOG, MENU_ID_FULLSCREEN, 0, 1},
 
 	{N_("_Server"), 0, 0, M_NEWMENU, 0, 0, 1},
 	{N_("_Disconnect"), menu_disconnect, 0, M_MENUITEM, MENU_ID_DISCONNECT, 0, 1},
@@ -1989,7 +1951,7 @@ static struct mymenu mymenu[] = {
 	{N_("Channel _List"), menu_chanlist, 0, M_MENUITEM, 0, 0, 1},
 	{0, 0, 0, M_SEP, 0, 0, 0},
 #define AWAY_OFFSET (41)
-	{N_("Marked _Away"), menu_away_toggle, 0, M_MENUITEM, MENU_ID_AWAY, 0, 1, GDK_KEY_a},
+	{N_("Marked _Away"), menu_away_toggle, 0, M_MENUITEM, MENU_ID_AWAY, 0, 1},
 
 	{N_("_Usermenu"), 0, 0, M_NEWMENU, MENU_ID_USERMENU, 0, 1},	/* 40 */
 
@@ -2017,24 +1979,190 @@ static struct mymenu mymenu[] = {
 	{N_("_Raw Log"), menu_rawlog, 0, M_MENUITEM, 0, 0, 1},	/* 61 */
 	{N_("_URL Grabber"), url_opengui, 0, M_MENUITEM, 0, 0, 1},
 	{0, 0, 0, M_SEP, 0, 0, 0},
-	{N_("Reset Marker Line"), menu_resetmarker, 0, M_MENUITEM, 0, 0, 1, GDK_KEY_m},
-	{N_("Move to Marker Line"), menu_movetomarker, 0, M_MENUITEM, 0, 0, 1, GDK_KEY_M},
-	{N_("_Copy Selection"), menu_copy_selection, 0, M_MENUITEM, 0, 0, 1, GDK_KEY_C},
+	{N_("Reset Marker Line"), menu_resetmarker, 0, M_MENUITEM, 0, 0, 1},
+	{N_("Move to Marker Line"), menu_movetomarker, 0, M_MENUITEM, 0, 0, 1},
+	{N_("_Copy Selection"), menu_copy_selection, 0, M_MENUITEM, 0, 0, 1},
 	{N_("C_lear Text"), menu_flushbuffer, 0, M_MENUITEM, 0, 0, 1},
 	{N_("Save Text" ELLIPSIS), menu_savebuffer, 0, M_MENUITEM, 0, 0, 1},
 #define SEARCH_OFFSET (70)
 	{N_("Search"), 0, 0, M_MENUSUB, 0, 0, 1},
-		{N_("Search Text" ELLIPSIS), menu_search, 0, M_MENUITEM, 0, 0, 1, GDK_KEY_f},
-		{N_("Search Next"   ), menu_search_next, 0, M_MENUITEM, 0, 0, 1, GDK_KEY_g},
-		{N_("Search Previous"   ), menu_search_prev, 0, M_MENUITEM, 0, 0, 1, GDK_KEY_G},
+		{N_("Search Text" ELLIPSIS), menu_search, 0, M_MENUITEM, 0, 0, 1},
+		{N_("Search Next"   ), menu_search_next, 0, M_MENUITEM, 0, 0, 1},
+		{N_("Search Previous"   ), menu_search_prev, 0, M_MENUITEM, 0, 0, 1},
 		{0, 0, 0, M_END, 0, 0, 0},
 
 	{N_("_Help"), 0, 0, M_NEWMENU, 0, 0, 1},	/* 74 */
-	{N_("_Contents"), menu_docs, 0, M_MENUITEM, 0, 0, 1, GDK_KEY_F1},
+	{N_("_Contents"), menu_docs, 0, M_MENUITEM, 0, 0, 1},
 	{N_("_About"), menu_about, 0, M_MENUITEM, 0, 0, 1},
 
 	{0, 0, 0, M_END, 0, 0, 0},
 };
+
+static const char *
+menu_get_key_action_name (int index)
+{
+	switch (index)
+	{
+	case 1:
+		return "network-list";
+	case 4:
+		return "new-server-tab";
+	case 6:
+		return "new-server-window";
+	case CLOSE_OFFSET:
+		return "close";
+	case 15:
+		return "quit";
+	case MENUBAR_OFFSET:
+		return "menu-toggle";
+	case MENUBAR_OFFSET + 2:
+		return "user-list-toggle";
+	case 34:
+		return "fullscreen-toggle";
+	case AWAY_OFFSET:
+		return "away-toggle";
+	case 65:
+		return "reset-marker";
+	case 66:
+		return "move-marker";
+	case 67:
+		return "copy-selection";
+	case SEARCH_OFFSET + 1:
+		return "search-text";
+	case SEARCH_OFFSET + 2:
+		return "search-next";
+	case SEARCH_OFFSET + 3:
+		return "search-previous";
+	case 75:
+		return "contents";
+	}
+
+	return NULL;
+}
+
+static void
+menu_add_keybinding_accel (GtkWidget *item, GtkAccelGroup *accel_group, const char *name)
+{
+	guint keyval;
+	GdkModifierType mod;
+
+	if (!accel_group || !key_get_menu_accel (name, &keyval, &mod))
+		return;
+
+	if (!strcmp (name, "quit") && !prefs.hex_gui_ctrlq_quit && keyval == GDK_KEY_q && mod == STATE_CTRL)
+		return;
+
+	gtk_widget_add_accelerator (item, "activate", accel_group, keyval, mod, GTK_ACCEL_VISIBLE);
+	g_object_set_data (G_OBJECT (item), "zc-key-accel-key", GUINT_TO_POINTER (keyval));
+	g_object_set_data (G_OBJECT (item), "zc-key-accel-mod", GUINT_TO_POINTER (mod));
+}
+
+static void
+menu_refresh_keybinding_accels (GtkWidget *widget, gpointer data)
+{
+	GtkAccelGroup *accel_group = data;
+	const char *name;
+	guint keyval;
+	GdkModifierType mod;
+	GtkWidget *submenu;
+	GList *children, *list;
+
+	if (GTK_IS_MENU_ITEM (widget))
+	{
+		keyval = GPOINTER_TO_UINT (g_object_get_data (G_OBJECT (widget), "zc-key-accel-key"));
+		mod = GPOINTER_TO_UINT (g_object_get_data (G_OBJECT (widget), "zc-key-accel-mod"));
+		if (keyval != 0)
+		{
+			gtk_widget_remove_accelerator (widget, accel_group, keyval, mod);
+			g_object_set_data (G_OBJECT (widget), "zc-key-accel-key", NULL);
+			g_object_set_data (G_OBJECT (widget), "zc-key-accel-mod", NULL);
+		}
+
+		name = g_object_get_data (G_OBJECT (widget), "zc-key-action");
+		menu_add_keybinding_accel (widget, accel_group, name);
+
+		submenu = gtk_menu_item_get_submenu (GTK_MENU_ITEM (widget));
+		if (submenu)
+			menu_refresh_keybinding_accels (submenu, data);
+	}
+
+	if (GTK_IS_CONTAINER (widget))
+	{
+		children = gtk_container_get_children (GTK_CONTAINER (widget));
+		for (list = children; list; list = g_list_next (list))
+			menu_refresh_keybinding_accels (list->data, data);
+		g_list_free (children);
+	}
+}
+
+void
+menu_update_quit_accel (void)
+{
+	session *sess;
+	GSList *list;
+	GtkAccelGroup *accel_group;
+
+	list = sess_list;
+	while (list)
+	{
+		sess = list->data;
+		if (sess && sess->gui && sess->gui->menu)
+		{
+			accel_group = g_object_get_data (G_OBJECT (sess->gui->menu), "accel");
+			if (accel_group)
+				menu_refresh_keybinding_accels (sess->gui->menu, accel_group);
+		}
+		list = g_slist_next (list);
+	}
+}
+
+gboolean
+menu_key_action (const char *name, guint keyval, GdkModifierType state)
+{
+	if (!name)
+		return FALSE;
+
+	if (!strcmp (name, "network-list"))
+		menu_open_server_list (NULL, NULL);
+	else if (!strcmp (name, "new-server-tab"))
+		menu_newserver_tab (NULL, NULL);
+	else if (!strcmp (name, "new-server-window"))
+		menu_newserver_window (NULL, NULL);
+	else if (!strcmp (name, "close"))
+		menu_close (NULL, NULL);
+	else if (!strcmp (name, "quit"))
+	{
+		if (!prefs.hex_gui_ctrlq_quit && keyval == GDK_KEY_q && (state & (GDK_SHIFT_MASK | GDK_CONTROL_MASK | GDK_MOD1_MASK)) == STATE_CTRL)
+			return FALSE;
+		menu_quit (NULL, NULL);
+	}
+	else if (!strcmp (name, "menu-toggle"))
+		menu_bar_toggle_cb ();
+	else if (!strcmp (name, "user-list-toggle"))
+		menu_userlist_toggle (NULL, NULL);
+	else if (!strcmp (name, "fullscreen-toggle"))
+		menu_fullscreen_toggle (NULL, NULL);
+	else if (!strcmp (name, "away-toggle"))
+		menu_away_toggle (NULL, NULL);
+	else if (!strcmp (name, "reset-marker"))
+		menu_resetmarker (NULL, NULL);
+	else if (!strcmp (name, "move-marker"))
+		menu_movetomarker (NULL, NULL);
+	else if (!strcmp (name, "copy-selection"))
+		menu_copy_selection (NULL, NULL);
+	else if (!strcmp (name, "search-text"))
+		menu_search ();
+	else if (!strcmp (name, "search-next"))
+		menu_search_next (NULL);
+	else if (!strcmp (name, "search-previous"))
+		menu_search_prev (NULL);
+	else if (!strcmp (name, "contents"))
+		menu_docs (NULL, NULL);
+	else
+		return FALSE;
+
+	return TRUE;
+}
 
 void
 menu_set_away (session_gui *gui, int away)
@@ -2641,6 +2769,8 @@ menu_create_main (void *accel_group, int bar, int away, int toplevel,
 		case M_MENUITEM:
 			item = gtk_menu_item_new_with_mnemonic (_(mymenu[i].text));
 normalitem:
+			g_object_set_data (G_OBJECT (item), "zc-key-action", (gpointer) menu_get_key_action_name (i));
+			menu_add_keybinding_accel (item, accel_group, menu_get_key_action_name (i));
 			if (mymenu[i].key != 0 && !(mymenu[i].id == MENU_ID_QUIT && !prefs.hex_gui_ctrlq_quit))
 				gtk_widget_add_accelerator (item, "activate", accel_group,
 									mymenu[i].key,
@@ -2669,6 +2799,8 @@ normalitem:
 		case M_MENUTOG:
 			item = gtk_check_menu_item_new_with_mnemonic (_(mymenu[i].text));
 togitem:
+			g_object_set_data (G_OBJECT (item), "zc-key-action", (gpointer) menu_get_key_action_name (i));
+			menu_add_keybinding_accel (item, accel_group, menu_get_key_action_name (i));
 			/* must avoid callback for Radio buttons */
 			gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (item), mymenu[i].state);
 			/*gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (item),
