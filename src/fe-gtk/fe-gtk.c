@@ -30,6 +30,7 @@
 #include <windows.h>
 #include <dwmapi.h>
 #include <glib/gwin32.h>
+#include "../../win32/appusermodelid.h"
 #else
 #include <unistd.h>
 #endif
@@ -140,7 +141,7 @@ win32_set_appusermodelid (void)
 	if (!set_appid)
 		return;
 
-	set_appid (L"ZoiteChat.Desktop.Notify");
+	set_appid (ZOITECHAT_APPUSERMODELIDW);
 }
 
 static void

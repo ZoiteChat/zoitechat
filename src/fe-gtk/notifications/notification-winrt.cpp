@@ -26,6 +26,7 @@
 
 #include <roapi.h>
 #include <windows.ui.notifications.h>
+#include "../../../win32/appusermodelid.h"
 
 using namespace Windows::UI::Notifications;
 using namespace Windows::Data::Xml::Dom;
@@ -87,7 +88,7 @@ extern "C"
 		try
 		{
 			if (!notifier)
-				notifier = ToastNotificationManager::CreateToastNotifier (L"ZoiteChat.Desktop.Notify");
+				notifier = ToastNotificationManager::CreateToastNotifier (ZOITECHAT_APPUSERMODELIDW);
 		}
 		catch (Platform::Exception ^ ex)
 		{

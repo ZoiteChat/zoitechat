@@ -1,5 +1,6 @@
 #define APPNAM "ZoiteChat"
 #define APPVER "<#= [string]::Join('.', $versionParts) #>"
+#include "..\appusermodelid.h"
 ; These are defined by our installer project at build time
 ;#define APPARCH "x64"
 ;#define PROJECTDIR "C:\...\zoitechat\win32\installer\"
@@ -76,11 +77,14 @@ Root: HKCR; Subkey: "irc"; ValueType: string; ValueName: "URL Protocol"; ValueDa
 Root: HKCR; Subkey: "irc\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\zoitechat.exe,0"; Flags: uninsdeletevalue; Tasks: not portable
 Root: HKCR; Subkey: "irc\shell"; ValueType: string; ValueName: ""; ValueData: "open"; Flags: uninsdeletevalue; Tasks: not portable
 Root: HKCR; Subkey: "irc\shell\open\command"; ValueType: string; ValueName: ""; ValueData: "{app}\zoitechat.exe --url=""%1"""; Flags: uninsdeletevalue; Tasks: not portable
+Root: HKCR; Subkey: "irc\Application"; ValueType: string; ValueName: "AppUserModelID"; ValueData: "{#ZOITECHAT_APPUSERMODELID}"; Flags: uninsdeletevalue; Tasks: not portable
 Root: HKCR; Subkey: ".zct"; ValueType: string; ValueName: ""; ValueData: "ZoiteChat.Theme"; Flags: uninsdeletevalue; Tasks: not portable
 Root: HKCR; Subkey: ".hct"; ValueType: string; ValueName: ""; ValueData: "ZoiteChat.Theme"; Flags: uninsdeletevalue; Tasks: not portable
 Root: HKCR; Subkey: "ZoiteChat.Theme"; ValueType: string; ValueName: ""; ValueData: "ZoiteChat Theme"; Flags: uninsdeletekey; Tasks: not portable
 Root: HKCR; Subkey: "ZoiteChat.Theme\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\zoitechat.exe,0"; Flags: uninsdeletevalue; Tasks: not portable
 Root: HKCR; Subkey: "ZoiteChat.Theme\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\zoitechat.exe"" ""%1"""; Flags: uninsdeletevalue; Tasks: not portable
+Root: HKCR; Subkey: "ZoiteChat.Theme\Application"; ValueType: string; ValueName: "AppUserModelID"; ValueData: "{#ZOITECHAT_APPUSERMODELID}"; Flags: uninsdeletevalue; Tasks: not portable
+Root: HKCR; Subkey: "Applications\zoitechat.exe\Application"; ValueType: string; ValueName: "AppUserModelID"; ValueData: "{#ZOITECHAT_APPUSERMODELID}"; Flags: uninsdeletevalue; Tasks: not portable
 
 [Run]
 Filename: "{app}\zoitechat.exe"; Description: "Run ZoiteChat after closing the Wizard"; Flags: nowait postinstall skipifsilent
@@ -188,15 +192,15 @@ Source: "zoitechat.exe"; DestDir: "{app}"; Flags: ignoreversion; Components: lib
 Source: "zoitechat-text.exe"; DestDir: "{app}"; Flags: ignoreversion; Components: xctext
 
 [Icons]
-Name: "{group}\ZoiteChat"; Filename: "{app}\zoitechat.exe"; AppUserModelID: "ZoiteChat.Desktop.Notify"; Tasks: not portable; Check: not WizardNoIcons
-Name: "{group}\ZoiteChat Safe Mode"; Filename: "{app}\zoitechat.exe"; Parameters: "--no-auto --no-plugins"; Tasks: not portable; Check: not WizardNoIcons
+Name: "{group}\ZoiteChat"; Filename: "{app}\zoitechat.exe"; AppUserModelID: "{#ZOITECHAT_APPUSERMODELID}"; Tasks: not portable; Check: not WizardNoIcons
+Name: "{group}\ZoiteChat Safe Mode"; Filename: "{app}\zoitechat.exe"; Parameters: "--no-auto --no-plugins"; AppUserModelID: "{#ZOITECHAT_APPUSERMODELID}"; Tasks: not portable; Check: not WizardNoIcons
 Name: "{group}\ZoiteChat ChangeLog"; Filename: "{app}\changelog.url"; IconFilename: "{sys}\shell32.dll"; IconIndex: 165; Tasks: not portable; Check: not WizardNoIcons
 Name: "{group}\ZoiteChat ReadMe"; Filename: "{app}\readme.url"; IconFilename: "{sys}\shell32.dll"; IconIndex: 23; Tasks: not portable; Check: not WizardNoIcons
 Name: "{group}\ZoiteChat Config Folder"; Filename: "%APPDATA%\ZoiteChat\"; Tasks: not portable; Check: not WizardNoIcons
 Name: "{group}\ZoiteChat-Text"; Filename: "{app}\zoitechat-text.exe"; Components: xctext; Tasks: not portable; Check: not WizardNoIcons
 Name: "{group}\Uninstall ZoiteChat"; Filename: "{uninstallexe}"; Tasks: not portable; Check: not WizardNoIcons
-Name: "{commondesktop}\ZoiteChat"; Filename: "{app}\zoitechat.exe"; AppUserModelID: "ZoiteChat.Desktop.Notify"; Components: icons\desktopicon; Tasks: not portable
-Name: "{commonappdata}\Microsoft\Internet Explorer\Quick Launch\ZoiteChat"; Filename: "{app}\zoitechat.exe"; Components: icons\quicklaunchicon; Tasks: not portable
+Name: "{commondesktop}\ZoiteChat"; Filename: "{app}\zoitechat.exe"; AppUserModelID: "{#ZOITECHAT_APPUSERMODELID}"; Components: icons\desktopicon; Tasks: not portable
+Name: "{commonappdata}\Microsoft\Internet Explorer\Quick Launch\ZoiteChat"; Filename: "{app}\zoitechat.exe"; AppUserModelID: "{#ZOITECHAT_APPUSERMODELID}"; Components: icons\quicklaunchicon; Tasks: not portable
 
 [Messages]
 BeveledLabel= {#APPNAM}
