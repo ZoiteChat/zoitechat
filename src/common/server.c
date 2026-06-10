@@ -522,7 +522,7 @@ ssl_cb_verify (int ok, X509_STORE_CTX * ctx)
 	X509 *current_cert = X509_STORE_CTX_get_current_cert (ctx);
 
 	if (!current_cert)
-		return TRUE;
+		return ok;
 
 	X509_NAME_oneline (X509_get_subject_name (current_cert),
 	                   subject, sizeof (subject));
@@ -534,13 +534,21 @@ ssl_cb_verify (int ok, X509_STORE_CTX * ctx)
 	g_snprintf (buf, sizeof (buf), "* Issuer: %s", issuer);
 	EMIT_SIGNAL (XP_TE_SSLMESSAGE, g_sess, buf, NULL, NULL, NULL, 0);
 
-	return TRUE;
+	if (!ok)
+	{
+		int err = X509_STORE_CTX_get_error (ctx);
+		g_snprintf (buf, sizeof (buf), "* Verify E: %s (%d)",
+					 X509_verify_cert_error_string (err), err);
+		EMIT_SIGNAL (XP_TE_SSLMESSAGE, g_sess, buf, NULL, NULL, NULL, 0);
+	}
+
+	return ok;
 }
 
 static int
 ssl_do_connect (server * serv)
 {
-	char buf[256]; // ERR_error_string() MUST have this size
+	char buf[256];
 
 	g_sess = serv->server_session;
 
@@ -559,9 +567,10 @@ ssl_do_connect (server * serv)
 	if (SSL_connect (serv->ssl) <= 0)
 	{
 		char err_buf[128];
-		int err;
+		int err, ssl_err;
 
 		g_sess = NULL;
+		ssl_err = SSL_get_error (serv->ssl, -1);
 		if ((err = ERR_get_error ()) > 0)
 		{
 			ERR_error_string (err, err_buf);
@@ -571,6 +580,8 @@ ssl_do_connect (server * serv)
 
 			if (ERR_GET_REASON (err) == SSL_R_WRONG_VERSION_NUMBER)
 				PrintText (serv->server_session, _("Are you sure this is a SSL capable server and port?\n"));
+			else if (ssl_err == SSL_ERROR_SSL)
+				EMIT_SIGNAL (XP_TE_SSLMESSAGE, serv->server_session, "* TLS handshake rejected by protocol/certificate/cipher policy", NULL, NULL, NULL, 0);
 
 			server_cleanup (serv);
 
@@ -649,27 +660,11 @@ ssl_do_connect (server * serv)
 				int hostname_err;
 				if ((hostname_err = _SSL_check_hostname(cert, serv->hostname)) != 0)
 				{
-					g_snprintf (buf, sizeof (buf), "* Verify E: Failed to validate hostname? (%d)%s",
-							 hostname_err, serv->accept_invalid_cert ? " -- Ignored" : "");
-					if (serv->accept_invalid_cert)
-						EMIT_SIGNAL (XP_TE_SSLMESSAGE, serv->server_session, buf, NULL, NULL, NULL, 0);
-					else
-						goto conn_fail;
+					g_snprintf (buf, sizeof (buf), "* Verify E: Failed to validate hostname (%d)",
+							 hostname_err);
+					EMIT_SIGNAL (XP_TE_SSLMESSAGE, serv->server_session, buf, NULL, NULL, NULL, 0);
+					goto conn_fail;
 				}
-				break;
-			}
-		case X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY:
-		case X509_V_ERR_UNABLE_TO_VERIFY_LEAF_SIGNATURE:
-		case X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT:
-		case X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN:
-		case X509_V_ERR_CERT_HAS_EXPIRED:
-			if (serv->accept_invalid_cert)
-			{
-				g_snprintf (buf, sizeof (buf), "* Verify E: %s.? (%d) -- Ignored",
-							 X509_verify_cert_error_string (verify_error),
-							 verify_error);
-				EMIT_SIGNAL (XP_TE_SSLMESSAGE, serv->server_session, buf, NULL, NULL,
-								 NULL, 0);
 				break;
 			}
 		default:

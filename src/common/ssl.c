@@ -86,15 +86,17 @@ _SSL_context_init (void (*info_cb_func))
 
 	SSLeay_add_ssl_algorithms ();
 	SSL_load_error_strings ();
-	ctx = SSL_CTX_new (SSLv23_client_method ());
+	ctx = SSL_CTX_new (TLS_client_method ());
 
 	SSL_CTX_set_session_cache_mode (ctx, SSL_SESS_CACHE_BOTH);
 	SSL_CTX_set_timeout (ctx, 300);
-	SSL_CTX_set_options (ctx, SSL_OP_NO_SSLv2|SSL_OP_NO_SSLv3
-							  |SSL_OP_NO_COMPRESSION
+	SSL_CTX_set_options (ctx, SSL_OP_NO_COMPRESSION
 							  |SSL_OP_SINGLE_DH_USE|SSL_OP_SINGLE_ECDH_USE
 							  |SSL_OP_NO_TICKET
-							  |SSL_OP_CIPHER_SERVER_PREFERENCE);
+							  |SSL_OP_NO_RENEGOTIATION);
+	SSL_CTX_set_min_proto_version (ctx, TLS1_2_VERSION);
+	SSL_CTX_set_cipher_list (ctx, "HIGH:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!MD5:!PSK:!SRP:!DSS");
+	SSL_CTX_set_ciphersuites (ctx, "TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256");
 
 #if OPENSSL_VERSION_NUMBER >= 0x00908000L && !defined (OPENSSL_NO_COMP) /* workaround for OpenSSL 0.9.8 */
 	sk_SSL_COMP_zero(SSL_COMP_get_compression_methods());
@@ -311,7 +313,7 @@ _SSL_socket (SSL_CTX *ctx, int sd)
 #else
 	method = SSL_CTX_get_ssl_method (ctx);
 #endif
-	if (method == SSLv23_client_method())
+	if (method == TLS_client_method())
 		SSL_set_connect_state (ssl);
 	else
 	        SSL_set_accept_state(ssl);
