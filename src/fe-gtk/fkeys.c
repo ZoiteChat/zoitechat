@@ -260,7 +260,7 @@ static const struct key_action key_actions[KEY_MAX_ACTIONS + 1] = {
 	{key_action_handle_command, "Run Command",
 	 N_("The \002Run Command\002 action runs the data in Data 1 as if it had been typed into the entry box where you pressed the key sequence. Thus it can contain text (which will be sent to the channel/person), commands or user commands. Escapes in Data 1 are interpreted (for example \002\\n\002, \002\\r\002, \002\\t\002, \002\\xNN\002 and \002\\\\\002), so it is possible to run more than one command by using newlines.")},
 	{key_action_page_switch, "Change Page",
-	 N_("The \002Change Page\002 command switches between pages in the notebook. Set Data 1 to the page you want to switch to. If Data 2 is set to anything then the switch will be relative to the current position. Set Data 1 to auto to switch to the page with the most recent and important activity (queries first, then channels with hilight, channels with dialogue, channels with other data)")},
+	 N_("The \002Change Page\002 command switches between pages in the notebook. Set Data 1 to the page number, channel name, network/channel, or auto. If Data 2 is set to anything then numeric switches are relative to the current position. Auto switches to the page with the most recent and important activity (queries first, then channels with hilight, channels with dialogue, channels with other data)")},
 	{key_action_insert, "Insert in Buffer",
 	 N_("The \002Insert in Buffer\002 command will insert the contents of Data 1 into the entry where the key sequence was pressed at the current cursor position. Escapes in Data 1 are interpreted (for example \002\\n\002, \002\\r\002, \002\\t\002, \002\\xNN\002 and \002\\\\\002).")},
 	{key_action_scroll_page, "Scroll Page",
@@ -1307,6 +1307,9 @@ key_action_page_switch (GtkWidget * wid, GdkEventKey * evt, char *d1,
 								char *d2, struct session *sess)
 {
 	session *newsess;
+	char *network;
+	char *channel;
+	char *slash;
 	int len, i, num;
 
 	if (!d1)
@@ -1318,21 +1321,13 @@ key_action_page_switch (GtkWidget * wid, GdkEventKey * evt, char *d1,
 
 	if (g_ascii_strcasecmp(d1, "auto") == 0)
 	{
-		/* Auto switch makes no sense in detached sessions */
 		if (!sess->gui->is_tab)
 			return 1;
 
-		/* Obtain a session with recent activity */
 		newsess = lastact_getfirst(session_check_is_tab);
 
 		if (newsess)
 		{
-			/*
-			 * Only sessions in the current window should be considered (i.e.
-			 * we don't want to move the focus on a different window). This
-			 * call could, in theory, do this, but we checked before that
-			 * newsess->gui->is_tab and sess->gui->is_tab.
-			 */
 			mg_bring_tofront_sess(newsess);
 			return 0;
 		}
@@ -1346,8 +1341,27 @@ key_action_page_switch (GtkWidget * wid, GdkEventKey * evt, char *d1,
 		{
 			if (i == 0 && (d1[i] == '+' || d1[i] == '-'))
 				continue;
-			else
-				return 1;
+
+			network = NULL;
+			channel = d1;
+			slash = strchr (d1, '/');
+
+			if (slash && slash[1])
+			{
+				network = g_strndup (d1, slash - d1);
+				channel = slash + 1;
+			}
+
+			newsess = plugin_find_context (network, channel, sess->server);
+			g_free (network);
+
+			if (newsess && newsess->gui)
+			{
+				mg_bring_tofront_sess(newsess);
+				return 0;
+			}
+
+			return 1;
 		}
 	}
 
