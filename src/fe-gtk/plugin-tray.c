@@ -32,6 +32,10 @@
 #include "gtkutil.h"
 
 #include <gio/gio.h>
+#ifdef WIN32
+#include <windows.h>
+#include <shellapi.h>
+#endif
 #if defined(GTK_DISABLE_DEPRECATED)
 typedef struct _GtkStatusIcon GtkStatusIcon;
 #endif
@@ -148,6 +152,14 @@ static GtkWidget *tray_menu;
 #endif
 #if !HAVE_APPINDICATOR_BACKEND
 static GtkStatusIcon *tray_status_icon;
+#endif
+#ifdef WIN32
+static HWND tray_win32_hwnd;
+static HICON tray_win32_icon;
+static gboolean tray_win32_active;
+static UINT tray_win32_taskbar_created;
+static const UINT tray_win32_callback_msg = WM_APP + 42;
+static const GUID tray_win32_guid = { 0xf79ad3d9, 0xc92f, 0x49eb, { 0x9d, 0xd2, 0xe1, 0xad, 0xad, 0xa8, 0x1c, 0xd3 } };
 #endif
 static gboolean tray_backend_active = FALSE;
 
@@ -510,6 +522,319 @@ tray_status_icon_init (void)
 	return TRUE;
 }
 
+#ifdef WIN32
+static HICON
+tray_win32_pixbuf_to_hicon (GdkPixbuf *pixbuf)
+{
+	BITMAPV5HEADER bi;
+	ICONINFO ii;
+	HBITMAP color;
+	HBITMAP mask;
+	HDC dc;
+	HICON icon;
+	guchar *pixels;
+	guchar *src;
+	guchar *dst;
+	void *bits;
+	int width;
+	int height;
+	int rowstride;
+	int channels;
+	int x;
+	int y;
+
+	if (!pixbuf)
+		return NULL;
+
+	width = gdk_pixbuf_get_width (pixbuf);
+	height = gdk_pixbuf_get_height (pixbuf);
+	rowstride = gdk_pixbuf_get_rowstride (pixbuf);
+	channels = gdk_pixbuf_get_n_channels (pixbuf);
+	pixels = gdk_pixbuf_get_pixels (pixbuf);
+
+	ZeroMemory (&bi, sizeof (bi));
+	bi.bV5Size = sizeof (bi);
+	bi.bV5Width = width;
+	bi.bV5Height = -height;
+	bi.bV5Planes = 1;
+	bi.bV5BitCount = 32;
+	bi.bV5Compression = BI_BITFIELDS;
+	bi.bV5RedMask = 0x00ff0000;
+	bi.bV5GreenMask = 0x0000ff00;
+	bi.bV5BlueMask = 0x000000ff;
+	bi.bV5AlphaMask = 0xff000000;
+
+	dc = GetDC (NULL);
+	color = CreateDIBSection (dc, (BITMAPINFO *)&bi, DIB_RGB_COLORS, &bits, NULL, 0);
+	ReleaseDC (NULL, dc);
+	if (!color)
+		return NULL;
+
+	for (y = 0; y < height; y++)
+	{
+		src = pixels + y * rowstride;
+		dst = (guchar *)bits + y * width * 4;
+		for (x = 0; x < width; x++)
+		{
+			guchar alpha = channels >= 4 ? src[3] : 255;
+			dst[0] = src[2] * alpha / 255;
+			dst[1] = src[1] * alpha / 255;
+			dst[2] = src[0] * alpha / 255;
+			dst[3] = alpha;
+			src += channels;
+			dst += 4;
+		}
+	}
+
+	mask = CreateBitmap (width, height, 1, 1, NULL);
+	if (!mask)
+	{
+		DeleteObject (color);
+		return NULL;
+	}
+
+	ZeroMemory (&ii, sizeof (ii));
+	ii.fIcon = TRUE;
+	ii.hbmColor = color;
+	ii.hbmMask = mask;
+	icon = CreateIconIndirect (&ii);
+	DeleteObject (mask);
+	DeleteObject (color);
+
+	return icon;
+}
+
+static void
+tray_win32_init_data (NOTIFYICONDATAW *nid)
+{
+	ZeroMemory (nid, sizeof (*nid));
+	nid->cbSize = sizeof (*nid);
+	nid->hWnd = tray_win32_hwnd;
+	nid->uID = 1;
+	nid->uFlags = NIF_GUID;
+	nid->guidItem = tray_win32_guid;
+}
+
+static gboolean
+tray_win32_add (void)
+{
+	NOTIFYICONDATAW nid;
+
+	tray_win32_init_data (&nid);
+	nid.uFlags |= NIF_MESSAGE | NIF_ICON | NIF_TIP;
+	nid.uCallbackMessage = tray_win32_callback_msg;
+	nid.hIcon = tray_win32_icon;
+	wcsncpy (nid.szTip, L"ZoiteChat", G_N_ELEMENTS (nid.szTip) - 1);
+
+	if (!Shell_NotifyIconW (NIM_ADD, &nid))
+		return FALSE;
+
+	tray_win32_init_data (&nid);
+	nid.uVersion = NOTIFYICON_VERSION_4;
+	Shell_NotifyIconW (NIM_SETVERSION, &nid);
+
+	return TRUE;
+}
+
+static void
+tray_win32_set_icon (TrayIcon icon)
+{
+	NOTIFYICONDATAW nid;
+	HICON hicon;
+
+	if (!tray_win32_active)
+		return;
+
+	hicon = tray_win32_pixbuf_to_hicon (icon);
+	if (!hicon)
+		return;
+
+	tray_win32_init_data (&nid);
+	nid.uFlags |= NIF_ICON;
+	nid.hIcon = hicon;
+	if (Shell_NotifyIconW (NIM_MODIFY, &nid))
+	{
+		if (tray_win32_icon)
+			DestroyIcon (tray_win32_icon);
+		tray_win32_icon = hicon;
+	}
+	else
+	{
+		DestroyIcon (hicon);
+	}
+}
+
+static void
+tray_win32_set_tooltip (const char *text)
+{
+	NOTIFYICONDATAW nid;
+	wchar_t *wide;
+
+	if (!tray_win32_active)
+		return;
+
+	wide = g_utf8_to_utf16 (text ? text : "", -1, NULL, NULL, NULL);
+	tray_win32_init_data (&nid);
+	nid.uFlags |= NIF_TIP;
+	if (wide)
+	{
+		wcsncpy (nid.szTip, wide, G_N_ELEMENTS (nid.szTip) - 1);
+		g_free (wide);
+	}
+	Shell_NotifyIconW (NIM_MODIFY, &nid);
+}
+
+static gboolean
+tray_win32_is_embedded (void)
+{
+	return tray_win32_active;
+}
+
+static void
+tray_win32_cleanup (void)
+{
+	NOTIFYICONDATAW nid;
+
+	if (tray_win32_active)
+	{
+		tray_win32_init_data (&nid);
+		Shell_NotifyIconW (NIM_DELETE, &nid);
+		tray_win32_active = FALSE;
+	}
+
+	if (tray_win32_icon)
+	{
+		DestroyIcon (tray_win32_icon);
+		tray_win32_icon = NULL;
+	}
+
+	if (tray_win32_hwnd)
+	{
+		DestroyWindow (tray_win32_hwnd);
+		tray_win32_hwnd = NULL;
+	}
+}
+
+static LRESULT CALLBACK
+tray_win32_wndproc (HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
+{
+	(void)wparam;
+
+	if (msg == tray_win32_taskbar_created && tray_win32_icon)
+	{
+		tray_win32_add ();
+		return 0;
+	}
+
+	if (msg == tray_win32_callback_msg)
+	{
+		switch (LOWORD (lparam))
+		{
+		case NIN_SELECT:
+		case NIN_KEYSELECT:
+		case WM_LBUTTONUP:
+			tray_menu_restore_cb (NULL, NULL);
+			return 0;
+		case WM_CONTEXTMENU:
+		case WM_RBUTTONUP:
+			SetForegroundWindow (hwnd);
+			tray_menu_cb (NULL, 3, GetTickCount (), NULL);
+			PostMessage (hwnd, WM_NULL, 0, 0);
+			return 0;
+		default:
+			break;
+		}
+	}
+
+	return DefWindowProcW (hwnd, msg, wparam, lparam);
+}
+
+static gboolean
+tray_win32_init (void)
+{
+	WNDCLASSW wc;
+
+	tray_win32_taskbar_created = RegisterWindowMessageW (L"TaskbarCreated");
+	tray_win32_icon = tray_win32_pixbuf_to_hicon (ICON_NORMAL);
+	if (!tray_win32_icon)
+		return FALSE;
+
+	ZeroMemory (&wc, sizeof (wc));
+	wc.lpfnWndProc = tray_win32_wndproc;
+	wc.hInstance = GetModuleHandleW (NULL);
+	wc.lpszClassName = L"ZoiteChatTrayWindow";
+	RegisterClassW (&wc);
+
+	tray_win32_hwnd = CreateWindowExW (0, wc.lpszClassName, L"", 0, 0, 0, 0, 0, HWND_MESSAGE, NULL, wc.hInstance, NULL);
+	if (!tray_win32_hwnd)
+	{
+		tray_win32_cleanup ();
+		return FALSE;
+	}
+
+	if (!tray_win32_add ())
+	{
+		tray_win32_cleanup ();
+		return FALSE;
+	}
+
+	tray_win32_active = TRUE;
+	return TRUE;
+}
+
+static gboolean
+tray_win32_or_status_icon_init (void)
+{
+	if (tray_win32_init ())
+		return TRUE;
+
+	return tray_status_icon_init ();
+}
+
+static void
+tray_win32_or_status_icon_set_icon (TrayIcon icon)
+{
+	if (tray_win32_active)
+		tray_win32_set_icon (icon);
+	else
+		tray_status_icon_set_icon (icon);
+}
+
+static void
+tray_win32_or_status_icon_set_tooltip (const char *text)
+{
+	if (tray_win32_active)
+		tray_win32_set_tooltip (text);
+	else
+		tray_status_icon_set_tooltip (text);
+}
+
+static gboolean
+tray_win32_or_status_icon_is_embedded (void)
+{
+	if (tray_win32_active)
+		return tray_win32_is_embedded ();
+
+	return tray_status_icon_is_embedded ();
+}
+
+static void
+tray_win32_or_status_icon_cleanup (void)
+{
+	if (tray_win32_active || tray_win32_hwnd || tray_win32_icon)
+		tray_win32_cleanup ();
+	else
+		tray_status_icon_cleanup ();
+}
+
+static const TrayBackendOps tray_backend_ops = {
+	tray_win32_or_status_icon_init,
+	tray_win32_or_status_icon_set_icon,
+	tray_win32_or_status_icon_set_tooltip,
+	tray_win32_or_status_icon_is_embedded,
+	tray_win32_or_status_icon_cleanup
+};
+#else
 static const TrayBackendOps tray_backend_ops = {
 	tray_status_icon_init,
 	tray_status_icon_set_icon,
@@ -517,6 +842,7 @@ static const TrayBackendOps tray_backend_ops = {
 	tray_status_icon_is_embedded,
 	tray_status_icon_cleanup
 };
+#endif
 #endif
 
 static gboolean
@@ -1042,7 +1368,11 @@ tray_menu_destroy (GtkWidget *menu, gpointer userdata)
 	if (G_IS_OBJECT (menu))
 		g_object_unref (menu);
 #ifdef WIN32
-	g_source_remove (tray_menu_timer);
+	if (tray_menu_timer)
+	{
+		g_source_remove (tray_menu_timer);
+		tray_menu_timer = 0;
+	}
 #endif
 }
 #endif
@@ -1417,7 +1747,7 @@ tray_apply_setup (void)
 	}
 	else
 	{
-#if HAVE_APPINDICATOR_BACKEND
+#if HAVE_APPINDICATOR_BACKEND || defined(WIN32)
 		if (prefs.hex_gui_tray)
 			tray_init ();
 #else
@@ -1471,7 +1801,7 @@ tray_plugin_init (zoitechat_plugin *plugin_handle, char **plugin_name,
 			G_CALLBACK (tray_window_visibility_cb), NULL);
 	}
 
-#if HAVE_APPINDICATOR_BACKEND
+#if HAVE_APPINDICATOR_BACKEND || defined(WIN32)
 	if (prefs.hex_gui_tray)
 #else
 	if (prefs.hex_gui_tray && gtkutil_tray_icon_supported (window))
