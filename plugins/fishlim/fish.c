@@ -268,6 +268,7 @@ char *fish_cipher(const char *plaintext, size_t plaintext_len, const char *key, 
 #endif
 
     } else if (mode == EVP_CIPH_ECB_MODE) {
+
 #if OPENSSL_VERSION_NUMBER >= 0x30000000L
         cipher = EVP_CIPHER_fetch(NULL, "BF-ECB", NULL);
         if (!cipher)
