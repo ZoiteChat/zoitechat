@@ -1755,11 +1755,6 @@ menu_change_layout (void)
 	}
 }
 
-void
-menu_update_quit_accel (void)
-{
-}
-
 static void
 menu_layout_cb (GtkWidget *item, gpointer none)
 {
@@ -2002,6 +1997,124 @@ static struct mymenu mymenu[] = {
 
 	{0, 0, 0, M_END, 0, 0, 0},
 };
+
+static const char *
+menu_get_key_action_name (int index)
+{
+	switch (index)
+	{
+	case 1:
+		return "network-list";
+	case 4:
+		return "new-server-tab";
+	case 6:
+		return "new-server-window";
+	case CLOSE_OFFSET:
+		return "close";
+	case 15:
+		return "quit";
+	case MENUBAR_OFFSET:
+		return "menu-toggle";
+	case MENUBAR_OFFSET + 2:
+		return "user-list-toggle";
+	case 34:
+		return "fullscreen-toggle";
+	case AWAY_OFFSET:
+		return "away-toggle";
+	case 65:
+		return "reset-marker";
+	case 66:
+		return "move-marker";
+	case 67:
+		return "copy-selection";
+	case SEARCH_OFFSET + 1:
+		return "search-text";
+	case SEARCH_OFFSET + 2:
+		return "search-next";
+	case SEARCH_OFFSET + 3:
+		return "search-previous";
+	case 75:
+		return "contents";
+	}
+
+	return NULL;
+}
+
+static void
+menu_add_keybinding_accel (GtkWidget *item, GtkAccelGroup *accel_group, const char *name)
+{
+	guint keyval;
+	GdkModifierType mod;
+
+	if (!accel_group || !key_get_menu_accel (name, &keyval, &mod))
+		return;
+
+	if (!strcmp (name, "quit") && !prefs.hex_gui_ctrlq_quit && keyval == GDK_KEY_q && mod == STATE_CTRL)
+		return;
+
+	gtk_widget_add_accelerator (item, "activate", accel_group, keyval, mod, GTK_ACCEL_VISIBLE);
+	g_object_set_data (G_OBJECT (item), "zc-key-accel-key", GUINT_TO_POINTER (keyval));
+	g_object_set_data (G_OBJECT (item), "zc-key-accel-mod", GUINT_TO_POINTER (mod));
+}
+
+static void
+menu_refresh_keybinding_accels (GtkWidget *widget, gpointer data)
+{
+	GtkAccelGroup *accel_group = data;
+	const char *name;
+	guint keyval;
+	GdkModifierType mod;
+	GtkWidget *submenu;
+	GList *children, *list;
+
+	if (GTK_IS_MENU_ITEM (widget))
+	{
+		keyval = GPOINTER_TO_UINT (g_object_get_data (G_OBJECT (widget), "zc-key-accel-key"));
+		mod = GPOINTER_TO_UINT (g_object_get_data (G_OBJECT (widget), "zc-key-accel-mod"));
+		if (keyval != 0)
+		{
+			gtk_widget_remove_accelerator (widget, accel_group, keyval, mod);
+			g_object_set_data (G_OBJECT (widget), "zc-key-accel-key", NULL);
+			g_object_set_data (G_OBJECT (widget), "zc-key-accel-mod", NULL);
+		}
+
+		name = g_object_get_data (G_OBJECT (widget), "zc-key-action");
+		menu_add_keybinding_accel (widget, accel_group, name);
+
+		submenu = gtk_menu_item_get_submenu (GTK_MENU_ITEM (widget));
+		if (submenu)
+			menu_refresh_keybinding_accels (submenu, data);
+	}
+
+	if (GTK_IS_CONTAINER (widget))
+	{
+		children = gtk_container_get_children (GTK_CONTAINER (widget));
+		for (list = children; list; list = g_list_next (list))
+			menu_refresh_keybinding_accels (list->data, data);
+		g_list_free (children);
+	}
+}
+
+void
+menu_update_quit_accel (void)
+{
+	session *sess;
+	GSList *list;
+	GtkAccelGroup *accel_group;
+
+	list = sess_list;
+	while (list)
+	{
+		sess = list->data;
+		if (sess && sess->gui && sess->gui->menu)
+		{
+			accel_group = g_object_get_data (G_OBJECT (sess->gui->menu), "accel");
+			if (accel_group)
+				menu_refresh_keybinding_accels (sess->gui->menu, accel_group);
+		}
+		list = g_slist_next (list);
+	}
+}
 
 gboolean
 menu_key_action (const char *name, guint keyval, GdkModifierType state)
@@ -2656,6 +2769,8 @@ menu_create_main (void *accel_group, int bar, int away, int toplevel,
 		case M_MENUITEM:
 			item = gtk_menu_item_new_with_mnemonic (_(mymenu[i].text));
 normalitem:
+			g_object_set_data (G_OBJECT (item), "zc-key-action", (gpointer) menu_get_key_action_name (i));
+			menu_add_keybinding_accel (item, accel_group, menu_get_key_action_name (i));
 			if (mymenu[i].key != 0 && !(mymenu[i].id == MENU_ID_QUIT && !prefs.hex_gui_ctrlq_quit))
 				gtk_widget_add_accelerator (item, "activate", accel_group,
 									mymenu[i].key,
@@ -2684,6 +2799,8 @@ normalitem:
 		case M_MENUTOG:
 			item = gtk_check_menu_item_new_with_mnemonic (_(mymenu[i].text));
 togitem:
+			g_object_set_data (G_OBJECT (item), "zc-key-action", (gpointer) menu_get_key_action_name (i));
+			menu_add_keybinding_accel (item, accel_group, menu_get_key_action_name (i));
 			/* must avoid callback for Radio buttons */
 			gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (item), mymenu[i].state);
 			/*gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (item),

@@ -576,6 +576,31 @@ key_handle_key_press (GtkWidget *wid, GdkEventKey *evt, session *sess)
 	return 0;
 }
 
+gboolean
+key_get_menu_accel (const char *name, guint *keyval, GdkModifierType *mod)
+{
+	struct key_binding *kb;
+	GSList *list;
+
+	if (!name)
+		return FALSE;
+
+	list = keybind_list;
+	while (list)
+	{
+		kb = (struct key_binding*)list->data;
+		if (kb->action >= 0 && kb->action <= KEY_MAX_ACTIONS && kb->keyval != 0 && !strcmp (key_actions[kb->action].name, "Menu Shortcut") && kb->data1 && !strcmp (kb->data1, name))
+		{
+			*keyval = kb->keyval;
+			*mod = kb->mod;
+			return TRUE;
+		}
+		list = g_slist_next (list);
+	}
+
+	return FALSE;
+}
+
 
 /* ***** GUI code here ******************* */
 
@@ -839,7 +864,10 @@ key_dialog_save (GtkWidget *wid, gpointer userdata)
 	}
 
 	if (key_save_kbs () == 0)
+	{
+		menu_update_quit_accel ();
 		key_dialog_close (wid, NULL);
+	}
 }
 
 static void
