@@ -194,11 +194,11 @@ Source: "zoitechat-text.exe"; DestDir: "{app}"; Flags: ignoreversion; Components
 [Icons]
 Name: "{group}\ZoiteChat"; Filename: "{app}\zoitechat.exe"; AppUserModelID: "{#ZOITECHAT_APPUSERMODELID}"; Tasks: not portable; Check: not WizardNoIcons
 Name: "{group}\ZoiteChat Safe Mode"; Filename: "{app}\zoitechat.exe"; Parameters: "--no-auto --no-plugins"; AppUserModelID: "{#ZOITECHAT_APPUSERMODELID}"; Tasks: not portable; Check: not WizardNoIcons
-Name: "{group}\ZoiteChat ChangeLog"; Filename: "{app}\changelog.url"; IconFilename: "{sys}\shell32.dll"; IconIndex: 165; Tasks: not portable; Check: not WizardNoIcons
-Name: "{group}\ZoiteChat ReadMe"; Filename: "{app}\readme.url"; IconFilename: "{sys}\shell32.dll"; IconIndex: 23; Tasks: not portable; Check: not WizardNoIcons
-Name: "{group}\ZoiteChat Config Folder"; Filename: "%APPDATA%\ZoiteChat\"; Tasks: not portable; Check: not WizardNoIcons
-Name: "{group}\ZoiteChat-Text"; Filename: "{app}\zoitechat-text.exe"; Components: xctext; Tasks: not portable; Check: not WizardNoIcons
-Name: "{group}\Uninstall ZoiteChat"; Filename: "{uninstallexe}"; Tasks: not portable; Check: not WizardNoIcons
+Name: "{group}\ZoiteChat ChangeLog"; Filename: "{app}\changelog.url"; IconFilename: "{sys}\shell32.dll"; IconIndex: 165; AppUserModelID: "{#ZOITECHAT_APPUSERMODELID}"; Tasks: not portable; Check: not WizardNoIcons
+Name: "{group}\ZoiteChat ReadMe"; Filename: "{app}\readme.url"; IconFilename: "{sys}\shell32.dll"; IconIndex: 23; AppUserModelID: "{#ZOITECHAT_APPUSERMODELID}"; Tasks: not portable; Check: not WizardNoIcons
+Name: "{group}\ZoiteChat Config Folder"; Filename: "%APPDATA%\ZoiteChat\"; AppUserModelID: "{#ZOITECHAT_APPUSERMODELID}"; Tasks: not portable; Check: not WizardNoIcons
+Name: "{group}\ZoiteChat-Text"; Filename: "{app}\zoitechat-text.exe"; AppUserModelID: "{#ZOITECHAT_APPUSERMODELID}"; Components: xctext; Tasks: not portable; Check: not WizardNoIcons
+Name: "{group}\Uninstall ZoiteChat"; Filename: "{uninstallexe}"; AppUserModelID: "{#ZOITECHAT_APPUSERMODELID}"; Tasks: not portable; Check: not WizardNoIcons
 Name: "{commondesktop}\ZoiteChat"; Filename: "{app}\zoitechat.exe"; AppUserModelID: "{#ZOITECHAT_APPUSERMODELID}"; Components: icons\desktopicon; Tasks: not portable
 Name: "{commonappdata}\Microsoft\Internet Explorer\Quick Launch\ZoiteChat"; Filename: "{app}\zoitechat.exe"; AppUserModelID: "{#ZOITECHAT_APPUSERMODELID}"; Components: icons\quicklaunchicon; Tasks: not portable
 

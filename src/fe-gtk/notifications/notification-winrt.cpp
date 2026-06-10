@@ -85,6 +85,12 @@ extern "C"
 	__declspec (dllexport) int
 	notification_backend_init (const char **error)
 	{
+		if (FAILED (Windows::Foundation::Initialize (RO_INIT_SINGLETHREADED)))
+		{
+			*error = "Error initializing Windows::Foundation.";
+			return 0;
+		}
+
 		try
 		{
 			if (!notifier)
@@ -92,6 +98,7 @@ extern "C"
 		}
 		catch (Platform::Exception ^ ex)
 		{
+			Windows::Foundation::Uninitialize ();
 			static char exc_message[1024];
 			std::string tmp = narrow(std::wstring(ex->Message->Data()));
 			if (SUCCEEDED(StringCchPrintfA(exc_message, _countof(exc_message), "Error (0x%x): %s", ex->HResult, tmp.c_str())))
@@ -102,13 +109,8 @@ extern "C"
 		}
 		catch (...)
 		{
+			Windows::Foundation::Uninitialize ();
 			*error = "Generic c++ exception.";
-			return 0;
-		}
-
-		if (FAILED (Windows::Foundation::Initialize (RO_INIT_SINGLETHREADED)))
-		{
-			*error = "Error initializing Windows::Foundation.";
 			return 0;
 		}
 
