@@ -35,6 +35,7 @@
 #ifdef WIN32
 #include <windows.h>
 #include <shellapi.h>
+#include <gdk/gdkwin32.h>
 #endif
 #if defined(GTK_DISABLE_DEPRECATED)
 typedef struct _GtkStatusIcon GtkStatusIcon;
@@ -121,6 +122,7 @@ gboolean gtk_status_icon_is_embedded (GtkStatusIcon *status_icon);
 
 void tray_apply_setup (void);
 static gboolean tray_menu_try_restore (void);
+static gboolean tray_toggle_visibility_from_input (gboolean force_hide, gboolean direct_input);
 static void tray_cleanup (void);
 static void tray_init (void);
 static void tray_set_icon_state (TrayIcon icon, TrayIconState state);
@@ -1173,8 +1175,8 @@ fe_tray_set_file (const char *filename)
 	}
 }
 
-gboolean
-tray_toggle_visibility (gboolean force_hide)
+static gboolean
+tray_toggle_visibility_from_input (gboolean force_hide, gboolean direct_input)
 {
 	static int x, y;
 	static GdkScreen *screen;
@@ -1216,14 +1218,40 @@ tray_toggle_visibility (gboolean force_hide)
 			gtk_window_maximize (win);
 		if (fullscreen)
 			gtk_window_fullscreen (win);
+#ifdef WIN32
+		{
+			GdkWindow *gdk_window;
+			HWND hwnd = NULL;
+
+			gdk_window = gtk_widget_get_window (GTK_WIDGET (win));
+			if (gdk_window)
+				hwnd = gdk_win32_window_get_handle (gdk_window);
+
+			if (hwnd && IsIconic (hwnd))
+				ShowWindow (hwnd, SW_RESTORE);
+
+			gtk_widget_show (GTK_WIDGET (win));
+			gtk_window_present (win);
+
+			if (direct_input && hwnd)
+				SetForegroundWindow (hwnd);
+		}
+#else
 		gtk_widget_show (GTK_WIDGET (win));
 		gtk_window_deiconify (win);
 		gtk_window_present (win);
+#endif
 	}
 
 	tray_update_toggle_item_label ();
 
 	return TRUE;
+}
+
+gboolean
+tray_toggle_visibility (gboolean force_hide)
+{
+	return tray_toggle_visibility_from_input (force_hide, FALSE);
 }
 
 static void
@@ -1232,7 +1260,7 @@ tray_menu_restore_cb (GtkWidget *item, gpointer userdata)
 	(void)item;
 	(void)userdata;
 
-	tray_toggle_visibility (FALSE);
+	tray_toggle_visibility_from_input (FALSE, TRUE);
 }
 
 static void
