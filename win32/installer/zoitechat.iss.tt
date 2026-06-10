@@ -1,6 +1,6 @@
 #define APPNAM "ZoiteChat"
 #define APPVER "<#= [string]::Join('.', $versionParts) #>"
-#include "..\appusermodelid.h"
+#include AddBackslash(PROJECTDIR) + "..\appusermodelid.h"
 ; These are defined by our installer project at build time
 ;#define APPARCH "x64"
 ;#define PROJECTDIR "C:\...\zoitechat\win32\installer\"
