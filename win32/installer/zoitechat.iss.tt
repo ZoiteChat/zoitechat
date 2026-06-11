@@ -9,10 +9,10 @@ AppName=ZoiteChat
 AppVersion={#APPVER}
 AppVerName=ZoiteChat {#APPVER}
 AppPublisher=ZoiteChat
-AppPublisherURL=http://zoitechat.org
+AppPublisherURL=https://zoitechat.org
 AppCopyright=Copyright (C) 1998-2010 Peter Zelezny
 AppSupportURL=https://github.com/zoitechat/zoitechat/issues
-AppUpdatesURL=http://zoitechat.org/downloads.html
+AppUpdatesURL=https://zoitechat.org/download.php
 LicenseFile=share\doc\zoitechat\COPYING
 UninstallDisplayIcon={app}\zoitechat.exe
 UninstallDisplayName=ZoiteChat
@@ -85,7 +85,7 @@ Root: HKCR; Subkey: "ZoiteChat.Theme\shell\open\command"; ValueType: string; Val
 
 [Run]
 Filename: "{app}\zoitechat.exe"; Description: "Run ZoiteChat after closing the Wizard"; Flags: nowait postinstall skipifsilent
-Filename: "http://docs.zoitechat.org/en/latest/changelog.html"; Description: "See what's changed"; Flags: shellexec runasoriginaluser postinstall skipifsilent unchecked
+Filename: "https://docs.zoitechat.org/en/latest/changelog.html"; Description: "See what's changed"; Flags: shellexec runasoriginaluser postinstall skipifsilent unchecked
 Filename: "{tmp}\vc_redist.x64.exe"; Parameters: "/install /quiet /norestart"; StatusMsg: "Installing Visual C++ Redistributable"; Components: deps\vcredist2015; Tasks: not portable
 Filename: "{tmp}\strawberry-perl-5.42.0.1-64bit.msi"; StatusMsg: "Installing Perl"; Components: langs\perl; Flags: shellexec skipifdoesntexist; Tasks: not portable
 Filename: "{tmp}\python.msi"; StatusMsg: "Installing Python"; Components: langs\python; Flags: shellexec skipifdoesntexist; Tasks: not portable
