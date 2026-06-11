@@ -86,11 +86,11 @@ Root: HKCR; Subkey: "ZoiteChat.Theme\shell\open\command"; ValueType: string; Val
 [Run]
 Filename: "{app}\zoitechat.exe"; Description: "Run ZoiteChat after closing the Wizard"; Flags: nowait postinstall skipifsilent
 Filename: "http://docs.zoitechat.org/en/latest/changelog.html"; Description: "See what's changed"; Flags: shellexec runasoriginaluser postinstall skipifsilent unchecked
-Filename: "{tmp}\vcredist.exe"; Parameters: "/install /quiet /norestart"; StatusMsg: "Installing Visual C++ Redistributable"; Components: deps\vcredist2015; Tasks: not portable
-Filename: "{tmp}\perl.msi"; StatusMsg: "Installing Perl"; Components: langs\perl; Flags: shellexec skipifdoesntexist; Tasks: not portable
+Filename: "{tmp}\vc_redist.x64.exe"; Parameters: "/install /quiet /norestart"; StatusMsg: "Installing Visual C++ Redistributable"; Components: deps\vcredist2015; Tasks: not portable
+Filename: "{tmp}\strawberry-perl-5.42.0.1-64bit.msi"; StatusMsg: "Installing Perl"; Components: langs\perl; Flags: shellexec skipifdoesntexist; Tasks: not portable
 Filename: "{tmp}\python.msi"; StatusMsg: "Installing Python"; Components: langs\python; Flags: shellexec skipifdoesntexist; Tasks: not portable
-Filename: "{tmp}\python.exe"; Parameters: "InstallAllUsers=1 PrependPath=1"; StatusMsg: "Installing Python"; Components: langs\python; Flags: shellexec skipifdoesntexist; Tasks: not portable
-Filename: "{tmp}\spelling-dicts.exe"; Parameters: "/verysilent"; StatusMsg: "Installing Spelling Dictionaries"; Components: spell; Flags: skipifdoesntexist; Tasks: not portable
+Filename: "{tmp}\python-3.14.3-amd64.exe"; Parameters: "InstallAllUsers=1 PrependPath=1"; StatusMsg: "Installing Python"; Components: langs\python; Flags: shellexec skipifdoesntexist; Tasks: not portable
+Filename: "{tmp}\ZoiteChat.Spelling.Dictionaries.r2.exe"; Parameters: "/verysilent"; StatusMsg: "Installing Spelling Dictionaries"; Components: spell; Flags: skipifdoesntexist; Tasks: not portable
 
 [Files]
 Source: "https://dl.zoitechat.zoite.net/themes/GTK3Themes/Windows-10-3.2.1.zip"; DestDir: "{userappdata}\ZoiteChat\gtk3-themes"; DestName: "Windows-10-3.2.1.zip"; ExternalSize: 1896084; Hash: "029126d4dcf246777de0319d30b653b727e40d0a2c1939cf48559fa22b154055"; Flags: external download extractarchive ignoreversion recursesubdirs createallsubdirs; Components: themes\windows10
@@ -353,20 +353,20 @@ begin
 		SPELL := 'https://github.com/zoitechat/gvsbuild/releases/download/zoitechat-2.16.2/ZoiteChat.Spelling.Dictionaries.r2.exe';
 
 		if IsComponentSelected('deps\vcredist2015') and not CheckVCInstall() then
-			idpAddFile(REDIST, ExpandConstant('{tmp}\vcredist.exe'));
+			idpAddFile(REDIST, ExpandConstant('{tmp}\vc_redist.x64.exe'));
 
 		if IsComponentSelected('spell') and not CheckSpellInstall() then
-			idpAddFile(SPELL, ExpandConstant('{tmp}\spelling-dicts.exe'));
+			idpAddFile(SPELL, ExpandConstant('{tmp}\ZoiteChat.Spelling.Dictionaries.r2.exe'));
 
 		if not WizardSilent() then
 		begin
 			if IsComponentSelected('langs\perl') and not CheckDLL('perl542.dll') then
 			begin
-				idpAddFile(PERL, ExpandConstant('{tmp}\perl.msi'))
+				idpAddFile(PERL, ExpandConstant('{tmp}\strawberry-perl-5.42.0.1-64bit.msi'))
 			end;
 
 			if IsComponentSelected('langs\python') and not CheckDLL('python314.dll') then
-                idpAddFile(PY3, ExpandConstant('{tmp}\python.exe'));
+                idpAddFile(PY3, ExpandConstant('{tmp}\python-3.14.3-amd64.exe'));
 		end;
 	end;
   end;
@@ -399,7 +399,7 @@ begin
 	if CurPageID = wpReady then
 	begin
 
-		if IsComponentSelected('deps\vcredist2015') and not CheckVCInstall() and not FileExists(ExpandConstant('{tmp}\vcredist.exe')) then
+		if IsComponentSelected('deps\vcredist2015') and not CheckVCInstall() and not FileExists(ExpandConstant('{tmp}\vc_redist.x64.exe')) then
 		begin
 			MsgBox('Visual C++ Redistributable could not be downloaded. Please retry setup or install it manually and rerun setup.', mbError, MB_OK);
 			Result := False;
