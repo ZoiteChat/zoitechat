@@ -289,7 +289,6 @@ begin
 
   if(CurPageID = wpReady) then
   begin
-    idpClearFiles;
 
 	if not IsTaskSelected('portable') then
 	begin
@@ -299,23 +298,6 @@ begin
 		PY3 := 'https://www.python.org/ftp/python/3.14.3/python-3.14.3-amd64.exe';
 		SPELL := 'https://github.com/zoitechat/gvsbuild/releases/download/zoitechat-2.16.2/ZoiteChat.Spelling.Dictionaries.r2.exe';
 
-		if IsComponentSelected('deps\vcredist2015') and not CheckVCInstall() then
-			idpAddFile(REDIST, ExpandConstant('{tmp}\vc_redist.x64.exe'));
-
-		if IsComponentSelected('spell') and not CheckSpellInstall() then
-			idpAddFile(SPELL, ExpandConstant('{tmp}\ZoiteChat.Spelling.Dictionaries.r2.exe'));
-
-		if not WizardSilent() then
-		begin
-			if IsComponentSelected('langs\perl') and not CheckDLL('perl542.dll') then
-			begin
-				idpAddFile(PERL, ExpandConstant('{tmp}\strawberry-perl-5.42.0.1-64bit.msi'))
-			end;
-
-			if IsComponentSelected('langs\python') and not CheckDLL('python314.dll') then
-                idpAddFile(PY3, ExpandConstant('{tmp}\python-3.14.3-amd64.exe'));
-		end;
-	end;
   end;
 end;
 
