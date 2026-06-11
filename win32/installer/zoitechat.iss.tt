@@ -22,6 +22,7 @@ DefaultGroupName=ZoiteChat
 AllowNoIcons=yes
 SolidCompression=yes
 Compression=lzma2/ultra64
+ArchiveExtraction=full
 SourceDir=..\rel
 OutputDir=..
 OutputBaseFilename={#APPNAM}-{#APPVER}_x64
@@ -90,13 +91,27 @@ Filename: "{tmp}\perl.msi"; StatusMsg: "Installing Perl"; Components: langs\perl
 Filename: "{tmp}\python.msi"; StatusMsg: "Installing Python"; Components: langs\python; Flags: shellexec skipifdoesntexist; Tasks: not portable
 Filename: "{tmp}\python.exe"; Parameters: "InstallAllUsers=1 PrependPath=1"; StatusMsg: "Installing Python"; Components: langs\python; Flags: shellexec skipifdoesntexist; Tasks: not portable
 Filename: "{tmp}\spelling-dicts.exe"; Parameters: "/verysilent"; StatusMsg: "Installing Spelling Dictionaries"; Components: spell; Flags: skipifdoesntexist; Tasks: not portable
-Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -Command ""Expand-Archive -LiteralPath '{tmp}\Windows-10-3.2.1.zip' -DestinationPath '{userappdata}\ZoiteChat\gtk3-themes' -Force"""; StatusMsg: "Installing GTK3 Theme: Windows 10"; Components: themes\windows10; Flags: runhidden waituntilterminated skipifdoesntexist
-Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -Command ""Expand-Archive -LiteralPath '{tmp}\Windows-10-Dark-3.2.1-dark.zip' -DestinationPath '{userappdata}\ZoiteChat\gtk3-themes' -Force"""; StatusMsg: "Installing GTK3 Theme: Windows 10 Dark"; Components: themes\windows10dark; Flags: runhidden waituntilterminated skipifdoesntexist
 
 [Dirs]
 Name: "{userappdata}\ZoiteChat\gtk3-themes"; Components: themes
 
 [Files]
+Source: "https://dl.zoitechat.zoite.net/themes/GTK3Themes/Windows-10-3.2.1.zip";
+    DestDir: "{userappdata}\ZoiteChat\gtk3-themes";
+    DestName: "Windows-10-3.2.1.zip";
+    ExternalSize: 1896084;
+    Hash: "029126d4dcf246777de0319d30b653b727e40d0a2c1939cf48559fa22b154055";
+    Flags: external download extractarchive ignoreversion recursesubdirs createallsubdirs;
+    Components: themes\windows10
+
+Source: "https://dl.zoitechat.zoite.net/themes/GTK3Themes/Windows-10-Dark-3.2.1-dark.zip";
+    DestDir: "{userappdata}\ZoiteChat\gtk3-themes";
+    DestName: "Windows-10-Dark-3.2.1-dark.zip";
+    ExternalSize: 1795077;
+    Hash: "cc85eb07fb01ab18fe05105d51340c3731831dce288473a4038d62a0f11bae3f";
+    Flags: external download extractarchive ignoreversion recursesubdirs createallsubdirs;
+    Components: themes\windows10dark
+
 Source: "portable-mode"; DestDir: "{app}"; Tasks: portable
 
 Source: "changelog.url"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
@@ -345,12 +360,6 @@ begin
   begin
     idpClearFiles;
 
-	if IsComponentSelected('themes\windows10') then
-		idpAddFile('https://dl.zoitechat.zoite.net/themes/GTK3Themes/Windows-10-3.2.1.zip', ExpandConstant('{tmp}\Windows-10-3.2.1.zip'));
-
-	if IsComponentSelected('themes\windows10dark') then
-		idpAddFile('https://dl.zoitechat.zoite.net/themes/GTK3Themes/Windows-10-Dark-3.2.1-dark.zip', ExpandConstant('{tmp}\Windows-10-Dark-3.2.1-dark.zip'));
-
 	if not IsTaskSelected('portable') then
 	begin
 
@@ -405,19 +414,6 @@ begin
 
 	if CurPageID = wpReady then
 	begin
-		if IsComponentSelected('themes\windows10') and not FileExists(ExpandConstant('{tmp}\Windows-10-3.2.1.zip')) then
-		begin
-			MsgBox('Windows 10 GTK3 theme could not be downloaded. Please retry setup and rerun setup.', mbError, MB_OK);
-			Result := False;
-			Exit;
-		end;
-
-		if IsComponentSelected('themes\windows10dark') and not FileExists(ExpandConstant('{tmp}\Windows-10-Dark-3.2.1-dark.zip')) then
-		begin
-			MsgBox('Windows 10 Dark GTK3 theme could not be downloaded. Please retry setup and rerun setup.', mbError, MB_OK);
-			Result := False;
-			Exit;
-		end;
 
 		if IsComponentSelected('deps\vcredist2015') and not CheckVCInstall() and not FileExists(ExpandConstant('{tmp}\vcredist.exe')) then
 		begin
