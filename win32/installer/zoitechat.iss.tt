@@ -61,9 +61,9 @@ Name: "langs"; Description: "Language Interfaces"; Types: custom; Flags: disable
 Name: "langs\lua"; Description: "Lua (LuaJIT 2.1)"; Types: normal custom; Flags: disablenouninstallwarning
 Name: "langs\perl"; Description: "Perl (Strawberry Perl 5.42.0.1)"; Types: custom; Flags: disablenouninstallwarning
 Name: "langs\python"; Description: "Python (Python 3.14.3)"; Types: custom; Flags: disablenouninstallwarning
-Name: "themes"; Description: "GTK3 Themes"; Types: normal minimal custom; Flags: disablenouninstallwarning
-Name: "themes\windows10"; Description: "Windows 10"; Types: normal minimal custom; Flags: disablenouninstallwarning
-Name: "themes\windows10dark"; Description: "Windows 10 Dark"; Types: normal minimal custom; Flags: disablenouninstallwarning
+Name: "themes"; Description: "GTK3 Themes"; Types: custom; Flags: disablenouninstallwarning
+Name: "themes\windows10"; Description: "Windows 10"; Types: custom; Flags: disablenouninstallwarning
+Name: "themes\windows10dark"; Description: "Windows 10 Dark"; Types: custom; Flags: disablenouninstallwarning
 Name: "deps"; Description: "Dependencies"; Types: custom; Flags: disablenouninstallwarning
 Name: "deps\vcredist2015"; Description: "Visual C++ Redistributable 2015"; Types: normal minimal custom; Flags: disablenouninstallwarning
 
@@ -91,9 +91,6 @@ Filename: "{tmp}\perl.msi"; StatusMsg: "Installing Perl"; Components: langs\perl
 Filename: "{tmp}\python.msi"; StatusMsg: "Installing Python"; Components: langs\python; Flags: shellexec skipifdoesntexist; Tasks: not portable
 Filename: "{tmp}\python.exe"; Parameters: "InstallAllUsers=1 PrependPath=1"; StatusMsg: "Installing Python"; Components: langs\python; Flags: shellexec skipifdoesntexist; Tasks: not portable
 Filename: "{tmp}\spelling-dicts.exe"; Parameters: "/verysilent"; StatusMsg: "Installing Spelling Dictionaries"; Components: spell; Flags: skipifdoesntexist; Tasks: not portable
-
-[Dirs]
-Name: "{userappdata}\ZoiteChat\gtk3-themes"; Components: themes
 
 [Files]
 Source: "https://dl.zoitechat.zoite.net/themes/GTK3Themes/Windows-10-3.2.1.zip";
