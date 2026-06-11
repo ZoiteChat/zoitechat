@@ -93,21 +93,8 @@ Filename: "{tmp}\python.exe"; Parameters: "InstallAllUsers=1 PrependPath=1"; Sta
 Filename: "{tmp}\spelling-dicts.exe"; Parameters: "/verysilent"; StatusMsg: "Installing Spelling Dictionaries"; Components: spell; Flags: skipifdoesntexist; Tasks: not portable
 
 [Files]
-Source: "https://dl.zoitechat.zoite.net/themes/GTK3Themes/Windows-10-3.2.1.zip";
-    DestDir: "{userappdata}\ZoiteChat\gtk3-themes";
-    DestName: "Windows-10-3.2.1.zip";
-    ExternalSize: 1896084;
-    Hash: "029126d4dcf246777de0319d30b653b727e40d0a2c1939cf48559fa22b154055";
-    Flags: external download extractarchive ignoreversion recursesubdirs createallsubdirs;
-    Components: themes\windows10
-
-Source: "https://dl.zoitechat.zoite.net/themes/GTK3Themes/Windows-10-Dark-3.2.1-dark.zip";
-    DestDir: "{userappdata}\ZoiteChat\gtk3-themes";
-    DestName: "Windows-10-Dark-3.2.1-dark.zip";
-    ExternalSize: 1795077;
-    Hash: "cc85eb07fb01ab18fe05105d51340c3731831dce288473a4038d62a0f11bae3f";
-    Flags: external download extractarchive ignoreversion recursesubdirs createallsubdirs;
-    Components: themes\windows10dark
+Source: "https://dl.zoitechat.zoite.net/themes/GTK3Themes/Windows-10-3.2.1.zip"; DestDir: "{userappdata}\ZoiteChat\gtk3-themes"; DestName: "Windows-10-3.2.1.zip"; ExternalSize: 1896084; Hash: "029126d4dcf246777de0319d30b653b727e40d0a2c1939cf48559fa22b154055"; Flags: external download extractarchive ignoreversion recursesubdirs createallsubdirs; Components: themes\windows10
+Source: "https://dl.zoitechat.zoite.net/themes/GTK3Themes/Windows-10-Dark-3.2.1-dark.zip"; DestDir: "{userappdata}\ZoiteChat\gtk3-themes"; DestName: "Windows-10-Dark-3.2.1-dark.zip"; ExternalSize: 1795077; Hash: "cc85eb07fb01ab18fe05105d51340c3731831dce288473a4038d62a0f11bae3f"; Flags: external download extractarchive ignoreversion recursesubdirs createallsubdirs; Components: themes\windows10dark
 
 Source: "portable-mode"; DestDir: "{app}"; Tasks: portable
 
