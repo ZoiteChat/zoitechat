@@ -60,6 +60,7 @@
 #define ICON_FKEYS_DELETE "edit-delete"
 #define ICON_FKEYS_CANCEL "dialog-cancel"
 #define ICON_FKEYS_SAVE "document-save"
+#define ICON_FKEYS_RESET "edit-undo"
 
 static void replace_handle (GtkWidget * wid);
 void key_check_replace_on_change (GtkEditable *editable, gpointer data);
@@ -105,7 +106,10 @@ struct gcomp_data
 };
 
 static int key_load_kbs (void);
+static int key_load_kbs_from_buffer (char *ibuf, off_t size, GSList **out_list);
 static int key_save_kbs (void);
+static void key_dialog_load (GtkListStore *store);
+static void key_dialog_reset (GtkWidget *wid, gpointer userdata);
 static int key_action_handle_command (GtkWidget * wid, GdkEventKey * evt,
 												  char *d1, char *d2,
 												  struct session *sess);
@@ -890,6 +894,134 @@ key_dialog_add (GtkWidget *wid, gpointer userdata)
 	gtk_tree_path_free (path);
 }
 
+static char *
+key_binding_signature (const char *action, const char *data1, const char *data2)
+{
+	return g_strdup_printf ("%s\\n%s\\n%s", action ? action : "", data1 ? data1 : "", data2 ? data2 : "");
+}
+
+static int
+key_dialog_reset_count (GHashTable *table, const char *key)
+{
+	return GPOINTER_TO_INT (g_hash_table_lookup (table, key));
+}
+
+static void
+key_dialog_reset_increment (GHashTable *table, char *key)
+{
+	g_hash_table_replace (table, key, GINT_TO_POINTER (key_dialog_reset_count (table, key) + 1));
+}
+
+static void
+key_dialog_reset (GtkWidget *wid, gpointer userdata)
+{
+	GtkListStore *store = GTK_LIST_STORE (get_store ());
+	GtkListStore *custom_store;
+	GtkTreeIter iter, custom_iter;
+	GtkWidget *delete_button;
+	GHashTable *default_counts, *seen_counts;
+	GSList *list = NULL, *old_list, *default_iter;
+	struct key_binding *kb;
+	gboolean custom, keep;
+	char *key, *accel, *action, *data1, *data2, *signature;
+
+	if (key_load_kbs_from_buffer (g_strdup (default_kb_cfg), strlen (default_kb_cfg), &list) != 0)
+		return;
+
+	default_counts = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
+	seen_counts = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
+	for (default_iter = list; default_iter; default_iter = g_slist_next (default_iter))
+	{
+		kb = default_iter->data;
+		signature = key_binding_signature (key_actions[kb->action].name, kb->data1, kb->data2);
+		key_dialog_reset_increment (default_counts, signature);
+	}
+
+	custom_store = gtk_list_store_new (N_COLUMNS, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING,
+								G_TYPE_STRING, G_TYPE_STRING, G_TYPE_BOOLEAN);
+
+	if (gtk_tree_model_get_iter_first (GTK_TREE_MODEL (store), &iter))
+	{
+		do
+		{
+			gtk_tree_model_get (GTK_TREE_MODEL (store), &iter,
+								KEY_COLUMN, &key,
+								ACCEL_COLUMN, &accel,
+								ACTION_COLUMN, &action,
+								D1_COLUMN, &data1,
+								D2_COLUMN, &data2,
+								CUSTOM_COLUMN, &custom,
+								-1);
+			signature = key_binding_signature (action, data1, data2);
+			keep = custom || key_dialog_reset_count (seen_counts, signature) >= key_dialog_reset_count (default_counts, signature);
+			if (!custom)
+				key_dialog_reset_increment (seen_counts, g_strdup (signature));
+			if (keep)
+			{
+				gtk_list_store_append (custom_store, &custom_iter);
+				gtk_list_store_set (custom_store, &custom_iter,
+								KEY_COLUMN, key,
+								ACCEL_COLUMN, accel,
+								ACTION_COLUMN, action,
+								D1_COLUMN, data1,
+								D2_COLUMN, data2,
+								CUSTOM_COLUMN, TRUE,
+								-1);
+			}
+			g_free (signature);
+			g_free (key);
+			g_free (accel);
+			g_free (action);
+			g_free (data1);
+			g_free (data2);
+		}
+		while (gtk_tree_model_iter_next (GTK_TREE_MODEL (store), &iter));
+	}
+
+	old_list = keybind_list;
+	keybind_list = list;
+	gtk_list_store_clear (store);
+	key_dialog_load (store);
+	keybind_list = old_list;
+
+	if (gtk_tree_model_get_iter_first (GTK_TREE_MODEL (custom_store), &iter))
+	{
+		do
+		{
+			gtk_tree_model_get (GTK_TREE_MODEL (custom_store), &iter,
+								KEY_COLUMN, &key,
+								ACCEL_COLUMN, &accel,
+								ACTION_COLUMN, &action,
+								D1_COLUMN, &data1,
+								D2_COLUMN, &data2,
+								-1);
+			gtk_list_store_append (store, &custom_iter);
+			gtk_list_store_set (store, &custom_iter,
+							KEY_COLUMN, key,
+							ACCEL_COLUMN, accel,
+							ACTION_COLUMN, action,
+							D1_COLUMN, data1,
+							D2_COLUMN, data2,
+							CUSTOM_COLUMN, TRUE,
+							-1);
+			g_free (key);
+			g_free (accel);
+			g_free (action);
+			g_free (data1);
+			g_free (data2);
+		}
+		while (gtk_tree_model_iter_next (GTK_TREE_MODEL (custom_store), &iter));
+	}
+
+	delete_button = g_object_get_data (G_OBJECT (key_dialog), "delete_button");
+	if (delete_button)
+		gtk_widget_set_sensitive (delete_button, FALSE);
+	g_hash_table_destroy (default_counts);
+	g_hash_table_destroy (seen_counts);
+	g_object_unref (custom_store);
+	g_slist_free_full (list, key_free);
+}
+
 static void
 key_dialog_delete (GtkWidget *wid, gpointer userdata)
 {
@@ -1128,6 +1260,8 @@ key_dialog_show ()
 					NULL, _("Delete"));
 	g_object_set_data (G_OBJECT (key_dialog), "delete_button", delete_button);
 	gtk_widget_set_sensitive (delete_button, FALSE);
+	gtkutil_button (box, ICON_FKEYS_RESET, NULL, key_dialog_reset,
+					NULL, _("Reset"));
 	gtkutil_button (box, ICON_FKEYS_CANCEL, NULL, key_dialog_close,
 					NULL, _("Cancel"));
 	gtkutil_button (box, ICON_FKEYS_SAVE, NULL, key_dialog_save,
@@ -1235,41 +1369,14 @@ key_load_kbs_helper_mod (char *buf, GdkModifierType *out)
 }
 
 static int
-key_load_kbs (void)
+key_load_kbs_from_buffer (char *ibuf, off_t size, GSList **out_list)
 {
-	char *buf, *ibuf;
-	struct stat st;
+	char *buf;
 	struct key_binding *kb = NULL;
-	int fd, len, state = 0, pnt = 0;
+	int len, state = 0, pnt = 0;
 	guint keyval;
 	GdkModifierType mod = 0;
-	off_t size;
-
-	fd = zoitechat_open_file ("keybindings.conf", O_RDONLY, 0, 0);
-	if (fd < 0)
-	{
-		ibuf = g_strdup (default_kb_cfg);
-		size = strlen (default_kb_cfg);
-	}
-	else
-	{
-		if (fstat (fd, &st) != 0)
-		{
-			close (fd);
-			return 1;
-		}
-
-		ibuf = g_malloc(st.st_size);
-		read (fd, ibuf, st.st_size);
-		size = st.st_size;
-		close (fd);
-	}
-
-	if (keybind_list)
-	{
-		g_slist_free_full (keybind_list, key_free);
-		keybind_list = NULL;
-	}
+	GSList *list = NULL;
 
 	while (buf_get_line (ibuf, &buf, &pnt, size))
 	{		
@@ -1283,13 +1390,11 @@ key_load_kbs (void)
 		case KBSTATE_MOD:
 			kb = g_new0 (struct key_binding, 1);
 
-			/* New format */
 			if (strncmp (buf, "ACCEL=", 6) == 0)
 			{
 				buf += 6;
 
 				gtk_accelerator_parse (buf, &keyval, &mod);
-
 
 				kb->keyval = keyval;
 				kb->mod = key_modifier_get_valid (mod);
@@ -1313,6 +1418,8 @@ key_load_kbs (void)
 			if (keyval == 0)
 			{
 				g_free (ibuf);
+				key_free (kb);
+				g_slist_free_full (list, key_free);
 				return 2;
 			}
 
@@ -1329,6 +1436,8 @@ key_load_kbs (void)
 			if (kb->action == KEY_MAX_ACTIONS + 1)
 			{
 				g_free (ibuf);
+				key_free (kb);
+				g_slist_free_full (list, key_free);
 				return 3;
 			}
 
@@ -1346,6 +1455,8 @@ key_load_kbs (void)
 			if (buf[0] != 'D')
 			{
 				g_free (ibuf);
+				key_free (kb);
+				g_slist_free_full (list, key_free);
 				return 4;
 			}
 
@@ -1366,7 +1477,6 @@ key_load_kbs (void)
 			if (buf[2] == ':')
 			{
 				len = strlen (buf);
-				/* Add one for the NULL, subtract 3 for the "Dx:" */
 				len++;
 				len -= 3;
 				if (state == KBSTATE_DT1)
@@ -1389,7 +1499,8 @@ key_load_kbs (void)
 				continue;
 			} else
 			{
-				keybind_list = g_slist_append (keybind_list, kb);
+				list = g_slist_append (list, kb);
+				kb = NULL;
 
 				state = KBSTATE_MOD;
 			}
@@ -1398,12 +1509,54 @@ key_load_kbs (void)
 		}
 	}
 	g_free (ibuf);
+	*out_list = list;
 	return 0;
 
 corrupt_file:
 	g_free (ibuf);
-	g_free (kb);
+	key_free (kb);
+	g_slist_free_full (list, key_free);
 	return 5;
+}
+
+static int
+key_load_kbs (void)
+{
+	char *ibuf;
+	struct stat st;
+	int fd, result;
+	off_t size;
+	GSList *list = NULL;
+
+	fd = zoitechat_open_file ("keybindings.conf", O_RDONLY, 0, 0);
+	if (fd < 0)
+	{
+		ibuf = g_strdup (default_kb_cfg);
+		size = strlen (default_kb_cfg);
+	}
+	else
+	{
+		if (fstat (fd, &st) != 0)
+		{
+			close (fd);
+			return 1;
+		}
+
+		ibuf = g_malloc(st.st_size);
+		read (fd, ibuf, st.st_size);
+		size = st.st_size;
+		close (fd);
+	}
+
+	result = key_load_kbs_from_buffer (ibuf, size, &list);
+	if (result != 0)
+		return result;
+
+	if (keybind_list)
+		g_slist_free_full (keybind_list, key_free);
+	keybind_list = list;
+
+	return 0;
 }
 
 static int
