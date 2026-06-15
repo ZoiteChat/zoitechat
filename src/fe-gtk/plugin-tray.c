@@ -855,6 +855,7 @@ tray_toggle_visibility (gboolean force_hide)
 	static int maximized;
 	static int fullscreen;
 	GtkWindow *win;
+	WinStatus status;
 
 	if (!tray_backend_active)
 		return FALSE;
@@ -870,7 +871,9 @@ tray_toggle_visibility (gboolean force_hide)
 	if (!win)
 		return FALSE;
 
-	if (force_hide || gtk_widget_get_visible (GTK_WIDGET (win)))
+	status = tray_get_window_status ();
+
+	if (force_hide || status != WS_HIDDEN)
 	{
 		if (prefs.hex_gui_tray_away)
 			zoitechat_command (ph, "ALLSERV AWAY");
@@ -890,8 +893,8 @@ tray_toggle_visibility (gboolean force_hide)
 			gtk_window_maximize (win);
 		if (fullscreen)
 			gtk_window_fullscreen (win);
-		gtk_widget_show (GTK_WIDGET (win));
 		gtk_window_deiconify (win);
+		gtk_widget_show (GTK_WIDGET (win));
 		gtk_window_present (win);
 	}
 
