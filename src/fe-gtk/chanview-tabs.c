@@ -341,6 +341,7 @@ cv_tabs_init (chanview *cv)
 	GtkWidget *box;
 	GtkWidget *viewport;
 	GtkWidget *outer;
+	GtkWidget *tree;
 
 	if (cv->vertical)
 	{
@@ -384,6 +385,11 @@ cv_tabs_init (chanview *cv)
 	((tabview *)cv)->inner = box;
 	gtk_container_add (GTK_CONTAINER (viewport), box);
 	gtk_widget_show (box);
+
+	tree = gtk_tree_view_new_with_model (GTK_TREE_MODEL (cv->store));
+	gtk_widget_set_name (tree, "zoitechat-tree");
+	gtk_widget_set_no_show_all (tree, TRUE);
+	gtk_box_pack_start (GTK_BOX (outer), tree, 0, 0, 0);
 
 	gtk_container_add (GTK_CONTAINER (cv->box), outer);
 }
