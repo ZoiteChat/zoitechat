@@ -59,6 +59,7 @@ static GtkWidget *fishlim_key_entry;
 static GtkWidget *fishlim_mode_combo;
 static GtkWidget *fishlim_status_label;
 static GtkListStore *fishlim_store;
+static GtkWidget *fishlim_view;
 
 
 /**
@@ -533,16 +534,54 @@ static void fishlim_gui_set(GtkWidget *widget, gpointer data) {
     fishlim_gui_refresh();
 }
 
+static gboolean fishlim_gui_confirm_delete(const char *target) {
+    GtkWidget *dialog;
+    char *message;
+    gboolean confirmed;
+
+    message = g_strdup_printf("Delete the key for %s?", target);
+    dialog = gtk_message_dialog_new(GTK_WINDOW(fishlim_dialog), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_WARNING, GTK_BUTTONS_NONE, "%s", message);
+    gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(dialog), "This cannot be undone.");
+    gtk_dialog_add_buttons(GTK_DIALOG(dialog), "_Cancel", GTK_RESPONSE_CANCEL, "_Delete", GTK_RESPONSE_ACCEPT, NULL);
+    gtk_dialog_set_default_response(GTK_DIALOG(dialog), GTK_RESPONSE_CANCEL);
+    confirmed = gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT;
+    gtk_widget_destroy(dialog);
+    g_free(message);
+    return confirmed;
+}
+
+static char *fishlim_gui_selected_target(void) {
+    GtkTreeSelection *selection;
+    GtkTreeModel *model;
+    GtkTreeIter iter;
+    char *target = NULL;
+
+    if (!fishlim_view)
+        return NULL;
+
+    selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(fishlim_view));
+    if (gtk_tree_selection_get_selected(selection, &model, &iter))
+        gtk_tree_model_get(model, &iter, 0, &target, -1);
+
+    return target;
+}
+
 static void fishlim_gui_delete(GtkWidget *widget, gpointer data) {
-    const char *target = fishlim_gui_target();
+    char *selected = fishlim_gui_selected_target();
+    const char *target = selected ? selected : fishlim_gui_target();
 
     if (!target || !*target) {
         zoitechat_printf(ph, "%s\n", usage_delkey);
+        g_free(selected);
         return;
     }
 
-    zoitechat_commandf(ph, "DELKEY %s", target);
-    fishlim_gui_refresh();
+    if (fishlim_gui_confirm_delete(target)) {
+        zoitechat_commandf(ph, "DELKEY %s", target);
+        fishlim_gui_refresh();
+    }
+
+    g_free(selected);
 }
 
 static char *fishlim_gui_prompt_target(const char *title, const char *initial) {
@@ -607,6 +646,7 @@ static void fishlim_gui_destroy(GtkWidget *widget, gpointer data) {
     fishlim_mode_combo = NULL;
     fishlim_status_label = NULL;
     fishlim_store = NULL;
+    fishlim_view = NULL;
 }
 
 static int handle_fishlim(char *word[], char *word_eol[], void *userdata) {
@@ -647,15 +687,16 @@ static int handle_fishlim(char *word[], char *word_eol[], void *userdata) {
     gtk_combo_box_set_active(GTK_COMBO_BOX(fishlim_mode_combo), 1);
     gtk_grid_attach(GTK_GRID(grid), gtk_label_new("Mode"), 0, 1, 1, 1);
     gtk_grid_attach(GTK_GRID(grid), fishlim_mode_combo, 1, 1, 2, 1);
+    gtk_grid_attach(GTK_GRID(grid), gtk_label_new("CBC may not work with older clients."), 1, 2, 2, 1);
 
     fishlim_key_entry = gtk_entry_new();
     gtk_entry_set_visibility(GTK_ENTRY(fishlim_key_entry), FALSE);
-    gtk_grid_attach(GTK_GRID(grid), gtk_label_new("Key"), 0, 2, 1, 1);
-    gtk_grid_attach(GTK_GRID(grid), fishlim_key_entry, 1, 2, 2, 1);
+    gtk_grid_attach(GTK_GRID(grid), gtk_label_new("Key"), 0, 3, 1, 1);
+    gtk_grid_attach(GTK_GRID(grid), fishlim_key_entry, 1, 3, 2, 1);
 
     buttons = gtk_button_box_new(GTK_ORIENTATION_HORIZONTAL);
     gtk_button_box_set_layout(GTK_BUTTON_BOX(buttons), GTK_BUTTONBOX_END);
-    gtk_grid_attach(GTK_GRID(grid), buttons, 0, 3, 3, 1);
+    gtk_grid_attach(GTK_GRID(grid), buttons, 0, 4, 3, 1);
 
     button = gtk_button_new_with_label("Set Key");
     g_signal_connect(button, "clicked", G_CALLBACK(fishlim_gui_set), NULL);
@@ -671,10 +712,11 @@ static int handle_fishlim(char *word[], char *word_eol[], void *userdata) {
 
     fishlim_status_label = gtk_label_new(NULL);
     gtk_label_set_xalign(GTK_LABEL(fishlim_status_label), 0.0);
-    gtk_grid_attach(GTK_GRID(grid), fishlim_status_label, 0, 4, 3, 1);
+    gtk_grid_attach(GTK_GRID(grid), fishlim_status_label, 0, 5, 3, 1);
 
     fishlim_store = gtk_list_store_new(3, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING);
     view = gtk_tree_view_new_with_model(GTK_TREE_MODEL(fishlim_store));
+    fishlim_view = view;
     renderer = gtk_cell_renderer_text_new();
     gtk_tree_view_insert_column_with_attributes(GTK_TREE_VIEW(view), -1, "Target", renderer, "text", 0, NULL);
     renderer = gtk_cell_renderer_text_new();
@@ -686,7 +728,7 @@ static int handle_fishlim(char *word[], char *word_eol[], void *userdata) {
     scroll = gtk_scrolled_window_new(NULL, NULL);
     gtk_widget_set_vexpand(scroll, TRUE);
     gtk_container_add(GTK_CONTAINER(scroll), view);
-    gtk_grid_attach(GTK_GRID(grid), scroll, 0, 5, 3, 1);
+    gtk_grid_attach(GTK_GRID(grid), scroll, 0, 6, 3, 1);
 
     g_signal_connect(fishlim_target_entry, "changed", G_CALLBACK(fishlim_gui_refresh_cb), NULL);
     fishlim_gui_refresh();
@@ -730,6 +772,8 @@ static int handle_setkey(char *word[], char *word_eol[], void *userdata) {
     /* Set password */
     if (keystore_store_key(nick, key, mode)) {
         zoitechat_printf(ph, "Stored key for %s (%s)\n", nick, fish_modes[mode]);
+        if (mode == FISH_CBC_MODE)
+            zoitechat_printf(ph, "Warning: CBC may not work with older clients.\n");
     } else {
         zoitechat_printf(ph, "\00305Failed to store key in addon_fishlim.conf\n");
     }
@@ -807,6 +851,8 @@ static int handle_keyx(char *word[], char *word_eol[], void *userdata) {
 
         zoitechat_commandf(ph, "quote NOTICE %s :DH1080_INIT %s%s", target, pub_key, (mode == FISH_CBC_MODE) ? " CBC" : "");
         zoitechat_printf(ph, "Sent public key to %s (%s), waiting for reply...", target, fish_modes[mode]);
+        if (mode == FISH_CBC_MODE)
+            zoitechat_printf(ph, "Warning: CBC may not work with older clients.");
 
         g_free(pub_key);
     } else {
