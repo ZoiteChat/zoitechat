@@ -33,6 +33,7 @@
 char *keystore_get_key(const char *nick, enum fish_mode *mode);
 gboolean keystore_store_key(const char *nick, const char *key, enum fish_mode mode);
 gboolean keystore_delete_nick(const char *nick);
+gchar **keystore_get_targets(gsize *length);
 
 #endif
 

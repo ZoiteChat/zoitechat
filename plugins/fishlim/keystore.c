@@ -194,6 +194,18 @@ static gboolean keyfile_save_to_file (GKeyFile *keyfile, char *filename) {
 }
 #endif
 
+
+gchar **keystore_get_targets(gsize *length) {
+    GKeyFile *keyfile;
+    gchar **groups;
+
+    keyfile = getConfigFile();
+    groups = g_key_file_get_groups(keyfile, length);
+    g_key_file_free(keyfile);
+
+    return groups;
+}
+
 /**
  * Writes the key store file to disk.
  */
@@ -217,6 +229,7 @@ G_GNUC_END_IGNORE_DEPRECATIONS
 /**
  * Sets a key in the key store file.
  */
+
 gboolean keystore_store_key(const char *nick, const char *key, enum fish_mode mode) {
     const char *password;
     char *encrypted;
