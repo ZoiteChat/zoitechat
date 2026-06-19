@@ -16,7 +16,8 @@ BuildRequires:  perl-devel
 BuildRequires:  python3
 BuildRequires:  python3-cffi
 BuildRequires:  publicsuffix-list
-BuildRequires:  xorg-x11-server-Xvfb
+BuildRequires:  xwayland-run
+BuildRequires:  weston
 BuildRequires:  pkgconfig(ayatana-appindicator3-0.1)
 BuildRequires:  pkgconfig(dbus-glib-1)
 BuildRequires:  pkgconfig(gio-2.0) >= 2.36.0
@@ -70,7 +71,7 @@ desktop-file-validate %{buildroot}%{_datadir}/applications/net.zoite.Zoitechat.d
 appstream-util validate-relax --nonet %{buildroot}%{_datadir}/metainfo/net.zoite.Zoitechat.appdata.xml
 appstream-util validate-relax --nonet %{buildroot}%{_datadir}/metainfo/net.zoite.Zoitechat*.metainfo.xml
 
-xvfb-run -a /usr/bin/meson test -C %{_vpath_builddir} --num-processes %{_smp_build_ncpus} --print-errorlogs \
+xwfb-run -- /usr/bin/meson test -C %{_vpath_builddir} --num-processes %{_smp_build_ncpus} --print-errorlogs \
   "Theme Manager Dispatch Routing Tests" \
   "Validate net.zoite.Zoitechat.desktop" \
   "Theme GTK3 Settings Tests" \

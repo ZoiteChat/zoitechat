@@ -35,6 +35,7 @@ struct zoitechatprefs prefs;
 
 static gboolean gtk_available;
 static char *temp_root;
+static char *xdg_data_home;
 static char *theme_parent_root;
 static char *theme_child_root;
 static char *theme_switch_root;
@@ -205,6 +206,10 @@ setup_themes (void)
 
 	temp_root = g_dir_make_tmp ("zoitechat-theme-gtk3-settings-XXXXXX", NULL);
 	g_assert_nonnull (temp_root);
+	xdg_data_home = g_build_filename (temp_root, "data", NULL);
+	g_assert_cmpint (g_mkdir_with_parents (xdg_data_home, 0700), ==, 0);
+	g_setenv ("XDG_DATA_HOME", xdg_data_home, TRUE);
+
 	theme_parent_root = g_build_filename (temp_root, "parent", NULL);
 	theme_child_root = g_build_filename (temp_root, "child", NULL);
 	theme_switch_root = g_build_filename (temp_root, "switch", NULL);
@@ -253,10 +258,12 @@ teardown_themes (void)
 	g_free (theme_parent_root);
 	g_free (theme_child_root);
 	g_free (theme_switch_root);
+	g_free (xdg_data_home);
 	g_free (temp_root);
 	theme_parent_root = NULL;
 	theme_child_root = NULL;
 	theme_switch_root = NULL;
+	xdg_data_home = NULL;
 	temp_root = NULL;
 }
 
@@ -328,8 +335,8 @@ main (int argc, char **argv)
 	int rc;
 
 	g_test_init (&argc, &argv, NULL);
-	gtk_available = gtk_init_check (&argc, &argv);
 	setup_themes ();
+	gtk_available = gtk_init_check (&argc, &argv);
 
 	g_test_add_func ("/theme/gtk3/settings_layer_precedence", test_settings_layer_precedence);
 	g_test_add_func ("/theme/gtk3/settings_restored_on_disable_and_switch", test_settings_restored_on_disable_and_switch);
