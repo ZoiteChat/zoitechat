@@ -26,7 +26,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <PreprocessorDefinitions>WIN32;_WIN64;_AMD64_;NDEBUG;_WINDOWS;_USRDLL;FISHLIM_EXPORTS;HAVE_DH_SET0_PQG;HAVE_DH_GET0_KEY;HAVE_DH_SET0_KEY;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(DepsRoot)\include;$(OpenSslInclude);$(Glib);..\..\src\common;$(ZoiteChatLib);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(DepsRoot)\include;$(OpenSslInclude);$(Glib);$(Gtk);..\..\src\common;$(ZoiteChatLib);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <ModuleDefinitionFile>fishlim.def</ModuleDefinitionFile>
