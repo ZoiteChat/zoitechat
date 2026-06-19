@@ -1090,13 +1090,19 @@ clients_find_filename_foreach (gpointer key,
 			       gpointer user_data)
 {
 	RemoteObject *obj = value;
-	return g_str_equal (obj->filename, (char *)user_data);
+
+	return obj->filename != NULL && g_str_equal (obj->filename, user_data);
 }
 
 static int
 unload_plugin_cb (char *word[], char *word_eol[], void *userdata)
 {
-	RemoteObject *obj = g_hash_table_find (clients, clients_find_filename_foreach, word[2]);
+	RemoteObject *obj;
+
+	if (word[2][0] == 0)
+		return ZOITECHAT_EAT_NONE;
+
+	obj = g_hash_table_find (clients, clients_find_filename_foreach, word[2]);
 
 	if (obj != NULL)
 	{
