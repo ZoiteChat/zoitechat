@@ -3042,7 +3042,7 @@ mg_create_chanmodebuttons (session_gui *gui, GtkWidget *box)
         gui->key_entry = gtk_entry_new ();
         gtk_widget_set_name (gui->key_entry, "zoitechat-inputbox");
         gtk_entry_set_max_length (GTK_ENTRY (gui->key_entry), 23);
-        gtk_widget_set_size_request (gui->key_entry, 115, 11);
+        gtk_widget_set_size_request (gui->key_entry, 58, 11);
         gtk_box_pack_start (GTK_BOX (box), gui->key_entry, 0, 0, 0);
         mg_apply_emoji_fallback_widget (gui->key_entry);
         mg_apply_compact_mode_css (gui->key_entry);
@@ -3059,7 +3059,8 @@ mg_create_chanmodebuttons (session_gui *gui, GtkWidget *box)
         gui->limit_entry = gtk_entry_new ();
         gtk_widget_set_name (gui->limit_entry, "zoitechat-inputbox");
         gtk_entry_set_max_length (GTK_ENTRY (gui->limit_entry), 10);
-        gtk_widget_set_size_request (gui->limit_entry, 30, 11);
+	gtk_entry_set_width_chars (GTK_ENTRY (gui->limit_entry), 5);
+        gtk_widget_set_size_request (gui->limit_entry, 45, 11);
         gtk_box_pack_start (GTK_BOX (box), gui->limit_entry, 0, 0, 0);
         mg_apply_emoji_fallback_widget (gui->limit_entry);
         mg_apply_compact_mode_css (gui->limit_entry);
@@ -3193,8 +3194,11 @@ mg_topicbar_update_height (GtkWidget *topic)
 	width -= margin_left + margin_right;
 	if (width < 1)
 		width = 1;
-	pango_layout_set_width (layout, width * PANGO_SCALE);
-	pango_layout_set_wrap (layout, PANGO_WRAP_WORD_CHAR);
+	if (prefs.hex_gui_topicbar_multiline && !prefs.hex_gui_mode_buttons_inline)
+	{
+		pango_layout_set_width (layout, width * PANGO_SCALE);
+		pango_layout_set_wrap (layout, PANGO_WRAP_WORD_CHAR);
+	}
 
 	context = gtk_widget_get_pango_context (topic);
 	metrics = pango_context_get_metrics (context,
@@ -3206,7 +3210,8 @@ mg_topicbar_update_height (GtkWidget *topic)
 	if (line_height <= 0)
 		line_height = 16;
 
-	line_count = pango_layout_get_line_count (layout);
+	line_count = prefs.hex_gui_topicbar_multiline && !prefs.hex_gui_mode_buttons_inline ?
+		pango_layout_get_line_count (layout) : 1;
 	if (line_count <= 0)
 		line_count = 1;
 
@@ -3328,7 +3333,7 @@ mg_apply_session_font_prefs (session_gui *gui)
 static void
 mg_create_topicbar (session *sess, GtkWidget *box)
 {
-	GtkWidget *vbox, *hbox, *mode_hbox, *topic, *bbox;
+	GtkWidget *vbox, *hbox, *mode_hbox, *topic, *topic_scroll, *bbox;
 	session_gui *gui = sess->gui;
 
 	gui->topic_bar = vbox = mg_box_new (GTK_ORIENTATION_VERTICAL, FALSE, 0);
@@ -3342,7 +3347,9 @@ mg_create_topicbar (session *sess, GtkWidget *box)
 
         gui->topic_entry = topic = gtk_text_view_new ();
         gtk_widget_set_name (topic, "zoitechat-topicbox");
-        gtk_text_view_set_wrap_mode (GTK_TEXT_VIEW (topic), GTK_WRAP_WORD_CHAR);
+        gtk_text_view_set_wrap_mode (GTK_TEXT_VIEW (topic),
+		prefs.hex_gui_topicbar_multiline && !prefs.hex_gui_mode_buttons_inline ?
+		GTK_WRAP_WORD_CHAR : GTK_WRAP_NONE);
         gtk_text_view_set_left_margin (GTK_TEXT_VIEW (topic), 4);
         gtk_text_view_set_right_margin (GTK_TEXT_VIEW (topic), 4);
         gtk_text_view_set_top_margin (GTK_TEXT_VIEW (topic), 4);
@@ -3355,8 +3362,17 @@ mg_create_topicbar (session *sess, GtkWidget *box)
                                                         G_CALLBACK (mg_topicbar_buffer_changed_cb), topic);
         g_signal_connect (G_OBJECT (topic), "size-allocate",
                                                         G_CALLBACK (mg_topicbar_size_allocate_cb), NULL);
+        topic_scroll = gtk_scrolled_window_new (NULL, NULL);
+	gtk_widget_set_hexpand (topic_scroll, TRUE);
+	gtk_widget_set_size_request (topic_scroll, 1, -1);
+	gtk_widget_set_size_request (topic, 1, -1);
+	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (topic_scroll),
+		GTK_POLICY_EXTERNAL, GTK_POLICY_NEVER);
+	gtk_scrolled_window_set_propagate_natural_width (GTK_SCROLLED_WINDOW (topic_scroll), FALSE);
+	gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (topic_scroll), GTK_SHADOW_NONE);
+	gtk_container_add (GTK_CONTAINER (topic_scroll), topic);
         mg_topicbar_update_height (topic);
-        gtk_box_pack_start (GTK_BOX (hbox), topic, TRUE, TRUE, 0);
+        gtk_box_pack_start (GTK_BOX (hbox), topic_scroll, TRUE, TRUE, 0);
         gtk_widget_add_events (topic, GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK |
                                       GDK_POINTER_MOTION_MASK | GDK_LEAVE_NOTIFY_MASK);
         g_signal_connect (G_OBJECT (topic), "key-press-event",
@@ -3373,9 +3389,13 @@ mg_create_topicbar (session *sess, GtkWidget *box)
 	mg_create_dialogbuttons (bbox);
 
 	mode_hbox = mg_box_new (GTK_ORIENTATION_HORIZONTAL, FALSE, 0);
-	gtk_box_pack_start (GTK_BOX (vbox), mode_hbox, 0, 0, 0);
+	if (prefs.hex_gui_mode_buttons_inline)
+		gtk_box_pack_start (GTK_BOX (hbox), mode_hbox, 0, 0, 0);
+	else
+		gtk_box_pack_start (GTK_BOX (vbox), mode_hbox, 0, 0, 0);
 
 	gui->topicbutton_box = bbox = mg_box_new (GTK_ORIENTATION_HORIZONTAL, FALSE, 0);
+	gtk_widget_set_valign (bbox, GTK_ALIGN_CENTER);
 	gtk_box_pack_end (GTK_BOX (mode_hbox), bbox, 0, 0, 0);
 	mg_create_chanmodebuttons (gui, bbox);
 }
