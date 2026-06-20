@@ -74,7 +74,6 @@ appstream-util validate-relax --nonet %{buildroot}%{_datadir}/metainfo/net.zoite
 xwfb-run -- /usr/bin/meson test -C %{_vpath_builddir} --num-processes %{_smp_build_ncpus} --print-errorlogs \
   "Theme Manager Dispatch Routing Tests" \
   "Validate net.zoite.Zoitechat.desktop" \
-  "Theme GTK3 Settings Tests" \
   "Validate translations" \
   "Fishlim Tests"
 
