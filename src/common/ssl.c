@@ -350,13 +350,12 @@ _SSL_close (SSL * ssl)
 {
 	SSL_set_shutdown (ssl, SSL_SENT_SHUTDOWN | SSL_RECEIVED_SHUTDOWN);
 	SSL_free (ssl);
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
 #ifdef HAVE_ERR_REMOVE_THREAD_STATE
-#if OPENSSL_VERSION_NUMBER >= 0x10000000L && OPENSSL_VERSION_NUMBER < 0x10100000L
-	/* OpenSSL handles this itself in 1.1+ and this is a no-op */
 	ERR_remove_thread_state (NULL);
-#endif
 #else
 	ERR_remove_state (0);
+#endif
 #endif
 }
 
