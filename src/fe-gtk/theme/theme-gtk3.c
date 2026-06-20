@@ -135,7 +135,11 @@ settings_defaults_table (void)
 static void
 settings_rescan_icon_theme (void)
 {
+	GdkScreen *screen = gdk_screen_get_default ();
 	GtkIconTheme *icon_theme;
+
+	if (!screen)
+		return;
 
 	icon_theme = gtk_icon_theme_get_default ();
 	if (!icon_theme)
@@ -156,8 +160,13 @@ theme_gtk3_reset_widgets (void)
 static void
 settings_capture_icon_search_path (void)
 {
-	GtkIconTheme *icon_theme = gtk_icon_theme_get_default ();
+	GdkScreen *screen = gdk_screen_get_default ();
+	GtkIconTheme *icon_theme;
 
+	if (!screen)
+		return;
+
+	icon_theme = gtk_icon_theme_get_default ();
 	if (!icon_theme || theme_gtk3_settings_state.icon_search_path_captured)
 		return;
 
@@ -168,8 +177,13 @@ settings_capture_icon_search_path (void)
 static void
 settings_append_icon_search_path (const char *path)
 {
-	GtkIconTheme *icon_theme = gtk_icon_theme_get_default ();
+	GdkScreen *screen = gdk_screen_get_default ();
+	GtkIconTheme *icon_theme;
 
+	if (!screen)
+		return;
+
+	icon_theme = gtk_icon_theme_get_default ();
 	if (!icon_theme || !path || !g_file_test (path, G_FILE_TEST_IS_DIR))
 		return;
 
@@ -199,8 +213,13 @@ settings_apply_icon_paths (const char *theme_root)
 static void
 settings_restore_icon_search_path (void)
 {
-	GtkIconTheme *icon_theme = gtk_icon_theme_get_default ();
+	GdkScreen *screen = gdk_screen_get_default ();
+	GtkIconTheme *icon_theme;
 
+	if (!screen)
+		return;
+
+	icon_theme = gtk_icon_theme_get_default ();
 	if (!icon_theme || !theme_gtk3_settings_state.icon_search_path_captured)
 		return;
 
@@ -394,6 +413,14 @@ settings_theme_link_search_path (const char *theme_root, const char *theme_name)
 	return ok;
 }
 
+static gboolean
+settings_default_seat_available (void)
+{
+	GdkDisplay *display = gdk_display_get_default ();
+
+	return display && GDK_IS_SEAT (gdk_display_get_default_seat (display));
+}
+
 static void
 settings_apply_theme_name (const char *theme_root)
 {
@@ -404,7 +431,7 @@ settings_apply_theme_name (const char *theme_root)
 		return;
 
 	settings = gtk_settings_get_default ();
-	if (!settings)
+	if (!settings || !settings_default_seat_available ())
 		return;
 
 	theme_name = g_path_get_basename (theme_root);

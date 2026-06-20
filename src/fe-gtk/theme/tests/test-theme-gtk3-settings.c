@@ -199,6 +199,14 @@ get_int_setting (const char *name)
 	return value;
 }
 
+static gboolean
+has_default_seat (void)
+{
+	GdkDisplay *display = gdk_display_get_default ();
+
+	return display && GDK_IS_SEAT (gdk_display_get_default_seat (display));
+}
+
 static void
 setup_themes (void)
 {
@@ -309,10 +317,13 @@ test_settings_restored_on_disable_and_switch (void)
 	g_assert_true (theme_gtk3_apply ("layered", THEME_GTK3_VARIANT_PREFER_LIGHT, &error));
 	g_assert_no_error (error);
 	g_assert_cmpint (get_int_setting ("gtk-cursor-blink-time"), ==, 333);
-	g_object_get (gtk_settings_get_default (), "gtk-theme-name", &active_theme_name, NULL);
-	g_assert_cmpstr (active_theme_name, ==, "child");
-	g_free (active_theme_name);
-	active_theme_name = NULL;
+	if (has_default_seat ())
+	{
+		g_object_get (gtk_settings_get_default (), "gtk-theme-name", &active_theme_name, NULL);
+		g_assert_cmpstr (active_theme_name, ==, "child");
+		g_free (active_theme_name);
+		active_theme_name = NULL;
+	}
 
 	g_assert_true (theme_gtk3_apply ("switch", THEME_GTK3_VARIANT_PREFER_LIGHT, &error));
 	g_assert_no_error (error);
@@ -322,9 +333,12 @@ test_settings_restored_on_disable_and_switch (void)
 	theme_gtk3_disable ();
 	g_assert_cmpint (get_int_setting ("gtk-cursor-blink-time"), ==, default_blink);
 	g_assert_cmpint (get_bool_setting ("gtk-enable-animations"), ==, default_animations);
-	g_object_get (gtk_settings_get_default (), "gtk-theme-name", &active_theme_name, NULL);
-	g_assert_cmpstr (active_theme_name, ==, default_theme_name);
-	g_free (active_theme_name);
+	if (has_default_seat ())
+	{
+		g_object_get (gtk_settings_get_default (), "gtk-theme-name", &active_theme_name, NULL);
+		g_assert_cmpstr (active_theme_name, ==, default_theme_name);
+		g_free (active_theme_name);
+	}
 	g_free (default_theme_name);
 	g_assert_false (theme_gtk3_is_active ());
 }
