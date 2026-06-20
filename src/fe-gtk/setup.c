@@ -186,6 +186,10 @@ static const setting appearance_settings[] =
         {ST_TOGGLR, N_("Show number of users"), P_OFFINTNL(hex_gui_win_ucount),0,0,0},
         {ST_TOGGLE, N_("Show nickname"), P_OFFINTNL(hex_gui_win_nick),0,0,0},
 
+        {ST_HEADER,     N_("Topic Bar"),0,0,0},
+        {ST_TOGGLE, N_("Place mode buttons beside the topic"), P_OFFINTNL(hex_gui_mode_buttons_inline), 0, 0, 0},
+        {ST_TOGGLE, N_("Allow multi-line topics"), P_OFFINTNL(hex_gui_topicbar_multiline), 0, 0, 0},
+
         {ST_END, 0, 0, 0, 0, 0}
 };
 
@@ -275,8 +279,6 @@ static const setting userlist_settings[] =
         {ST_TOGGLE, N_("Show icons for user modes"), P_OFFINTNL(hex_gui_ulist_icons), N_("Use graphical icons instead of text symbols in the user list."), 0, 0},
         {ST_TOGGLE, N_("Color nicknames in userlist"), P_OFFINTNL(hex_gui_ulist_color), N_("Will color nicknames the same as in chat."), 0, 0},
         {ST_TOGGLE, N_("Show user count in channels"), P_OFFINTNL(hex_gui_ulist_count), 0, 0, 0},
-	{ST_TOGGLE, N_("Place mode buttons beside the topic"), P_OFFINTNL(hex_gui_mode_buttons_inline), 0, 0, 0},
-	{ST_TOGGLE, N_("Allow multi-line topics"), P_OFFINTNL(hex_gui_topicbar_multiline), 0, 0, 0},
         {ST_MENU,       N_("User list sorted by:"), P_OFFINTNL(hex_gui_ulist_sort), 0, ulmenutext, 0},
         {ST_MENU,       N_("Show user list at:"), P_OFFINTNL(hex_gui_ulist_pos), 0, ulpos, 1},
 
