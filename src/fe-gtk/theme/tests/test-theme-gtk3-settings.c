@@ -34,11 +34,17 @@ struct session *lastact_sess;
 struct zoitechatprefs prefs;
 
 static gboolean gtk_available;
+static gboolean gtk_has_default_seat;
 static char *temp_root;
 static char *xdg_data_home;
+static char *themes_root;
 static char *theme_parent_root;
 static char *theme_child_root;
 static char *theme_switch_root;
+
+static const char *theme_parent_name = "zoitechat-test-parent";
+static const char *theme_child_name = "zoitechat-test-child";
+static const char *theme_switch_name = "zoitechat-test-switch";
 
 gboolean
 theme_policy_system_prefers_dark (void)
@@ -182,6 +188,20 @@ zoitechat_gtk3_theme_build_inheritance_chain (const char *theme_root)
 }
 
 static gboolean
+test_display_has_default_seat (void)
+{
+	GdkDisplay *display;
+	GdkSeat *seat;
+
+	display = gdk_display_get_default ();
+	if (!GDK_IS_DISPLAY (display))
+		return FALSE;
+
+	seat = gdk_display_get_default_seat (display);
+	return GDK_IS_SEAT (seat);
+}
+
+static gboolean
 get_bool_setting (const char *name)
 {
 	GtkSettings *settings = gtk_settings_get_default ();
@@ -215,12 +235,16 @@ setup_themes (void)
 	temp_root = g_dir_make_tmp ("zoitechat-theme-gtk3-settings-XXXXXX", NULL);
 	g_assert_nonnull (temp_root);
 	xdg_data_home = g_build_filename (temp_root, "data", NULL);
-	g_assert_cmpint (g_mkdir_with_parents (xdg_data_home, 0700), ==, 0);
+	themes_root = g_build_filename (xdg_data_home, "themes", NULL);
+	g_assert_cmpint (g_mkdir_with_parents (themes_root, 0700), ==, 0);
 	g_setenv ("XDG_DATA_HOME", xdg_data_home, TRUE);
+	g_setenv ("GSETTINGS_BACKEND", "memory", TRUE);
+	g_setenv ("NO_AT_BRIDGE", "1", TRUE);
+	g_unsetenv ("GTK_THEME");
 
-	theme_parent_root = g_build_filename (temp_root, "parent", NULL);
-	theme_child_root = g_build_filename (temp_root, "child", NULL);
-	theme_switch_root = g_build_filename (temp_root, "switch", NULL);
+	theme_parent_root = g_build_filename (themes_root, theme_parent_name, NULL);
+	theme_child_root = g_build_filename (themes_root, theme_child_name, NULL);
+	theme_switch_root = g_build_filename (themes_root, theme_switch_name, NULL);
 	g_assert_cmpint (g_mkdir_with_parents (theme_parent_root, 0700), ==, 0);
 	g_assert_cmpint (g_mkdir_with_parents (theme_child_root, 0700), ==, 0);
 	g_assert_cmpint (g_mkdir_with_parents (theme_switch_root, 0700), ==, 0);
@@ -248,13 +272,13 @@ setup_themes (void)
 		"gtk-cursor-blink-time=444\n");
 
 	path = g_build_filename (theme_parent_root, "index.theme", NULL);
-	write_file (path, "[Desktop Entry]\nName=parent\n");
+	write_file (path, "[Desktop Entry]\nName=zoitechat-test-parent\n");
 	g_free (path);
 	path = g_build_filename (theme_child_root, "index.theme", NULL);
-	write_file (path, "[Desktop Entry]\nName=child\nInherits=parent\n");
+	write_file (path, "[Desktop Entry]\nName=zoitechat-test-child\nInherits=zoitechat-test-parent\n");
 	g_free (path);
 	path = g_build_filename (theme_switch_root, "index.theme", NULL);
-	write_file (path, "[Desktop Entry]\nName=switch\n");
+	write_file (path, "[Desktop Entry]\nName=zoitechat-test-switch\n");
 	g_free (path);
 }
 
@@ -266,11 +290,13 @@ teardown_themes (void)
 	g_free (theme_parent_root);
 	g_free (theme_child_root);
 	g_free (theme_switch_root);
+	g_free (themes_root);
 	g_free (xdg_data_home);
 	g_free (temp_root);
 	theme_parent_root = NULL;
 	theme_child_root = NULL;
 	theme_switch_root = NULL;
+	themes_root = NULL;
 	xdg_data_home = NULL;
 	temp_root = NULL;
 }
@@ -351,6 +377,7 @@ main (int argc, char **argv)
 	g_test_init (&argc, &argv, NULL);
 	setup_themes ();
 	gtk_available = gtk_init_check (&argc, &argv);
+	gtk_has_default_seat = gtk_available && test_display_has_default_seat ();
 
 	g_test_add_func ("/theme/gtk3/settings_layer_precedence", test_settings_layer_precedence);
 	g_test_add_func ("/theme/gtk3/settings_restored_on_disable_and_switch", test_settings_restored_on_disable_and_switch);
@@ -359,6 +386,8 @@ main (int argc, char **argv)
 
 	if (!gtk_available)
 		g_test_message ("Skipping GTK3 settings tests because GTK initialization failed");
+	else if (!gtk_has_default_seat)
+		g_test_message ("Skipping gtk-theme-name assertions because GTK display has no default GdkSeat");
 
 	rc = g_test_run ();
 	theme_gtk3_disable ();

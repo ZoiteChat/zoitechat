@@ -151,8 +151,12 @@ settings_rescan_icon_theme (void)
 static void
 theme_gtk3_reset_widgets (void)
 {
-	GdkScreen *screen = gdk_screen_get_default ();
+	GdkScreen *screen;
 
+	if (!theme_gtk3_display_has_default_seat ())
+		return;
+
+	screen = gdk_screen_get_default ();
 	if (screen)
 		gtk_style_context_reset_widgets (screen);
 }
@@ -428,6 +432,9 @@ settings_apply_theme_name (const char *theme_root)
 	char *theme_name;
 
 	if (!theme_root)
+		return;
+
+	if (!theme_gtk3_display_has_default_seat ())
 		return;
 
 	settings = gtk_settings_get_default ();
@@ -760,8 +767,11 @@ settings_apply_from_file (const char *theme_root, const char *css_dir)
 static void
 theme_gtk3_remove_provider (void)
 {
-	GdkScreen *screen = gdk_screen_get_default ();
+	GdkScreen *screen = NULL;
 	guint i;
+
+	if (theme_gtk3_display_has_default_seat ())
+		screen = gdk_screen_get_default ();
 
 	if (screen && theme_gtk3_providers_variant)
 	{
@@ -817,7 +827,10 @@ load_css_with_variant (ZoitechatGtk3Theme *theme, ThemeGtk3Variant variant, GErr
 	theme_gtk3_providers_base = g_ptr_array_new_with_free_func (g_object_unref);
 	theme_gtk3_providers_variant = g_ptr_array_new_with_free_func (g_object_unref);
 
-	screen = gdk_screen_get_default ();
+	screen = NULL;
+	if (theme_gtk3_display_has_default_seat ())
+		screen = gdk_screen_get_default ();
+
 	for (i = 0; i < chain->len; i++)
 	{
 		const char *theme_root = g_ptr_array_index (chain, i);
