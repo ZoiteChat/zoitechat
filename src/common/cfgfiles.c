@@ -428,6 +428,7 @@ const struct prefs vars[] =
 	{"gui_lagometer", P_OFFINT (hex_gui_lagometer), TYPE_INT},
 	{"gui_lang", P_OFFINT (hex_gui_lang), TYPE_INT},
 	{"gui_mode_buttons", P_OFFINT (hex_gui_mode_buttons), TYPE_BOOL},
+	{"gui_mode_buttons_inline", P_OFFINT (hex_gui_mode_buttons_inline), TYPE_BOOL},
 	{"gui_pane_divider_position", P_OFFINT (hex_gui_pane_divider_position), TYPE_INT},
 	{"gui_pane_left_size", P_OFFINT (hex_gui_pane_left_size), TYPE_INT},
 	{"gui_pane_right_size", P_OFFINT (hex_gui_pane_right_size), TYPE_INT},
@@ -458,6 +459,7 @@ const struct prefs vars[] =
 	{"gui_tab_utils", P_OFFINT (hex_gui_tab_utils), TYPE_BOOL},
 	{"gui_throttlemeter", P_OFFINT (hex_gui_throttlemeter), TYPE_INT},
 	{"gui_topicbar", P_OFFINT (hex_gui_topicbar), TYPE_BOOL},
+	{"gui_topicbar_multiline", P_OFFINT (hex_gui_topicbar_multiline), TYPE_BOOL},
 	{"gui_transparency", P_OFFINT (hex_gui_transparency), TYPE_INT},
 	{"gui_tray", P_OFFINT (hex_gui_tray), TYPE_BOOL},
 	{"gui_tray_away", P_OFFINT (hex_gui_tray_away), TYPE_BOOL},
@@ -791,6 +793,7 @@ load_default_config(void)
 	prefs.hex_gui_tab_scrollchans = 1;
 	prefs.hex_gui_mouse_scroll_speed = 10;
 	prefs.hex_gui_topicbar = 1;
+	prefs.hex_gui_topicbar_multiline = 1;
 	prefs.hex_gui_transparency = 255;
 	prefs.hex_gui_tray = 1;
 	prefs.hex_gui_tray_blink = 1;

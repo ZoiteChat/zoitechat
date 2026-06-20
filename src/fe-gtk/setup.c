@@ -58,6 +58,7 @@ static gboolean color_change;
 static struct zoitechatprefs setup_prefs;
 static GtkWidget *cancel_button;
 static GtkWidget *font_dialog = NULL;
+static GtkWidget *setup_topicbar_multiline_toggle = NULL;
 
 enum
 {
@@ -184,6 +185,10 @@ static const setting appearance_settings[] =
         {ST_TOGGLE, N_("Show channel modes"), P_OFFINTNL(hex_gui_win_modes),0,0,0},
         {ST_TOGGLR, N_("Show number of users"), P_OFFINTNL(hex_gui_win_ucount),0,0,0},
         {ST_TOGGLE, N_("Show nickname"), P_OFFINTNL(hex_gui_win_nick),0,0,0},
+
+        {ST_HEADER,     N_("Topic Bar"),0,0,0},
+        {ST_TOGGLE, N_("Place mode buttons beside the topic"), P_OFFINTNL(hex_gui_mode_buttons_inline), 0, 0, 0},
+        {ST_TOGGLE, N_("Allow multi-line topics"), P_OFFINTNL(hex_gui_topicbar_multiline), 0, 0, 0},
 
         {ST_END, 0, 0, 0, 0, 0}
 };
@@ -834,6 +839,16 @@ setup_toggle_sensitive_cb (GtkToggleButton *but, GtkWidget *wid)
 }
 
 static void
+setup_topicbar_inline_toggled_cb (GtkToggleButton *but, gpointer userdata)
+{
+        (void) userdata;
+
+        if (setup_topicbar_multiline_toggle)
+                gtk_widget_set_sensitive (setup_topicbar_multiline_toggle,
+                        !gtk_toggle_button_get_active (but));
+}
+
+static void
 setup_create_toggleR (GtkWidget *tab, int row, const setting *set)
 {
         GtkWidget *wid;
@@ -859,6 +874,14 @@ setup_create_toggleL (GtkWidget *tab, int row, const setting *set)
                                                                                         setup_get_int (&setup_prefs, set));
         g_signal_connect (G_OBJECT (wid), "toggled",
                                                         G_CALLBACK (setup_toggle_cb), (gpointer)set);
+        if (set->offset == STRUCT_OFFSET_INT (struct zoitechatprefs, hex_gui_mode_buttons_inline))
+                g_signal_connect (G_OBJECT (wid), "toggled",
+                                                        G_CALLBACK (setup_topicbar_inline_toggled_cb), NULL);
+        if (set->offset == STRUCT_OFFSET_INT (struct zoitechatprefs, hex_gui_topicbar_multiline))
+        {
+                setup_topicbar_multiline_toggle = wid;
+                gtk_widget_set_sensitive (wid, !setup_prefs.hex_gui_mode_buttons_inline);
+        }
         if (set->tooltip)
                 gtk_widget_set_tooltip_text (wid, _(set->tooltip));
         setup_table_attach (tab, wid, 2, row==6 ? 6 : 4, row, row + 1, FALSE, FALSE,
@@ -2286,6 +2309,8 @@ setup_apply (struct zoitechatprefs *pr)
                 noapply = TRUE;
         if (DIFF (hex_gui_lagometer))
                 noapply = TRUE;
+        if (DIFF (hex_gui_mode_buttons_inline))
+                noapply = TRUE;
         if (DIFF (hex_gui_tab_icons))
                 noapply = TRUE;
         if (DIFF (hex_gui_tab_closebuttons))
@@ -2299,6 +2324,8 @@ setup_apply (struct zoitechatprefs *pr)
         if (DIFF (hex_gui_tab_trunc))
                 noapply = TRUE;
         if (DIFF (hex_gui_throttlemeter))
+                noapply = TRUE;
+        if (DIFF (hex_gui_topicbar_multiline))
                 noapply = TRUE;
         if (DIFF (hex_gui_ulist_count))
                 noapply = TRUE;

@@ -133,6 +133,7 @@ struct zoitechatprefs
 	unsigned int hex_gui_input_style;
 	unsigned int hex_gui_join_dialog;
 	unsigned int hex_gui_mode_buttons;
+	unsigned int hex_gui_mode_buttons_inline;
 	unsigned int hex_gui_quit_dialog;
 	/* unsigned int hex_gui_single; */
 	unsigned int hex_gui_slist_fav;
@@ -148,6 +149,7 @@ struct zoitechatprefs
 	unsigned int hex_gui_tab_sort;
 	unsigned int hex_gui_tab_utils;
 	unsigned int hex_gui_topicbar;
+	unsigned int hex_gui_topicbar_multiline;
 	unsigned int hex_gui_tray;
 	unsigned int hex_gui_tray_away;
 	unsigned int hex_gui_tray_blink;
