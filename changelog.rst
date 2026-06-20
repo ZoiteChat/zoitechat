@@ -1,6 +1,24 @@
 ZoiteChat ChangeLog
 =================
 
+2.18.2 (2026-06-20)
+-------------------
+
+- Improved security and connection handling with stronger TLS defaults, 
+  safer certificate/hostname validation, FiSHLiM OpenSSL fixes, keyring support, 
+  and getaddrinfo-based DCC lookups.
+- Expanded FiSHLiM usability with a GTK key manager, context-menu access, and clearer
+  channel/private-message key handling.
+- Improved keyboard and navigation behavior with customizable keybinds, reset support,
+  channel-name switching, /server -noproxy, and configurable stale-link ping checks.
+- Refined the GTK interface with native file chooser dialogs, topic layout preferences, 
+  timestamp/date hover tooltips, better restore-down relayout, text scroll speed controls, 
+  and aligned network meters.
+- Added privacy and display options, including hiding join/part hostmasks and improved 
+  topic/multiline mode layout controls.
+- Fixed several platform/UI edge cases, including tray restore from iconified state, DBus unload
+  handling, GTK3 theme refresh/saving, and tab switcher compatibility.
+
 2.18.1 (2026-05-21)
 -------------------
 

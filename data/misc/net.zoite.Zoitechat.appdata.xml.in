@@ -29,6 +29,29 @@
     <id>zoitechat.desktop</id>
   </provides>
 <releases>
+<release date="2026-06-20" version="2.18.2">
+  <description>
+    <p>Security and connections:</p>
+    <ul>
+      <li>Improved TLS, certificate and hostname validation, FiSHLiM OpenSSL handling, keyring support, and DCC host lookups.</li>
+    </ul>
+    <p>FiSHLiM:</p>
+    <ul>
+      <li>Added a GTK key manager with context-menu access and clearer channel/private-message key handling.</li>
+    </ul>
+    <p>Interface and preferences:</p>
+    <ul>
+      <li>Improved keybind customization, reset support, channel-name switching, <code>/server -noproxy</code>, and stale-link ping checks.</li>
+      <li>Refined GTK behavior with native file choosers, topic layout preferences, timestamp/date tooltips, text scroll controls, and aligned network meters.</li>
+      <li>Added privacy and display options for hiding join/part hostmasks and controlling topic/multiline layout.</li>
+    </ul>
+    <p>Fixes:</p>
+    <ul>
+      <li>Fixed tray restore, DBus unload handling, GTK3 theme refresh/saving, topic relayout, and tab switcher compatibility.</li>
+      <li>Updated project documentation.</li>
+    </ul>
+  </description>
+</release>
 <release date="2026-05-21" version="2.18.1">
   <description>
     <ul>
