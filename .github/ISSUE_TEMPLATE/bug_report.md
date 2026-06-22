@@ -1,4 +1,10 @@
 ---
+name: Bug report
+about: Report a problem with ZoiteChat
+title: "[Bug]: "
+labels: bug
+assignees: ""
+---
 
 ```
 +------------------------------------------------------------+
