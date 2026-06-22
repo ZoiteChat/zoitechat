@@ -540,6 +540,9 @@ ssl_cb_verify (int ok, X509_STORE_CTX * ctx)
 		g_snprintf (buf, sizeof (buf), "* Verify E: %s (%d)",
 					 X509_verify_cert_error_string (err), err);
 		EMIT_SIGNAL (XP_TE_SSLMESSAGE, g_sess, buf, NULL, NULL, NULL, 0);
+
+		if (g_sess && g_sess->server->accept_invalid_cert)
+			return 1;
 	}
 
 	return ok;
@@ -663,11 +666,15 @@ ssl_do_connect (server * serv)
 					g_snprintf (buf, sizeof (buf), "* Verify E: Failed to validate hostname (%d)",
 							 hostname_err);
 					EMIT_SIGNAL (XP_TE_SSLMESSAGE, serv->server_session, buf, NULL, NULL, NULL, 0);
-					goto conn_fail;
+					if (!serv->accept_invalid_cert)
+						goto conn_fail;
 				}
 				break;
 			}
 		default:
+			if (serv->accept_invalid_cert)
+				break;
+
 			g_snprintf (buf, sizeof (buf), "%s.? (%d)",
 						 X509_verify_cert_error_string (verify_error),
 						 verify_error);
