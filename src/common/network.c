@@ -90,10 +90,26 @@ net_set_socket_options (int sok)
 char *
 net_ip (uint32_t addr)
 {
+	static char buf[INET_ADDRSTRLEN];
 	struct in_addr ia;
 
 	ia.s_addr = htonl (addr);
-	return inet_ntoa (ia);
+	if (!inet_ntop (AF_INET, &ia, buf, sizeof (buf)))
+		buf[0] = 0;
+
+	return buf;
+}
+
+int
+net_parse_ipv4 (const char *hostname, uint32_t *addr)
+{
+	struct in_addr ia;
+
+	if (inet_pton (AF_INET, hostname, &ia) != 1)
+		return FALSE;
+
+	*addr = ia.s_addr;
+	return TRUE;
 }
 
 int

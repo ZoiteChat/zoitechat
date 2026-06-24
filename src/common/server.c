@@ -932,7 +932,7 @@ server_read_child (GIOChannel *source, GIOCondition condition, server *serv)
 		break;
 	case '5':						  /* prefs ip discovered */
 		waitline2 (source, tbuf, sizeof tbuf);
-		prefs.local_ip = inet_addr (tbuf);
+		net_parse_ipv4 (tbuf, &prefs.local_ip);
 		break;
 	case '7':						  /* prefs.hex_net_bind_host resolve failed */
 		sprintf (outbuf,
@@ -1106,7 +1106,7 @@ traverse_socks (int print_fd, int sok, char *serverAddr, int port)
 	sc.version = 4;
 	sc.type = 1;
 	sc.port = htons (port);
-	sc.address = inet_addr (serverAddr);
+	net_parse_ipv4 (serverAddr, &sc.address);
 	g_strlcpy (sc.username, prefs.hex_irc_user_name, sizeof (sc.username));
 
 	send (sok, (char *) &sc, 8 + strlen (sc.username) + 1, 0);

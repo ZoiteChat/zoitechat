@@ -1483,7 +1483,7 @@ inbound_foundip (session *sess, char *ip, const message_tags_data *tags_data)
 	{
 		sess->server->dcc_ip = addr.s_addr;
 		EMIT_SIGNAL_TIMESTAMP (XP_TE_FOUNDIP, sess->server->server_session,
-									  inet_ntoa (addr),
+									  net_ip (ntohl (addr.s_addr)),
 									  NULL, NULL, NULL, 0, tags_data->timestamp);
 	}
 }
