@@ -647,6 +647,11 @@ void
 fe_set_topic (struct session *sess, char *topic, char *stripped_topic)
 {
 }
+
+void
+fe_set_typing (struct session *sess, const char *nick, const char *state)
+{
+}
 void
 fe_cleanup (void)
 {

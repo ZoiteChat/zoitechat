@@ -163,6 +163,8 @@ typedef struct session_gui
 		*op_xpm,			/* icon to the left of nickname */
 		*namelistinfo,	/* label above userlist */
 		*input_box,
+		*reply_box,
+		*reply_label,
 		*flag_wid[NUM_FLAG_WIDS],		/* channelmode buttons */
 		*limit_entry,		  /* +l */
 		*key_entry;		  /* +k */

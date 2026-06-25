@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <time.h>
 
 #include "fe-gtk.h"
 
@@ -52,6 +53,36 @@ enum
 };
 
 static void userlist_store_color (GtkListStore *store, GtkTreeIter *iter, ThemeSemanticToken token, gboolean has_token);
+
+static const char *
+userlist_typing_suffix (session *sess, struct User *user)
+{
+	static const char *active[] = { " [✎]", " [✎.]", " [✎..]" };
+
+	if (!user || !user->typing)
+		return "";
+
+	if (user->typing == 2)
+		return " [✎…]";
+
+	return active[sess->typing_animation_frame % G_N_ELEMENTS (active)];
+}
+
+static char *
+userlist_nick_markup (session *sess, struct User *user)
+{
+	char *nick = g_markup_escape_text (user->nick, -1);
+	const char *typing = userlist_typing_suffix (sess, user);
+
+	if (*typing)
+	{
+		char *marked = g_strdup_printf ("%s%s", nick, typing);
+		g_free (nick);
+		return marked;
+	}
+
+	return nick;
+}
 
 static const char *
 userlist_prefix_color (char prefix)
@@ -463,6 +494,87 @@ fe_userlist_remove (session *sess, struct User *user)
 	return sel;
 }
 
+
+static gboolean
+userlist_typing_tick (session *sess)
+{
+	GtkTreeModel *model;
+	GtkTreeIter iter;
+	gboolean valid;
+	gboolean keep = FALSE;
+	time_t now = time (NULL);
+
+	if (!sess || !sess->res || !sess->res->user_model)
+		return FALSE;
+
+	sess->typing_animation_frame++;
+	model = GTK_TREE_MODEL (sess->res->user_model);
+	valid = gtk_tree_model_get_iter_first (model, &iter);
+
+	while (valid)
+	{
+		struct User *user = NULL;
+
+		gtk_tree_model_get (model, &iter, COL_USER, &user, -1);
+		if (user && user->typing)
+		{
+			char *nick;
+
+			if ((user->typing == 1 && now - user->typing_time >= 6) || (user->typing == 2 && now - user->typing_time >= 30))
+				user->typing = 0;
+
+			nick = userlist_nick_markup (sess, user);
+			gtk_list_store_set (sess->res->user_model, &iter, COL_NICK, nick, -1);
+			g_free (nick);
+			if (user->typing)
+				keep = TRUE;
+		}
+		valid = gtk_tree_model_iter_next (model, &iter);
+	}
+
+	if (!keep)
+	{
+		sess->typing_animation_tag = 0;
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+void
+fe_userlist_set_typing (session *sess, const char *nick, const char *state)
+{
+	struct User *user;
+	GtkTreeIter *iter;
+	int sel;
+
+	if (!sess || !nick || !sess->res || !sess->res->user_model)
+		return;
+
+	user = userlist_find (sess, nick);
+	if (!user)
+		return;
+
+	if (!strcmp (state, "active"))
+		user->typing = 1;
+	else if (!strcmp (state, "paused"))
+		user->typing = 2;
+	else
+		user->typing = 0;
+	user->typing_time = time (NULL);
+
+	iter = find_row (sess, GTK_TREE_VIEW (sess->gui->user_tree), GTK_TREE_MODEL (sess->res->user_model), user, &sel);
+	if (iter)
+	{
+		char *nick = userlist_nick_markup (sess, user);
+		gtk_list_store_set (sess->res->user_model, iter, COL_NICK, nick, -1);
+		g_free (nick);
+	}
+
+	if (user->typing && !sess->typing_animation_tag)
+		sess->typing_animation_tag = fe_timeout_add (350, userlist_typing_tick, sess);
+}
+
 void
 fe_userlist_rehash (session *sess, struct User *user)
 {
@@ -493,9 +605,14 @@ fe_userlist_rehash (session *sess, struct User *user)
 		}
 	}
 
-	gtk_list_store_set (GTK_LIST_STORE (sess->res->user_model), iter,
+	{
+		char *nick = userlist_nick_markup (sess, user);
+		gtk_list_store_set (GTK_LIST_STORE (sess->res->user_model), iter,
+							  COL_NICK, nick,
 							  COL_HOST, user->hostname,
 							  -1);
+		g_free (nick);
+	}
 	userlist_store_color (GTK_LIST_STORE (sess->res->user_model), iter, nick_token, have_nick_token);
 }
 
@@ -506,7 +623,6 @@ fe_userlist_insert (session *sess, struct User *newuser, gboolean sel)
 	GdkPixbuf *pix = get_user_icon (sess->server, newuser);
 	GtkTreeIter iter;
 	char *nick;
-	char *nick_escaped;
 	char *prefix = NULL;
 	char *prefix_escaped;
 	char prefix_text[2];
@@ -530,8 +646,7 @@ fe_userlist_insert (session *sess, struct User *newuser, gboolean sel)
 		}
 	}
 
-	nick_escaped = g_markup_escape_text (newuser->nick, -1);
-	nick = nick_escaped;
+	nick = userlist_nick_markup (sess, newuser);
 	if (!prefs.hex_gui_ulist_icons)
 	{
 		if (newuser->prefix[0] != '\0' && newuser->prefix[0] != ' ')
@@ -559,7 +674,7 @@ fe_userlist_insert (session *sess, struct User *newuser, gboolean sel)
 	userlist_store_color (GTK_LIST_STORE (model), &iter, nick_token, have_nick_token);
 
 	g_free (prefix);
-	g_free (nick_escaped);
+	g_free (nick);
 
 	userlist_row_map_set (sess, model, newuser, &iter);
 
@@ -757,6 +872,7 @@ userlist_add_columns (GtkTreeView * treeview)
 	gtk_tree_view_column_pack_start (column, renderer, TRUE);
 	gtk_tree_view_column_add_attribute (column, renderer, "markup", COL_NICK);
 	gtk_tree_view_column_add_attribute (column, renderer, THEME_GTK_FOREGROUND_PROPERTY, COL_GDKCOLOR);
+
 	column = gtk_tree_view_get_column (GTK_TREE_VIEW (treeview), 1);
 	gtk_tree_view_column_set_sizing (column, GTK_TREE_VIEW_COLUMN_FIXED);
 	gtk_tree_view_column_set_expand (column, TRUE);

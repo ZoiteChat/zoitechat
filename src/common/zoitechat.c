@@ -793,7 +793,13 @@ session_free (session *killsess)
 
 	send_quit_or_part (killsess);
 
+	if (killsess->typing_timeout_tag)
+		fe_timeout_remove (killsess->typing_timeout_tag);
+	if (killsess->typing_animation_tag)
+		fe_timeout_remove (killsess->typing_animation_tag);
+
 	history_free (&killsess->history);
+	reply_cache_free (killsess);
 	g_free (killsess->topic);
 	g_free (killsess->current_modes);
 

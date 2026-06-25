@@ -78,6 +78,13 @@ void inbound_login_end (session *sess, char *text,
 void inbound_chanmsg (server *serv, session *sess, char *chan, char *from,
 							 char *text, char fromme, int id, 
 							 const message_tags_data *tags_data);
+gboolean reply_msgid_valid (const char *msgid);
+void reply_cache_free (session *sess);
+reply_item *reply_cache_find (session *sess, const char *msgid);
+reply_item *reply_cache_latest_from (session *sess, const char *nick);
+void reply_state_set (session *sess, const char *msgid, const char *target,
+							 const char *nick, const char *text);
+void reply_state_clear (session *sess);
 void clear_channel (session *sess);
 void set_topic (session *sess, char *topic, char *stripped_topic);
 void inbound_privmsg (server *serv, char *from, char *ip, char *text, int id, 

@@ -36,6 +36,7 @@
 #include "../common/zoitechatc.h"
 #include "../common/cfgfiles.h"
 #include "../common/outbound.h"
+#include "../common/inbound.h"
 #include "../common/ignore.h"
 #include "../common/fe.h"
 #include "../common/server.h"
@@ -784,6 +785,25 @@ fe_userlist_update (session *sess, struct User *user)
 	}
 }
 
+
+static void
+menu_reply_to_latest_cb (GtkWidget *wid, gpointer data)
+{
+	reply_item *item;
+
+	item = reply_cache_latest_from (current_sess, str_copy);
+	if (!item)
+	{
+		PrintText (current_sess, _("No recent message to reply to.\n"));
+		return;
+	}
+
+	reply_state_set (current_sess, item->msgid, current_sess->channel, item->nick, item->text);
+	mg_reply_update (current_sess);
+	if (current_sess->gui && current_sess->gui->input_box)
+		gtk_widget_grab_focus (current_sess->gui->input_box);
+}
+
 void
 menu_nickmenu (session *sess, GdkEventButton *event, char *nick, int num_sel)
 {
@@ -826,6 +846,12 @@ menu_nickmenu (session *sess, GdkEventButton *event, char *nick, int num_sel)
 		menu_create (menu, popup_list, NULL, FALSE);
 	else
 		menu_create (menu, popup_list, str_copy, FALSE);
+
+	if (num_sel <= 1)
+	{
+		menu_quick_item_with_callback (menu_reply_to_latest_cb, _("Reply"), menu, 0);
+		menu_quick_item (0, 0, menu, XCMENU_SHADED, 0, 0);
+	}
 
 	if (num_sel == 0)	/* xtext click */
 		menu_add_plugin_items (menu, "\x5$NICK", str_copy);

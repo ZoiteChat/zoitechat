@@ -907,6 +907,10 @@ inbound_005 (server * serv, char *word[], const message_tags_data *tags_data)
 		{
 			if (g_strcmp0 (tokvalue, "ascii") == 0)
 				serv->p_cmp = (void *)g_ascii_strcasecmp;
+		} else if (g_strcmp0 (tokname, "CLIENTTAGDENY") == 0)
+		{
+			g_free (serv->clienttagdeny);
+			serv->clienttagdeny = tokadding ? g_strdup (tokvalue) : NULL;
 		} else if (g_strcmp0 (tokname, "CHARSET") == 0)
 		{
 			if (g_ascii_strcasecmp (tokvalue, "UTF-8") == 0)

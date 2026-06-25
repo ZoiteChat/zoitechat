@@ -388,6 +388,14 @@ typedef enum {
 	TAB_STATE_NEW_HILIGHT = (1 << 2),
 } tab_state_flags;
 
+typedef struct reply_item
+{
+	char *msgid;
+	char *nick;
+	char *text;
+	time_t timestamp;
+} reply_item;
+
 typedef struct session
 {
 	/* Per-Channel Alerts */
@@ -429,8 +437,17 @@ typedef struct session
 	char *quitreason;
 	char *topic;
 	char *current_modes;					/* free() me */
+	GSList *reply_items;
+	char *reply_msgid;
+	char *reply_target;
+	char *reply_nick;
+	char *reply_text;
 
 	int mode_timeout_tag;
+	int typing_timeout_tag;
+	int typing_status;
+	int typing_animation_tag;
+	int typing_animation_frame;
 
 	struct session *lastlog_sess;
 	struct nbexec *running_exec;
@@ -494,6 +511,8 @@ typedef struct server
 	void (*p_set_back)(struct server *);
 	void (*p_set_away)(struct server *, char *reason);
 	void (*p_message)(struct server *, char *channel, char *text);
+	void (*p_message_tagged)(struct server *, char *tags, char *channel, char *text);
+	void (*p_tagmsg)(struct server *, char *tags, char *target);
 	void (*p_action)(struct server *, char *channel, char *act);
 	void (*p_notice)(struct server *, char *channel, char *text);
 	void (*p_topic)(struct server *, char *channel, char *topic);
@@ -543,6 +562,7 @@ typedef struct server
 	int loginmethod;					/* see login_types[] */
 
 	char *chantypes;					/* for 005 numeric - free me */
+	char *clienttagdeny;
 	char *chanmodes;					/* for 005 numeric - free me */
 	char *nick_prefixes;				/* e.g. "*@%+" */
 	char *nick_modes;					/* e.g. "aohv" */
@@ -605,6 +625,8 @@ typedef struct server
 	unsigned int have_extjoin:1;	/* cap extended-join */
 	unsigned int have_account_tag:1;	/* cap account-tag */
 	unsigned int have_server_time:1;	/* cap server-time */
+	unsigned int have_message_tags:1;
+	unsigned int have_echo_message:1;
 	unsigned int have_sasl:1;		/* SASL capability */
 	unsigned int have_except:1;	/* ban exemptions +e */
 	unsigned int have_invite:1;	/* invite exemptions +I */

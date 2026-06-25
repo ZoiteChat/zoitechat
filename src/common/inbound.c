@@ -46,6 +46,155 @@
 #include "servlist.h"
 #include "sts.h"
 #include "text.h"
+
+void reply_state_clear (session *sess);
+
+gboolean
+reply_msgid_valid (const char *msgid)
+{
+	const char *p;
+
+	if (!msgid || !*msgid || *msgid == ':')
+		return FALSE;
+
+	for (p = msgid; *p; p++)
+	{
+		if (*p == ' ' || *p == '\r' || *p == '\n')
+			return FALSE;
+	}
+
+	return TRUE;
+}
+
+static void
+reply_item_free (reply_item *item)
+{
+	if (!item)
+		return;
+	g_free (item->msgid);
+	g_free (item->nick);
+	g_free (item->text);
+	g_free (item);
+}
+
+void
+reply_cache_free (session *sess)
+{
+	if (!sess)
+		return;
+	g_slist_free_full (sess->reply_items, (GDestroyNotify) reply_item_free);
+	sess->reply_items = NULL;
+	reply_state_clear (sess);
+}
+
+reply_item *
+reply_cache_find (session *sess, const char *msgid)
+{
+	GSList *list;
+
+	if (!sess || !reply_msgid_valid (msgid))
+		return NULL;
+
+	for (list = sess->reply_items; list; list = list->next)
+	{
+		reply_item *item = list->data;
+		if (!strcmp (item->msgid, msgid))
+			return item;
+	}
+
+	return NULL;
+}
+
+reply_item *
+reply_cache_latest_from (session *sess, const char *nick)
+{
+	GSList *list;
+
+	if (!sess || !nick || !*nick)
+		return NULL;
+
+	for (list = sess->reply_items; list; list = list->next)
+	{
+		reply_item *item = list->data;
+		if (!sess->server->p_cmp (item->nick, nick))
+			return item;
+	}
+
+	return NULL;
+}
+
+void
+reply_state_clear (session *sess)
+{
+	if (!sess)
+		return;
+	g_clear_pointer (&sess->reply_msgid, g_free);
+	g_clear_pointer (&sess->reply_target, g_free);
+	g_clear_pointer (&sess->reply_nick, g_free);
+	g_clear_pointer (&sess->reply_text, g_free);
+}
+
+void
+reply_state_set (session *sess, const char *msgid, const char *target, const char *nick, const char *text)
+{
+	if (!sess || !reply_msgid_valid (msgid))
+		return;
+	reply_state_clear (sess);
+	sess->reply_msgid = g_strdup (msgid);
+	sess->reply_target = g_strdup (target && *target ? target : sess->channel);
+	sess->reply_nick = g_strdup (nick && *nick ? nick : _("message"));
+	sess->reply_text = g_strdup (text && *text ? text : _("Original message unavailable"));
+}
+
+static void
+reply_cache_add (session *sess, const char *msgid, const char *nick, const char *text, time_t timestamp)
+{
+	reply_item *item;
+
+	if (!sess || !reply_msgid_valid (msgid) || !nick || !text)
+		return;
+
+	item = reply_cache_find (sess, msgid);
+	if (item)
+	{
+		g_free (item->nick);
+		g_free (item->text);
+		item->nick = g_strdup (nick);
+		item->text = g_strdup (text);
+		item->timestamp = timestamp;
+		return;
+	}
+
+	item = g_new0 (reply_item, 1);
+	item->msgid = g_strdup (msgid);
+	item->nick = g_strdup (nick);
+	item->text = g_strdup (text);
+	item->timestamp = timestamp;
+	sess->reply_items = g_slist_prepend (sess->reply_items, item);
+
+	if (g_slist_length (sess->reply_items) > 200)
+	{
+		GSList *last = g_slist_last (sess->reply_items);
+		item = last->data;
+		sess->reply_items = g_slist_delete_link (sess->reply_items, last);
+		reply_item_free (item);
+	}
+}
+
+static void
+reply_context_print (session *sess, const message_tags_data *tags_data)
+{
+	reply_item *item;
+
+	if (!sess || !tags_data || !tags_data->reply)
+		return;
+
+	item = reply_cache_find (sess, tags_data->reply);
+	if (item)
+		PrintTextTimeStampf (sess, tags_data->timestamp, "\00314│ ↪ %s: %.180s\017\n", item->nick, item->text);
+	else
+		PrintTextTimeStamp (sess, "\00314│ ↪ Original message unavailable\017\n", tags_data->timestamp);
+}
 #include "ctcp.h"
 #include "zoitechatc.h"
 #include "chanopt.h"
@@ -450,6 +599,9 @@ inbound_action (session *sess, char *chan, char *from, char *ip, char *text,
 			fromme = TRUE;
 	}
 
+	if (!fromme)
+		fe_set_typing (sess, from, "done");
+
 	inbound_make_idtext (serv, idtext, sizeof (idtext), id);
 
 	if (!fromme && !privaction)
@@ -518,12 +670,17 @@ inbound_chanmsg (server *serv, session *sess, char *chan, char *from,
 			fromme = TRUE;
 	}
 
+	if (!fromme)
+		fe_set_typing (sess, from, "done");
+
 	if (fromme)
 	{
 		if (prefs.hex_away_auto_unmark && serv->is_away && !tags_data->timestamp)
 			sess->server->p_set_back (sess->server);
+		reply_context_print (sess, tags_data);
 		EMIT_SIGNAL_TIMESTAMP (XP_TE_UCHANMSG, sess, from, text, nickchar, NULL,
 									  0, tags_data->timestamp);
+		reply_cache_add (sess, tags_data->msgid, from, text, tags_data->timestamp);
 		return;
 	}
 
@@ -531,6 +688,8 @@ inbound_chanmsg (server *serv, session *sess, char *chan, char *from,
 
 	if (is_hilight (from, text, sess, serv))
 		hilight = TRUE;
+
+	reply_context_print (sess, tags_data);
 
 	if (sess->type == SESS_DIALOG)
 		EMIT_SIGNAL_TIMESTAMP (XP_TE_DPRIVMSG, sess, from, text, idtext, NULL, 0,
@@ -541,6 +700,8 @@ inbound_chanmsg (server *serv, session *sess, char *chan, char *from,
 	else
 		EMIT_SIGNAL_TIMESTAMP (XP_TE_CHANMSG, sess, from, text, nickchar, idtext,
 									  0, tags_data->timestamp);
+
+	reply_cache_add (sess, tags_data->msgid, from, text, tags_data->timestamp);
 }
 
 void
@@ -1742,6 +1903,10 @@ inbound_toggle_caps (server *serv, const char *extensions_str, gboolean enable)
 			serv->have_awaynotify = enable;
 		else if (!strcmp (extension, "account-tag"))
 			serv->have_account_tag = enable;
+		else if (!strcmp (extension, "message-tags"))
+			serv->have_message_tags = enable;
+		else if (!strcmp (extension, "echo-message"))
+			serv->have_echo_message = enable;
 		else if (!strcmp (extension, "sasl"))
 		{
 			serv->have_sasl = enable;
@@ -1873,6 +2038,8 @@ static const char * const supported_caps[] = {
 	"account-tag",
 	"extended-monitor",
 	"standard-replies",
+	"message-tags",
+	"echo-message",
 
 	/* ZNC */
 	"znc.in/server-time-iso",
