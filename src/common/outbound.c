@@ -468,7 +468,7 @@ create_mask (session * sess, char *mask, char *mode, char *typestr, int deop)
 			type = prefs.hex_irc_ban_type;
 
 		buf[0] = 0;
-		if (inet_addr (fullhost) != (guint32) -1)	/* "fullhost" is really a IP number */
+		if (net_parse_ipv4 (fullhost, &(guint32){0}))	/* "fullhost" is really a IP number */
 		{
 			lastdot = strrchr (fullhost, '.');
 			if (!lastdot)
