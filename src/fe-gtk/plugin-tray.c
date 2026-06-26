@@ -48,6 +48,9 @@ typedef struct _GtkStatusIcon GtkStatusIcon;
 
 #ifndef WIN32
 #include <unistd.h>
+#else
+#include <windows.h>
+#include <gdk/gdkwin32.h>
 #endif
 
 typedef enum	/* current icon status */
@@ -1092,6 +1095,119 @@ tray_menu_settings (GtkWidget * wid, gpointer none)
 	setup_open ();
 }
 
+#ifdef WIN32
+#define TRAY_WIN32_HIDE 1
+#define TRAY_WIN32_AWAY 2
+#define TRAY_WIN32_BACK 3
+#define TRAY_WIN32_PREFS 4
+#define TRAY_WIN32_QUIT 5
+
+static WCHAR *
+tray_win32_menu_label (const char *label)
+{
+	char *plain;
+	char *src;
+	char *dst;
+	WCHAR *wide;
+
+	plain = g_strdup (label ? label : "");
+	for (src = plain, dst = plain; *src; src++)
+	{
+		if (*src == '_')
+			continue;
+		*dst++ = *src;
+	}
+	*dst = 0;
+	wide = g_utf8_to_utf16 (plain, -1, NULL, NULL, NULL);
+	g_free (plain);
+
+	return wide;
+}
+
+static void
+tray_win32_append_item (HMENU menu, UINT id, const char *label, gboolean enabled)
+{
+	WCHAR *wide;
+
+	wide = tray_win32_menu_label (label);
+	AppendMenuW (menu, MF_STRING | (enabled ? MF_ENABLED : MF_GRAYED), id, wide);
+	g_free (wide);
+}
+
+static HWND
+tray_win32_get_hwnd (void)
+{
+	GtkWindow *win;
+	GdkWindow *gdk_win;
+
+	win = GTK_WINDOW (zoitechat_get_info (ph, "gtkwin_ptr"));
+	if (!win)
+		return GetActiveWindow ();
+
+	gdk_win = gtk_widget_get_window (GTK_WIDGET (win));
+	if (!gdk_win)
+		return GetActiveWindow ();
+
+	return gdk_win32_window_get_handle (gdk_win);
+}
+
+static void
+tray_win32_menu_cb (void)
+{
+	HMENU menu;
+	POINT point;
+	UINT command;
+	HWND hwnd;
+	int away_status;
+
+	zoitechat_set_context (ph, zoitechat_find_context (ph, NULL, NULL));
+
+	menu = CreatePopupMenu ();
+	if (!menu)
+		return;
+
+	away_status = tray_find_away_status ();
+	tray_win32_append_item (menu, TRAY_WIN32_HIDE,
+		tray_get_window_status () == WS_HIDDEN ? _("_Restore Window") : _("_Hide Window"), TRUE);
+	AppendMenuW (menu, MF_SEPARATOR, 0, NULL);
+	tray_win32_append_item (menu, TRAY_WIN32_AWAY, _("_Away"), away_status != 1);
+	tray_win32_append_item (menu, TRAY_WIN32_BACK, _("_Back"), away_status != 2);
+	AppendMenuW (menu, MF_SEPARATOR, 0, NULL);
+	tray_win32_append_item (menu, TRAY_WIN32_PREFS, _("_Preferences"), TRUE);
+	AppendMenuW (menu, MF_SEPARATOR, 0, NULL);
+	tray_win32_append_item (menu, TRAY_WIN32_QUIT, _("_Quit"), TRUE);
+
+	GetCursorPos (&point);
+	hwnd = tray_win32_get_hwnd ();
+	if (hwnd)
+		SetForegroundWindow (hwnd);
+	command = TrackPopupMenu (menu, TPM_RIGHTBUTTON | TPM_RETURNCMD | TPM_NONOTIFY,
+		point.x, point.y, 0, hwnd, NULL);
+	DestroyMenu (menu);
+
+	switch (command)
+	{
+	case TRAY_WIN32_HIDE:
+		tray_toggle_visibility (FALSE);
+		break;
+	case TRAY_WIN32_AWAY:
+		tray_foreach_server (NULL, "away");
+		break;
+	case TRAY_WIN32_BACK:
+		tray_foreach_server (NULL, "back");
+		break;
+	case TRAY_WIN32_PREFS:
+		tray_menu_settings (NULL, NULL);
+		break;
+	case TRAY_WIN32_QUIT:
+		tray_menu_quit_cb (NULL, NULL);
+		break;
+	default:
+		break;
+	}
+}
+#endif
+
 static void
 tray_menu_populate (GtkWidget *menu)
 {
@@ -1219,6 +1335,15 @@ tray_window_visibility_cb (GtkWidget *widget, gpointer userdata)
 static void
 tray_menu_cb (GtkWidget *widget, guint button, guint time, gpointer userdata)
 {
+#ifdef WIN32
+	(void)widget;
+	(void)button;
+	(void)time;
+	(void)userdata;
+
+	tray_win32_menu_cb ();
+	return;
+#else
 	static GtkWidget *menu;
 
 	(void)button;
@@ -1258,6 +1383,7 @@ tray_menu_cb (GtkWidget *widget, guint button, guint time, gpointer userdata)
 		if (event)
 			gdk_event_free (event);
 	}
+#endif
 }
 #endif
 
