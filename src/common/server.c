@@ -1821,6 +1821,7 @@ void
 server_set_defaults (server *serv)
 {
 	g_free (serv->chantypes);
+	g_clear_pointer (&serv->clienttagdeny, g_free);
 	g_free (serv->chanmodes);
 	g_free (serv->nick_prefixes);
 	g_free (serv->nick_modes);
@@ -1855,6 +1856,8 @@ server_set_defaults (server *serv)
 	serv->have_extjoin = FALSE;
 	serv->have_account_tag = FALSE;
 	serv->have_server_time = FALSE;
+	serv->have_message_tags = FALSE;
+	serv->have_echo_message = FALSE;
 	serv->have_sasl = FALSE;
 	serv->have_except = FALSE;
 	serv->have_invite = FALSE;
@@ -1985,6 +1988,7 @@ server_free (server *serv)
 	g_free (serv->nick_prefixes);
 	g_free (serv->chanmodes);
 	g_free (serv->chantypes);
+	g_free (serv->clienttagdeny);
 	g_free (serv->bad_nick_prefixes);
 	g_free (serv->last_away_reason);
 	g_free (serv->encoding);

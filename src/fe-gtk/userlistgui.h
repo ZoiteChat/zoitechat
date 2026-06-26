@@ -26,6 +26,7 @@ GtkWidget *userlist_create (GtkWidget *box);
 GtkListStore *userlist_create_model (session *sess);
 void userlist_show (session *sess);
 void userlist_select (session *sess, char *name);
+void fe_userlist_set_typing (session *sess, const char *nick, const char *state);
 char **userlist_selection_list (GtkWidget *widget, int *num_ret);
 GdkPixbuf *get_user_icon (server *serv, struct User *user);
 

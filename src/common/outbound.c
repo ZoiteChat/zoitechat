@@ -2744,8 +2744,8 @@ cmd_me (struct session *sess, char *tbuf, char *word[], char *word_eol[])
 			while ((split_text = split_up_text (sess, act + offset, cmd_length, split_text)))
 			{
 				sess->server->p_action (sess->server, sess->channel, split_text);
-				/* print it to screen */
-				inbound_action (sess, sess->channel, sess->server->nick, "",
+				if (!sess->server->have_echo_message)
+					inbound_action (sess, sess->channel, sess->server->nick, "",
 									 split_text, TRUE, FALSE,
 									 &no_tags);
 
@@ -2756,8 +2756,8 @@ cmd_me (struct session *sess, char *tbuf, char *word[], char *word_eol[])
 			}
 
 			sess->server->p_action (sess->server, sess->channel, act + offset);
-			/* print it to screen */
-			inbound_action (sess, sess->channel, sess->server->nick, "",
+			if (!sess->server->have_echo_message)
+				inbound_action (sess, sess->channel, sess->server->nick, "",
 								 act + offset, TRUE, FALSE, &no_tags);
 		} else
 		{
@@ -2821,6 +2821,137 @@ cmd_mop (struct session *sess, char *tbuf, char *word[], char *word_eol[])
 	return TRUE;
 }
 
+
+static gboolean
+client_tag_allowed (server *serv, const char *tag)
+{
+	char **deny;
+	int i;
+
+	if (!serv->have_message_tags)
+		return FALSE;
+
+	if (!serv->clienttagdeny || !*serv->clienttagdeny)
+		return TRUE;
+
+	deny = g_strsplit (serv->clienttagdeny, ",", 0);
+	for (i = 0; deny[i]; i++)
+	{
+		if (!strcmp (deny[i], "*") || !strcmp (deny[i], tag) || (deny[i][0] == '+' && !strcmp (deny[i] + 1, tag)))
+		{
+			g_strfreev (deny);
+			return FALSE;
+		}
+	}
+
+	g_strfreev (deny);
+	return TRUE;
+}
+
+static char *
+client_tag_escape (const char *text)
+{
+	GString *out;
+	const char *p;
+
+	out = g_string_sized_new (strlen (text));
+	for (p = text; *p; p++)
+	{
+		switch (*p)
+		{
+		case ';':
+			g_string_append (out, "\\:");
+			break;
+		case ' ':
+			g_string_append (out, "\\s");
+			break;
+		case '\\':
+			g_string_append (out, "\\\\");
+			break;
+		case '\r':
+			g_string_append (out, "\\r");
+			break;
+		case '\n':
+			g_string_append (out, "\\n");
+			break;
+		default:
+			g_string_append_c (out, *p);
+			break;
+		}
+	}
+
+	return g_string_free (out, FALSE);
+}
+
+static int
+cmd_reply (struct session *sess, char *tbuf, char *word[], char *word_eol[])
+{
+	char *msgid = word[2];
+	char *target = sess->channel;
+	char *text = word_eol[3];
+	char *escaped;
+	char *tags;
+
+	if (!reply_msgid_valid (msgid) || !*target || !*text)
+		return FALSE;
+
+	if (*text == ':')
+		text++;
+
+	if (!sess->server->connected || !client_tag_allowed (sess->server, "reply"))
+	{
+		notc_msg (sess);
+		return TRUE;
+	}
+
+	escaped = client_tag_escape (msgid);
+	tags = g_strdup_printf ("+reply=%s", escaped);
+	sess->server->p_message_tagged (sess->server, tags, target, text);
+	if (!sess->server->have_echo_message)
+	{
+		session *target_sess = find_dialog (sess->server, target);
+		message_tags_data no_tags = MESSAGE_TAGS_DATA_INIT;
+		no_tags.reply = msgid;
+
+		if (!target_sess)
+			target_sess = find_channel (sess->server, target);
+		if (target_sess)
+			inbound_chanmsg (target_sess->server, target_sess, target_sess->channel, target_sess->server->nick, text, TRUE, FALSE, &no_tags);
+	}
+	g_free (tags);
+	g_free (escaped);
+
+	return TRUE;
+}
+
+static int
+cmd_typing (struct session *sess, char *tbuf, char *word[], char *word_eol[])
+{
+	char *state = word[2];
+	char *target = word[3];
+	char tags[32];
+
+	if (!*state)
+		state = "active";
+
+	if (!*target)
+		target = sess->channel;
+
+	if (!*target || (strcmp (state, "active") && strcmp (state, "paused") && strcmp (state, "done")))
+		return FALSE;
+
+	if (!sess->server->connected || !client_tag_allowed (sess->server, "typing"))
+	{
+		notc_msg (sess);
+		return TRUE;
+	}
+
+	g_snprintf (tags, sizeof (tags), "+typing=%s", state);
+	sess->server->p_tagmsg (sess->server, tags, target);
+
+	return TRUE;
+}
+
 static int
 cmd_msg (struct session *sess, char *tbuf, char *word[], char *word_eol[])
 {
@@ -2875,7 +3006,7 @@ cmd_msg (struct session *sess, char *tbuf, char *word[], char *word_eol[])
 			newsess = find_dialog (sess->server, nick);
 			if (!newsess)
 				newsess = find_channel (sess->server, nick);
-			if (newsess)
+			if (newsess && !sess->server->have_echo_message)
 			{
 				message_tags_data no_tags = MESSAGE_TAGS_DATA_INIT;
 
@@ -4139,9 +4270,11 @@ const struct commands xc_cmds[] = {
 #endif
 	{"RECV", cmd_recv, 1, 0, 1, N_("RECV <text>, send raw data to ZoiteChat, as if it was received from the IRC server")},
 	{"RELOAD", cmd_reload, 0, 0, 1, N_("RELOAD <name>, reloads a plugin or script")},
+	{"REPLY", cmd_reply, 0, 0, 1, N_("REPLY <msgid> <message>, sends a reply-tagged message to the current channel or dialog")},
 	{"SAY", cmd_say, 0, 0, 1,
 	 N_("SAY <text>, sends the text to the object in the current window")},
 	{"SEND", cmd_send, 0, 0, 1, N_("SEND <nick> [<file>]")},
+	{"TYPING", cmd_typing, 0, 0, 1, N_("TYPING [active|paused|done] [target], sends a typing notification")},
 #ifdef USE_OPENSSL
 	{"SERVCHAN", cmd_servchan, 0, 0, 1,
 	 N_("SERVCHAN [-noproxy] [-insecure|-ssl|-ssl-noverify] <host> <port> <channel>, connects and joins a channel using ssl unless otherwise specified")},
@@ -4674,8 +4807,9 @@ handle_say (session *sess, char *text, int check_spch)
 
 		while ((split_text = split_up_text (sess, text + offset, cmd_length, split_text)))
 		{
-			inbound_chanmsg (sess->server, sess, sess->channel, sess->server->nick,
-								  split_text, TRUE, FALSE, &no_tags);
+			if (!sess->server->have_echo_message)
+				inbound_chanmsg (sess->server, sess, sess->channel, sess->server->nick,
+									  split_text, TRUE, FALSE, &no_tags);
 			sess->server->p_message (sess->server, sess->channel, split_text);
 			
 			if (*split_text)
@@ -4684,7 +4818,8 @@ handle_say (session *sess, char *text, int check_spch)
 			g_free (split_text);
 		}
 
-		inbound_chanmsg (sess->server, sess, sess->channel, sess->server->nick,
+		if (!sess->server->have_echo_message)
+			inbound_chanmsg (sess->server, sess, sess->channel, sess->server->nick,
 							  text + offset, TRUE, FALSE, &no_tags);
 		sess->server->p_message (sess->server, sess->channel, text + offset);
 	} else

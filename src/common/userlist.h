@@ -31,6 +31,7 @@ struct User
 	char *servername;
 	char *account;
 	time_t lasttalk;
+	time_t typing_time;
 	unsigned int access;	/* axs bit field */
 	char prefix[2]; /* @ + % */
 	unsigned int op:1;
@@ -39,6 +40,7 @@ struct User
 	unsigned int me:1;
 	unsigned int away:1;
 	unsigned int selected:1;
+	unsigned int typing:2;
 };
 
 #define USERACCESS_SIZE 12

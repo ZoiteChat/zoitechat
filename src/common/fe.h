@@ -78,6 +78,7 @@ int fe_input_add (int sok, int flags, void *func, void *data);
 void fe_input_remove (int tag);
 void fe_idle_add (void *func, void *data);
 void fe_set_topic (struct session *sess, char *topic, char *stripped_topic);
+void fe_set_typing (struct session *sess, const char *nick, const char *state);
 typedef enum
 {
 	FE_COLOR_NONE = 0,

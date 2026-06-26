@@ -363,6 +363,18 @@ irc_message (server *serv, char *channel, char *text)
 }
 
 static void
+irc_message_tagged (server *serv, char *tags, char *channel, char *text)
+{
+	tcp_sendf (serv, "@%s PRIVMSG %s :%s\r\n", tags, channel, text);
+}
+
+static void
+irc_tagmsg (server *serv, char *tags, char *target)
+{
+	tcp_sendf (serv, "@%s TAGMSG %s\r\n", tags, target);
+}
+
+static void
 irc_action (server *serv, char *channel, char *act)
 {
 	tcp_sendf (serv, "PRIVMSG %s :\001ACTION %s\001\r\n", channel, act);
@@ -425,7 +437,7 @@ static int
 irc_raw (server *serv, char *raw)
 {
 	int len;
-	char tbuf[4096];
+	char tbuf[8704];
 	if (*raw)
 	{
 		len = strlen (raw);
@@ -1009,6 +1021,40 @@ process_numeric (session * sess, int n,
 
 /* handle named messages that starts with a ':' */
 
+
+static void
+emit_standard_reply (session *sess, const char *type, char *command, char *code, char *text, const message_tags_data *tags_data)
+{
+	int is_global = g_strcmp0 (command, "*") == 0;
+
+	if (!text)
+		text = "";
+	if (*text == ':')
+		text++;
+
+	if (!strcmp (type, "FAIL"))
+	{
+		if (is_global)
+			EMIT_SIGNAL_TIMESTAMP (XP_TE_FAIL, sess, code, text, NULL, NULL, NULL, tags_data->timestamp);
+		else
+			EMIT_SIGNAL_TIMESTAMP (XP_TE_FAILCMD, sess, command, code, text, NULL, NULL, tags_data->timestamp);
+	}
+	else if (!strcmp (type, "WARN"))
+	{
+		if (is_global)
+			EMIT_SIGNAL_TIMESTAMP (XP_TE_WARN, sess, code, text, NULL, NULL, NULL, tags_data->timestamp);
+		else
+			EMIT_SIGNAL_TIMESTAMP (XP_TE_WARNCMD, sess, command, code, text, NULL, NULL, tags_data->timestamp);
+	}
+	else if (!strcmp (type, "NOTE"))
+	{
+		if (is_global)
+			EMIT_SIGNAL_TIMESTAMP (XP_TE_NOTE, sess, code, text, NULL, NULL, NULL, tags_data->timestamp);
+		else
+			EMIT_SIGNAL_TIMESTAMP (XP_TE_NOTECMD, sess, command, code, text, NULL, NULL, tags_data->timestamp);
+	}
+}
+
 static void
 process_named_msg (session *sess, char *type, char *word[], char *word_eol[],
 						 const message_tags_data *tags_data)
@@ -1335,6 +1381,29 @@ process_named_msg (session *sess, char *type, char *word[], char *word_eol[],
 									tags_data);
 			return;
 
+		case WORDL('T','A','G','M'):
+			if (tags_data->typing)
+			{
+				session *typing_sess = NULL;
+				char *to = word[3];
+
+				if (is_channel (serv, to))
+					typing_sess = find_channel (serv, to);
+				else if (!serv->p_cmp (to, serv->nick))
+					typing_sess = find_dialog (serv, nick);
+				if (!typing_sess)
+					typing_sess = sess;
+				if (!serv->p_cmp (nick, serv->nick))
+					return;
+				if (!strcmp (tags_data->typing, "done"))
+					fe_set_typing (typing_sess, nick, "done");
+				else if (!strcmp (tags_data->typing, "paused"))
+					fe_set_typing (typing_sess, nick, "paused");
+				else if (!strcmp (tags_data->typing, "active"))
+					fe_set_typing (typing_sess, nick, "active");
+			}
+			return;
+
 		case WORDL('W','A','L','L'):
 			text = word_eol[3];
 			if (*text == ':')
@@ -1429,6 +1498,11 @@ process_named_servermsg (session *sess, char *buf, char *rawname, char *word_eol
 	if (!strncmp (buf, "AUTHENTICATE", 12))
 	{
 		inbound_sasl_authenticate (sess->server, word_eol[2]);
+		return;
+	}
+	if (!strncmp (buf, "FAIL ", 5) || !strncmp (buf, "WARN ", 5) || !strncmp (buf, "NOTE ", 5))
+	{
+		emit_standard_reply (sess, word_eol[1], word_eol[2], word_eol[3], word_eol[4], tags_data);
 		return;
 	}
 
@@ -1533,39 +1607,130 @@ handle_message_tag_time (const char *time, message_tags_data *tags_data)
  *
  * See http://ircv3.atheme.org/specification/message-tags-3.2 
  */
+static char *
+message_tag_unescape (const char *value)
+{
+	GString *out;
+	const char *p;
+
+	if (!*value)
+		return NULL;
+
+	out = g_string_sized_new (strlen (value));
+
+	for (p = value; *p; p++)
+	{
+		if (*p != '\\')
+		{
+			g_string_append_c (out, *p);
+			continue;
+		}
+
+		p++;
+		if (!*p)
+			break;
+
+		switch (*p)
+		{
+		case ':':
+			g_string_append_c (out, ';');
+			break;
+		case 's':
+			g_string_append_c (out, ' ');
+			break;
+		case '\\':
+			g_string_append_c (out, '\\');
+			break;
+		case 'r':
+			g_string_append_c (out, '\r');
+			break;
+		case 'n':
+			g_string_append_c (out, '\n');
+			break;
+		default:
+			g_string_append_c (out, *p);
+			break;
+		}
+	}
+
+	value = out->str;
+	if (!g_utf8_validate (value, -1, NULL))
+	{
+		g_string_free (out, TRUE);
+		return NULL;
+	}
+
+	return g_string_free (out, FALSE);
+}
+
 static void
 handle_message_tags (server *serv, const char *tags_str,
 							message_tags_data *tags_data)
 {
 	char **tags;
+	char *time = NULL;
 	int i;
 
-	/* FIXME We might want to avoid the allocation overhead here since 
-	 * this might be called for every message from the server.
-	 */
 	tags = g_strsplit (tags_str, ";", 0);
 
-	for (i=0; tags[i]; i++)
+	for (i = 0; tags[i]; i++)
 	{
 		char *key = tags[i];
-		char *value = strchr (tags[i], '=');
+		char *raw_value = strchr (tags[i], '=');
+		char *value = NULL;
 
-		if (!value)
+		if (!*key)
 			continue;
 
-		*value = '\0';
-		value++;
+		if (raw_value)
+		{
+			*raw_value = '\0';
+			raw_value++;
+			value = message_tag_unescape (raw_value);
+		}
 
 		if (serv->have_account_tag && !strcmp (key, "account"))
-			tags_data->account = g_strdup (value);
-
-		if (serv->have_idmsg && strcmp (key, "solanum.chat/identified"))
+		{
+			g_free (tags_data->account);
+			tags_data->account = value;
+			value = NULL;
+		}
+		else if (serv->have_idmsg && !strcmp (key, "solanum.chat/identified"))
+		{
 			tags_data->identified = TRUE;
+		}
+		else if (serv->have_server_time && !strcmp (key, "time"))
+		{
+			g_free (time);
+			time = value;
+			value = NULL;
+		}
+		else if (!strcmp (key, "msgid"))
+		{
+			g_free (tags_data->msgid);
+			tags_data->msgid = value;
+			value = NULL;
+		}
+		else if (!strcmp (key, "+reply"))
+		{
+			g_free (tags_data->reply);
+			tags_data->reply = value;
+			value = NULL;
+		}
+		else if (!strcmp (key, "+typing"))
+		{
+			g_free (tags_data->typing);
+			tags_data->typing = value;
+			value = NULL;
+		}
 
-		if (serv->have_server_time && !strcmp (key, "time"))
-			handle_message_tag_time (value, tags_data);
+		g_free (value);
 	}
-	
+
+	if (time)
+		handle_message_tag_time (time, tags_data);
+
+	g_free (time);
 	g_strfreev (tags);
 }
 
@@ -1667,6 +1832,9 @@ void
 message_tags_data_free (message_tags_data *tags_data)
 {
 	g_clear_pointer (&tags_data->account, g_free);
+	g_clear_pointer (&tags_data->msgid, g_free);
+	g_clear_pointer (&tags_data->reply, g_free);
+	g_clear_pointer (&tags_data->typing, g_free);
 }
 
 void
@@ -1696,6 +1864,8 @@ proto_fill_her_up (server *serv)
 	serv->p_set_back = irc_set_back;
 	serv->p_set_away = irc_set_away;
 	serv->p_message = irc_message;
+	serv->p_message_tagged = irc_message_tagged;
+	serv->p_tagmsg = irc_tagmsg;
 	serv->p_action = irc_action;
 	serv->p_notice = irc_notice;
 	serv->p_topic = irc_topic;

@@ -173,6 +173,7 @@ enum
 #define TAG_UTIL 1      /* dcc, notify, chanlist */
 
 static void mg_apply_emoji_fallback_widget (GtkWidget *widget);
+static void mg_reply_show_child (GtkWidget *widget, gpointer data);
 
 #define MG_CONFIG_SAVE_DEBOUNCE_MS 250
 
@@ -731,6 +732,164 @@ mg_inputbox_focus (GtkWidget *widget, GdkEventFocus *event, session_gui *gui)
         return FALSE;
 }
 
+
+static gboolean
+mg_client_tag_allowed (server *serv, const char *tag)
+{
+        char **deny;
+        int i;
+
+        if (!serv->have_message_tags)
+                return FALSE;
+
+        if (!serv->clienttagdeny || !*serv->clienttagdeny)
+                return TRUE;
+
+        deny = g_strsplit (serv->clienttagdeny, ",", 0);
+        for (i = 0; deny[i]; i++)
+        {
+                if (!strcmp (deny[i], "*") || !strcmp (deny[i], tag) || (deny[i][0] == '+' && !strcmp (deny[i] + 1, tag)))
+                {
+                        g_strfreev (deny);
+                        return FALSE;
+                }
+        }
+
+        g_strfreev (deny);
+        return TRUE;
+}
+
+static void
+mg_send_typing (session *sess, const char *state)
+{
+        char tags[32];
+
+        if (!sess || !sess->server->connected || !mg_client_tag_allowed (sess->server, "typing") || !sess->channel[0])
+                return;
+
+        if (sess->type != SESS_CHANNEL && sess->type != SESS_DIALOG)
+                return;
+
+        g_snprintf (tags, sizeof (tags), "+typing=%s", state);
+        sess->server->p_tagmsg (sess->server, tags, sess->channel);
+}
+
+static int
+mg_typing_pause_cb (session *sess)
+{
+        sess->typing_timeout_tag = 0;
+        if (sess->typing_status == 1)
+        {
+                mg_send_typing (sess, "paused");
+                sess->typing_status = 2;
+        }
+        return 0;
+}
+
+static void
+mg_typing_update (session *sess, const char *text)
+{
+        if (!sess)
+                return;
+
+        if (sess->typing_timeout_tag)
+        {
+                fe_timeout_remove (sess->typing_timeout_tag);
+                sess->typing_timeout_tag = 0;
+        }
+
+        if (!text || !*text || text[0] == prefs.hex_input_command_char[0])
+        {
+                if (sess->typing_status)
+                        mg_send_typing (sess, "done");
+                sess->typing_status = 0;
+                return;
+        }
+
+        if (sess->typing_status != 1)
+        {
+                mg_send_typing (sess, "active");
+                sess->typing_status = 1;
+        }
+        sess->typing_timeout_tag = fe_timeout_add_seconds (6, mg_typing_pause_cb, sess);
+}
+
+
+static void
+mg_reply_show_child (GtkWidget *widget, gpointer data)
+{
+	gtk_widget_show (widget);
+}
+
+void
+mg_reply_update (session *sess)
+{
+	char *nick;
+	char *text;
+	char *markup;
+
+	if (!sess || !sess->gui || !sess->gui->reply_box || !sess->gui->reply_label)
+		return;
+
+	if (!sess->reply_msgid)
+	{
+		gtk_widget_hide (sess->gui->reply_box);
+		return;
+	}
+
+	nick = g_markup_escape_text (sess->reply_nick ? sess->reply_nick : _("message"), -1);
+	text = g_markup_escape_text (sess->reply_text ? sess->reply_text : _("Original message unavailable"), -1);
+	markup = g_strdup_printf ("<span foreground='#7d8790'>↪ Replying to <b>%s</b> · %.160s</span>", nick, text);
+	gtk_label_set_markup (GTK_LABEL (sess->gui->reply_label), markup);
+	gtk_container_foreach (GTK_CONTAINER (sess->gui->reply_box), mg_reply_show_child, NULL);
+	gtk_widget_show (sess->gui->reply_box);
+	g_free (markup);
+	g_free (text);
+	g_free (nick);
+}
+
+static void
+mg_reply_cancel_cb (GtkWidget *wid, session *sess)
+{
+	reply_state_clear (sess);
+	mg_reply_update (sess);
+}
+
+static void
+mg_send_reply_or_text (session *sess, char *cmd)
+{
+	char *reply_cmd;
+
+	if (!sess->reply_msgid || cmd[0] == prefs.hex_input_command_char[0])
+	{
+		handle_multiline (sess, cmd, TRUE, FALSE);
+		return;
+	}
+
+	if (!sess->server->connected || !mg_client_tag_allowed (sess->server, "reply"))
+	{
+		PrintText (sess, _("Replies are not supported on this server. Sending normally.\n"));
+		reply_state_clear (sess);
+		mg_reply_update (sess);
+		handle_multiline (sess, cmd, TRUE, FALSE);
+		return;
+	}
+
+	reply_cmd = g_strdup_printf ("%cREPLY %s %s", prefs.hex_input_command_char[0], sess->reply_msgid, cmd);
+	handle_multiline (sess, reply_cmd, TRUE, FALSE);
+	g_free (reply_cmd);
+	reply_state_clear (sess);
+	mg_reply_update (sess);
+}
+
+static void
+mg_inputbox_changed (GtkEditable *editable, session_gui *gui)
+{
+        key_check_replace_on_change (editable, NULL);
+        if (current_sess && current_sess->gui == gui)
+                mg_typing_update (current_sess, gtk_entry_get_text (GTK_ENTRY (editable)));
+}
+
 void
 mg_inputbox_cb (GtkWidget *igad, session_gui *gui)
 {
@@ -772,7 +931,7 @@ mg_inputbox_cb (GtkWidget *igad, session_gui *gui)
         }
 
         if (sess)
-                handle_multiline (sess, cmd, TRUE, FALSE);
+                mg_send_reply_or_text (sess, cmd);
 
         g_free (cmd);
 }
@@ -4541,6 +4700,20 @@ mg_create_entry (session *sess, GtkWidget *box)
         };
         const char *emoji_fallback_icon_name;
 
+        gui->reply_box = mg_box_new (GTK_ORIENTATION_HORIZONTAL, FALSE, 6);
+        gtk_widget_set_name (gui->reply_box, "zoitechat-replybar");
+        gtk_widget_set_no_show_all (gui->reply_box, TRUE);
+        gtk_box_pack_start (GTK_BOX (box), gui->reply_box, 0, 0, 0);
+        gui->reply_label = gtk_label_new ("");
+        gtk_label_set_ellipsize (GTK_LABEL (gui->reply_label), PANGO_ELLIPSIZE_END);
+        gtk_box_pack_start (GTK_BOX (gui->reply_box), gui->reply_label, TRUE, TRUE, 8);
+        but = gtk_button_new_with_label ("×");
+        gtk_button_set_relief (GTK_BUTTON (but), GTK_RELIEF_NONE);
+        gtk_widget_set_can_focus (but, FALSE);
+        gtk_box_pack_start (GTK_BOX (gui->reply_box), but, FALSE, FALSE, 0);
+        g_signal_connect (G_OBJECT (but), "clicked", G_CALLBACK (mg_reply_cancel_cb), sess);
+        gtk_widget_hide (gui->reply_box);
+
         hbox = mg_box_new (GTK_ORIENTATION_HORIZONTAL, FALSE, 0);
         gtk_box_pack_start (GTK_BOX (box), hbox, 0, 0, 0);
 
@@ -4562,7 +4735,7 @@ mg_create_entry (session *sess, GtkWidget *box)
         g_signal_connect (G_OBJECT (entry), "activate",
                                                         G_CALLBACK (mg_inputbox_cb), gui);
         g_signal_connect (G_OBJECT (entry), "changed",
-                                                        G_CALLBACK (key_check_replace_on_change), NULL);
+                                                        G_CALLBACK (mg_inputbox_changed), gui);
         gtk_box_pack_start (GTK_BOX (hbox), entry, TRUE, TRUE, 0);
 
         gtk_widget_set_name (entry, "zoitechat-inputbox");
@@ -5192,6 +5365,12 @@ fe_set_channel (session *sess)
 {
         if (sess->res->tab != NULL)
                 chan_rename (sess->res->tab, sess->channel, prefs.hex_gui_tab_trunc);
+}
+
+void
+fe_set_typing (session *sess, const char *nick, const char *state)
+{
+        fe_userlist_set_typing (sess, nick, state);
 }
 
 void
