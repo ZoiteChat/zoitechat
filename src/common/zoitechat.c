@@ -380,6 +380,7 @@ lag_check (void)
 	time_t now = time (0);
 	time_t lag;
 	time_t ping_age;
+	unsigned long ping_timeout;
 
 	tim = make_ping_time ();
 
@@ -389,8 +390,11 @@ lag_check (void)
 		if (serv->connected && serv->end_of_motd)
 		{
 			lag = now - serv->ping_recv;
-			if (serv->lag_sent && prefs.hex_net_ping_timeout != 0 && lag > prefs.hex_net_ping_timeout && lag > 0)
+			ping_timeout = (unsigned long) prefs.hex_net_ping_timeout * 1000;
+			if (serv->lag_sent && prefs.hex_net_ping_timeout != 0
+				 && tim - serv->lag_sent > ping_timeout)
 			{
+				lag = (tim - serv->lag_sent) / 1000;
 				sprintf (tbuf, "%" G_GINT64_FORMAT, (gint64) lag);
 				EMIT_SIGNAL (XP_TE_PINGTIMEOUT, serv->server_session, tbuf, NULL,
 								 NULL, NULL, 0);
