@@ -1368,7 +1368,20 @@ process_named_msg (session *sess, char *type, char *word[], char *word_eol[],
 						{
 							if (ignore_check (word[1], IG_PRIV))
 								return;
-							inbound_privmsg (serv, nick, ip, text, tags_data->identified, tags_data);
+							if (serv->have_echo_message && !serv->p_cmp (nick, serv->nick))
+							{
+								session *target_sess = find_dialog (serv, to);
+
+								if (!target_sess)
+									target_sess = find_channel (serv, to);
+								if (target_sess)
+									inbound_chanmsg (serv, target_sess, target_sess->channel, nick, text, TRUE, tags_data->identified, tags_data);
+								else if (serv->front_session)
+									EMIT_SIGNAL_TIMESTAMP (XP_TE_MSGSEND, serv->front_session, to, text, NULL, NULL, 0, tags_data->timestamp);
+							} else
+							{
+								inbound_privmsg (serv, nick, ip, text, tags_data->identified, tags_data);
+							}
 						}
 					}
 				}
