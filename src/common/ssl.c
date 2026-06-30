@@ -154,7 +154,7 @@ int
 _SSL_get_cert_info (struct cert_info *cert_info, SSL * ssl)
 {
 	X509 *peer_cert;
-	X509_PUBKEY *key;
+	const X509_PUBKEY *key;
 	X509_ALGOR *algor = NULL;
 	EVP_PKEY *peer_pkey;
 	char notBefore[64];
@@ -350,7 +350,7 @@ _SSL_close (SSL * ssl)
 {
 	SSL_set_shutdown (ssl, SSL_SENT_SHUTDOWN | SSL_RECEIVED_SHUTDOWN);
 	SSL_free (ssl);
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
+#if !defined(OPENSSL_VERSION_MAJOR) && OPENSSL_VERSION_NUMBER < 0x10100000L
 #ifdef HAVE_ERR_REMOVE_THREAD_STATE
 	ERR_remove_thread_state (NULL);
 #else
@@ -507,9 +507,12 @@ _SSL_check_subject_altname (X509 *cert, const char *host)
 static int
 _SSL_check_common_name (X509 *cert, const char *host)
 {
-	X509_NAME *name;
-	char *common_name = NULL;
+	const X509_NAME *name;
+	const X509_NAME_ENTRY *entry;
+	const ASN1_STRING *common_name_asn1;
+	const unsigned char *common_name;
 	int common_name_len;
+	int common_name_index;
 	int rv = -1;
 	GInetAddress *addr;
 
@@ -517,16 +520,27 @@ _SSL_check_common_name (X509 *cert, const char *host)
 	if (name == NULL)
 		return -1;
 
-	common_name_len = X509_NAME_get_text_by_NID (name, NID_commonName, NULL, 0);
-	if (common_name_len < 0)
+	common_name_index = X509_NAME_get_index_by_NID (name, NID_commonName, -1);
+	if (common_name_index < 0)
 		return -1;
 
-	common_name = g_malloc0 (common_name_len + 1);
+	entry = X509_NAME_get_entry (name, common_name_index);
+	if (entry == NULL)
+		return -1;
 
-	X509_NAME_get_text_by_NID (name, NID_commonName, common_name, common_name_len + 1);
+	common_name_asn1 = X509_NAME_ENTRY_get_data (entry);
+	if (common_name_asn1 == NULL)
+		return -1;
+
+#ifdef HAVE_ASN1_STRING_GET0_DATA
+	common_name = ASN1_STRING_get0_data (common_name_asn1);
+#else
+	common_name = ASN1_STRING_data (common_name_asn1);
+#endif
+	common_name_len = ASN1_STRING_length (common_name_asn1);
 
 	/* NUL bytes in CN? */
-	if (common_name_len != (int)strlen(common_name))
+	if (common_name_len != (int)strlen((const char *)common_name))
 	{
 		g_warning ("NUL byte in Common Name field, probably a malicious certificate.\n");
 		rv = -2;
@@ -539,18 +553,17 @@ _SSL_check_common_name (X509 *cert, const char *host)
 		 * We don't want to attempt wildcard matching against IP
 		 * addresses, so perform a simple comparison here.
 		 */
-		if (g_strcmp0 (common_name, host) == 0)
+		if (g_strcmp0 ((const char *)common_name, host) == 0)
 			rv = 0;
 		else
 			rv = -1;
 
 		g_object_unref (addr);
 	}
-	else if (_SSL_match_hostname (common_name, host) == 0)
+	else if (_SSL_match_hostname ((const char *)common_name, host) == 0)
 		rv = 0;
 
 out:
-	g_free(common_name);
 	return rv;
 }
 
