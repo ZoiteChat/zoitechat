@@ -1,6 +1,17 @@
 ZoiteChat ChangeLog
 =================
 
+2.18.3 (2026-06-29)
+-------------------
+
+- Added IRCv3 support for message tags, echo-message, typing notifications, and replies.
+- Restored the accept-invalid-cert TLS bypass behavior.
+- Replaced legacy IPv4 APIs and added support for OpenSSL 4 APIs.
+- Snapshot Python hooks during plugin unload for safer plugin shutdown.
+- Fixed Windows GtkStatusIcon tray menu popup behavior.
+- Fixed self-echoed private messages routing to the target tab.
+- Fixed the lag ping timeout window.
+
 2.18.2 (2026-06-20)
 -------------------
 

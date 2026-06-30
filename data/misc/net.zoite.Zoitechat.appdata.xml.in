@@ -29,6 +29,19 @@
     <id>zoitechat.desktop</id>
   </provides>
 <releases>
+<release date="2026-06-29" version="2.18.3">
+  <description>
+    <ul>
+      <li>Added IRCv3 support for message tags, echo-message, typing notifications, and replies.</li>
+      <li>Restored the accept-invalid-cert TLS bypass behavior.</li>
+      <li>Replaced legacy IPv4 APIs and added support for OpenSSL 4 APIs.</li>
+      <li>Snapshot Python hooks during plugin unload for safer plugin shutdown.</li>
+      <li>Fixed Windows GtkStatusIcon tray menu popup behavior.</li>
+      <li>Fixed self-echoed private messages routing to the target tab.</li>
+      <li>Fixed the lag ping timeout window.</li>
+    </ul>
+  </description>
+</release>
 <release date="2026-06-20" version="2.18.2">
   <description>
     <p>Security and connections:</p>
