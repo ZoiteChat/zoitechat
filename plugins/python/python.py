@@ -173,7 +173,7 @@ class Plugin:
 
     def __del__(self):
         log('unloading', self.filename)
-        for hook in self.hooks:
+        for hook in list(self.hooks):
             if hook.is_unload is True:
                 try:
                     hook.callback(hook.userdata)
