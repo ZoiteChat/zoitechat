@@ -330,6 +330,7 @@ mg_apply_compact_mode_css (GtkWidget *widget)
 
 	gtk_css_provider_load_from_data (provider,
 		".zoitechat-mode-control { min-height: 11px; padding-top: 0; padding-bottom: 0; }"
+		"entry.zoitechat-mode-control { min-width: 0; }"
 		".zoitechat-mode-control label { padding-top: 0; padding-bottom: 0; }",
 		-1, NULL);
 	gtk_style_context_add_class (context, "zoitechat-mode-control");
@@ -3218,8 +3219,9 @@ mg_create_chanmodebuttons (session_gui *gui, GtkWidget *box)
         gui->limit_entry = gtk_entry_new ();
         gtk_widget_set_name (gui->limit_entry, "zoitechat-inputbox");
         gtk_entry_set_max_length (GTK_ENTRY (gui->limit_entry), 10);
-	gtk_entry_set_width_chars (GTK_ENTRY (gui->limit_entry), 5);
-        gtk_widget_set_size_request (gui->limit_entry, 45, 11);
+	gtk_entry_set_width_chars (GTK_ENTRY (gui->limit_entry), 4);
+	gtk_entry_set_max_width_chars (GTK_ENTRY (gui->limit_entry), 4);
+        gtk_widget_set_size_request (gui->limit_entry, 36, 11);
         gtk_box_pack_start (GTK_BOX (box), gui->limit_entry, 0, 0, 0);
         mg_apply_emoji_fallback_widget (gui->limit_entry);
         mg_apply_compact_mode_css (gui->limit_entry);
