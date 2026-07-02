@@ -79,6 +79,8 @@ struct _chanview
 	guint theme_listener_id;
 };
 
+static void chanview_set_font_desc (chanview *cv, const PangoFontDescription *font_desc);
+
 struct _chan
 {
 	chanview *cv;	/* our owner */
@@ -169,6 +171,7 @@ chanview_apply_theme (chanview *cv)
 	w = GTK_WIDGET (tv->tree);
 	if (input_style)
 		font = input_style->font_desc;
+	chanview_set_font_desc (cv, font);
 
 	theme_manager_apply_channel_tree_style (w,
 			theme_manager_get_channel_tree_palette_behavior (font));
@@ -314,6 +317,14 @@ chanview_free_ch (chanview *cv, GtkTreeIter *iter)
 }
 
 static void
+chanview_set_font_desc (chanview *cv, const PangoFontDescription *font_desc)
+{
+	if (cv->font_desc)
+		pango_font_description_free (cv->font_desc);
+	cv->font_desc = font_desc ? pango_font_description_copy (font_desc) : NULL;
+}
+
+static void
 chanview_destroy_store (chanview *cv)	/* free every (chan *) in the store */
 {
 	model_foreach_1 (GTK_TREE_MODEL (cv->store), (void *)chanview_free_ch, cv);
@@ -334,6 +345,9 @@ chanview_destroy (chanview *cv)
 
 	if (cv->box)
 		gtk_widget_destroy (cv->box);
+
+	if (cv->font_desc)
+		pango_font_description_free (cv->font_desc);
 
 	chanview_destroy_store (cv);
 	g_free (cv);
@@ -356,7 +370,7 @@ chanview_new (int type, int trunc_len, gboolean sort, gboolean use_icons,
 	cv = g_new0 (chanview, 1);
 	cv->store = gtk_tree_store_new (5, G_TYPE_STRING, G_TYPE_POINTER,
 							  PANGO_TYPE_ATTR_LIST, GDK_TYPE_PIXBUF, G_TYPE_INT);
-	cv->font_desc = font_desc;
+	cv->font_desc = font_desc ? pango_font_description_copy (font_desc) : NULL;
 	cv->box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
 	cv->trunc_len = trunc_len;
 	cv->sorted = sort;
