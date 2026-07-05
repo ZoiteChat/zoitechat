@@ -1357,17 +1357,19 @@ fe_open_url_inner (const char *url)
 	gboolean opened = FALSE;
 
 #ifdef WIN32
-	opened = g_app_info_launch_default_for_uri (escaped_url, NULL, &error);
+	gunichar2 *url_utf16 = g_utf8_to_utf16 (escaped_url, -1, NULL, NULL, NULL);
+
+	if (url_utf16 != NULL)
+	{
+		opened = ((INT_PTR) ShellExecuteW (0, L"open", url_utf16, NULL, NULL, SW_SHOWNORMAL)) > 32;
+		g_free (url_utf16);
+	}
+
 	if (!opened)
 	{
-		g_clear_error (&error);
-		gunichar2 *url_utf16 = g_utf8_to_utf16 (escaped_url, -1, NULL, NULL, NULL);
-
-		if (url_utf16 != NULL)
-		{
-			opened = ((INT_PTR) ShellExecuteW (0, L"open", url_utf16, NULL, NULL, SW_SHOWNORMAL)) > 32;
-			g_free (url_utf16);
-		}
+		opened = g_app_info_launch_default_for_uri (escaped_url, NULL, &error);
+		if (!opened)
+			g_clear_error (&error);
 	}
 #else
 	{
