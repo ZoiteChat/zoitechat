@@ -4868,9 +4868,9 @@ command_insert_vars (session *sess, char *cmd)
 				break;
 
 			case 'p':
-				if (mynet->pass)
+				if (sess->server->password[0])
 				{
-					g_string_append (expanded, mynet->pass);
+					g_string_append (expanded, sess->server->password);
 				}
 				cmd++;
 				break;
