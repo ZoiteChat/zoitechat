@@ -286,10 +286,12 @@ xtext_adj_get_page_increment (GtkAdjustment *adj)
 static void
 xtext_adjustment_apply (GtkAdjustment *adj, gdouble lower, gdouble upper, gdouble value, gdouble page_size)
 {
-	gtk_adjustment_set_lower (adj, lower);
-	gtk_adjustment_set_upper (adj, upper);
-	gtk_adjustment_set_page_size (adj, page_size);
-	gtk_adjustment_set_value (adj, value);
+	gdouble step_increment = page_size * prefs.hex_gui_mouse_scroll_speed / 100.0;
+
+	if (step_increment < 1)
+		step_increment = 1;
+
+	gtk_adjustment_configure (adj, value, lower, upper, step_increment, page_size, page_size);
 }
 
 static inline void
