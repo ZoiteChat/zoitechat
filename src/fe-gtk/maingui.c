@@ -65,6 +65,7 @@
 #ifdef G_OS_WIN32
 #include <windows.h>
 #include <shellapi.h>
+#include <uiautomationclient.h>
 #include <gdk/gdkwin32.h>
 
 static void
@@ -5004,6 +5005,234 @@ mg_tabwindow_de_cb (GtkWidget *widget, GdkEvent *event, gpointer user_data)
 }
 
 #ifdef G_OS_WIN32
+/* GTK3's win32 backend breaks the shell's minimize-on-taskbar-button-click:
+ * when the taskbar button of the active window is clicked, the window only
+ * loses activation but stays on screen
+ * (https://gitlab.gnome.org/GNOME/gtk/-/issues/3749).
+ *
+ * Activation state alone cannot identify that gesture: clicking empty
+ * taskbar space, the Start button, the tray or another application's
+ * button also deactivates this window while the pointer is over the
+ * taskbar, and in each case (including the failed minimize) activation
+ * ends up outside this window. So when activation is lost with the
+ * pointer over the taskbar, hit-test the click point with UI Automation:
+ * only a taskbar button whose accessible name refers to this window's
+ * title is treated as a minimize request, and the minimize is then
+ * performed manually after a short delay (which also lets a working
+ * shell minimize win, should GTK ever be fixed).
+ */
+#define MG_WIN32_TASKBAR_MINIMIZE_DELAY_MS 200
+#define MG_WIN32_UIA_BUTTON_CONTROL_TYPE 50000	/* UIA_ButtonControlTypeId */
+#define MG_WIN32_UIA_MAX_ANCESTORS 8
+
+/* CLSID_CUIAutomation / IID_IUIAutomation, defined locally so no
+ * uuid import library is needed */
+static const CLSID mg_win32_clsid_cuiautomation =
+{ 0xff48dba4, 0x60ef, 0x4201, { 0xaa, 0x87, 0x54, 0x10, 0x3e, 0xef, 0x59, 0x4e } };
+static const IID mg_win32_iid_iuiautomation =
+{ 0x30cbe57d, 0xd9d0, 0x452a, { 0xab, 0x13, 0x7a, 0xc5, 0xac, 0x48, 0x25, 0xee } };
+
+static guint mg_win32_taskbar_minimize_source_id = 0;
+static HWND mg_win32_taskbar_minimize_hwnd = NULL;
+static POINT mg_win32_taskbar_minimize_point;
+
+static gboolean
+mg_win32_hwnd_is_taskbar (HWND hwnd)
+{
+	wchar_t class_name[32];
+	HWND root;
+
+	if (!hwnd)
+		return FALSE;
+
+	root = GetAncestor (hwnd, GA_ROOT);
+	if (!root)
+		root = hwnd;
+
+	if (GetClassNameW (root, class_name, G_N_ELEMENTS (class_name)) == 0)
+		return FALSE;
+
+	return lstrcmpW (class_name, L"Shell_TrayWnd") == 0
+		|| lstrcmpW (class_name, L"Shell_SecondaryTrayWnd") == 0;
+}
+
+/* The main thread is COM-initialized for the process lifetime (see main ()
+ * in src/common/zoitechat.c), so the instance can be created lazily and
+ * kept until exit. */
+static IUIAutomation *
+mg_win32_get_uia (void)
+{
+	static IUIAutomation *uia = NULL;
+	static gboolean failed = FALSE;
+
+	if (uia == NULL && !failed)
+	{
+		if (FAILED (CoCreateInstance (&mg_win32_clsid_cuiautomation, NULL,
+		                              CLSCTX_INPROC_SERVER,
+		                              &mg_win32_iid_iuiautomation,
+		                              (void **)&uia)))
+		{
+			uia = NULL;
+			failed = TRUE;
+		}
+	}
+
+	return uia;
+}
+
+/* A taskbar button's accessible name refers to a window title if one
+ * string equals the other or extends it at a separator: the button of a
+ * single window carries the title, on Win11 with a suffix
+ * ("<title> - 1 running window"), and either string may briefly trail
+ * the other while the shell catches up with a title change (e.g. the
+ * " (52)" user count appearing). A button grouping several windows is
+ * named after the application instead and deliberately does not match:
+ * clicking a group opens its thumbnails rather than minimizing. */
+static gboolean
+mg_win32_button_name_matches_title (const wchar_t *name, const wchar_t *title)
+{
+	size_t name_len, title_len, common;
+	wchar_t next;
+
+	if (!name || !title)
+		return FALSE;
+
+	name_len = wcslen (name);
+	title_len = wcslen (title);
+	common = MIN (name_len, title_len);
+
+	if (common == 0 || wcsncmp (name, title, common) != 0)
+		return FALSE;
+
+	if (name_len == title_len)
+		return TRUE;
+
+	next = (name_len > title_len) ? name[common] : title[common];
+	return next == L' ' || next == L':' || next == L'-';
+}
+
+/* Was the click at pt on this window's own taskbar button? Hit-test the
+ * point and search the element and a few ancestors for a button whose
+ * name refers to this window. Empty taskbar space has no button ancestor,
+ * and other buttons (Start, tray icons, other applications' windows)
+ * fail the name check. */
+static gboolean
+mg_win32_taskbar_click_on_own_button (IUIAutomation *uia, HWND hwnd, POINT pt)
+{
+	IUIAutomationTreeWalker *walker = NULL;
+	IUIAutomationElement *element = NULL;
+	wchar_t title[512];
+	gboolean match = FALSE;
+	int depth;
+
+	if (GetWindowTextW (hwnd, title, G_N_ELEMENTS (title)) == 0)
+		return FALSE;
+
+	if (FAILED (uia->lpVtbl->ElementFromPoint (uia, pt, &element))
+		|| element == NULL)
+		return FALSE;
+
+	if (FAILED (uia->lpVtbl->get_ControlViewWalker (uia, &walker)))
+		walker = NULL;
+
+	for (depth = 0; element != NULL && depth < MG_WIN32_UIA_MAX_ANCESTORS; depth++)
+	{
+		IUIAutomationElement *parent = NULL;
+		CONTROLTYPEID control_type = 0;
+
+		if (SUCCEEDED (element->lpVtbl->get_CurrentControlType (element, &control_type))
+			&& control_type == MG_WIN32_UIA_BUTTON_CONTROL_TYPE)
+		{
+			BSTR name = NULL;
+
+			if (SUCCEEDED (element->lpVtbl->get_CurrentName (element, &name))
+				&& name != NULL)
+			{
+				match = mg_win32_button_name_matches_title (name, title);
+				SysFreeString (name);
+			}
+			break;
+		}
+
+		if (walker == NULL
+			|| FAILED (walker->lpVtbl->GetParentElement (walker, element, &parent)))
+			parent = NULL;
+
+		element->lpVtbl->Release (element);
+		element = parent;
+	}
+
+	if (element)
+		element->lpVtbl->Release (element);
+	if (walker)
+		walker->lpVtbl->Release (walker);
+
+	return match;
+}
+
+static gboolean
+mg_win32_taskbar_minimize_cb (gpointer userdata)
+{
+	HWND hwnd = mg_win32_taskbar_minimize_hwnd;
+	POINT click_pos = mg_win32_taskbar_minimize_point;
+	IUIAutomation *uia;
+
+	mg_win32_taskbar_minimize_source_id = 0;
+	mg_win32_taskbar_minimize_hwnd = NULL;
+
+	/* Already minimized or gone: the shell's own minimize worked */
+	if (!hwnd || !IsWindow (hwnd) || !IsWindowVisible (hwnd) || IsIconic (hwnd))
+		return G_SOURCE_REMOVE;
+
+	/* Button still held: a taskbar-button drag, not a click */
+	if (GetAsyncKeyState (VK_LBUTTON) & 0x8000)
+		return G_SOURCE_REMOVE;
+
+	uia = mg_win32_get_uia ();
+	if (uia != NULL)
+	{
+		if (!mg_win32_taskbar_click_on_own_button (uia, hwnd, click_pos))
+			return G_SOURCE_REMOVE;
+	}
+	else
+	{
+		/* No UI Automation available: fall back to the activation
+		 * signature - a failed shell minimize can leave this window
+		 * as the foreground window. */
+		HWND foreground = GetForegroundWindow ();
+
+		if (foreground != NULL && foreground != hwnd)
+			return G_SOURCE_REMOVE;
+	}
+
+	PostMessage (hwnd, WM_SYSCOMMAND, SC_MINIMIZE, 0);
+	return G_SOURCE_REMOVE;
+}
+
+static void
+mg_win32_taskbar_click_check (HWND hwnd)
+{
+	POINT cursor_pos;
+
+	if (!IsWindowVisible (hwnd) || IsIconic (hwnd))
+		return;
+
+	if (!GetCursorPos (&cursor_pos))
+		return;
+
+	if (!mg_win32_hwnd_is_taskbar (WindowFromPoint (cursor_pos)))
+		return;
+
+	if (mg_win32_taskbar_minimize_source_id)
+		g_source_remove (mg_win32_taskbar_minimize_source_id);
+
+	mg_win32_taskbar_minimize_hwnd = hwnd;
+	mg_win32_taskbar_minimize_point = cursor_pos;
+	mg_win32_taskbar_minimize_source_id =
+		g_timeout_add (MG_WIN32_TASKBAR_MINIMIZE_DELAY_MS,
+		               mg_win32_taskbar_minimize_cb, NULL);
+}
+
 static GdkFilterReturn
 mg_win32_filter (GdkXEvent *xevent, GdkEvent *event, gpointer data)
 {
@@ -5011,6 +5240,13 @@ mg_win32_filter (GdkXEvent *xevent, GdkEvent *event, gpointer data)
 
 	if (!msg)
 		return GDK_FILTER_CONTINUE;
+
+	if (msg->message == WM_ACTIVATE)
+	{
+		if (LOWORD (msg->wParam) == WA_INACTIVE)
+			mg_win32_taskbar_click_check (msg->hwnd);
+		return GDK_FILTER_CONTINUE;
+	}
 
 	if (msg->message == WM_TIMECHANGE)
 	{

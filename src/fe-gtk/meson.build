@@ -91,6 +91,8 @@ zoitechat_gtk_ldflags = []
 if host_machine.system() == 'windows'
   zoitechat_gtk_sources += 'notifications/notification-windows.c'
   zoitechat_gtk_deps += cc.find_library('dwmapi', required: true)
+  zoitechat_gtk_deps += cc.find_library('ole32', required: true) # taskbar minimize (UI Automation)
+  zoitechat_gtk_deps += cc.find_library('oleaut32', required: true) # taskbar minimize (UI Automation)
   zoitechat_theme_deps += cc.find_library('dwmapi', required: true)
 
 else
