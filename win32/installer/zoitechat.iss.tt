@@ -16,7 +16,7 @@ AppUpdatesURL=http://zoitechat.org/downloads.html
 LicenseFile=share\doc\zoitechat\COPYING
 UninstallDisplayIcon={app}\zoitechat.exe
 UninstallDisplayName=ZoiteChat
-DefaultDirName={pf64}\ZoiteChat
+DefaultDirName={commonpf64}\ZoiteChat
 DisableDirPage=no
 DefaultGroupName=ZoiteChat
 AllowNoIcons=yes
@@ -28,11 +28,11 @@ OutputBaseFilename={#APPNAM}-{#APPVER}_x64
 FlatComponentsList=no
 PrivilegesRequired=none
 ShowComponentSizes=no
-CreateUninstallRegKey=not IsTaskSelected('portable')
-Uninstallable=not IsTaskSelected('portable')
+CreateUninstallRegKey=not WizardIsTaskSelected('portable')
+Uninstallable=not WizardIsTaskSelected('portable')
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
-MinVersion=6.1
+MinVersion=6.1sp1
 WizardImageFile={#PROJECTDIR}wizardimage.bmp
 WizardSmallImageFile={#PROJECTDIR}wizardsmallimage.bmp
 SetupIconFile={#PROJECTDIR}..\..\data\icons\zoitechat.ico
@@ -59,7 +59,7 @@ Name: "plugins\upd"; Description: "Update Checker"; Types: normal custom; Flags:
 Name: "langs"; Description: "Language Interfaces"; Types: custom; Flags: disablenouninstallwarning
 Name: "langs\lua"; Description: "Lua (LuaJIT 2.1)"; Types: normal custom; Flags: disablenouninstallwarning
 Name: "langs\perl"; Description: "Perl (Strawberry Perl 5.42.0.1)"; Types: custom; Flags: disablenouninstallwarning
-Name: "langs\python"; Description: "Python (Python 3.14.3)"; Types: custom; Flags: disablenouninstallwarning
+Name: "langs\python"; Description: "Python (Python 3.14.3, or 3.8.10 on Windows 7)"; Types: custom; Flags: disablenouninstallwarning
 Name: "themes"; Description: "GTK3 Themes"; Types: normal minimal custom; Flags: disablenouninstallwarning
 Name: "themes\windows10"; Description: "Windows 10"; Types: normal minimal custom; Flags: disablenouninstallwarning
 Name: "themes\windows10dark"; Description: "Windows 10 Dark"; Types: normal minimal custom; Flags: disablenouninstallwarning
@@ -182,6 +182,7 @@ Source: "plugins\hcperl.dll"; DestDir: "{app}\plugins"; Flags: ignoreversion; Co
 Source: "python\*.py"; DestDir: "{app}\python"; Flags: ignoreversion; Components: langs\python
 
 Source: "plugins\hcpython3.dll"; DestDir: "{app}\plugins"; Flags: ignoreversion; Components: langs\python
+Source: "plugins\hcpython38.dll"; DestDir: "{app}\plugins"; Flags: ignoreversion skipifsourcedoesntexist; Components: langs\python
 Source: "_cffi_backend.cp3*.pyd"; DestDir: "{app}"; Flags: ignoreversion; Components: langs\python
 
 Source: "zoitechat.exe"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
@@ -328,6 +329,30 @@ begin
 		Result := DirExists(ExpandConstant('{localappdata}') + '\enchant\myspell');
 end;
 
+function IsWindows7(): Boolean;
+var
+	Version: TWindowsVersion;
+begin
+	GetWindowsVersionEx(Version);
+	Result := Version.NTPlatform and (Version.Major = 6) and (Version.Minor = 1);
+end;
+
+function PythonURL(): String;
+begin
+	if IsWindows7() then
+		Result := 'https://www.python.org/ftp/python/3.8.10/python-3.8.10-amd64.exe'
+	else
+		Result := 'https://www.python.org/ftp/python/3.14.3/python-3.14.3-amd64.exe';
+end;
+
+function PythonDLL(): String;
+begin
+	if IsWindows7() then
+		Result := 'python38.dll'
+	else
+		Result := 'python314.dll';
+end;
+
 /////////////////////////////////////////////////////////////////////
 // Sets up the automatic downloads
 /////////////////////////////////////////////////////////////////////
@@ -345,34 +370,34 @@ begin
   begin
     idpClearFiles;
 
-	if IsComponentSelected('themes\windows10') then
+	if WizardIsComponentSelected('themes\windows10') then
 		idpAddFile('https://dl.zoitechat.zoite.net/themes/GTK3Themes/Windows-10-3.2.1.zip', ExpandConstant('{tmp}\Windows-10-3.2.1.zip'));
 
-	if IsComponentSelected('themes\windows10dark') then
+	if WizardIsComponentSelected('themes\windows10dark') then
 		idpAddFile('https://dl.zoitechat.zoite.net/themes/GTK3Themes/Windows-10-Dark-3.2.1-dark.zip', ExpandConstant('{tmp}\Windows-10-Dark-3.2.1-dark.zip'));
 
-	if not IsTaskSelected('portable') then
+	if not WizardIsTaskSelected('portable') then
 	begin
 
 		REDIST := 'https://aka.ms/vs/17/release/vc_redist.x64.exe';
 		PERL := 'https://github.com/StrawberryPerl/Perl-Dist-Strawberry/releases/download/SP_54201_64bit/strawberry-perl-5.42.0.1-64bit.msi';
-		PY3 := 'https://www.python.org/ftp/python/3.14.3/python-3.14.3-amd64.exe';
+		PY3 := PythonURL();
 		SPELL := 'https://github.com/zoitechat/gvsbuild/releases/download/zoitechat-2.16.2/ZoiteChat.Spelling.Dictionaries.r2.exe';
 
-		if IsComponentSelected('deps\vcredist2015') and not CheckVCInstall() then
+		if WizardIsComponentSelected('deps\vcredist2015') and not CheckVCInstall() then
 			idpAddFile(REDIST, ExpandConstant('{tmp}\vcredist.exe'));
 
-		if IsComponentSelected('spell') and not CheckSpellInstall() then
+		if WizardIsComponentSelected('spell') and not CheckSpellInstall() then
 			idpAddFile(SPELL, ExpandConstant('{tmp}\spelling-dicts.exe'));
 
 		if not WizardSilent() then
 		begin
-			if IsComponentSelected('langs\perl') and not CheckDLL('perl542.dll') then
+			if WizardIsComponentSelected('langs\perl') and not CheckDLL('perl542.dll') then
 			begin
 				idpAddFile(PERL, ExpandConstant('{tmp}\perl.msi'))
 			end;
 
-			if IsComponentSelected('langs\python') and not CheckDLL('python314.dll') then
+			if WizardIsComponentSelected('langs\python') and not CheckDLL(PythonDLL()) then
                 idpAddFile(PY3, ExpandConstant('{tmp}\python.exe'));
 		end;
 	end;
@@ -397,7 +422,7 @@ begin
 
 	if (CurPageID = wpSelectTasks) then
 		if (WizardForm.TasksList.Checked[1] = True) then
-			if (WizardDirValue() = ExpandConstant('{pf64}\ZoiteChat')) then
+			if (WizardDirValue() = ExpandConstant('{commonpf64}\ZoiteChat')) then
 			begin
 				WizardForm.TasksList.Checked[1] := False
 				MsgBox('Portable mode is only intended for use on portable drives and has been disabled.', mbInformation, MB_OK)
@@ -405,21 +430,21 @@ begin
 
 	if CurPageID = wpReady then
 	begin
-		if IsComponentSelected('themes\windows10') and not FileExists(ExpandConstant('{tmp}\Windows-10-3.2.1.zip')) then
+		if WizardIsComponentSelected('themes\windows10') and not FileExists(ExpandConstant('{tmp}\Windows-10-3.2.1.zip')) then
 		begin
 			MsgBox('Windows 10 GTK3 theme could not be downloaded. Please retry setup and rerun setup.', mbError, MB_OK);
 			Result := False;
 			Exit;
 		end;
 
-		if IsComponentSelected('themes\windows10dark') and not FileExists(ExpandConstant('{tmp}\Windows-10-Dark-3.2.1-dark.zip')) then
+		if WizardIsComponentSelected('themes\windows10dark') and not FileExists(ExpandConstant('{tmp}\Windows-10-Dark-3.2.1-dark.zip')) then
 		begin
 			MsgBox('Windows 10 Dark GTK3 theme could not be downloaded. Please retry setup and rerun setup.', mbError, MB_OK);
 			Result := False;
 			Exit;
 		end;
 
-		if IsComponentSelected('deps\vcredist2015') and not CheckVCInstall() and not FileExists(ExpandConstant('{tmp}\vcredist.exe')) then
+		if WizardIsComponentSelected('deps\vcredist2015') and not CheckVCInstall() and not FileExists(ExpandConstant('{tmp}\vcredist.exe')) then
 		begin
 			MsgBox('Visual C++ Redistributable could not be downloaded. Please retry setup or install it manually and rerun setup.', mbError, MB_OK);
 			Result := False;
@@ -486,7 +511,7 @@ end;
 /////////////////////////////////////////////////////////////////////
 procedure CurStepChanged(CurStep: TSetupStep);
 begin
-	if not (IsTaskSelected('portable')) then
+	if not (WizardIsTaskSelected('portable')) then
 	begin
 		if (CurStep=ssInstall) then
 		begin

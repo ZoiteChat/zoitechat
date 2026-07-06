@@ -113,6 +113,25 @@ jobs:
             New-Item -Path $pyDir -Name "${{ matrix.platform }}" -ItemType Junction -Value $pyRoot | Out-Null
           }
 
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.8.10'
+          architecture: ${{ matrix.arch }}
+
+      - name: Prepare Python 3.8
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install cffi
+
+          $pyRoot = $env:pythonLocation
+          if (-not $pyRoot) { $pyRoot = & python -c "import sys; print(sys.prefix)" }
+
+          $pyDir = "C:\gtk-build\python-3.8"
+          New-Item -Path $pyDir -ItemType Directory -Force | Out-Null
+          $target = Join-Path $pyDir "${{ matrix.platform }}"
+          if (Test-Path $target) { Remove-Item $target -Recurse -Force }
+          New-Item -Path $pyDir -Name "${{ matrix.platform }}" -ItemType Junction -Value $pyRoot | Out-Null
+
       - name: Build
         run: |
           call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat"
@@ -130,6 +149,17 @@ jobs:
           powershell -NoProfile -ExecutionPolicy Bypass -Command "$archiveLib='C:\gtk-build\gtk\x64\release\lib\libarchive.lib'; if (-not (Test-Path $archiveLib)) { $archiveDll = Get-ChildItem 'C:\gtk-build\gtk\x64\release\bin\libarchive*.dll' | Select-Object -First 1; if ($archiveDll) { Push-Location 'C:\gtk-build\gtk\x64\release\lib'; & 'C:\gtk-build\gendef\gendef.exe' $archiveDll.FullName | Out-Null; $archiveDef = Get-ChildItem 'libarchive*.def' | Select-Object -First 1; if ($archiveDef) { & lib /def:$archiveDef.Name /machine:${{ matrix.platform }} /out:libarchive.lib | Out-Null }; Pop-Location } }"
 
           msbuild win32\zoitechat.sln /m /verbosity:minimal /p:Configuration=Release /p:Platform=${{ matrix.platform }}
+
+          set "PYTHON38_DIR=C:\gtk-build\python-3.8\${{ matrix.platform }}"
+          if not exist "%PYTHON38_DIR%\libs\python38.lib" (
+            echo Missing %PYTHON38_DIR%\libs\python38.lib
+            dir "%PYTHON38_DIR%\libs"
+            exit /b 1
+          )
+
+          msbuild plugins\python\python3.vcxproj /m /verbosity:minimal /p:Configuration=Release /p:Platform=${{ matrix.platform }} /p:SolutionDir=%CD%\win32\ /p:YourPython3Path=C:\gtk-build\python-3.8 /p:Python3Lib=python38 /p:Python3Output=hcpython38
+          copy /Y "%PYTHON38_DIR%\Lib\site-packages\_cffi_backend.cp38*.pyd" "..\zoitechat-build\${{ matrix.platform }}\bin\"
+          msbuild win32\installer\installer.vcxproj /m /verbosity:minimal /p:Configuration=Release /p:Platform=${{ matrix.platform }} /p:SolutionDir=%CD%\win32\
         shell: cmd
 
       - name: Preparing Artifacts
