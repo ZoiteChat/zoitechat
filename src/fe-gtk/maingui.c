@@ -5004,6 +5004,100 @@ mg_tabwindow_de_cb (GtkWidget *widget, GdkEvent *event, gpointer user_data)
 }
 
 #ifdef G_OS_WIN32
+/* GTK3's win32 backend does not minimize the window when its taskbar
+ * button is clicked while the window is active; the click only
+ * deactivates the window (https://gitlab.gnome.org/GNOME/gtk/-/issues/3749).
+ * Only arm this workaround from WM_ACTIVATEAPP when ZoiteChat was already
+ * the foreground application and Windows is moving activation away from it.
+ * A plain WM_ACTIVATE/WA_INACTIVE is not enough: clicking this window's
+ * taskbar button while ZoiteChat is inactive can also pass through GTK's
+ * broken deactivate path and must be allowed to activate normally.
+ */
+#define MG_WIN32_TASKBAR_MINIMIZE_DELAY_MS 200
+
+static guint mg_win32_taskbar_minimize_source_id = 0;
+static HWND mg_win32_taskbar_minimize_hwnd = NULL;
+static gboolean mg_win32_taskbar_app_active = FALSE;
+
+static void
+mg_win32_taskbar_minimize_cancel (void)
+{
+	if (mg_win32_taskbar_minimize_source_id)
+	{
+		g_source_remove (mg_win32_taskbar_minimize_source_id);
+		mg_win32_taskbar_minimize_source_id = 0;
+	}
+
+	mg_win32_taskbar_minimize_hwnd = NULL;
+}
+
+static gboolean
+mg_win32_hwnd_is_taskbar (HWND hwnd)
+{
+	wchar_t class_name[32];
+	HWND root;
+
+	if (!hwnd)
+		return FALSE;
+
+	root = GetAncestor (hwnd, GA_ROOT);
+	if (!root)
+		root = hwnd;
+
+	if (GetClassNameW (root, class_name, G_N_ELEMENTS (class_name)) == 0)
+		return FALSE;
+
+	return lstrcmpW (class_name, L"Shell_TrayWnd") == 0
+		|| lstrcmpW (class_name, L"Shell_SecondaryTrayWnd") == 0;
+}
+
+static gboolean
+mg_win32_taskbar_minimize_cb (gpointer userdata)
+{
+	HWND hwnd = mg_win32_taskbar_minimize_hwnd;
+	HWND foreground;
+
+	mg_win32_taskbar_minimize_source_id = 0;
+	mg_win32_taskbar_minimize_hwnd = NULL;
+
+	if (!hwnd || !IsWindow (hwnd) || !IsWindowVisible (hwnd) || IsIconic (hwnd))
+		return G_SOURCE_REMOVE;
+
+	foreground = GetForegroundWindow ();
+
+	/* Activation settled somewhere else (another application, one of our
+	 * own windows, a flyout such as the start menu, ...), so the taskbar
+	 * click was not on this window's button. */
+	if (foreground == hwnd ||
+		(foreground && !mg_win32_hwnd_is_taskbar (foreground)))
+		return G_SOURCE_REMOVE;
+
+	PostMessage (hwnd, WM_SYSCOMMAND, SC_MINIMIZE, 0);
+	return G_SOURCE_REMOVE;
+}
+
+static void
+mg_win32_taskbar_click_check (HWND hwnd)
+{
+	POINT cursor_pos;
+
+	if (!IsWindowVisible (hwnd) || IsIconic (hwnd))
+		return;
+
+	if (!GetCursorPos (&cursor_pos))
+		return;
+
+	if (!mg_win32_hwnd_is_taskbar (WindowFromPoint (cursor_pos)))
+		return;
+
+	mg_win32_taskbar_minimize_cancel ();
+
+	mg_win32_taskbar_minimize_hwnd = hwnd;
+	mg_win32_taskbar_minimize_source_id =
+		g_timeout_add (MG_WIN32_TASKBAR_MINIMIZE_DELAY_MS,
+		               mg_win32_taskbar_minimize_cb, NULL);
+}
+
 static GdkFilterReturn
 mg_win32_filter (GdkXEvent *xevent, GdkEvent *event, gpointer data)
 {
@@ -5011,6 +5105,24 @@ mg_win32_filter (GdkXEvent *xevent, GdkEvent *event, gpointer data)
 
 	if (!msg)
 		return GDK_FILTER_CONTINUE;
+
+	if (msg->message == WM_ACTIVATEAPP)
+	{
+		if (msg->wParam)
+		{
+			mg_win32_taskbar_app_active = TRUE;
+			mg_win32_taskbar_minimize_cancel ();
+		}
+		else
+		{
+			if (mg_win32_taskbar_app_active)
+				mg_win32_taskbar_click_check (msg->hwnd);
+
+			mg_win32_taskbar_app_active = FALSE;
+		}
+
+		return GDK_FILTER_CONTINUE;
+	}
 
 	if (msg->message == WM_TIMECHANGE)
 	{
