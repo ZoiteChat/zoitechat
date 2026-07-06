@@ -3388,10 +3388,19 @@ mg_topicbar_update_height (GtkWidget *topic)
 
 		if (parent && GTK_IS_SCROLLED_WINDOW (parent))
 		{
-			gtk_scrolled_window_set_max_content_height (GTK_SCROLLED_WINDOW (parent), -1);
-			gtk_scrolled_window_set_min_content_height (GTK_SCROLLED_WINDOW (parent), -1);
-			gtk_scrolled_window_set_max_content_height (GTK_SCROLLED_WINDOW (parent), target_height);
-			gtk_scrolled_window_set_min_content_height (GTK_SCROLLED_WINDOW (parent), target_height);
+			GtkScrolledWindow *scrolled = GTK_SCROLLED_WINDOW (parent);
+			int max_height = gtk_scrolled_window_get_max_content_height (scrolled);
+
+			if (max_height != -1 && target_height > max_height)
+			{
+				gtk_scrolled_window_set_max_content_height (scrolled, target_height);
+				gtk_scrolled_window_set_min_content_height (scrolled, target_height);
+			}
+			else
+			{
+				gtk_scrolled_window_set_min_content_height (scrolled, target_height);
+				gtk_scrolled_window_set_max_content_height (scrolled, target_height);
+			}
 			gtk_widget_set_size_request (parent, -1, target_height);
 		}
 	}

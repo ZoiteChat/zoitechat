@@ -52,14 +52,13 @@ static const guint8 theme_default_99_mirc_colors[THEME_XTEXT_MIRC_COLS][3] = {
 };
 
 static void
-theme_access_apply_default_99_palette (XTextColor *palette, size_t palette_len, gboolean apply_base)
+theme_access_apply_default_99_palette (XTextColor *palette, size_t palette_len)
 {
 	size_t i;
-	size_t start = apply_base ? 0 : 32;
 
 	if (palette_len == 0)
 		return;
-	for (i = start; i < THEME_XTEXT_MIRC_COLS && i < palette_len; i++)
+	for (i = 32; i < THEME_XTEXT_MIRC_COLS && i < palette_len; i++)
 	{
 		palette[i].red = theme_default_99_mirc_colors[i][0] / 255.0;
 		palette[i].green = theme_default_99_mirc_colors[i][1] / 255.0;
@@ -148,11 +147,10 @@ gboolean
 theme_get_mirc_color (unsigned int mirc_index, GdkRGBA *out_rgba)
 {
 	ThemeSemanticToken token = (ThemeSemanticToken) (THEME_TOKEN_MIRC_0 + (int) mirc_index);
-	gboolean has_user_colors = theme_runtime_mode_has_user_colors (theme_runtime_is_dark_active ());
 
 	if (mirc_index >= THEME_XTEXT_MIRC_COLS)
 		return FALSE;
-	if (!has_user_colors || mirc_index >= 32)
+	if (mirc_index >= 32)
 	{
 		out_rgba->red = theme_default_99_mirc_colors[mirc_index][0] / 255.0;
 		out_rgba->green = theme_default_99_mirc_colors[mirc_index][1] / 255.0;
@@ -173,11 +171,10 @@ gboolean
 theme_get_mirc_color_rgb16 (unsigned int mirc_index, guint16 *red, guint16 *green, guint16 *blue)
 {
 	ThemeSemanticToken token = (ThemeSemanticToken) (THEME_TOKEN_MIRC_0 + (int) mirc_index);
-	gboolean has_user_colors = theme_runtime_mode_has_user_colors (theme_runtime_is_dark_active ());
 
 	if (mirc_index >= THEME_XTEXT_MIRC_COLS)
 		return FALSE;
-	if (!has_user_colors || mirc_index >= 32)
+	if (mirc_index >= 32)
 	{
 		*red = (guint16) (theme_default_99_mirc_colors[mirc_index][0] * 257);
 		*green = (guint16) (theme_default_99_mirc_colors[mirc_index][1] * 257);
@@ -227,7 +224,6 @@ void
 theme_get_xtext_colors_for_widget (GtkWidget *widget, XTextColor *palette, size_t palette_len)
 {
 	ThemeWidgetStyleValues style_values;
-	gboolean has_user_colors;
 	GdkRGBA marker_color;
 
 	if (!palette)
@@ -235,9 +231,8 @@ theme_get_xtext_colors_for_widget (GtkWidget *widget, XTextColor *palette, size_
 
 	theme_get_widget_style_values_for_widget (widget, &style_values);
 	theme_runtime_get_xtext_colors (palette, palette_len);
-	has_user_colors = theme_runtime_mode_has_user_colors (theme_runtime_is_dark_active ());
 	if (palette_len >= THEME_XTEXT_MIRC_COLS)
-		theme_access_apply_default_99_palette (palette, palette_len, !has_user_colors);
+		theme_access_apply_default_99_palette (palette, palette_len);
 	if (palette_len > THEME_XTEXT_MARK_FG_INDEX)
 	{
 		palette[THEME_XTEXT_MARK_FG_INDEX].red = style_values.selection_foreground.red;
