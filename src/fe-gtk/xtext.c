@@ -813,6 +813,7 @@ gtk_xtext_init (GtkXText * xtext)
 	xtext->hadj = NULL;
 	xtext->hscroll_policy = GTK_SCROLL_MINIMUM;
 	xtext->vscroll_policy = GTK_SCROLL_MINIMUM;
+	gtk_widget_set_has_window (GTK_WIDGET (xtext), TRUE);
 	gtk_xtext_scroll_adjustments (xtext, NULL, NULL);
 
 	gtk_xtext_install_selection_targets (GTK_WIDGET (xtext));
