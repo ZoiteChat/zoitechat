@@ -1777,7 +1777,7 @@ text_color_event_list (int color)
 		{
 			if (line_len + name_len + 2 > 76)
 			{
-				g_string_append_c (events, '\n');
+				g_string_append (events, ",\n");
 				line_len = 0;
 			}
 			else
