@@ -66,6 +66,7 @@
       <None Include="$(DepsRoot)\bin\*zlib*.dll" />
       <None Include="$(DepsRoot)\bin\*girepository*.dll" Condition="'$(LuaEnabled)'=='true' and '$(LuaLibDir)'!=''" />
       <None Include="$(Python3Path)\Lib\site-packages\_cffi_backend.*.pyd" Condition="'$(Python3Enabled)'=='true'" />
+      <None Include="$(Python38Path)\Lib\site-packages\_cffi_backend.*.pyd" Condition="'$(Python38Enabled)'=='true'" />
 
       <LuaLib Include="$(LuaLibDir)\**\*.dll" Condition="'$(LuaEnabled)'=='true' and '$(LuaLibDir)'!=''" />
       <LuaShare Include="$(LuaShareDir)\*.lua" Condition="'$(LuaEnabled)'=='true' and '$(LuaShareDir)'!=''" />
@@ -105,10 +106,10 @@
     <Copy SourceFiles="@(LuaShare)" DestinationFiles="@(LuaShare->'$(ZoiteChatRel)\share\lua\%(RecursiveDir)%(Filename)%(Extension)')" />
     <Copy SourceFiles="@(LuaLib)" DestinationFiles="@(LuaLib->'$(ZoiteChatRel)\lib\lua\%(RecursiveDir)%(Filename)%(Extension)')" />
     <Copy SourceFiles="@(Typelib)" DestinationFiles="@(Typelib->'$(ZoiteChatRel)\lib\girepository-1.0\%(Filename)%(Extension)')" />
-    <Copy SourceFiles="..\..\plugins\python\xchat.py" DestinationFolder="$(ZoiteChatRel)\python" Condition="'$(Python3Enabled)'=='true'" />
-    <Copy SourceFiles="..\..\plugins\python\hexchat.py" DestinationFolder="$(ZoiteChatRel)\python" Condition="'$(Python3Enabled)'=='true'" />
-    <Copy SourceFiles="..\..\plugins\python\zoitechat.py" DestinationFolder="$(ZoiteChatRel)\python" Condition="'$(Python3Enabled)'=='true'" />
-    <Copy SourceFiles="..\..\plugins\python\_zoitechat.py" DestinationFolder="$(ZoiteChatRel)\python" Condition="'$(Python3Enabled)'=='true'" />
+    <Copy SourceFiles="..\..\plugins\python\xchat.py" DestinationFolder="$(ZoiteChatRel)\python" Condition="'$(Python3Enabled)'=='true' or '$(Python38Enabled)'=='true'" />
+    <Copy SourceFiles="..\..\plugins\python\hexchat.py" DestinationFolder="$(ZoiteChatRel)\python" Condition="'$(Python3Enabled)'=='true' or '$(Python38Enabled)'=='true'" />
+    <Copy SourceFiles="..\..\plugins\python\zoitechat.py" DestinationFolder="$(ZoiteChatRel)\python" Condition="'$(Python3Enabled)'=='true' or '$(Python38Enabled)'=='true'" />
+    <Copy SourceFiles="..\..\plugins\python\_zoitechat.py" DestinationFolder="$(ZoiteChatRel)\python" Condition="'$(Python3Enabled)'=='true' or '$(Python38Enabled)'=='true'" />
 
     <WriteLinesToFile File="$(ZoiteChatRel)portable-mode" Lines="2" Overwrite="true" />
 

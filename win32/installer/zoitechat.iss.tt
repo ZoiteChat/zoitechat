@@ -181,8 +181,8 @@ Source: "plugins\hcperl.dll"; DestDir: "{app}\plugins"; Flags: ignoreversion; Co
 
 Source: "python\*.py"; DestDir: "{app}\python"; Flags: ignoreversion; Components: langs\python
 
-Source: "plugins\hcpython3.dll"; DestDir: "{app}\plugins"; Flags: ignoreversion; Components: langs\python
-Source: "plugins\hcpython38.dll"; DestDir: "{app}\plugins"; Flags: ignoreversion skipifsourcedoesntexist; Components: langs\python
+Source: "plugins\hcpython3.dll"; DestDir: "{app}\plugins"; Flags: ignoreversion; Components: langs\python; Check: not IsWindows7
+Source: "plugins\hcpython38.dll"; DestDir: "{app}\plugins"; Flags: ignoreversion skipifsourcedoesntexist; Components: langs\python; Check: IsWindows7
 Source: "_cffi_backend.cp3*.pyd"; DestDir: "{app}"; Flags: ignoreversion; Components: langs\python
 
 Source: "zoitechat.exe"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
@@ -382,7 +382,7 @@ begin
 		REDIST := 'https://aka.ms/vs/17/release/vc_redist.x64.exe';
 		PERL := 'https://github.com/StrawberryPerl/Perl-Dist-Strawberry/releases/download/SP_54201_64bit/strawberry-perl-5.42.0.1-64bit.msi';
 		PY3 := PythonURL();
-		SPELL := 'https://github.com/zoitechat/gvsbuild/releases/download/zoitechat-2.16.2/ZoiteChat.Spelling.Dictionaries.r2.exe';
+		SPELL := 'https://github.com/hexchat/gvsbuild/releases/download/hexchat-2.16.2/HexChat.Spelling.Dictionaries.r2.exe';
 
 		if WizardIsComponentSelected('deps\vcredist2015') and not CheckVCInstall() then
 			idpAddFile(REDIST, ExpandConstant('{tmp}\vcredist.exe'));
