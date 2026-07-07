@@ -309,7 +309,7 @@ theme_gtk3_is_active (void)
 #include "../theme-preferences.c"
 
 static void
-test_removed_selected_theme_commits_fallback_and_applies (void)
+test_removed_selected_theme_falls_back_to_system_default (void)
 {
         GtkWidget *page;
         theme_preferences_ui *ui;
@@ -326,23 +326,26 @@ test_removed_selected_theme_commits_fallback_and_applies (void)
         g_strlcpy (prefs.hex_gui_gtk3_theme, "removed-theme", sizeof (prefs.hex_gui_gtk3_theme));
         prefs.hex_gui_gtk3_variant = THEME_GTK3_VARIANT_PREFER_DARK;
         removed_selected = FALSE;
-        apply_current_calls = 0;
-        applied_theme_id[0] = '\0';
 
         page = theme_preferences_create_page (NULL, &setup_prefs, NULL);
         ui = g_object_get_data (G_OBJECT (page), "theme-preferences-ui");
         g_assert_nonnull (ui);
 
+        apply_current_calls = 0;
+        applied_theme_id[0] = '\0';
+
         g_assert_nonnull (ui->gtk3_remove);
         gtk_button_clicked (GTK_BUTTON (ui->gtk3_remove));
 
-        g_assert_cmpstr (prefs.hex_gui_gtk3_theme, ==, "fallback-theme");
-        g_assert_cmpstr (setup_prefs.hex_gui_gtk3_theme, ==, "fallback-theme");
-        g_assert_cmpint (prefs.hex_gui_gtk3_variant, ==, THEME_GTK3_VARIANT_PREFER_LIGHT);
-        g_assert_cmpint (setup_prefs.hex_gui_gtk3_variant, ==, THEME_GTK3_VARIANT_PREFER_LIGHT);
+        /* Removing the active in-app theme returns to the system GTK3
+         * theme ("None") instead of forcing another theme. */
+        g_assert_cmpstr (prefs.hex_gui_gtk3_theme, ==, "");
+        g_assert_cmpstr (setup_prefs.hex_gui_gtk3_theme, ==, "");
+        g_assert_cmpint (prefs.hex_gui_gtk3_variant, ==, THEME_GTK3_VARIANT_FOLLOW_SYSTEM);
+        g_assert_cmpint (setup_prefs.hex_gui_gtk3_variant, ==, THEME_GTK3_VARIANT_FOLLOW_SYSTEM);
         g_assert_cmpint (apply_current_calls, ==, 1);
-        g_assert_cmpstr (applied_theme_id, ==, "fallback-theme");
-        g_assert_cmpint (applied_variant, ==, THEME_GTK3_VARIANT_PREFER_LIGHT);
+        g_assert_cmpstr (applied_theme_id, ==, "");
+        g_assert_cmpint (applied_variant, ==, THEME_GTK3_VARIANT_FOLLOW_SYSTEM);
 
         gtk_widget_destroy (page);
 }
@@ -421,8 +424,8 @@ main (int argc, char **argv)
 {
         g_test_init (&argc, &argv, NULL);
         gtk_available = gtk_init_check (&argc, &argv);
-        g_test_add_func ("/theme/preferences/gtk3_removed_selection_applies_fallback",
-                         test_removed_selected_theme_commits_fallback_and_applies);
+        g_test_add_func ("/theme/preferences/gtk3_removed_selection_falls_back_to_system",
+                         test_removed_selected_theme_falls_back_to_system_default);
         g_test_add_func ("/theme/preferences/gtk3_unset_keeps_system_default",
                          test_unset_theme_keeps_system_default_without_apply);
         g_test_add_func ("/theme/preferences/gtk3_select_none_resets_theme",

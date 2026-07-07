@@ -381,9 +381,10 @@ test_archive_without_theme_reports_css_error (void)
 	}
 	archive_path = g_build_filename (tmp_root, "invalid-theme.zip", NULL);
 
-	command = g_strdup_printf ("cd %s && zip -qr %s .", archive_root, archive_path);
+	command = g_strdup_printf ("sh -c \"cd '%s' && zip -qr '%s' .\"", archive_root, archive_path);
 	g_assert_true (g_spawn_command_line_sync (command, NULL, NULL, NULL, NULL));
 	g_free (command);
+	g_assert_true (g_file_test (archive_path, G_FILE_TEST_IS_REGULAR));
 
 	g_assert_false (zoitechat_gtk3_theme_service_import (archive_path, &imported_id, &error));
 	g_assert_null (imported_id);
@@ -397,25 +398,31 @@ test_archive_without_theme_reports_css_error (void)
 }
 
 static void
-test_import_rejects_theme_missing_index_theme (void)
+test_import_accepts_theme_missing_index_theme (void)
 {
 	char *tmp_root;
 	char *src_root;
 	char *theme_root;
 	char *imported_id = NULL;
 	GError *error = NULL;
+	ZoitechatGtk3Theme *found;
 
 	setup_test_xdir (&tmp_root);
 	src_root = g_build_filename (tmp_root, "src", NULL);
 	g_mkdir_with_parents (src_root, 0700);
 	theme_root = make_theme_dir (src_root, "NoIndex", FALSE, FALSE);
 
-	g_assert_false (zoitechat_gtk3_theme_service_import (theme_root, &imported_id, &error));
-	g_assert_null (imported_id);
-	g_assert_error (error, G_FILE_ERROR, G_FILE_ERROR_INVAL);
-	g_assert_nonnull (g_strstr_len (error->message, -1, "missing required index.theme"));
-	g_assert_nonnull (g_strstr_len (error->message, -1, "NoIndex"));
-	g_error_free (error);
+	/* index.theme is optional for GTK3 CSS themes: gtk-3.x/gtk.css alone
+	 * makes a loadable theme. */
+	g_assert_true (zoitechat_gtk3_theme_service_import (theme_root, &imported_id, &error));
+	g_assert_no_error (error);
+	g_assert_nonnull (imported_id);
+
+	found = zoitechat_gtk3_theme_find_by_id (imported_id);
+	g_assert_nonnull (found);
+	g_assert_true (g_str_has_suffix (found->path, "NoIndex"));
+	zoitechat_gtk3_theme_free (found);
+	g_free (imported_id);
 
 	g_free (theme_root);
 	g_free (src_root);
@@ -663,9 +670,10 @@ test_zip_import_nested_root (void)
 	theme = make_theme_dir (nested, "Juno-ocean", TRUE, FALSE);
 	archive_path = g_build_filename (tmp_root, "themes.zip", NULL);
 
-	command = g_strdup_printf ("cd %s && zip -qr %s .", zip_root, archive_path);
+	command = g_strdup_printf ("sh -c \"cd '%s' && zip -qr '%s' .\"", zip_root, archive_path);
 	g_assert_true (g_spawn_command_line_sync (command, NULL, NULL, NULL, NULL));
 	g_free (command);
+	g_assert_true (g_file_test (archive_path, G_FILE_TEST_IS_REGULAR));
 
 	g_assert_true (zoitechat_gtk3_theme_service_import (archive_path, &imported_id, NULL));
 	found = zoitechat_gtk3_theme_find_by_id (imported_id);
@@ -697,7 +705,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/gtk3-theme-service/zip-import-nested-root", test_zip_import_nested_root);
 	g_test_add_func ("/gtk3-theme-service/invalid-archive-extract-error", test_invalid_archive_reports_extract_error);
 	g_test_add_func ("/gtk3-theme-service/archive-without-theme-css-error", test_archive_without_theme_reports_css_error);
-	g_test_add_func ("/gtk3-theme-service/import-missing-index-theme", test_import_rejects_theme_missing_index_theme);
+	g_test_add_func ("/gtk3-theme-service/import-missing-index-theme", test_import_accepts_theme_missing_index_theme);
 	g_test_add_func ("/gtk3-theme-service/import-missing-desktop-entry", test_import_rejects_index_without_desktop_entry);
 	g_test_add_func ("/gtk3-theme-service/import-unresolved-inherits", test_import_rejects_unresolved_inherits);
 	return g_test_run ();

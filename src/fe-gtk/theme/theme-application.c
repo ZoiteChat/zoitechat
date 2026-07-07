@@ -25,6 +25,7 @@
 #include "theme-css.h"
 #include "theme-runtime.h"
 #include "theme-gtk3.h"
+#include "theme-policy.h"
 #include "../maingui.h"
 #include <gtk/gtk.h>
 
@@ -59,6 +60,16 @@ theme_application_apply_toplevel_theme (gboolean dark)
 			prefer_dark = TRUE;
 		else if (prefs.hex_gui_gtk3_variant == THEME_GTK3_VARIANT_PREFER_LIGHT)
 			prefer_dark = FALSE;
+		else
+			prefer_dark = theme_policy_system_prefers_dark ();
+	}
+	else
+	{
+		/* Following the system GTK3 theme: only request the dark
+		 * variant when the dark-mode preference (or the system, in
+		 * auto mode) asks for it, instead of clobbering the value
+		 * that came from the user's GTK configuration. */
+		prefer_dark = theme_policy_is_dark_mode_active (prefs.hex_gui_dark_mode);
 	}
 
 	if (settings && g_object_class_find_property (G_OBJECT_GET_CLASS (settings),

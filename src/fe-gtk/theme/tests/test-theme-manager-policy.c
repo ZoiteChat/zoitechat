@@ -22,6 +22,7 @@
 
 #include "../theme-palette.h"
 #include "../theme-manager.h"
+#include "../theme-policy.h"
 #include "../../../common/zoitechat.h"
 #include "../../../common/zoitechatc.h"
 
@@ -30,6 +31,7 @@ struct session *current_tab;
 struct session *lastact_sess;
 struct zoitechatprefs prefs;
 
+static gboolean gtk_available;
 static gboolean stub_policy_dark;
 static unsigned int stub_policy_mode;
 static gboolean stub_apply_mode_result;
@@ -79,7 +81,18 @@ void zoitechat_set_theme_post_apply_callback (zoitechat_theme_post_apply_callbac
 gboolean theme_policy_is_dark_mode_active (unsigned int mode)
 {
 	stub_policy_mode = mode;
-	return stub_policy_dark;
+	if (mode == ZOITECHAT_DARK_MODE_AUTO)
+		return stub_policy_dark;
+	return fe_dark_mode_is_enabled_for (mode);
+}
+
+void theme_policy_init (void)
+{
+}
+
+void theme_policy_set_appearance_changed_callback (ThemePolicyAppearanceChangedFunc callback)
+{
+	(void) callback;
 }
 
 gboolean theme_application_apply_mode (unsigned int mode, gboolean *palette_changed)
@@ -109,11 +122,12 @@ void theme_runtime_reset_mode_colors (gboolean dark_mode)
 	(void) dark_mode;
 }
 
-gboolean theme_runtime_apply_mode (unsigned int mode, gboolean *dark_active)
+gboolean theme_runtime_apply_mode (unsigned int mode, gboolean *palette_changed)
 {
 	(void) mode;
-	(void) dark_active;
 	stub_apply_mode_calls++;
+	if (palette_changed)
+		*palette_changed = TRUE;
 	return TRUE;
 }
 
@@ -249,10 +263,11 @@ test_manager_set_token_color_routes_by_mode (void)
 	GdkRGBA color = { 0.1, 0.2, 0.3, 1.0 };
 	gboolean palette_changed = FALSE;
 
+	/* All edits target the single user palette; the mode argument is
+	 * accepted for compatibility but no longer selects a dark palette. */
 	reset_manager_stubs ();
 	stub_policy_dark = FALSE;
 	theme_manager_set_token_color (ZOITECHAT_DARK_MODE_LIGHT, THEME_TOKEN_MIRC_2, &color, &palette_changed);
-	g_assert_cmpint (stub_policy_mode, ==, ZOITECHAT_DARK_MODE_LIGHT);
 	g_assert_cmpint (stub_user_set_calls, ==, 1);
 	g_assert_cmpint (stub_dark_set_calls, ==, 0);
 	g_assert_cmpint (stub_apply_mode_calls, ==, 1);
@@ -262,16 +277,14 @@ test_manager_set_token_color_routes_by_mode (void)
 	reset_manager_stubs ();
 	stub_policy_dark = TRUE;
 	theme_manager_set_token_color (ZOITECHAT_DARK_MODE_DARK, THEME_TOKEN_MIRC_2, &color, &palette_changed);
-	g_assert_cmpint (stub_policy_mode, ==, ZOITECHAT_DARK_MODE_DARK);
-	g_assert_cmpint (stub_user_set_calls, ==, 0);
-	g_assert_cmpint (stub_dark_set_calls, ==, 1);
+	g_assert_cmpint (stub_user_set_calls, ==, 1);
+	g_assert_cmpint (stub_dark_set_calls, ==, 0);
 
 	reset_manager_stubs ();
 	stub_policy_dark = TRUE;
 	theme_manager_set_token_color (ZOITECHAT_DARK_MODE_AUTO, THEME_TOKEN_MIRC_2, &color, &palette_changed);
-	g_assert_cmpint (stub_policy_mode, ==, ZOITECHAT_DARK_MODE_AUTO);
-	g_assert_cmpint (stub_user_set_calls, ==, 0);
-	g_assert_cmpint (stub_dark_set_calls, ==, 1);
+	g_assert_cmpint (stub_user_set_calls, ==, 1);
+	g_assert_cmpint (stub_dark_set_calls, ==, 0);
 }
 
 
@@ -300,9 +313,9 @@ test_manager_set_token_color_routes_setup_indexes (void)
 		stub_policy_dark = TRUE;
 		palette_changed = FALSE;
 		theme_manager_set_token_color (ZOITECHAT_DARK_MODE_DARK, def->token, &color, &palette_changed);
-		g_assert_cmpint (stub_dark_set_calls, ==, 1);
-		g_assert_cmpint (stub_last_dark_token, ==, def->token);
-		g_assert_cmpint (stub_user_set_calls, ==, 0);
+		g_assert_cmpint (stub_user_set_calls, ==, 1);
+		g_assert_cmpint (stub_last_user_token, ==, def->token);
+		g_assert_cmpint (stub_dark_set_calls, ==, 0);
 		g_assert_true (palette_changed);
 	}
 }
@@ -344,6 +357,12 @@ test_manager_window_attach_detach_idempotence (void)
 	gulong first_handler_id;
 	gulong *second_handler_ptr;
 	gulong second_handler_id;
+
+	if (!gtk_available)
+	{
+		g_test_message ("GTK display not available");
+		return;
+	}
 
 	window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
 	g_assert_nonnull (window);
@@ -395,5 +414,6 @@ main (int argc, char **argv)
 			 test_manager_listener_registration_dispatch_and_unregister);
 	g_test_add_func ("/theme/manager/window_attach_detach_idempotence",
 			 test_manager_window_attach_detach_idempotence);
+	gtk_available = gtk_init_check (&argc, &argv);
 	return g_test_run ();
 }
