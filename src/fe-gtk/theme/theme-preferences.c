@@ -38,6 +38,7 @@
 #include "theme-runtime.h"
 
 extern void load_text_events (void);
+extern char *text_color_event_list (int color);
 
 typedef struct
 {
@@ -266,6 +267,15 @@ theme_preferences_manager_ui_free (gpointer data)
         if (ui->rows)
                 g_ptr_array_unref (ui->rows);
         g_free (ui);
+}
+
+static char *
+theme_preferences_color_events_tooltip (ThemeSemanticToken token)
+{
+        if (token < THEME_TOKEN_MIRC_0 || token > THEME_TOKEN_MIRC_31)
+                return NULL;
+
+        return text_color_event_list (token - THEME_TOKEN_MIRC_0);
 }
 
 static void
@@ -884,6 +894,20 @@ theme_preferences_create_color_manager_dialog (GtkWindow *parent, gboolean *colo
                 if (theme_preferences_staged_get_color (token, &rgba))
                         theme_preferences_manager_row_apply (row, &rgba);
 
+                {
+                        char *tip = theme_preferences_color_events_tooltip (token);
+                        if (tip)
+                        {
+                                gtk_widget_set_tooltip_text (list_row, tip);
+                                gtk_widget_set_tooltip_text (hbox, tip);
+                                gtk_widget_set_tooltip_text (name, tip);
+                                gtk_widget_set_tooltip_text (preview, tip);
+                                gtk_widget_set_tooltip_text (button, tip);
+                                gtk_widget_set_tooltip_text (entry, tip);
+                                g_free (tip);
+                        }
+                }
+
                 g_signal_connect (G_OBJECT (button), "clicked",
                                   G_CALLBACK (theme_preferences_manager_pick_cb), row);
                 g_object_set_data (G_OBJECT (button), "zoitechat-theme-color-manager-ui", ui);
@@ -1198,6 +1222,15 @@ theme_preferences_create_color_button (GtkWidget *table,
         g_object_set_data (G_OBJECT (but), "zoitechat-color-box", box);
         g_object_set_data (G_OBJECT (but), "zoitechat-theme-token", GINT_TO_POINTER (token));
         g_object_set_data (G_OBJECT (but), "zoitechat-theme-color-change", color_change_flag);
+        {
+                char *tip = theme_preferences_color_events_tooltip (token);
+                if (tip)
+                {
+                        gtk_widget_set_tooltip_text (but, tip);
+                        gtk_widget_set_tooltip_text (box, tip);
+                        g_free (tip);
+                }
+        }
         gtk_grid_attach (GTK_GRID (table), but, col, row, 1, 1);
         g_signal_connect (G_OBJECT (but), "clicked", G_CALLBACK (theme_preferences_color_cb), parent);
         if (theme_preferences_staged_get_color (token, &color))

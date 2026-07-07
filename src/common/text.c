@@ -1695,6 +1695,117 @@ pevent_load (char *filename)
 	return 0;
 }
 
+
+static gboolean
+text_event_uses_color (const char *text, int color)
+{
+	const char *p;
+
+	if (!text || color < 0 || color > 31)
+		return FALSE;
+
+	for (p = text; *p; p++)
+	{
+		int value;
+		int digits;
+
+		if ((unsigned char) *p == 3)
+			p++;
+		else if (*p == '%' && p[1] == 'C')
+			p += 2;
+		else
+			continue;
+
+		if (!g_ascii_isdigit (*p))
+		{
+			p--;
+			continue;
+		}
+
+		value = *p - '0';
+		digits = 1;
+		if (g_ascii_isdigit (p[1]))
+		{
+			value = value * 10 + p[1] - '0';
+			digits = 2;
+		}
+
+		if (value == color)
+			return TRUE;
+
+		p += digits - 1;
+		if (*p == ',' && g_ascii_isdigit (p[1]))
+		{
+			p++;
+			value = *p - '0';
+			if (g_ascii_isdigit (p[1]))
+			{
+				value = value * 10 + p[1] - '0';
+				p++;
+			}
+			if (value == color)
+				return TRUE;
+		}
+	}
+
+	return FALSE;
+}
+
+char *
+text_color_event_list (int color)
+{
+	GString *events;
+	GString *tip;
+	int count = 0;
+	int line_len = 0;
+	int i;
+
+	events = g_string_new (NULL);
+
+	for (i = 0; i < NUM_XP; i++)
+	{
+		const char *name;
+		const char *text = pntevts_text[i] ? pntevts_text[i] : te[i].def;
+		int name_len;
+
+		if (!text_event_uses_color (text, color))
+			continue;
+
+		name = _(te[i].name);
+		name_len = strlen (name);
+		if (count)
+		{
+			if (line_len + name_len + 2 > 76)
+			{
+				g_string_append_c (events, '\n');
+				line_len = 0;
+			}
+			else
+			{
+				g_string_append (events, ", ");
+				line_len += 2;
+			}
+		}
+
+		g_string_append (events, name);
+		line_len += name_len;
+		count++;
+	}
+
+	if (!count)
+	{
+		g_string_free (events, TRUE);
+		return g_strdup (_("No text events use this color."));
+	}
+
+	tip = g_string_new (NULL);
+	g_string_append_printf (tip, _("Text events using this color (%d):"), count);
+	g_string_append_c (tip, '\n');
+	g_string_append (tip, events->str);
+	g_string_free (events, TRUE);
+	return g_string_free (tip, FALSE);
+}
+
 static void
 pevent_check_all_loaded (void)
 {

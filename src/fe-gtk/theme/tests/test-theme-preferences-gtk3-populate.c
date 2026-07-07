@@ -70,6 +70,13 @@ load_text_events (void)
 {
 }
 
+char *
+text_color_event_list (int color)
+{
+        (void)color;
+        return g_strdup ("No text events use this color.");
+}
+
 gboolean
 theme_get_color (ThemeSemanticToken token, GdkRGBA *color)
 {
