@@ -70,11 +70,13 @@ load_text_events (void)
 {
 }
 
-char *
-text_color_event_list (int color)
+char **
+text_color_event_names (int color, int *count)
 {
         (void)color;
-        return g_strdup ("No text events use this color.");
+        if (count)
+                *count = 0;
+        return NULL;
 }
 
 gboolean

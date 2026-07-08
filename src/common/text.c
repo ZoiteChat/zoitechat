@@ -1751,59 +1751,39 @@ text_event_uses_color (const char *text, int color)
 	return FALSE;
 }
 
-char *
-text_color_event_list (int color)
+char **
+text_color_event_names (int color, int *count)
 {
-	GString *events;
-	GString *tip;
-	int count = 0;
-	int line_len = 0;
+	GPtrArray *names;
+	int found = 0;
 	int i;
 
-	events = g_string_new (NULL);
+	if (count)
+		*count = 0;
+
+	names = g_ptr_array_new ();
 
 	for (i = 0; i < NUM_XP; i++)
 	{
-		const char *name;
 		const char *text = pntevts_text[i] ? pntevts_text[i] : te[i].def;
-		int name_len;
 
 		if (!text_event_uses_color (text, color))
 			continue;
 
-		name = _(te[i].name);
-		name_len = strlen (name);
-		if (count)
-		{
-			if (line_len + name_len + 2 > 76)
-			{
-				g_string_append (events, ",\n");
-				line_len = 0;
-			}
-			else
-			{
-				g_string_append (events, ", ");
-				line_len += 2;
-			}
-		}
-
-		g_string_append (events, name);
-		line_len += name_len;
-		count++;
+		g_ptr_array_add (names, g_strdup (_(te[i].name)));
+		found++;
 	}
 
-	if (!count)
+	if (!found)
 	{
-		g_string_free (events, TRUE);
-		return g_strdup (_("No text events use this color."));
+		g_ptr_array_free (names, TRUE);
+		return NULL;
 	}
 
-	tip = g_string_new (NULL);
-	g_string_append_printf (tip, _("Text events using this color (%d):"), count);
-	g_string_append_c (tip, '\n');
-	g_string_append (tip, events->str);
-	g_string_free (events, TRUE);
-	return g_string_free (tip, FALSE);
+	g_ptr_array_add (names, NULL);
+	if (count)
+		*count = found;
+	return (char **) g_ptr_array_free (names, FALSE);
 }
 
 static void
