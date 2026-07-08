@@ -71,7 +71,7 @@ typedef enum
 	WS_HIDDEN
 } WinStatus;
 
-#if !defined(WIN32) && (defined(HAVE_AYATANA_APPINDICATOR) || defined(HAVE_APPINDICATOR))
+#if !defined(WIN32) && (defined(HAVE_AYATANA_APPINDICATOR) || defined(HAVE_APPINDICATOR)) && !defined(GDK_WINDOWING_X11)
 #define HAVE_APPINDICATOR_BACKEND 1
 #else
 #define HAVE_APPINDICATOR_BACKEND 0
