@@ -1695,6 +1695,97 @@ pevent_load (char *filename)
 	return 0;
 }
 
+
+static gboolean
+text_event_uses_color (const char *text, int color)
+{
+	const char *p;
+
+	if (!text || color < 0 || color > 31)
+		return FALSE;
+
+	for (p = text; *p; p++)
+	{
+		int value;
+		int digits;
+
+		if ((unsigned char) *p == 3)
+			p++;
+		else if (*p == '%' && p[1] == 'C')
+			p += 2;
+		else
+			continue;
+
+		if (!g_ascii_isdigit (*p))
+		{
+			p--;
+			continue;
+		}
+
+		value = *p - '0';
+		digits = 1;
+		if (g_ascii_isdigit (p[1]))
+		{
+			value = value * 10 + p[1] - '0';
+			digits = 2;
+		}
+
+		if (value == color)
+			return TRUE;
+
+		p += digits - 1;
+		if (*p == ',' && g_ascii_isdigit (p[1]))
+		{
+			p++;
+			value = *p - '0';
+			if (g_ascii_isdigit (p[1]))
+			{
+				value = value * 10 + p[1] - '0';
+				p++;
+			}
+			if (value == color)
+				return TRUE;
+		}
+	}
+
+	return FALSE;
+}
+
+char **
+text_color_event_names (int color, int *count)
+{
+	GPtrArray *names;
+	int found = 0;
+	int i;
+
+	if (count)
+		*count = 0;
+
+	names = g_ptr_array_new ();
+
+	for (i = 0; i < NUM_XP; i++)
+	{
+		const char *text = pntevts_text[i] ? pntevts_text[i] : te[i].def;
+
+		if (!text_event_uses_color (text, color))
+			continue;
+
+		g_ptr_array_add (names, g_strdup (_(te[i].name)));
+		found++;
+	}
+
+	if (!found)
+	{
+		g_ptr_array_free (names, TRUE);
+		return NULL;
+	}
+
+	g_ptr_array_add (names, NULL);
+	if (count)
+		*count = found;
+	return (char **) g_ptr_array_free (names, FALSE);
+}
+
 static void
 pevent_check_all_loaded (void)
 {

@@ -50,7 +50,7 @@ zoitechat_gtk_deps = [
 
 gtk_dep = dependency('gtk+-3.0', version: '>= 3.22')
 
-zoitechat_theme_deps = [gtk_dep]
+zoitechat_theme_deps = [gtk_dep, zoitechat_common_dep]
 
 if host_machine.system() != 'windows'
   appindicator_opt = get_option('appindicator')

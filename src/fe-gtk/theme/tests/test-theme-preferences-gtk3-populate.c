@@ -70,6 +70,15 @@ load_text_events (void)
 {
 }
 
+char **
+text_color_event_names (int color, int *count)
+{
+        (void)color;
+        if (count)
+                *count = 0;
+        return NULL;
+}
+
 gboolean
 theme_get_color (ThemeSemanticToken token, GdkRGBA *color)
 {

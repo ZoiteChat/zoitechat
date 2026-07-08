@@ -38,6 +38,7 @@
 #include "theme-runtime.h"
 
 extern void load_text_events (void);
+extern char **text_color_event_names (int color, int *count);
 
 typedef struct
 {
@@ -242,6 +243,9 @@ theme_preferences_stage_discard (void)
 
 static void
 theme_preferences_show_import_error (GtkWidget *button, const char *message);
+
+static void
+theme_preferences_color_set_tooltip (GtkWidget *widget, ThemeSemanticToken token);
 
 static void
 theme_preferences_manager_row_free (gpointer data)
@@ -481,6 +485,7 @@ theme_preferences_color_response_cb (GtkDialog *dialog, gint response_id, gpoint
                                                     data->color_change_flag,
                                                     TRUE);
                 theme_preferences_color_button_apply (data->button, &rgba);
+                theme_preferences_color_set_tooltip (data->button, data->token);
                 theme_preferences_manager_update_preview ((theme_color_manager_ui *) data->manager_ui);
         }
 
@@ -559,6 +564,113 @@ theme_preferences_token_display_name (ThemeSemanticToken token)
         }
 }
 
+static char *
+theme_preferences_color_tooltip_markup (ThemeSemanticToken token)
+{
+        GString *tip;
+        GdkRGBA rgba;
+        char *display;
+        char *hex;
+        char *escaped;
+        char **names;
+        int count = 0;
+
+        if (token < THEME_TOKEN_MIRC_0 || token > THEME_TOKEN_MIRC_31)
+                return NULL;
+
+        if (!theme_preferences_staged_get_color (token, &rgba))
+                return NULL;
+
+        tip = g_string_new (NULL);
+
+        display = theme_preferences_token_display_name (token);
+        hex = theme_preferences_format_hex (&rgba);
+        escaped = g_markup_escape_text (display, -1);
+        g_string_append_printf (tip,
+                                "<span background='%s'>\xe2\x80\x83\xe2\x80\x83</span> <b>%s</b>  <tt><small>%s</small></tt>",
+                                hex, escaped, hex);
+        g_free (escaped);
+        g_free (display);
+
+        names = text_color_event_names (token - THEME_TOKEN_MIRC_0, &count);
+        if (names)
+        {
+                int line_target;
+                int line_len = 0;
+                int i;
+
+                display = g_strdup_printf (ngettext ("Used by %d text event",
+                                                     "Used by %d text events", count), count);
+                escaped = g_markup_escape_text (display, -1);
+                g_string_append_printf (tip,
+                                        "\n<small><span alpha='60%%'>%s</span></small>\n\n<small>",
+                                        escaped);
+                g_free (escaped);
+                g_free (display);
+
+                /* Explicit line breaks keep the tooltip geometry stable;
+                 * heavily-used colors get wider lines so the full list
+                 * stays on screen. */
+                if (count <= 12)
+                        line_target = 44;
+                else if (count <= 40)
+                        line_target = 60;
+                else
+                        line_target = 76;
+
+                for (i = 0; i < count; i++)
+                {
+                        int name_len = (int) g_utf8_strlen (names[i], -1);
+
+                        if (i)
+                        {
+                                if (line_len + name_len + 5 > line_target)
+                                {
+                                        g_string_append_c (tip, '\n');
+                                        line_len = 0;
+                                }
+                                else
+                                {
+                                        g_string_append (tip, "  \xc2\xb7  ");
+                                        line_len += 5;
+                                }
+                        }
+                        escaped = g_markup_escape_text (names[i], -1);
+                        g_string_append (tip, escaped);
+                        line_len += name_len;
+                        g_free (escaped);
+                }
+                g_string_append (tip, "</small>");
+                g_strfreev (names);
+        }
+        else
+        {
+                escaped = g_markup_escape_text (_("Not used by any text events"), -1);
+                g_string_append_printf (tip,
+                                        "\n<small><span alpha='60%%'><i>%s</i></span></small>",
+                                        escaped);
+                g_free (escaped);
+        }
+
+        g_free (hex);
+        return g_string_free (tip, FALSE);
+}
+
+/* Static markup tooltips only: building tooltip widgets from a
+ * query-tooltip handler makes GtkTooltip flicker on some setups, so the
+ * markup is set once and refreshed whenever the color changes. */
+static void
+theme_preferences_color_set_tooltip (GtkWidget *widget, ThemeSemanticToken token)
+{
+        char *markup = theme_preferences_color_tooltip_markup (token);
+
+        if (!markup)
+                return;
+
+        gtk_widget_set_tooltip_markup (widget, markup);
+        g_free (markup);
+}
+
 static void
 theme_preferences_manager_row_apply (theme_color_manager_row *row, const GdkRGBA *rgba)
 {
@@ -569,6 +681,7 @@ theme_preferences_manager_row_apply (theme_color_manager_row *row, const GdkRGBA
         hex = theme_preferences_format_hex (rgba);
         gtk_entry_set_text (GTK_ENTRY (row->entry), hex);
         g_free (hex);
+        theme_preferences_color_set_tooltip (row->row, row->token);
 }
 
 static void
@@ -884,6 +997,8 @@ theme_preferences_create_color_manager_dialog (GtkWindow *parent, gboolean *colo
                 if (theme_preferences_staged_get_color (token, &rgba))
                         theme_preferences_manager_row_apply (row, &rgba);
 
+                theme_preferences_color_set_tooltip (list_row, token);
+
                 g_signal_connect (G_OBJECT (button), "clicked",
                                   G_CALLBACK (theme_preferences_manager_pick_cb), row);
                 g_object_set_data (G_OBJECT (button), "zoitechat-theme-color-manager-ui", ui);
@@ -1198,6 +1313,7 @@ theme_preferences_create_color_button (GtkWidget *table,
         g_object_set_data (G_OBJECT (but), "zoitechat-color-box", box);
         g_object_set_data (G_OBJECT (but), "zoitechat-theme-token", GINT_TO_POINTER (token));
         g_object_set_data (G_OBJECT (but), "zoitechat-theme-color-change", color_change_flag);
+        theme_preferences_color_set_tooltip (but, token);
         gtk_grid_attach (GTK_GRID (table), but, col, row, 1, 1);
         g_signal_connect (G_OBJECT (but), "clicked", G_CALLBACK (theme_preferences_color_cb), parent);
         if (theme_preferences_staged_get_color (token, &color))
