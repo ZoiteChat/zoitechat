@@ -33,6 +33,15 @@ option('install-appdata', type: 'boolean',
 option('install-plugin-metainfo', type: 'boolean', value: false,
   description: 'Installs metainfo files for enabled plugins, useful when distros create split packages'
 )
+option('offline-docs', type: 'feature', value: 'auto',
+  description: 'Fetch, build and install the offline HTML documentation (needs network at build time); auto skips with a warning when unavailable'
+)
+option('offline-docs-dir', type: 'string', value: '',
+  description: 'Directory searched for offline HTML documentation (index.html), absolute or relative to prefix. Defaults to $datadir/doc/zoitechat/html'
+)
+option('offline-docs-repo', type: 'string', value: 'https://github.com/ZoiteChat/documentation.git',
+  description: 'Git repository the offline documentation is built from'
+)
 
 # Plugins
 option('with-checksum', type: 'boolean',

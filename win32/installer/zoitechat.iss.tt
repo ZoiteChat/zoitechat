@@ -49,6 +49,7 @@ Name: "icons"; Description: "Create Shortcuts"; Types: custom; Flags: disablenou
 Name: "icons\desktopicon"; Description: "Create Desktop Shortcut"; Types: custom; Flags: disablenouninstallwarning
 Name: "icons\quicklaunchicon"; Description: "Create Quick Launch Shortcut"; Types: custom; Flags: disablenouninstallwarning
 Name: "translations"; Description: "Translations"; Types: normal custom; Flags: disablenouninstallwarning
+Name: "docs"; Description: "Offline Documentation"; Types: normal custom; Flags: disablenouninstallwarning
 Name: "spell"; Description: "Spelling Dictionaries"; Types: custom; Flags: disablenouninstallwarning
 Name: "plugins"; Description: "Plugins"; Types: custom; Flags: disablenouninstallwarning
 Name: "plugins\checksum"; Description: "Checksum"; Types: custom; Flags: disablenouninstallwarning
@@ -109,6 +110,9 @@ Source: "share\themes\MS-Windows\*"; DestDir: "{app}\share\themes\MS-Windows"; F
 Source: "share\glib-2.0\schemas\*"; DestDir: "{app}\share\glib-2.0\schemas"; Flags: ignoreversion createallsubdirs recursesubdirs skipifsourcedoesntexist; Components: libs
 Source: "share\icons\hicolor\*"; DestDir: "{app}\share\icons\hicolor"; Flags: ignoreversion createallsubdirs recursesubdirs skipifsourcedoesntexist; Components: libs
 Source: "share\locale\*"; DestDir: "{app}\share\locale"; Flags: ignoreversion createallsubdirs recursesubdirs; Components: translations
+; Staged at build time by data\misc\build_offline_docs.py; absent when the
+; docs could not be built, in which case Help->Contents opens the website
+Source: "offline-docs\*"; DestDir: "{app}\offline-docs"; Flags: ignoreversion createallsubdirs recursesubdirs skipifsourcedoesntexist; Components: docs
 Source: "etc\fonts\*"; DestDir: "{app}\etc\fonts"; Flags: ignoreversion createallsubdirs recursesubdirs; Components: libs
 
 Source: "atk-1.0-0.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs

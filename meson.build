@@ -35,6 +35,16 @@ config_h.set_quoted('PACKAGE_NAME', meson.project_name())
 config_h.set_quoted('GETTEXT_PACKAGE', 'zoitechat')
 config_h.set_quoted('LOCALEDIR', join_paths(get_option('prefix'),
                                  get_option('datadir'), 'locale'))
+
+# Where Help->Contents looks for locally installed documentation before
+# falling back to the online manual. Packagers that ship the HTML docs
+# elsewhere can point this at their doc directory.
+offline_docs_dir = get_option('offline-docs-dir')
+if offline_docs_dir == ''
+  offline_docs_dir = join_paths(get_option('datadir'), 'doc', 'zoitechat', 'html')
+endif
+config_h.set_quoted('ZOITECHATDOCDIR', join_paths(get_option('prefix'), offline_docs_dir))
+
 config_h.set10('ENABLE_NLS', true)
 
 # Optional features

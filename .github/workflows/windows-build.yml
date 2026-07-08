@@ -113,6 +113,13 @@ jobs:
             New-Item -Path $pyDir -Name "${{ matrix.platform }}" -ItemType Junction -Value $pyRoot | Out-Null
           }
 
+      # Runs while Python 3.14 is still the active interpreter; the installer
+      # packages rel\offline-docs as the "Offline Documentation" component and
+      # skips it if this step could not build the docs.
+      - name: Build offline documentation
+        run: |
+          python data\misc\build_offline_docs.py --output ..\zoitechat-build\${{ matrix.platform }}\rel\offline-docs
+
       - uses: actions/setup-python@v6
         with:
           python-version: '3.8.10'

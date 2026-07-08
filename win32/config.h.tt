@@ -9,6 +9,7 @@
 #define PACKAGE_VERSION "<#= [string]::Join('.', $versionParts) #>"
 #define ZOITECHATLIBDIR ".\\plugins"
 #define ZOITECHATSHAREDIR "."
+#define ZOITECHATDOCDIR "offline-docs"
 #define OLD_PERL
 #define GETTEXT_PACKAGE "zoitechat"
 #define PACKAGE_TARNAME "zoitechat-<#= [string]::Join('.', $versionParts) #>"

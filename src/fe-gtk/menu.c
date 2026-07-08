@@ -138,7 +138,6 @@ struct mymenu
 #define XCMENU_MARKUP 2
 #define XCMENU_MNEMONIC 4
 
-/* execute a userlistbutton/popupmenu command */
 
 static void
 nick_command (session * sess, char *cmd)
@@ -149,7 +148,6 @@ nick_command (session * sess, char *cmd)
 		handle_command (sess, cmd, TRUE);
 }
 
-/* fill in the %a %s %n etc and execute the command */
 
 void
 nick_command_parse (session *sess, char *cmd, char *nick, char *allnick)
@@ -178,7 +176,6 @@ nick_command_parse (session *sess, char *cmd, char *nick, char *allnick)
 		}
 	}
 
-	/* this can't overflow, since popup->cmd is only 256 */
 	len = strlen (cmd) + strlen (nick) + strlen (allnick) + 512;
 	buf = g_malloc (len);
 
@@ -191,7 +188,6 @@ nick_command_parse (session *sess, char *cmd, char *nick, char *allnick)
 	g_free (buf);
 }
 
-/* userlist button has been clicked */
 
 void
 userlist_button_cb (GtkWidget * button, char *cmd)
@@ -208,7 +204,6 @@ userlist_button_cb (GtkWidget * button, char *cmd)
 
 	if (sess->type == SESS_DIALOG)
 	{
-		/* fake a selection */
 		nicks = g_new (char *, 2);
 		nicks[0] = g_strdup (sess->channel);
 		nicks[1] = NULL;
@@ -216,7 +211,6 @@ userlist_button_cb (GtkWidget * button, char *cmd)
 	}
 	else
 	{
-		/* find number of selected rows */
 		nicks = userlist_selection_list (sess->gui->user_tree, &num_sel);
 		if (num_sel < 1)
 		{
@@ -227,7 +221,6 @@ userlist_button_cb (GtkWidget * button, char *cmd)
 		}
 	}
 
-	/* create "allnicks" string */
 	allnicks = g_malloc (((NICKLEN + 1) * num_sel) + 1);
 	*allnicks = 0;
 
@@ -241,7 +234,6 @@ userlist_button_cb (GtkWidget * button, char *cmd)
 		if (!nick)
 			nick = nicks[0];
 
-		/* if not using "%a", execute the command once for each nickname */
 		if (!using_allnicks)
 			nick_command_parse (sess, cmd, nicks[i], "");
 
@@ -265,19 +257,16 @@ userlist_button_cb (GtkWidget * button, char *cmd)
 	g_free (allnicks);
 }
 
-/* a popup-menu-item has been selected */
 
 static void
 popup_menu_cb (GtkWidget * item, char *cmd)
 {
 	char *nick;
 
-	/* the userdata is set in menu_quick_item() */
 	nick = g_object_get_data (G_OBJECT (item), "u");
 
 	if (!nick)	/* userlist popup menu */
 	{
-		/* treat it just like a userlist button */
 		userlist_button_cb (NULL, cmd);
 		return;
 	}
@@ -389,7 +378,6 @@ menu_quick_sub (char *name, GtkWidget *menu, GtkWidget **sub_item_ret, int flags
 	if (!name)
 		return menu;
 
-	/* Code to add a submenu */
 	sub_menu = menu_new ();
 	if (flags & XCMENU_MARKUP)
 	{
@@ -411,7 +399,6 @@ menu_quick_sub (char *name, GtkWidget *menu, GtkWidget **sub_item_ret, int flags
 		*sub_item_ret = sub_item;
 
 	if (flags & XCMENU_DOLIST)
-		/* We create a new element in the list */
 		submenu_list = g_slist_prepend (submenu_list, sub_menu);
 	return sub_menu;
 }
@@ -419,7 +406,6 @@ menu_quick_sub (char *name, GtkWidget *menu, GtkWidget **sub_item_ret, int flags
 static GtkWidget *
 menu_quick_endsub (void)
 {
-	/* Just delete the first element in the linked list pointed to by first */
 	if (submenu_list)
 		submenu_list = g_slist_remove (submenu_list, submenu_list->data);
 
@@ -450,10 +436,7 @@ is_in_path (char *cmd)
 	char **argv;
 	int argc;
 
-	/* special-case these default entries. */
-	/*                  123456789012345678 */
 	if (strncmp (prog, "gnome-terminal -x ", 18) == 0)
-	/* don't check for gnome-terminal, but the thing it's executing! */
 		prog += 18;
 
 	if (g_shell_parse_argv (prog, &argc, &argv, NULL))
@@ -472,7 +455,6 @@ is_in_path (char *cmd)
 	return 0;
 }
 
-/* syntax: "LABEL~ICON~STUFF~ADDED~LATER~" */
 
 static void
 menu_extract_icon (char *name, char **label, char **icon)
@@ -485,7 +467,6 @@ menu_extract_icon (char *name, char **label, char **icon)
 	{
 		if (*p == '~')
 		{
-			/* escape \~ */
 			if (p == name || p[-1] != '\\')
 			{
 				if (!start)
@@ -512,7 +493,6 @@ menu_extract_icon (char *name, char **label, char **icon)
 	}
 }
 
-/* append items to "menu" using the (struct popup*) list provided */
 
 void
 menu_create (GtkWidget *menu, GSList *list, char *target, int check_path)
@@ -539,14 +519,12 @@ menu_create (GtkWidget *menu, GSList *list, char *target, int check_path)
 
 		} else if (!g_ascii_strncasecmp (pop->name, "ENDSUB", 6))
 		{
-			/* empty sub menu due to no programs in PATH? */
 			if (check_path && childcount < 1)
 				gtk_widget_destroy (subitem);
 			subitem = NULL;
 
 			if (tempmenu != menu)
 				tempmenu = menu_quick_endsub ();
-			/* If we get here and tempmenu equals menu that means we havent got any submenus to exit from */
 
 		} else if (!g_ascii_strncasecmp (pop->name, "SEP", 3))
 		{
@@ -556,10 +534,8 @@ menu_create (GtkWidget *menu, GSList *list, char *target, int check_path)
 		{
 			char *icon, *label;
 
-			/* default command in zoitechat.c */
 			if (pop->cmd[0] == 'n' && !strcmp (pop->cmd, "notify -n ASK %s"))
 			{
-				/* don't create this item if already in notify list */
 				if (!target || notify_is_in_list (current_sess->server, target))
 				{
 					list = list->next;
@@ -572,7 +548,6 @@ menu_create (GtkWidget *menu, GSList *list, char *target, int check_path)
 			if (!check_path || pop->cmd[0] != '!')
 			{
 				menu_quick_item (pop->cmd, label, tempmenu, 0, target, icon);
-			/* check if the program is in path, if not, leave it out! */
 			} else if (is_in_path (pop->cmd))
 			{
 				childcount++;
@@ -586,7 +561,6 @@ menu_create (GtkWidget *menu, GSList *list, char *target, int check_path)
 		list = list->next;
 	}
 
-	/* Let's clean up the linked list from mem */
 	while (submenu_list)
 		submenu_list = g_slist_remove (submenu_list, submenu_list->data);
 }
@@ -640,10 +614,8 @@ menu_nickinfo_cb (GtkWidget *menu, session *sess)
 	if (!is_session (sess))
 		return;
 
-	/* issue a /WHOIS */
 	g_snprintf (buf, sizeof (buf), "WHOIS %s %s", str_copy, str_copy);
 	handle_command (sess, buf, FALSE);
-	/* and hide the output */
 	sess->server->skip_next_whois = 1;
 }
 
@@ -653,7 +625,6 @@ copy_to_clipboard_cb (GtkWidget *item, char *url)
 	gtkutil_copy_to_clipboard (item, NULL, url);
 }
 
-/* returns boolean: Some data is missing */
 
 static gboolean
 menu_create_nickinfo_menu (struct User *user, GtkWidget *submenu)
@@ -665,7 +636,6 @@ menu_create_nickinfo_menu (struct User *user, GtkWidget *submenu)
 	gboolean missing = FALSE;
 	GtkWidget *item;
 
-	/* let the translators tweak this if need be */
 	fmt = _("<tt><b>%-11s</b></tt> %s");
 	g_snprintf (unknown, sizeof (unknown), "<i>%s</i>", _("Unknown"));
 
@@ -756,14 +726,11 @@ fe_userlist_update (session *sess, struct User *user)
 	if (!nick_submenu || !str_copy)
 		return;
 
-	/* not the same nick as the menu? */
 	if (sess->server->p_cmp (user->nick, str_copy))
 		return;
 
-	/* get rid of the "show" signal */
 	g_signal_handlers_disconnect_by_func (nick_submenu, menu_nickinfo_cb, sess);
 
-	/* destroy all the old items */
 	items = gtk_container_get_children (GTK_CONTAINER (nick_submenu));
 	iter = items;
 	while (iter)
@@ -774,7 +741,6 @@ fe_userlist_update (session *sess, struct User *user)
 	}
 	g_list_free (items);
 
-	/* and re-create them with new info */
 	needs_refresh = menu_create_nickinfo_menu (user, nick_submenu) ||
 		!user->hostname || !user->realname || !user->servername;
 
@@ -816,7 +782,6 @@ menu_nickmenu (session *sess, GdkEventButton *event, char *nick, int num_sel)
 
 	submenu_list = 0;	/* first time through, might not be 0 */
 
-	/* more than 1 nick selected? */
 	if (num_sel > 1)
 	{
 		g_snprintf (buf, sizeof (buf), _("%d nicks selected."), num_sel);
@@ -861,7 +826,6 @@ menu_nickmenu (session *sess, GdkEventButton *event, char *nick, int num_sel)
 	menu_popup (menu, event, NULL);
 }
 
-/* stuff for the View menu */
 
 static void
 menu_showhide_cb (session *sess)
@@ -1025,7 +989,6 @@ menu_fullscreen_toggle (GtkWidget *wid, gpointer ud)
 #ifdef WIN32
 		if (!prefs.hex_gui_win_state) /* not maximized */
 		{
-			/* other window managers seem to handle this */
 			gtk_window_resize (GTK_WINDOW (parent_window),
 				prefs.hex_gui_win_width, prefs.hex_gui_win_height);
 			gtk_window_move (GTK_WINDOW (parent_window),
@@ -1051,7 +1014,6 @@ open_url_cb (GtkWidget *item, char *url)
 {
 	char buf[512];
 
-	/* pass this to /URL so it can handle irc:// */
 	g_snprintf (buf, sizeof (buf), "URL %s", url);
 	handle_command (current_sess, buf, FALSE);
 }
@@ -1066,7 +1028,6 @@ menu_urlmenu (GdkEventButton *event, char *url)
 	str_copy = g_strdup (url);
 
 	menu = menu_new ();
-	/* more than 51 chars? Chop it */
 	if (g_utf8_strlen (str_copy, -1) >= 52)
 	{
 		tmp = g_strdup (str_copy);
@@ -1081,14 +1042,12 @@ menu_urlmenu (GdkEventButton *event, char *url)
 	}
 	menu_quick_item (0, 0, menu, XCMENU_SHADED, 0, 0);
 
-	/* Two hardcoded entries */
 	if (strncmp (str_copy, "irc://", 6) == 0 ||
 	    strncmp (str_copy, "ircs://",7) == 0)
 		menu_quick_item_with_callback (open_url_cb, _("Connect"), menu, str_copy);
 	else
 		menu_quick_item_with_callback (open_url_cb, _("Open Link in Browser"), menu, str_copy);
 	menu_quick_item_with_callback (copy_to_clipboard_cb, _("Copy Selected Link"), menu, str_copy);
-	/* custom ones from urlhandlers.conf */
 	menu_create (menu, urlhandler_list, str_copy, TRUE);
 	menu_add_plugin_items (menu, "\x4$URL", str_copy);
 	menu_popup (menu, event, NULL);
@@ -1356,7 +1315,6 @@ menu_newserver_tab (GtkWidget * wid, gpointer none)
 	int oldf = prefs.hex_gui_tab_newtofront;
 
 	prefs.hex_gui_tab_chans = 1;
-	/* force focus if setting is "only requested tabs" */
 	if (prefs.hex_gui_tab_newtofront == 2)
 		prefs.hex_gui_tab_newtofront = 1;
 	new_ircwindow (NULL, NULL, SESS_SERVER, 0);
@@ -1740,10 +1698,67 @@ menu_ctcpguiopen (void)
 	editlist_gui_open (NULL, NULL, ctcp_list, buf, "ctcpreply", "ctcpreply.conf", ctcp_help);
 }
 
+/* Returns the index.html of a locally installed copy of the documentation,
+ * or NULL if none is available. Callers own the returned string. */
+static char *
+menu_docs_local_index (void)
+{
+	const char *env_docdir;
+	char *path;
+
+	env_docdir = g_getenv ("ZOITECHAT_DOCDIR");
+	if (env_docdir && env_docdir[0])
+	{
+		path = g_build_filename (env_docdir, "index.html", NULL);
+		if (g_file_test (path, G_FILE_TEST_IS_REGULAR))
+			return path;
+		g_free (path);
+	}
+
+	/* Docs the user placed in the config dir; works on every platform,
+	 * including portable installs and Flatpak (host-readable, unlike /app) */
+	path = g_build_filename (get_xdir (), "offline-docs", "index.html", NULL);
+	if (g_file_test (path, G_FILE_TEST_IS_REGULAR))
+		return path;
+	g_free (path);
+
+#ifdef WIN32
+	/* The installer's "Offline Documentation" component; ZOITECHATDOCDIR is
+	 * relative to the install dir on Windows and must not be resolved
+	 * against the CWD, which depends on how the app was launched */
+	if (!g_path_is_absolute (ZOITECHATDOCDIR))
+	{
+		char *install_dir = g_win32_get_package_installation_directory_of_module (NULL);
+
+		if (!install_dir)
+			return NULL;
+		path = g_build_filename (install_dir, ZOITECHATDOCDIR, "index.html", NULL);
+		g_free (install_dir);
+	}
+	else
+		path = g_build_filename (ZOITECHATDOCDIR, "index.html", NULL);
+#else
+	path = g_build_filename (ZOITECHATDOCDIR, "index.html", NULL);
+#endif
+	if (g_file_test (path, G_FILE_TEST_IS_REGULAR))
+		return path;
+	g_free (path);
+
+	return NULL;
+}
+
 static void
 menu_docs (GtkWidget *wid, gpointer none)
 {
-	fe_open_url ("https://docs.zoitechat.org/en/latest/");
+	char *local_index = menu_docs_local_index ();
+
+	if (local_index)
+	{
+		fe_open_url (local_index);
+		g_free (local_index);
+	}
+	else
+		fe_open_url ("https://docs.zoitechat.org/en/latest/");
 }
 
 /*static void
@@ -2252,7 +2267,6 @@ menu_canacaccel (GtkWidget *widget, guint signal_id, gpointer user_data)
 	return gtk_widget_is_sensitive (widget);
 }
 
-/* === STUFF FOR /MENU === */
 
 static GtkMenuItem *
 menu_find_item (GtkWidget *menu, char *name)
@@ -2318,7 +2332,6 @@ menu_find_path (GtkWidget *menu, char *path)
 	char name[128];
 	int len;
 
-	/* grab the next part of the path */
 	s = strchr (path, '/');
 	len = s - path;
 	if (!s)
@@ -2372,7 +2385,6 @@ menu_foreach_gui (menu_entry *me, void (*callback) (GtkWidget *, menu_entry *, c
 			list = list->next;
 			continue;
 		}
-		/* do it only once for tab sessions, since they share a GUI */
 		if (!sess->gui->is_tab || !tabdone)
 		{
 			callback (sess->gui->menu, me, NULL);
@@ -2392,13 +2404,11 @@ menu_update_cb (GtkWidget *menu, menu_entry *me, char *target)
 	if (item)
 	{
 		gtk_widget_set_sensitive (item, me->enable);
-		/* must do it without triggering the callback */
 		if (GTK_IS_CHECK_MENU_ITEM (item))
 			gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (item), me->state);
 	}
 }
 
-/* radio state changed via mouse click */
 static void
 menu_radio_cb (GtkCheckMenuItem *item, menu_entry *me)
 {
@@ -2406,15 +2416,12 @@ menu_radio_cb (GtkCheckMenuItem *item, menu_entry *me)
 	if (gtk_check_menu_item_get_active (item))
 		me->state = 1;
 
-	/* update the state, incase this was changed via right-click. */
-	/* This will update all other windows and menu bars */
 	menu_foreach_gui (me, menu_update_cb);
 
 	if (me->state && me->cmd)
 		handle_command (current_sess, me->cmd, FALSE);
 }
 
-/* toggle state changed via mouse click */
 static void
 menu_toggle_cb (GtkCheckMenuItem *item, menu_entry *me)
 {
@@ -2422,8 +2429,6 @@ menu_toggle_cb (GtkCheckMenuItem *item, menu_entry *me)
 	if (gtk_check_menu_item_get_active (item))
 		me->state = 1;
 
-	/* update the state, incase this was changed via right-click. */
-	/* This will update all other windows and menu bars */
 	menu_foreach_gui (me, menu_update_cb);
 
 	if (me->state)
@@ -2594,7 +2599,6 @@ fe_menu_add (menu_entry *me)
 	if (!pango_parse_markup (me->label, -1, 0, NULL, &text, NULL, NULL))
 		return NULL;
 
-	/* return the label with markup stripped */
 	return text;
 }
 
@@ -2610,7 +2614,6 @@ fe_menu_update (menu_entry *me)
 	menu_foreach_gui (me, menu_update_cb);
 }
 
-/* used to add custom menus to the right-click menu */
 
 static void
 menu_add_plugin_mainmenu_items (GtkWidget *menu)
@@ -2644,7 +2647,6 @@ menu_add_plugin_items (GtkWidget *menu, char *root, char *target)
 	}
 }
 
-/* === END STUFF FOR /MENU === */
 
 GtkWidget *
 menu_create_main (void *accel_group, int bar, int away, int toplevel,
@@ -2677,13 +2679,11 @@ menu_create_main (void *accel_group, int bar, int away, int toplevel,
 	else
 		menu_bar = menu_new ();
 
-	/* /MENU needs to know this later */
 	g_object_set_data (G_OBJECT (menu_bar), "accel", accel_group);
 
 	g_signal_connect (G_OBJECT (menu_bar), "can-activate-accel",
 							G_CALLBACK (menu_canacaccel), 0);
 
-	/* set the initial state of toggles */
 	mymenu[MENUBAR_OFFSET].state = !prefs.hex_gui_hide_menu;
 	mymenu[MENUBAR_OFFSET+1].state = prefs.hex_gui_topicbar;
 	mymenu[MENUBAR_OFFSET+2].state = !prefs.hex_gui_ulist_hide;
@@ -2722,7 +2722,6 @@ menu_create_main (void *accel_group, int bar, int away, int toplevel,
 		mymenu[METRE_OFFSET+3].state = 1;
 	}
 
-	/* change Close binding to ctrl-shift-w when using emacs keys */
 	settings = gtk_widget_get_settings (menu_bar);
 	if (settings)
 	{
@@ -2738,7 +2737,6 @@ menu_create_main (void *accel_group, int bar, int away, int toplevel,
 		}
 	}
 
-	/* Away binding to ctrl-alt-a if the _Help menu conflicts (FR/PT/IT) */
 	{
 		char *help = _("_Help");
 		char *under = strchr (help, '_');
@@ -2775,7 +2773,6 @@ menu_create_main (void *accel_group, int bar, int away, int toplevel,
 			if (mymenu[i].id == MENU_ID_USERMENU)
 				usermenu = menu;
 			menu_item = gtk_menu_item_new_with_mnemonic (_(mymenu[i].text));
-			/* record the English name for /menu */
 			g_object_set_data (G_OBJECT (menu_item), "name", mymenu[i].text);
 #ifdef HAVE_GTK_MAC /* Added to app menu, see below */
 			if (!bar || mymenu[i].id != MENU_ID_ZOITECHAT)		
@@ -2827,7 +2824,6 @@ normalitem:
 togitem:
 			g_object_set_data (G_OBJECT (item), "zc-key-action", (gpointer) menu_get_key_action_name (i));
 			menu_add_keybinding_accel (item, accel_group, menu_get_key_action_name (i));
-			/* must avoid callback for Radio buttons */
 			gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (item), mymenu[i].state);
 			/*gtk_check_menu_item_set_active (GTK_CHECK_MENU_ITEM (item),
 													 mymenu[i].state);*/
@@ -2867,7 +2863,6 @@ togitem:
 			group = NULL;
 			submenu = menu_new ();
 			item = create_icon_menu (_(mymenu[i].text), mymenu[i].image, TRUE);
-			/* record the English name for /menu */
 			g_object_set_data (G_OBJECT (item), "name", mymenu[i].text);
 			gtk_menu_item_set_submenu (GTK_MENU_ITEM (item), submenu);
 			gtk_menu_shell_append (GTK_MENU_SHELL (menu), item);
@@ -2889,13 +2884,10 @@ togitem:
 			submenu = NULL;
 		}
 
-		/* record this GtkWidget * so it's state might be changed later */
 		if (mymenu[i].id != 0 && menu_widgets)
-			/* this ends up in sess->gui->menu_item[MENU_ID_XXX] */
 			menu_widgets[mymenu[i].id] = item;
 
 #ifdef HAVE_GTK_MAC
-		/* We want ZoiteChat to be the app menu, not including Quit or ZoiteChat itself */
 		if (bar && item && i <= CLOSE_OFFSET + 1 && mymenu[i].id != MENU_ID_ZOITECHAT)
 		{
 			if (!submenu || mymenu[i].type == M_MENUSUB)
