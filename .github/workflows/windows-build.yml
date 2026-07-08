@@ -126,11 +126,12 @@ jobs:
           $pyRoot = $env:pythonLocation
           if (-not $pyRoot) { $pyRoot = & python -c "import sys; print(sys.prefix)" }
 
-          $pyDir = "C:\gtk-build\python-3.8"
-          New-Item -Path $pyDir -ItemType Directory -Force | Out-Null
-          $target = Join-Path $pyDir "${{ matrix.platform }}"
-          if (Test-Path $target) { Remove-Item $target -Recurse -Force }
-          New-Item -Path $pyDir -Name "${{ matrix.platform }}" -ItemType Junction -Value $pyRoot | Out-Null
+          foreach ($pyDir in @("C:\gtk-build\python-3.8.10", "C:\gtk-build\python-3.8")) {
+            New-Item -Path $pyDir -ItemType Directory -Force | Out-Null
+            $target = Join-Path $pyDir "${{ matrix.platform }}"
+            if (Test-Path $target) { Remove-Item $target -Recurse -Force }
+            New-Item -Path $pyDir -Name "${{ matrix.platform }}" -ItemType Junction -Value $pyRoot | Out-Null
+          }
 
       - name: Build
         run: |
@@ -143,23 +144,33 @@ jobs:
             exit /b 1
           )
 
-          set "LIB=%PYTHON_DIR%\libs;%LIB%"
-          set "INCLUDE=%PYTHON_DIR%\include;%INCLUDE%"
-
-          powershell -NoProfile -ExecutionPolicy Bypass -Command "$archiveLib='C:\gtk-build\gtk\x64\release\lib\libarchive.lib'; if (-not (Test-Path $archiveLib)) { $archiveDll = Get-ChildItem 'C:\gtk-build\gtk\x64\release\bin\libarchive*.dll' | Select-Object -First 1; if ($archiveDll) { Push-Location 'C:\gtk-build\gtk\x64\release\lib'; & 'C:\gtk-build\gendef\gendef.exe' $archiveDll.FullName | Out-Null; $archiveDef = Get-ChildItem 'libarchive*.def' | Select-Object -First 1; if ($archiveDef) { & lib /def:$archiveDef.Name /machine:${{ matrix.platform }} /out:libarchive.lib | Out-Null }; Pop-Location } }"
-
-          msbuild win32\zoitechat.sln /m /verbosity:minimal /p:Configuration=Release /p:Platform=${{ matrix.platform }}
-
           set "PYTHON38_DIR=C:\gtk-build\python-3.8\${{ matrix.platform }}"
           if not exist "%PYTHON38_DIR%\libs\python38.lib" (
             echo Missing %PYTHON38_DIR%\libs\python38.lib
             dir "%PYTHON38_DIR%\libs"
             exit /b 1
           )
+          if not exist "%PYTHON38_DIR%\Lib\site-packages\_cffi_backend.cp38*.pyd" (
+            echo Missing %PYTHON38_DIR%\Lib\site-packages\_cffi_backend.cp38*.pyd
+            exit /b 1
+          )
 
-          msbuild plugins\python\python3.vcxproj /m /verbosity:minimal /p:Configuration=Release /p:Platform=${{ matrix.platform }} /p:SolutionDir=%CD%\win32\ /p:YourPython3Path=C:\gtk-build\python-3.8 /p:Python3Lib=python38 /p:Python3Output=hcpython38
-          copy /Y "%PYTHON38_DIR%\Lib\site-packages\_cffi_backend.cp38*.pyd" "..\zoitechat-build\${{ matrix.platform }}\bin\"
-          msbuild win32\installer\installer.vcxproj /m /verbosity:minimal /p:Configuration=Release /p:Platform=${{ matrix.platform }} /p:SolutionDir=%CD%\win32\
+          set "LIB=%PYTHON_DIR%\libs;%LIB%"
+          set "INCLUDE=%PYTHON_DIR%\include;%INCLUDE%"
+
+          powershell -NoProfile -ExecutionPolicy Bypass -Command "$archiveLib='C:\gtk-build\gtk\x64\release\lib\libarchive.lib'; if (-not (Test-Path $archiveLib)) { $archiveDll = Get-ChildItem 'C:\gtk-build\gtk\x64\release\bin\libarchive*.dll' | Select-Object -First 1; if ($archiveDll) { Push-Location 'C:\gtk-build\gtk\x64\release\lib'; & 'C:\gtk-build\gendef\gendef.exe' $archiveDll.FullName | Out-Null; $archiveDef = Get-ChildItem 'libarchive*.def' | Select-Object -First 1; if ($archiveDef) { & lib /def:$archiveDef.Name /machine:${{ matrix.platform }} /out:libarchive.lib | Out-Null }; Pop-Location } }"
+
+          msbuild win32\zoitechat.sln /m /verbosity:minimal /p:Configuration=Release /p:Platform=${{ matrix.platform }}
+          if errorlevel 1 exit /b 1
+
+          if not exist "..\zoitechat-build\${{ matrix.platform }}\rel\plugins\hcpython38.dll" (
+            echo hcpython38.dll was not built
+            exit /b 1
+          )
+          if not exist "..\zoitechat-build\${{ matrix.platform }}\rel\_cffi_backend.cp38*.pyd" (
+            echo _cffi_backend for Python 3.8 was not staged for the installer
+            exit /b 1
+          )
         shell: cmd
 
       - name: Preparing Artifacts

@@ -8,7 +8,7 @@
 		<YourGendefPath>c:\gtk-build\gendef</YourGendefPath>
 		<YourPerlPath>c:\gtk-build\perl-5.42.0.1</YourPerlPath>
 		<YourPython3Path>c:\gtk-build\python-3.14</YourPython3Path>
-		<YourPython38Path>c:\gtk-build\python-3.8.10</YourPython38Path>
+		<YourPython38Path>c:\gtk-build\python-3.8</YourPython38Path>
 		<YourWinSparklePath>c:\gtk-build\WinSparkle</YourWinSparklePath>
 
 		<!-- YOU SHOULDN'T TOUCH ANYTHING BELOW -->

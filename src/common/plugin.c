@@ -59,18 +59,32 @@ typedef struct session zoitechat_context;
 #define DEBUG(x) {x;}
 #ifdef WIN32
 
+/* Python >= 3.9 dropped support for Windows versions before 10, so those
+ * systems get a Python 3.8 build of the plugin instead.  RtlGetVersion is
+ * used because GetVersionEx reports a version capped by the compatibility
+ * manifest rather than the real one. */
 static gboolean
-plugin_windows_is_windows7 (void)
+plugin_windows_needs_python38 (void)
 {
-	OSVERSIONINFOEXA version;
+	typedef LONG (WINAPI *rtl_get_version_func) (PRTL_OSVERSIONINFOW);
+	rtl_get_version_func rtl_get_version;
+	RTL_OSVERSIONINFOW version;
+	HMODULE ntdll;
+
+	ntdll = GetModuleHandleW (L"ntdll.dll");
+	if (ntdll == NULL)
+		return FALSE;
+
+	rtl_get_version = (rtl_get_version_func) GetProcAddress (ntdll, "RtlGetVersion");
+	if (rtl_get_version == NULL)
+		return FALSE;
 
 	memset (&version, 0, sizeof (version));
 	version.dwOSVersionInfoSize = sizeof (version);
-	if (!GetVersionExA ((OSVERSIONINFOA *)&version))
+	if (rtl_get_version (&version) != 0)
 		return FALSE;
 
-	return version.dwPlatformId == VER_PLATFORM_WIN32_NT &&
-		version.dwMajorVersion == 6 && version.dwMinorVersion == 1;
+	return version.dwMajorVersion < 10;
 }
 #endif
 
@@ -508,7 +522,7 @@ plugin_auto_load (session *sess)
 	for_files (lib_dir, "hcfishlim.dll", plugin_auto_load_cb);
 	for_files(lib_dir, "hclua.dll", plugin_auto_load_cb);
 	for_files (lib_dir, "hcperl.dll", plugin_auto_load_cb);
-	if (plugin_windows_is_windows7 ())
+	if (plugin_windows_needs_python38 ())
 		for_files (lib_dir, "hcpython38.dll", plugin_auto_load_cb);
 	else
 		for_files (lib_dir, "hcpython3.dll", plugin_auto_load_cb);

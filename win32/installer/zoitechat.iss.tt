@@ -59,7 +59,7 @@ Name: "plugins\upd"; Description: "Update Checker"; Types: normal custom; Flags:
 Name: "langs"; Description: "Language Interfaces"; Types: custom; Flags: disablenouninstallwarning
 Name: "langs\lua"; Description: "Lua (LuaJIT 2.1)"; Types: normal custom; Flags: disablenouninstallwarning
 Name: "langs\perl"; Description: "Perl (Strawberry Perl 5.42.0.1)"; Types: custom; Flags: disablenouninstallwarning
-Name: "langs\python"; Description: "Python (Python 3.14.3, or 3.8.10 on Windows 7)"; Types: custom; Flags: disablenouninstallwarning
+Name: "langs\python"; Description: "Python (Python 3.14.3, or 3.8.10 before Windows 10)"; Types: custom; Flags: disablenouninstallwarning
 Name: "themes"; Description: "GTK3 Themes"; Types: normal minimal custom; Flags: disablenouninstallwarning
 Name: "themes\windows10"; Description: "Windows 10"; Types: normal minimal custom; Flags: disablenouninstallwarning
 Name: "themes\windows10dark"; Description: "Windows 10 Dark"; Types: normal minimal custom; Flags: disablenouninstallwarning
@@ -181,8 +181,8 @@ Source: "plugins\hcperl.dll"; DestDir: "{app}\plugins"; Flags: ignoreversion; Co
 
 Source: "python\*.py"; DestDir: "{app}\python"; Flags: ignoreversion; Components: langs\python
 
-Source: "plugins\hcpython3.dll"; DestDir: "{app}\plugins"; Flags: ignoreversion; Components: langs\python; Check: not IsWindows7
-Source: "plugins\hcpython38.dll"; DestDir: "{app}\plugins"; Flags: ignoreversion skipifsourcedoesntexist; Components: langs\python; Check: IsWindows7
+Source: "plugins\hcpython3.dll"; DestDir: "{app}\plugins"; Flags: ignoreversion; Components: langs\python; Check: not NeedsLegacyPython
+Source: "plugins\hcpython38.dll"; DestDir: "{app}\plugins"; Flags: ignoreversion skipifsourcedoesntexist; Components: langs\python; Check: NeedsLegacyPython
 Source: "_cffi_backend.cp3*.pyd"; DestDir: "{app}"; Flags: ignoreversion; Components: langs\python
 
 Source: "zoitechat.exe"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
@@ -329,17 +329,19 @@ begin
 		Result := DirExists(ExpandConstant('{localappdata}') + '\enchant\myspell');
 end;
 
-function IsWindows7(): Boolean;
+// Python >= 3.9 dropped support for Windows versions before 10;
+// those systems get Python 3.8 and the matching plugin instead.
+function NeedsLegacyPython(): Boolean;
 var
 	Version: TWindowsVersion;
 begin
 	GetWindowsVersionEx(Version);
-	Result := Version.NTPlatform and (Version.Major = 6) and (Version.Minor = 1);
+	Result := Version.NTPlatform and (Version.Major < 10);
 end;
 
 function PythonURL(): String;
 begin
-	if IsWindows7() then
+	if NeedsLegacyPython() then
 		Result := 'https://www.python.org/ftp/python/3.8.10/python-3.8.10-amd64.exe'
 	else
 		Result := 'https://www.python.org/ftp/python/3.14.3/python-3.14.3-amd64.exe';
@@ -347,7 +349,7 @@ end;
 
 function PythonDLL(): String;
 begin
-	if IsWindows7() then
+	if NeedsLegacyPython() then
 		Result := 'python38.dll'
 	else
 		Result := 'python314.dll';

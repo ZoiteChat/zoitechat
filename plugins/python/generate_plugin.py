@@ -53,6 +53,16 @@ builder.set_source('_zoitechat_embedded', '''
 #include "config.h"
 #include "zoitechat-plugin.h"
 
+#ifdef _WIN32
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#endif
+
 static zoitechat_plugin *ph;
 CFFI_DLLEXPORT int _on_plugin_init(char **, char **, char **, char *, char *);
 CFFI_DLLEXPORT int _on_plugin_deinit(void);
@@ -61,6 +71,20 @@ int zoitechat_plugin_init(zoitechat_plugin *plugin_handle,
                         char **name_out, char **description_out,
                         char **version_out, char *arg)
 {
+#ifdef _WIN32
+    /* CPython cannot be removed from a process once Py_Initialize has run.
+       If the embedded interpreter fails to start (e.g. _cffi_backend is
+       missing), the host responds to our 0 return by g_module_close()ing
+       this plugin, which would also drop the last reference to pythonXY.dll
+       and unload it mid-flight; the leftover process-global state then
+       crashes the process later, e.g. when a server connection spawns the
+       next thread.  Pin this module so FreeLibrary can never unload it. */
+    HMODULE self_handle;
+    GetModuleHandleExW (GET_MODULE_HANDLE_EX_FLAG_PIN |
+                        GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS,
+                        (LPCWSTR)&zoitechat_plugin_init, &self_handle);
+#endif
+
     if (ph != NULL)
     {
         puts ("Python plugin already loaded\\n");
