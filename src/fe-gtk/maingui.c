@@ -67,6 +67,34 @@
 #include <shellapi.h>
 #include <gdk/gdkwin32.h>
 
+/* The shell only minimizes a window from its taskbar button when the
+ * window style carries WS_MINIMIZEBOX; without it the click merely
+ * deactivates the window (issue #65).  GTK3 older than 3.24.50 can drop
+ * the bit from top-level windows (https://gitlab.gnome.org/GNOME/gtk/-/issues/7494),
+ * so guarantee it ourselves for session windows. */
+static void
+mg_win32_ensure_minimizable (GdkWindow *gdk_window)
+{
+	HWND hwnd;
+	LONG_PTR window_style;
+
+	if (!gdk_window)
+		return;
+
+	hwnd = gdk_win32_window_get_handle (gdk_window);
+	if (!hwnd)
+		return;
+
+	window_style = GetWindowLongPtr (hwnd, GWL_STYLE);
+	if (!window_style || (window_style & WS_MINIMIZEBOX))
+		return;
+
+	SetWindowLongPtr (hwnd, GWL_STYLE, window_style | WS_MINIMIZEBOX);
+	SetWindowPos (hwnd, NULL, 0, 0, 0, 0,
+	              SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE |
+	              SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOOWNERZORDER);
+}
+
 static void
 mg_win32_allow_autohide_taskbar (GtkWindow *window, GdkEventWindowState *event)
 {
@@ -4985,6 +5013,7 @@ mg_create_topwindow (session *sess)
 #ifdef G_OS_WIN32
 	parent_win = gtk_widget_get_window (win);
 	gdk_window_add_filter (parent_win, mg_win32_filter, NULL);
+	mg_win32_ensure_minimizable (parent_win);
 #endif
 }
 
@@ -5020,6 +5049,18 @@ mg_win32_filter (GdkXEvent *xevent, GdkEvent *event, gpointer data)
 
 	if (!msg)
 		return GDK_FILTER_CONTINUE;
+
+	if (msg->message == WM_STYLECHANGING && msg->wParam == (WPARAM)GWL_STYLE)
+	{
+		STYLESTRUCT *style = (STYLESTRUCT *)msg->lParam;
+
+		/* Keep the window minimizable from its taskbar button; see
+		 * mg_win32_ensure_minimizable (). */
+		if (style)
+			style->styleNew |= WS_MINIMIZEBOX;
+
+		return GDK_FILTER_CONTINUE;
+	}
 
 	if (msg->message == WM_TIMECHANGE)
 	{
@@ -5170,6 +5211,7 @@ mg_create_tabwindow (session *sess)
 #ifdef G_OS_WIN32
 	parent_win = gtk_widget_get_window (win);
 	gdk_window_add_filter (parent_win, mg_win32_filter, NULL);
+	mg_win32_ensure_minimizable (parent_win);
 #endif
 }
 
