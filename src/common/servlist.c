@@ -439,8 +439,99 @@ servlist_favchan_copy (favchannel *fav)
 	return newfav;
 }
 
+static void servlist_connect_with_password (session *sess, ircnet *net, gboolean join, const char *password);
+
+typedef struct
+{
+	session *sess;
+	ircnet *net;
+	gboolean join;
+} servlist_password_prompt;
+
+static gboolean
+servlist_login_uses_password_sasl (int logintype)
+{
+	return logintype == LOGIN_SASL ||
+		logintype == LOGIN_SASL_SCRAM_SHA_1 ||
+		logintype == LOGIN_SASL_SCRAM_SHA_256 ||
+		logintype == LOGIN_SASL_SCRAM_SHA_512;
+}
+
+static void servlist_prompt_sasl_password (servlist_password_prompt *prompt);
+
+static void
+servlist_connect_without_password_cb (int value, void *userdata)
+{
+	servlist_password_prompt *prompt = userdata;
+
+	if (value)
+	{
+		servlist_connect_with_password (prompt->sess, prompt->net, prompt->join, NULL);
+		g_free (prompt);
+	}
+	else
+	{
+		servlist_prompt_sasl_password (prompt);
+	}
+}
+
+static void
+servlist_connect_password_cb (int cancel, char *text, void *userdata)
+{
+	servlist_password_prompt *prompt = userdata;
+	char *msg;
+
+	if (cancel)
+	{
+		fe_serverlist_open (prompt->sess);
+		g_free (prompt);
+		return;
+	}
+
+	if (text && *text)
+	{
+		servlist_connect_with_password (prompt->sess, prompt->net, prompt->join, text);
+		g_free (prompt);
+		return;
+	}
+
+	msg = g_strdup_printf (_("Continue connecting to %s without a SASL password?"), prompt->net->name ? prompt->net->name : _("this network"));
+	fe_get_bool (_("No SASL password"), msg, servlist_connect_without_password_cb, prompt);
+	g_free (msg);
+}
+
+static void
+servlist_prompt_sasl_password (servlist_password_prompt *prompt)
+{
+	char *msg;
+
+	msg = g_strdup_printf (_("Enter SASL password for %s:"), prompt->net->name ? prompt->net->name : _("this network"));
+	fe_get_password (msg, servlist_connect_password_cb, prompt);
+	g_free (msg);
+}
+
 void
 servlist_connect (session *sess, ircnet *net, gboolean join)
+{
+	int logintype;
+	servlist_password_prompt *prompt;
+
+	logintype = net && net->logintype ? net->logintype : LOGIN_DEFAULT_REAL;
+	if (net && (net->flags & FLAG_PROMPT_PASSWORD) && servlist_login_uses_password_sasl (logintype))
+	{
+		prompt = g_new0 (servlist_password_prompt, 1);
+		prompt->sess = sess;
+		prompt->net = net;
+		prompt->join = join;
+		servlist_prompt_sasl_password (prompt);
+		return;
+	}
+
+	servlist_connect_with_password (sess, net, join, NULL);
+}
+
+static void
+servlist_connect_with_password (session *sess, ircnet *net, gboolean join, const char *password)
 {
 	ircserver *ircserv;
 	GSList *list;
@@ -487,7 +578,11 @@ servlist_connect (session *sess, ircnet *net, gboolean join)
 	}
 
 	serv->password[0] = 0;
-	if ((net->flags & FLAG_USE_KEYRING) && net->name)
+	if (password && *password)
+	{
+		safe_strcpy (serv->password, password, sizeof (serv->password));
+	}
+	else if ((net->flags & FLAG_USE_KEYRING) && net->name)
 	{
 		char *stored_pass = secretstore_get_network_password (net->name);
 		if (stored_pass && *stored_pass)

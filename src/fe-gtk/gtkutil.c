@@ -528,6 +528,43 @@ gtkutil_destroy (GtkWidget * igad, GtkWidget * dgad)
 }
 
 static void
+gtkutil_place_dialog (GtkWidget *dialog)
+{
+	GList *list;
+	GList *item;
+	GtkWindow *anchor = NULL;
+	gint x;
+	gint y;
+	extern GtkWidget *parent_window;
+
+	list = gtk_window_list_toplevels ();
+	for (item = list; item; item = item->next)
+	{
+		if (item->data != dialog && GTK_IS_WINDOW (item->data) &&
+			gtk_widget_get_visible (GTK_WIDGET (item->data)) &&
+			gtk_window_is_active (GTK_WINDOW (item->data)))
+		{
+			anchor = GTK_WINDOW (item->data);
+			break;
+		}
+	}
+	g_list_free (list);
+
+	if (!anchor && parent_window && parent_window != dialog && GTK_IS_WINDOW (parent_window))
+		anchor = GTK_WINDOW (parent_window);
+
+	if (anchor)
+	{
+		gtk_window_get_position (anchor, &x, &y);
+		gtk_window_move (GTK_WINDOW (dialog), x, y);
+	}
+	else
+	{
+		gtk_window_set_position (GTK_WINDOW (dialog), GTK_WIN_POS_MOUSE);
+	}
+}
+
+static void
 gtkutil_get_str_response (GtkDialog *dialog, gint arg1, gpointer entry)
 {
 	void (*callback) (int cancel, char *text, void *user_data);
@@ -540,15 +577,15 @@ gtkutil_get_str_response (GtkDialog *dialog, gint arg1, gpointer entry)
 
 	switch (arg1)
 	{
-	case GTK_RESPONSE_REJECT:
-		callback (TRUE, text, user_data);
-		gtk_widget_destroy (GTK_WIDGET (dialog));
-		break;
 	case GTK_RESPONSE_ACCEPT:
 		callback (FALSE, text, user_data);
-		gtk_widget_destroy (GTK_WIDGET (dialog));
+		break;
+	default:
+		callback (TRUE, text, user_data);
 		break;
 	}
+
+	gtk_widget_destroy (GTK_WIDGET (dialog));
 }
 
 static void
@@ -557,8 +594,8 @@ gtkutil_str_enter (GtkWidget *entry, GtkWidget *dialog)
 	gtk_dialog_response (GTK_DIALOG (dialog), GTK_RESPONSE_ACCEPT);
 }
 
-void
-fe_get_str (char *msg, char *def, void *callback, void *userdata)
+static void
+gtkutil_get_str (char *msg, char *def, void *callback, void *userdata, gboolean visible)
 {
 	GtkWidget *dialog;
 	GtkWidget *entry;
@@ -572,17 +609,10 @@ fe_get_str (char *msg, char *def, void *callback, void *userdata)
 										NULL);
 	theme_manager_attach_window (dialog);
 
-	gtk_window_set_transient_for (GTK_WINDOW (dialog), GTK_WINDOW (parent_window));
+	if (parent_window && GTK_IS_WINDOW (parent_window))
+		gtk_window_set_transient_for (GTK_WINDOW (dialog), GTK_WINDOW (parent_window));
+	gtkutil_place_dialog (dialog);
 	gtk_box_set_homogeneous (GTK_BOX (gtk_dialog_get_content_area (GTK_DIALOG (dialog))), TRUE);
-
-	if (userdata == (void *)1)	/* nick box is usually on the very bottom, make it centered */
-	{
-		gtk_window_set_position (GTK_WINDOW (dialog), GTK_WIN_POS_CENTER);
-	}
-	else
-	{
-		gtk_window_set_position (GTK_WINDOW (dialog), GTK_WIN_POS_MOUSE);
-	}
 
 	hbox = gtkutil_box_new (GTK_ORIENTATION_HORIZONTAL, TRUE, 0);
 
@@ -592,7 +622,8 @@ fe_get_str (char *msg, char *def, void *callback, void *userdata)
 	entry = gtk_entry_new ();
 	g_signal_connect (G_OBJECT (entry), "activate",
 						 	G_CALLBACK (gtkutil_str_enter), dialog);
-	gtk_entry_set_text (GTK_ENTRY (entry), def);
+	gtk_entry_set_text (GTK_ENTRY (entry), def ? def : "");
+	gtk_entry_set_visibility (GTK_ENTRY (entry), visible);
 	gtk_box_pack_end (GTK_BOX (hbox), entry, 0, 0, 0);
 
 	label = gtk_label_new (msg);
@@ -604,6 +635,18 @@ fe_get_str (char *msg, char *def, void *callback, void *userdata)
 	gtk_container_add (GTK_CONTAINER (gtk_dialog_get_content_area (GTK_DIALOG (dialog))), hbox);
 
 	gtk_widget_show_all (dialog);
+}
+
+void
+fe_get_str (char *msg, char *def, void *callback, void *userdata)
+{
+	gtkutil_get_str (msg, def, callback, userdata, TRUE);
+}
+
+void
+fe_get_password (char *msg, void *callback, void *userdata)
+{
+	gtkutil_get_str (msg, "", callback, userdata, FALSE);
 }
 
 static void
@@ -641,15 +684,15 @@ gtkutil_get_bool_response (GtkDialog *dialog, gint arg1, gpointer spin)
 
 	switch (arg1)
 	{
-	case GTK_RESPONSE_REJECT:
-		callback (0, user_data);
-		gtk_widget_destroy (GTK_WIDGET (dialog));
-		break;
 	case GTK_RESPONSE_ACCEPT:
 		callback (1, user_data);
-		gtk_widget_destroy (GTK_WIDGET (dialog));
+		break;
+	default:
+		callback (0, user_data);
 		break;
 	}
+
+	gtk_widget_destroy (GTK_WIDGET (dialog));
 }
 
 void
@@ -667,9 +710,10 @@ fe_get_int (char *msg, int def, void *callback, void *userdata)
 										_("_OK"), GTK_RESPONSE_ACCEPT,
 										NULL);
 	theme_manager_attach_window (dialog);
+	if (parent_window && GTK_IS_WINDOW (parent_window))
+		gtk_window_set_transient_for (GTK_WINDOW (dialog), GTK_WINDOW (parent_window));
+	gtkutil_place_dialog (dialog);
 	gtk_box_set_homogeneous (GTK_BOX (gtk_dialog_get_content_area (GTK_DIALOG (dialog))), TRUE);
-	gtk_window_set_position (GTK_WINDOW (dialog), GTK_WIN_POS_MOUSE);
-	gtk_window_set_transient_for (GTK_WINDOW (dialog), GTK_WINDOW (parent_window));
 
 	hbox = gtkutil_box_new (GTK_ORIENTATION_HORIZONTAL, TRUE, 0);
 
@@ -707,10 +751,10 @@ fe_get_bool (char *title, char *prompt, void *callback, void *userdata)
 		_("_Yes"), GTK_RESPONSE_ACCEPT,
 		NULL);
 	theme_manager_attach_window (dialog);
+	if (parent_window && GTK_IS_WINDOW (parent_window))
+		gtk_window_set_transient_for (GTK_WINDOW (dialog), GTK_WINDOW (parent_window));
+	gtkutil_place_dialog (dialog);
 	gtk_box_set_homogeneous (GTK_BOX (gtk_dialog_get_content_area (GTK_DIALOG (dialog))), TRUE);
-	gtk_window_set_position (GTK_WINDOW (dialog), GTK_WIN_POS_MOUSE);
-	gtk_window_set_transient_for (GTK_WINDOW (dialog), GTK_WINDOW (parent_window));
-
 
 	g_object_set_data (G_OBJECT (dialog), "cb", callback);
 	g_object_set_data (G_OBJECT (dialog), "ud", userdata);
