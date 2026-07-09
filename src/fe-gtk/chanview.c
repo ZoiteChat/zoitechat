@@ -174,7 +174,7 @@ chanview_apply_theme (chanview *cv)
 	chanview_set_font_desc (cv, font);
 
 	theme_manager_apply_channel_tree_style (w,
-			theme_manager_get_channel_tree_palette_behavior (font));
+			theme_manager_get_channel_tree_palette_behavior (cv->font_desc));
 }
 
 static void
