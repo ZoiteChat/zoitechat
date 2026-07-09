@@ -46,6 +46,7 @@ zoitechat_gtk_cflags = []
 zoitechat_gtk_deps = [
   zoitechat_common_dep,
   libgmodule_dep, # used by libsexy
+  dependency('enchant-2', version: '>= 2.8.19'),
 ]
 
 gtk_dep = dependency('gtk+-3.0', version: '>= 3.22')
