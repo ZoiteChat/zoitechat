@@ -601,6 +601,8 @@ static PangoFontDescription *
 backend_font_open_real (char *name)
 {
 	PangoFontDescription *font;
+	const char *family;
+	char *family_list;
 
 	font = pango_font_description_from_string (name);
 	if (font && pango_font_description_get_size (font) == 0)
@@ -610,6 +612,12 @@ backend_font_open_real (char *name)
 	}
 	if (!font)
 		font = pango_font_description_from_string ("sans 11");
+
+	family = pango_font_description_get_family (font);
+	family_list = g_strdup_printf ("%s, Noto Color Emoji, Segoe UI Emoji, Apple Color Emoji, Twemoji Mozilla, Twitter Color Emoji, EmojiOne Color, EmojiOne Mozilla, Noto Emoji, Segoe UI Symbol",
+		family && *family ? family : "Sans");
+	pango_font_description_set_family (font, family_list);
+	g_free (family_list);
 
 	return font;
 }
@@ -661,34 +669,83 @@ static int
 backend_get_text_width_emph (GtkXText *xtext, guchar *str, int len, int emphasis)
 {
 	int width;
-	int deltaw;
-	int mbl;
 
-	if (*str == 0)
+	if (*str == 0 || len <= 0)
 		return 0;
 
 	if ((emphasis & EMPH_HIDDEN))
 		return 0;
 	emphasis &= (EMPH_ITAL | EMPH_BOLD);
 
-	width = 0;
 	pango_layout_set_attributes (xtext->layout, attr_lists[emphasis]);
-	while (len > 0)
-	{
-		mbl = charlen(str);
-		if (*str < 128)
-			deltaw = fontwidths[emphasis][*str];
-		else
-		{
-			pango_layout_set_text (xtext->layout, str, mbl);
-			pango_layout_get_pixel_size (xtext->layout, &deltaw, NULL);
-		}
-		width += deltaw;
-		str += mbl;
-		len -= mbl;
-	}
+	pango_layout_set_text (xtext->layout, str, len);
+	pango_layout_get_pixel_size (xtext->layout, &width, NULL);
 
 	return width;
+}
+
+static int
+backend_get_text_offset_emph (GtkXText *xtext, guchar *str, int len, int x, int emphasis)
+{
+	PangoLayoutLine *line;
+	int index = 0;
+	int trailing = 0;
+	gchar *pos;
+
+	if (*str == 0 || len <= 0 || x <= 0)
+		return 0;
+
+	if ((emphasis & EMPH_HIDDEN))
+		return len;
+	emphasis &= (EMPH_ITAL | EMPH_BOLD);
+
+	pango_layout_set_attributes (xtext->layout, attr_lists[emphasis]);
+	pango_layout_set_text (xtext->layout, str, len);
+	line = pango_layout_get_line_readonly (xtext->layout, 0);
+	if (!line)
+		return 0;
+
+	pango_layout_line_x_to_index (line, x * PANGO_SCALE, &index, &trailing);
+	if (index < 0)
+		return 0;
+	if (index >= len)
+		return len;
+
+	pos = g_utf8_offset_to_pointer ((gchar *)str + index, trailing);
+	index = pos - (gchar *)str;
+	if (index > len)
+		return len;
+
+	return index;
+}
+
+static int
+backend_get_text_cluster_len (GtkXText *xtext, guchar *str, int len, int emphasis)
+{
+	const PangoLogAttr *attrs;
+	int n_attrs;
+	int i;
+	gchar *pos;
+
+	if (*str == 0 || len <= 0)
+		return 0;
+
+	emphasis &= (EMPH_ITAL | EMPH_BOLD);
+	pango_layout_set_attributes (xtext->layout, attr_lists[emphasis]);
+	pango_layout_set_text (xtext->layout, str, len);
+	attrs = pango_layout_get_log_attrs_readonly (xtext->layout, &n_attrs);
+	for (i = 1; i < n_attrs; i++)
+	{
+		if (attrs[i].is_cursor_position)
+		{
+			pos = g_utf8_offset_to_pointer ((gchar *)str, i);
+			if (pos - (gchar *)str > len)
+				return len;
+			return pos - (gchar *)str;
+		}
+	}
+
+	return len;
 }
 
 static int
@@ -1386,19 +1443,17 @@ find_x (GtkXText *xtext, textentry *ent, int x, int subline, int indent)
 	if (len < 0)
 		return ent->str_len;		/* Bad char -- return max offset. */
 
-	/* Step through characters to find the one at the x position */
 	wid = x - indent;
 	len = meta->len - (off - meta->off);
 	while (wid > 0)
 	{
-		mbl = charlen (ent->str + off);
-		mbw = backend_get_text_width_emph (xtext, ent->str + off, mbl, meta->emph);
+		mbw = backend_get_text_width_emph (xtext, ent->str + off, len, meta->emph);
+		if (xx + mbw >= x)
+			return off + backend_get_text_offset_emph (xtext, ent->str + off, len, x - xx, meta->emph);
 		wid -= mbw;
 		xx += mbw;
-		if (xx >= x)
-			return off;
-		len -= mbl;
-		off += mbl;
+		off += len;
+		len = 0;
 		if (len <= 0)
 		{
 			if (meta->emph & EMPH_HIDDEN)
@@ -3968,7 +4023,7 @@ find_next_wrap (GtkXText * xtext, textentry * ent, unsigned char *str,
 				break;
 			default:
 			def:
-				mbl = charlen (str);
+				mbl = backend_get_text_cluster_len (xtext, str, ent->str + ent->str_len - str, emphasis);
 				char_width = backend_get_text_width_emph (xtext, str, mbl, emphasis);
 				if (!hidden) str_width += char_width;
 				if (str_width > win_width)

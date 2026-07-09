@@ -3511,11 +3511,15 @@ mg_apply_session_font_prefs (session_gui *gui)
 	if (gui->topic_entry)
 	{
 		theme_manager_apply_entry_palette (gui->topic_entry, font);
+		mg_apply_emoji_fallback_widget (gui->topic_entry);
 		mg_topicbar_update_height (gui->topic_entry);
 	}
 
 	if (gui->input_box && prefs.hex_gui_input_style)
+	{
 		theme_manager_apply_entry_palette (gui->input_box, font);
+		mg_apply_emoji_fallback_widget (gui->input_box);
+	}
 
 	if (gui->chanview)
 		chanview_apply_theme (gui->chanview);
@@ -3543,6 +3547,7 @@ mg_create_topicbar (session *sess, GtkWidget *box)
 
         gui->topic_entry = topic = gtk_text_view_new ();
         gtk_widget_set_name (topic, "zoitechat-topicbox");
+        mg_apply_emoji_fallback_widget (topic);
         gtk_text_view_set_wrap_mode (GTK_TEXT_VIEW (topic),
 		prefs.hex_gui_topicbar_multiline && !prefs.hex_gui_mode_buttons_inline ?
 		GTK_WRAP_WORD_CHAR : GTK_WRAP_NONE);
@@ -4363,11 +4368,7 @@ mg_inputbox_rightclick (GtkEntry *entry, GtkWidget *menu)
  * ------------------------------------------------------------------------- */
 
 static const char *mg_emoji_family_fallback =
-#ifdef G_OS_WIN32
-        "Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji, Apple Color Emoji, Twemoji Mozilla, EmojiOne Color";
-#else
-        "Noto Color Emoji, Segoe UI Emoji, Apple Color Emoji, Twemoji Mozilla, EmojiOne Color";
-#endif
+        "Noto Color Emoji, Segoe UI Emoji, Apple Color Emoji, Twemoji Mozilla, Twitter Color Emoji, EmojiOne Color, EmojiOne Mozilla, Noto Emoji, Segoe UI Symbol";
 
 static const char *
 mg_find_available_icon_name (const char *const *icon_names)
@@ -4412,7 +4413,9 @@ mg_family_already_has_emoji (const gchar *family)
                (strstr (family, "Segoe UI Emoji") != NULL) ||
                (strstr (family, "Apple Color Emoji") != NULL) ||
                (strstr (family, "Twemoji") != NULL) ||
-               (strstr (family, "EmojiOne") != NULL);
+               (strstr (family, "Twitter Color Emoji") != NULL) ||
+               (strstr (family, "EmojiOne") != NULL) ||
+               (strstr (family, "Noto Emoji") != NULL);
 }
 
 static PangoFontDescription *
@@ -4788,6 +4791,7 @@ mg_create_entry (session *sess, GtkWidget *box)
 
         if (prefs.hex_gui_input_style)
                 mg_apply_entry_style (entry);
+        mg_apply_emoji_fallback_widget (entry);
         mg_apply_entry_scroll_artifact_fix (entry);
 
         g_object_set (G_OBJECT (entry), "show-emoji-icon", TRUE, NULL);
