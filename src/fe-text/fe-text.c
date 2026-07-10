@@ -857,6 +857,10 @@ fe_get_str (char *prompt, char *def, void *callback, void *ud)
 {
 }
 void
+fe_get_password (char *prompt, void *callback, void *ud)
+{
+}
+void
 fe_get_int (char *prompt, int def, void *callback, void *ud)
 {
 }
