@@ -109,6 +109,58 @@ static void server_disconnect (session * sess, int sendquit, int err);
 static int server_cleanup (server * serv);
 static void server_connect (server *serv, char *hostname, int port, int no_login);
 
+typedef struct
+{
+	server *serv;
+	char hostname[128];
+	int port;
+} reconnect_password_prompt;
+
+static gboolean
+server_login_uses_password_sasl (int logintype)
+{
+	return logintype == LOGIN_SASL ||
+		logintype == LOGIN_SASL_SCRAM_SHA_1 ||
+		logintype == LOGIN_SASL_SCRAM_SHA_256 ||
+		logintype == LOGIN_SASL_SCRAM_SHA_512;
+}
+
+static void
+server_reconnect_password_cb (int cancel, char *text, void *userdata)
+{
+	reconnect_password_prompt *prompt = userdata;
+
+	if (!cancel && is_server (prompt->serv) && !prompt->serv->connected && !prompt->serv->connecting && prompt->serv->server_session)
+	{
+		prompt->serv->password[0] = 0;
+		if (text && *text)
+			safe_strcpy (prompt->serv->password, text, sizeof (prompt->serv->password));
+		server_connect (prompt->serv, prompt->hostname, prompt->port, FALSE);
+	}
+
+	g_free (prompt);
+}
+
+static gboolean
+server_prompt_reconnect_password (server *serv)
+{
+	reconnect_password_prompt *prompt;
+	char *msg;
+	ircnet *net = serv->network;
+
+	if (!net || !(net->flags & FLAG_PROMPT_PASSWORD) || !server_login_uses_password_sasl (serv->loginmethod))
+		return FALSE;
+
+	prompt = g_new0 (reconnect_password_prompt, 1);
+	prompt->serv = serv;
+	safe_strcpy (prompt->hostname, serv->hostname, sizeof (prompt->hostname));
+	prompt->port = serv->port;
+	msg = g_strdup_printf (_("Enter SASL password for %s:"), net->name ? net->name : _("this network"));
+	fe_get_password (msg, server_reconnect_password_cb, prompt);
+	g_free (msg);
+	return TRUE;
+}
+
 static void
 write_error (char *message, GError **error)
 {
@@ -734,7 +786,8 @@ timeout_auto_reconnect (server *serv)
 		serv->recondelay_tag = 0;
 		if (!serv->connected && !serv->connecting && serv->server_session)
 		{
-			server_connect (serv, serv->hostname, serv->port, FALSE);
+			if (!server_prompt_reconnect_password (serv))
+				server_connect (serv, serv->hostname, serv->port, FALSE);
 		}
 	}
 	return 0;			  /* returning 0 should remove the timeout handler */
