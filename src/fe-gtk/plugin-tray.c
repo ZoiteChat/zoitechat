@@ -1539,6 +1539,11 @@ tray_cleanup (void)
 void
 tray_apply_setup (void)
 {
+	/* Theme/setup events can be dispatched before the tray plugin has
+	 * been registered; there is nothing to (de)activate yet. */
+	if (!ph)
+		return;
+
 	if (tray_backend_active)
 	{
 		if (!prefs.hex_gui_tray)

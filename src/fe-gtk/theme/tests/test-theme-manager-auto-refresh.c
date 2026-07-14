@@ -22,6 +22,7 @@
 
 #include "../theme-manager.h"
 #include "../theme-gtk3.h"
+#include "../theme-policy.h"
 #include "../../../common/zoitechat.h"
 #include "../../../common/zoitechatc.h"
 
@@ -82,6 +83,15 @@ gboolean theme_policy_is_dark_mode_active (unsigned int mode)
 gboolean theme_policy_system_prefers_dark (void)
 {
 	return stub_system_prefers_dark;
+}
+
+void theme_policy_init (void)
+{
+}
+
+void theme_policy_set_appearance_changed_callback (ThemePolicyAppearanceChangedFunc callback)
+{
+	(void) callback;
 }
 
 gboolean theme_application_apply_mode (unsigned int mode, gboolean *palette_changed)
@@ -203,6 +213,7 @@ reset_state (void)
 	idle_add_calls = 0;
 	next_idle_source_id = 33;
 	prefs.hex_gui_gtk3_variant = THEME_GTK3_VARIANT_FOLLOW_SYSTEM;
+	prefs.hex_gui_gtk3_theme[0] = '\0';
 	test_theme_gtk3_stub_reset ();
 }
 
@@ -235,12 +246,14 @@ test_auto_refresh_dispatches_mode_palette_and_style_reasons (void)
 }
 
 static void
-test_auto_refresh_ignores_non_auto_mode (void)
+test_auto_refresh_ignores_locked_in_app_theme (void)
 {
 	guint listener_id;
 
 	reset_state ();
 	prefs.hex_gui_dark_mode = ZOITECHAT_DARK_MODE_DARK;
+	g_strlcpy (prefs.hex_gui_gtk3_theme, "locked-theme", sizeof (prefs.hex_gui_gtk3_theme));
+	prefs.hex_gui_gtk3_variant = THEME_GTK3_VARIANT_PREFER_LIGHT;
 	stub_apply_mode_palette_changed = TRUE;
 	listener_id = theme_listener_register ("auto.nonauto", auto_listener, NULL);
 	theme_manager_set_idle_add_func (immediate_idle_add);
@@ -254,6 +267,7 @@ test_auto_refresh_ignores_non_auto_mode (void)
 
 	theme_manager_set_idle_add_func (NULL);
 	theme_listener_unregister (listener_id);
+	prefs.hex_gui_gtk3_theme[0] = '\0';
 }
 
 static void
@@ -263,6 +277,7 @@ test_auto_refresh_reapplies_gtk3_for_follow_system_variant (void)
 
 	reset_state ();
 	prefs.hex_gui_dark_mode = ZOITECHAT_DARK_MODE_DARK;
+	g_strlcpy (prefs.hex_gui_gtk3_theme, "system-follower", sizeof (prefs.hex_gui_gtk3_theme));
 	prefs.hex_gui_gtk3_variant = THEME_GTK3_VARIANT_FOLLOW_SYSTEM;
 	listener_id = theme_listener_register ("auto.gtk3", auto_listener, NULL);
 	theme_manager_set_idle_add_func (immediate_idle_add);
@@ -276,6 +291,39 @@ test_auto_refresh_reapplies_gtk3_for_follow_system_variant (void)
 
 	theme_manager_set_idle_add_func (NULL);
 	theme_listener_unregister (listener_id);
+	prefs.hex_gui_gtk3_theme[0] = '\0';
+}
+
+static void
+test_auto_refresh_follows_system_theme_without_auto_mode (void)
+{
+	guint listener_id;
+
+	reset_state ();
+	prefs.hex_gui_dark_mode = ZOITECHAT_DARK_MODE_DARK;
+	prefs.hex_gui_gtk3_variant = THEME_GTK3_VARIANT_PREFER_LIGHT;
+	listener_id = theme_listener_register ("auto.system", auto_listener, NULL);
+	theme_manager_set_idle_add_func (immediate_idle_add);
+
+	theme_manager_refresh_auto_mode ();
+
+	/* No in-app theme is selected, so a system theme change must
+	 * re-resolve the mapped palette even outside auto dark mode. */
+	g_assert_cmpint (idle_add_calls, ==, 1);
+	g_assert_cmpint (auto_state_calls, ==, 0);
+	g_assert_cmpint (listener_calls, ==, 1);
+	g_assert_true (theme_changed_event_has_reason (&last_event, THEME_CHANGED_REASON_PALETTE));
+	g_assert_true (theme_changed_event_has_reason (&last_event, THEME_CHANGED_REASON_WIDGET_STYLE));
+	g_assert_true (theme_changed_event_has_reason (&last_event, THEME_CHANGED_REASON_USERLIST));
+	g_assert_true (theme_changed_event_has_reason (&last_event, THEME_CHANGED_REASON_MODE));
+
+	/* Unchanged system state must not dispatch again. */
+	theme_manager_refresh_auto_mode ();
+	g_assert_cmpint (idle_add_calls, ==, 2);
+	g_assert_cmpint (listener_calls, ==, 1);
+
+	theme_manager_set_idle_add_func (NULL);
+	theme_listener_unregister (listener_id);
 }
 
 int
@@ -284,9 +332,11 @@ main (int argc, char **argv)
 	g_test_init (&argc, &argv, NULL);
 	g_test_add_func ("/theme/manager/auto_refresh_dispatches_mode_palette_and_style_reasons",
 			 test_auto_refresh_dispatches_mode_palette_and_style_reasons);
-	g_test_add_func ("/theme/manager/auto_refresh_ignores_non_auto_mode",
-			 test_auto_refresh_ignores_non_auto_mode);
+	g_test_add_func ("/theme/manager/auto_refresh_ignores_locked_in_app_theme",
+			 test_auto_refresh_ignores_locked_in_app_theme);
 	g_test_add_func ("/theme/manager/auto_refresh_reapplies_gtk3_for_follow_system_variant",
 			 test_auto_refresh_reapplies_gtk3_for_follow_system_variant);
+	g_test_add_func ("/theme/manager/auto_refresh_follows_system_theme_without_auto_mode",
+			 test_auto_refresh_follows_system_theme_without_auto_mode);
 	return g_test_run ();
 }

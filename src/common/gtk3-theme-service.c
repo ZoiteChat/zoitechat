@@ -315,6 +315,59 @@ resolve_parent_theme_root (const char *child_theme_root, const char *parent_name
 		return home_local;
 	g_free (home_local);
 
+	{
+		const char *xdg_data_home = g_getenv ("XDG_DATA_HOME");
+
+		if (xdg_data_home && xdg_data_home[0])
+		{
+			candidate = g_build_filename (xdg_data_home, "themes", parent_name, NULL);
+			if (path_exists_as_dir (candidate))
+				return candidate;
+			g_free (candidate);
+		}
+	}
+
+	candidate = g_build_filename (g_get_user_data_dir (), "themes", parent_name, NULL);
+	if (path_exists_as_dir (candidate))
+		return candidate;
+	g_free (candidate);
+
+	{
+		const char *xdg_data_dirs = g_getenv ("XDG_DATA_DIRS");
+		guint i;
+
+		if (xdg_data_dirs && xdg_data_dirs[0])
+		{
+			char **data_dirs = g_strsplit (xdg_data_dirs, G_SEARCHPATH_SEPARATOR_S, -1);
+
+			for (i = 0; data_dirs && data_dirs[i]; i++)
+			{
+				if (!data_dirs[i][0])
+					continue;
+				candidate = g_build_filename (data_dirs[i], "themes", parent_name, NULL);
+				if (path_exists_as_dir (candidate))
+				{
+					g_strfreev (data_dirs);
+					return candidate;
+				}
+				g_free (candidate);
+			}
+			g_strfreev (data_dirs);
+		}
+		else
+		{
+			const char *const *system_data_dirs = g_get_system_data_dirs ();
+
+			for (i = 0; system_data_dirs && system_data_dirs[i]; i++)
+			{
+				candidate = g_build_filename (system_data_dirs[i], "themes", parent_name, NULL);
+				if (path_exists_as_dir (candidate))
+					return candidate;
+				g_free (candidate);
+			}
+		}
+	}
+
 	user_dir = zoitechat_gtk3_theme_service_get_user_themes_dir ();
 	candidate = g_build_filename (user_dir, parent_name, NULL);
 	g_free (user_dir);
@@ -632,18 +685,50 @@ zoitechat_gtk3_theme_service_discover (void)
 
 	g_mkdir_with_parents (user_dir, 0700);
 
-	user_data_themes = g_build_filename (g_get_user_data_dir (), "themes", NULL);
+	/* Prefer the live XDG environment over GLib's process-cached copies so
+	 * theme lookup matches what GTK resolves for the running session. */
+	{
+		const char *xdg_data_home = g_getenv ("XDG_DATA_HOME");
+
+		if (xdg_data_home && xdg_data_home[0])
+			user_data_themes = g_build_filename (xdg_data_home, "themes", NULL);
+		else
+			user_data_themes = g_build_filename (g_get_user_data_dir (), "themes", NULL);
+	}
 	add_theme_root (user_roots, seen_user_roots, user_data_themes);
 	g_free (user_data_themes);
 	add_theme_root (user_roots, seen_user_roots, home_themes);
 	add_theme_root (user_roots, seen_user_roots, user_dir);
 
-	system_data_dirs = g_get_system_data_dirs ();
-	for (i = 0; system_data_dirs && system_data_dirs[i]; i++)
 	{
-		char *system_themes = g_build_filename (system_data_dirs[i], "themes", NULL);
-		add_theme_root (system_roots, seen_system_roots, system_themes);
-		g_free (system_themes);
+		const char *xdg_data_dirs = g_getenv ("XDG_DATA_DIRS");
+
+		if (xdg_data_dirs && xdg_data_dirs[0])
+		{
+			char **data_dirs = g_strsplit (xdg_data_dirs, G_SEARCHPATH_SEPARATOR_S, -1);
+
+			for (i = 0; data_dirs && data_dirs[i]; i++)
+			{
+				char *system_themes;
+
+				if (!data_dirs[i][0])
+					continue;
+				system_themes = g_build_filename (data_dirs[i], "themes", NULL);
+				add_theme_root (system_roots, seen_system_roots, system_themes);
+				g_free (system_themes);
+			}
+			g_strfreev (data_dirs);
+		}
+		else
+		{
+			system_data_dirs = g_get_system_data_dirs ();
+			for (i = 0; system_data_dirs && system_data_dirs[i]; i++)
+			{
+				char *system_themes = g_build_filename (system_data_dirs[i], "themes", NULL);
+				add_theme_root (system_roots, seen_system_roots, system_themes);
+				g_free (system_themes);
+			}
+		}
 	}
 
 	for (i = 0; i < system_roots->len; i++)
@@ -922,7 +1007,7 @@ static gboolean
 validate_theme_root_for_import (const char *theme_root, GError **error)
 {
 	char *index_theme;
-	GKeyFile *keyfile;
+	GKeyFile *keyfile = NULL;
 	char *css_dir;
 	char *css_path;
 	char *raw_inherits;
@@ -930,36 +1015,33 @@ validate_theme_root_for_import (const char *theme_root, GError **error)
 	guint i;
 	GError *load_error = NULL;
 
+	/* index.theme is optional for GTK3 CSS themes (GTK only needs
+	 * gtk-3.x/gtk.css), but when it is present it must be well formed so
+	 * broken archives are rejected up front. */
 	index_theme = g_build_filename (theme_root, "index.theme", NULL);
-	if (!g_file_test (index_theme, G_FILE_TEST_IS_REGULAR))
+	if (g_file_test (index_theme, G_FILE_TEST_IS_REGULAR))
 	{
-		g_set_error (error, G_FILE_ERROR, G_FILE_ERROR_INVAL,
-					 "Invalid GTK3 theme at '%s': missing required index.theme at '%s'.",
-			   theme_root, index_theme);
-		g_free (index_theme);
-		return FALSE;
-	}
+		keyfile = g_key_file_new ();
+		if (!g_key_file_load_from_file (keyfile, index_theme, G_KEY_FILE_NONE, &load_error))
+		{
+			g_set_error (error, G_FILE_ERROR, G_FILE_ERROR_INVAL,
+						 "Invalid GTK3 theme at '%s': failed to parse index.theme '%s': %s.",
+				   theme_root, index_theme, load_error->message);
+			g_error_free (load_error);
+			g_key_file_unref (keyfile);
+			g_free (index_theme);
+			return FALSE;
+		}
 
-	keyfile = g_key_file_new ();
-	if (!g_key_file_load_from_file (keyfile, index_theme, G_KEY_FILE_NONE, &load_error))
-	{
-		g_set_error (error, G_FILE_ERROR, G_FILE_ERROR_INVAL,
-					 "Invalid GTK3 theme at '%s': failed to parse index.theme '%s': %s.",
-			   theme_root, index_theme, load_error->message);
-		g_error_free (load_error);
-		g_key_file_unref (keyfile);
-		g_free (index_theme);
-		return FALSE;
-	}
-
-	if (!g_key_file_has_group (keyfile, "Desktop Entry"))
-	{
-		g_set_error (error, G_FILE_ERROR, G_FILE_ERROR_INVAL,
-					 "Invalid GTK3 theme at '%s': index.theme '%s' is missing the [Desktop Entry] section.",
-			   theme_root, index_theme);
-		g_key_file_unref (keyfile);
-		g_free (index_theme);
-		return FALSE;
+		if (!g_key_file_has_group (keyfile, "Desktop Entry"))
+		{
+			g_set_error (error, G_FILE_ERROR, G_FILE_ERROR_INVAL,
+						 "Invalid GTK3 theme at '%s': index.theme '%s' is missing the [Desktop Entry] section.",
+				   theme_root, index_theme);
+			g_key_file_unref (keyfile);
+			g_free (index_theme);
+			return FALSE;
+		}
 	}
 
 	css_dir = zoitechat_gtk3_theme_pick_css_dir (theme_root);
@@ -968,7 +1050,8 @@ validate_theme_root_for_import (const char *theme_root, GError **error)
 		g_set_error (error, G_FILE_ERROR, G_FILE_ERROR_INVAL,
 					 "Invalid GTK3 theme at '%s': could not resolve a GTK CSS directory (expected gtk-3.x/gtk.css).",
 					 theme_root);
-		g_key_file_unref (keyfile);
+		if (keyfile)
+			g_key_file_unref (keyfile);
 		g_free (index_theme);
 		return FALSE;
 	}
@@ -981,15 +1064,20 @@ validate_theme_root_for_import (const char *theme_root, GError **error)
 			   theme_root, css_path);
 		g_free (css_path);
 		g_free (css_dir);
-		g_key_file_unref (keyfile);
+		if (keyfile)
+			g_key_file_unref (keyfile);
 		g_free (index_theme);
 		return FALSE;
 	}
 	g_free (css_path);
 	g_free (css_dir);
 
-	raw_inherits = g_key_file_get_string (keyfile, "Desktop Entry", "Inherits", NULL);
-	g_key_file_unref (keyfile);
+	raw_inherits = NULL;
+	if (keyfile)
+	{
+		raw_inherits = g_key_file_get_string (keyfile, "Desktop Entry", "Inherits", NULL);
+		g_key_file_unref (keyfile);
+	}
 	g_free (index_theme);
 	if (!raw_inherits)
 		return TRUE;

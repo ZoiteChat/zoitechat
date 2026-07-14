@@ -290,12 +290,12 @@ test_ui_edits_persist_without_legacy_array_mutation (void)
 	theme_runtime_save ();
 
 	theme_runtime_load ();
-	theme_runtime_apply_mode (ZOITECHAT_DARK_MODE_LIGHT, NULL);
+	theme_runtime_apply_dark_mode (FALSE);
 	g_assert_true (theme_runtime_get_color (THEME_TOKEN_SELECTION_FOREGROUND, &light_loaded));
 	g_assert_true (gdk_rgba_parse (&light_expected, "#224466"));
 	g_assert_true (colors_equal (&light_loaded, &light_expected));
 
-	theme_runtime_apply_mode (ZOITECHAT_DARK_MODE_DARK, NULL);
+	theme_runtime_apply_dark_mode (TRUE);
 	g_assert_true (theme_runtime_get_color (THEME_TOKEN_SELECTION_FOREGROUND, &dark_loaded));
 	g_assert_true (gdk_rgba_parse (&dark_expected, "#88aacc"));
 	g_assert_true (colors_equal (&dark_loaded, &dark_expected));

@@ -21,6 +21,7 @@
 #include "../../fe-gtk.h"
 
 #include "../theme-application.h"
+#include "../theme-policy.h"
 #include "../../maingui.h"
 #include "../../../common/zoitechat.h"
 #include "../../../common/zoitechatc.h"
@@ -52,6 +53,19 @@ theme_css_reload_input_style (gboolean enabled, const PangoFontDescription *font
 		pango_font_description_free (css_font_desc);
 	css_font_desc = font_desc ? pango_font_description_copy (font_desc) : NULL;
 	css_reload_calls++;
+}
+
+gboolean
+theme_policy_system_prefers_dark (void)
+{
+	return FALSE;
+}
+
+gboolean
+theme_policy_is_dark_mode_active (unsigned int mode)
+{
+	(void) mode;
+	return FALSE;
 }
 
 void
@@ -104,7 +118,9 @@ test_invalid_font_falls_back_to_sans_11 (void)
 	g_assert_cmpint (pango_font_description_get_size (style->font_desc), ==, 11 * PANGO_SCALE);
 	g_assert_cmpint (message_calls, ==, 1);
 	g_assert_cmpint (css_reload_calls, ==, 1);
-	g_assert_true (css_enabled);
+	/* Input boxes are themed per-widget; the app-global input CSS stays
+	 * off so entries render natively under the active GTK3 theme. */
+	g_assert_false (css_enabled);
 	g_assert_nonnull (css_font_desc);
 
 	if (style->font_desc)

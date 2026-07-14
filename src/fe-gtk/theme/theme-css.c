@@ -29,8 +29,6 @@
 static const char *theme_css_selector_input = "#zoitechat-inputbox";
 static const char *theme_css_selector_input_text = "#zoitechat-inputbox text";
 static const char *theme_css_selector_palette_class = "zoitechat-palette";
-static const char *theme_css_selector_dark_class = "zoitechat-dark";
-static const char *theme_css_selector_light_class = "zoitechat-light";
 static const char *theme_css_palette_provider_key = "zoitechat-palette-provider";
 static const guint theme_css_provider_priority = GTK_STYLE_PROVIDER_PRIORITY_USER;
 static const char *theme_css_palette_scope_selectors =
@@ -362,61 +360,9 @@ theme_css_apply_palette_widget (GtkWidget *widget, const GdkRGBA *bg, const GdkR
 char *
 theme_css_build_toplevel_classes (void)
 {
-	return g_strdup_printf (
-		"window.%s, window.%s:backdrop, .%s {"
-		"background-color: #202020;"
-		"color: #f0f0f0;"
-		"border-color: #202020;"
-		"}"
-		"window.%s menubar, window.%s menubar:backdrop, window.%s menubar box, window.%s menubar box:backdrop, window.%s menuitem, window.%s menuitem:backdrop {"
-		"background-color: @theme_bg_color;"
-		"background-image: none;"
-		"color: @theme_fg_color;"
-		"border-color: @theme_bg_color;"
-		"}"
-		"window.%s menuitem:hover, window.%s menuitem:selected {"
-		"background-color: @theme_selected_bg_color;"
-		"background-image: none;"
-		"color: @theme_selected_fg_color;"
-		"border-color: @theme_selected_bg_color;"
-		"}"
-		"window.%s, window.%s:backdrop, .%s {"
-		"background-color: #f6f6f6;"
-		"color: #101010;"
-		"border-color: #f6f6f6;"
-		"}"
-		"window.%s menubar, window.%s menubar:backdrop, window.%s menubar box, window.%s menubar box:backdrop, window.%s menuitem, window.%s menuitem:backdrop {"
-		"background-color: @theme_bg_color;"
-		"background-image: none;"
-		"color: @theme_fg_color;"
-		"border-color: @theme_bg_color;"
-		"}"
-		"window.%s menuitem:hover, window.%s menuitem:selected {"
-		"background-color: @theme_selected_bg_color;"
-		"background-image: none;"
-		"color: @theme_selected_fg_color;"
-		"border-color: @theme_selected_bg_color;"
-		"}",
-		theme_css_selector_dark_class,
-		theme_css_selector_dark_class,
-		theme_css_selector_dark_class,
-		theme_css_selector_dark_class,
-		theme_css_selector_dark_class,
-		theme_css_selector_dark_class,
-		theme_css_selector_dark_class,
-		theme_css_selector_dark_class,
-		theme_css_selector_dark_class,
-		theme_css_selector_dark_class,
-		theme_css_selector_dark_class,
-		theme_css_selector_light_class,
-		theme_css_selector_light_class,
-		theme_css_selector_light_class,
-		theme_css_selector_light_class,
-		theme_css_selector_light_class,
-		theme_css_selector_light_class,
-		theme_css_selector_light_class,
-		theme_css_selector_light_class,
-		theme_css_selector_light_class,
-		theme_css_selector_light_class,
-		theme_css_selector_light_class);
+	/* Windows, dialogs and menus must render with the colors of the active
+	 * GTK3 theme (system or in-app selected).  zoitechat-dark and
+	 * zoitechat-light are marker classes only; painting fixed colors here
+	 * overrides every theme (issue #334). */
+	return g_strdup ("");
 }

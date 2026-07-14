@@ -23,6 +23,10 @@
 
 #include "../fe-gtk.h"
 
+typedef void (*ThemePolicyAppearanceChangedFunc) (void);
+
+void theme_policy_init (void);
+void theme_policy_set_appearance_changed_callback (ThemePolicyAppearanceChangedFunc callback);
 gboolean theme_policy_system_prefers_dark (void);
 gboolean theme_policy_is_dark_mode_active (unsigned int mode);
 gboolean theme_policy_is_app_dark_mode_active (void);

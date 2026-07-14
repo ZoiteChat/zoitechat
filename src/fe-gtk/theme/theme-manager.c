@@ -58,9 +58,51 @@ typedef struct
 	gboolean resolved_dark_preference;
 	char gtk3_theme_id[sizeof prefs.hex_gui_gtk3_theme];
 	int gtk3_variant;
+	char *gtk_theme_name;
 } ThemeManagerAutoRefreshCache;
 
 static ThemeManagerAutoRefreshCache theme_manager_auto_refresh_cache;
+
+static void
+theme_manager_auto_refresh_cache_reset (void)
+{
+	g_free (theme_manager_auto_refresh_cache.gtk_theme_name);
+	memset (&theme_manager_auto_refresh_cache, 0, sizeof (theme_manager_auto_refresh_cache));
+}
+
+static void
+theme_manager_auto_refresh_cache_store (gboolean resolved_dark_preference, char *gtk_theme_name)
+{
+	theme_manager_auto_refresh_cache.initialized = TRUE;
+	theme_manager_auto_refresh_cache.resolved_dark_preference = resolved_dark_preference;
+	theme_manager_auto_refresh_cache.gtk3_variant = prefs.hex_gui_gtk3_variant;
+	g_strlcpy (theme_manager_auto_refresh_cache.gtk3_theme_id,
+		   prefs.hex_gui_gtk3_theme,
+		   sizeof (theme_manager_auto_refresh_cache.gtk3_theme_id));
+	g_free (theme_manager_auto_refresh_cache.gtk_theme_name);
+	theme_manager_auto_refresh_cache.gtk_theme_name = gtk_theme_name;
+}
+
+static char *
+theme_manager_dup_gtk_theme_name (void)
+{
+	GtkSettings *settings = gtk_settings_get_default ();
+	char *gtk_theme_name = NULL;
+
+	if (settings)
+		g_object_get (settings, "gtk-theme-name", &gtk_theme_name, NULL);
+	return gtk_theme_name;
+}
+
+/* Record the state the application started up with so that the first queued
+ * auto refresh only reacts to real changes; startup already applied the
+ * current theme, and consumers such as the tray are not ready yet. */
+static void
+theme_manager_auto_refresh_cache_prime (void)
+{
+	theme_manager_auto_refresh_cache_store (theme_policy_system_prefers_dark (),
+						theme_manager_dup_gtk_theme_name ());
+}
 
 static void theme_manager_apply_platform_window_theme (GtkWidget *window);
 
@@ -145,7 +187,9 @@ theme_manager_auto_dark_mode_changed (GtkSettings *settings, GParamSpec *pspec, 
 	gboolean color_change = FALSE;
 	gboolean should_refresh_gtk3;
 	gboolean gtk3_refresh;
+	gboolean follows_system_theme;
 	gboolean resolved_dark_preference;
+	char *gtk_theme_name = NULL;
 	static gboolean in_handler = FALSE;
 
 	(void) settings;
@@ -154,38 +198,46 @@ theme_manager_auto_dark_mode_changed (GtkSettings *settings, GParamSpec *pspec, 
 
 	resolved_dark_preference = theme_policy_system_prefers_dark ();
 	gtk3_refresh = theme_manager_should_refresh_gtk3 ();
+	follows_system_theme = prefs.hex_gui_gtk3_theme[0] == '\0';
 	should_refresh_gtk3 = gtk3_refresh || prefs.hex_gui_dark_mode == ZOITECHAT_DARK_MODE_AUTO;
+
+	gtk_theme_name = theme_manager_dup_gtk_theme_name ();
 
 	if (theme_manager_auto_refresh_cache.initialized &&
 	    theme_manager_auto_refresh_cache.resolved_dark_preference == resolved_dark_preference &&
 	    theme_manager_auto_refresh_cache.gtk3_variant == prefs.hex_gui_gtk3_variant &&
-	    g_strcmp0 (theme_manager_auto_refresh_cache.gtk3_theme_id, prefs.hex_gui_gtk3_theme) == 0)
+	    g_strcmp0 (theme_manager_auto_refresh_cache.gtk3_theme_id, prefs.hex_gui_gtk3_theme) == 0 &&
+	    g_strcmp0 (theme_manager_auto_refresh_cache.gtk_theme_name, gtk_theme_name) == 0)
+	{
+		g_free (gtk_theme_name);
 		return;
+	}
 
-	theme_manager_auto_refresh_cache.initialized = TRUE;
-	theme_manager_auto_refresh_cache.resolved_dark_preference = resolved_dark_preference;
-	theme_manager_auto_refresh_cache.gtk3_variant = prefs.hex_gui_gtk3_variant;
-	g_strlcpy (theme_manager_auto_refresh_cache.gtk3_theme_id,
-		   prefs.hex_gui_gtk3_theme,
-		   sizeof (theme_manager_auto_refresh_cache.gtk3_theme_id));
+	theme_manager_auto_refresh_cache_store (resolved_dark_preference, gtk_theme_name);
 
-	if (prefs.hex_gui_dark_mode != ZOITECHAT_DARK_MODE_AUTO && !gtk3_refresh)
+	if (prefs.hex_gui_dark_mode != ZOITECHAT_DARK_MODE_AUTO && !gtk3_refresh && !follows_system_theme)
 		return;
 	if (in_handler)
 		return;
 
 	in_handler = TRUE;
 
-	if (prefs.hex_gui_dark_mode == ZOITECHAT_DARK_MODE_AUTO)
+	if (prefs.hex_gui_dark_mode == ZOITECHAT_DARK_MODE_AUTO || follows_system_theme)
 	{
-		fe_set_auto_dark_mode_state (resolved_dark_preference);
 		theme_manager_commit_preferences (prefs.hex_gui_dark_mode, &color_change);
-		if (color_change)
-			theme_manager_dispatch_changed (THEME_CHANGED_REASON_PALETTE | THEME_CHANGED_REASON_WIDGET_STYLE | THEME_CHANGED_REASON_USERLIST | THEME_CHANGED_REASON_MODE);
+		if (prefs.hex_gui_dark_mode == ZOITECHAT_DARK_MODE_AUTO)
+			fe_set_auto_dark_mode_state (resolved_dark_preference);
 	}
 
 	if (should_refresh_gtk3)
 		theme_gtk3_apply_current (NULL);
+
+	if (prefs.hex_gui_dark_mode == ZOITECHAT_DARK_MODE_AUTO || follows_system_theme)
+	{
+		/* The system theme feeds the mapped palette (chat area, user
+		 * list, channel tree), so consumers must re-resolve colors. */
+		theme_manager_dispatch_changed (THEME_CHANGED_REASON_PALETTE | THEME_CHANGED_REASON_WIDGET_STYLE | THEME_CHANGED_REASON_USERLIST | THEME_CHANGED_REASON_MODE);
+	}
 
 	in_handler = FALSE;
 }
@@ -204,18 +256,28 @@ theme_manager_run_auto_refresh (gpointer data)
 static void
 theme_manager_queue_auto_refresh (GtkSettings *settings, GParamSpec *pspec, gpointer data)
 {
+	guint source_id;
+
 	(void) settings;
 	(void) pspec;
 
 	if (theme_manager_auto_refresh_source != 0)
 		return;
 
-	theme_manager_auto_refresh_source = theme_manager_idle_add_func (theme_manager_run_auto_refresh, data);
+	theme_manager_auto_refresh_source = 1;
+	source_id = theme_manager_idle_add_func (theme_manager_run_auto_refresh, data);
+	/* An injected idle-add may run the refresh synchronously and already
+	 * have cleared the pending marker; only keep the id while pending. */
+	if (theme_manager_auto_refresh_source != 0)
+		theme_manager_auto_refresh_source = source_id;
 }
 
 void
 theme_manager_init (void)
 {
+	static gboolean settings_signals_connected = FALSE;
+	GtkSettings *settings;
+
 	if (!theme_manager_listeners)
 		theme_manager_listeners = g_hash_table_new_full (g_direct_hash, g_direct_equal, NULL,
 									 theme_listener_free);
@@ -223,10 +285,25 @@ theme_manager_init (void)
 	if (!theme_manager_setup_listener_id)
 		theme_manager_setup_listener_id = theme_listener_register ("setup.apply", theme_manager_setup_apply_listener, NULL);
 
-	fe_set_auto_dark_mode_state (FALSE);
+	theme_policy_init ();
+	theme_policy_set_appearance_changed_callback (theme_manager_refresh_auto_mode);
+
+	settings = gtk_settings_get_default ();
+	if (settings && !settings_signals_connected)
+	{
+		g_signal_connect (settings, "notify::gtk-theme-name",
+				  G_CALLBACK (theme_manager_queue_auto_refresh), NULL);
+		g_signal_connect (settings, "notify::gtk-application-prefer-dark-theme",
+				  G_CALLBACK (theme_manager_queue_auto_refresh), NULL);
+		settings_signals_connected = TRUE;
+	}
+
+	fe_set_auto_dark_mode_state (prefs.hex_gui_dark_mode == ZOITECHAT_DARK_MODE_AUTO ?
+				     theme_policy_system_prefers_dark () : FALSE);
 	theme_application_apply_mode (prefs.hex_gui_dark_mode, NULL);
 	theme_gtk3_init ();
 	zoitechat_set_theme_post_apply_callback (theme_manager_handle_theme_applied);
+	theme_manager_auto_refresh_cache_prime ();
 }
 
 gboolean
@@ -519,7 +596,7 @@ theme_manager_apply_platform_window_theme (GtkWidget *window)
 			dark = theme_policy_system_prefers_dark ();
 	}
 	else
-		dark = theme_runtime_is_dark_active ();
+		dark = theme_policy_is_dark_mode_active (prefs.hex_gui_dark_mode);
 	if (context)
 	{
 		gtk_style_context_remove_class (context, "zoitechat-dark");
@@ -712,4 +789,5 @@ theme_manager_set_idle_add_func (ThemeManagerIdleAddFunc idle_add_func)
 {
 	theme_manager_idle_add_func = idle_add_func ? idle_add_func : g_idle_add;
 	theme_manager_auto_refresh_source = 0;
+	theme_manager_auto_refresh_cache_reset ();
 }

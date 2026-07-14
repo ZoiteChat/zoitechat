@@ -101,6 +101,9 @@ typedef struct
         gboolean changed;
         gboolean snapshot_valid[THEME_TOKEN_COUNT];
         gboolean staged_valid[THEME_TOKEN_COUNT];
+        /* Only explicitly edited tokens are written back to the runtime
+         * palette; untouched tokens keep following the GTK3 theme. */
+        gboolean staged_dirty[THEME_TOKEN_COUNT];
         GdkRGBA snapshot[THEME_TOKEN_COUNT];
         GdkRGBA staged[THEME_TOKEN_COUNT];
 } theme_preferences_stage_state;
@@ -147,7 +150,8 @@ theme_preferences_stage_sync_runtime_to_snapshot (void)
 
         for (token = THEME_TOKEN_MIRC_0; token < THEME_TOKEN_COUNT; token++)
         {
-                if (theme_preferences_stage.snapshot_valid[token])
+                if (theme_preferences_stage.snapshot_valid[token] &&
+                    theme_preferences_stage.staged_dirty[token])
                         theme_manager_set_token_color (ZOITECHAT_DARK_MODE_LIGHT, token,
                                                        &theme_preferences_stage.snapshot[token], NULL);
         }
@@ -160,7 +164,8 @@ theme_preferences_stage_sync_runtime_to_staged (void)
 
         for (token = THEME_TOKEN_MIRC_0; token < THEME_TOKEN_COUNT; token++)
         {
-                if (theme_preferences_stage.staged_valid[token])
+                if (theme_preferences_stage.staged_valid[token] &&
+                    theme_preferences_stage.staged_dirty[token])
                         theme_manager_set_token_color (ZOITECHAT_DARK_MODE_LIGHT, token,
                                                        &theme_preferences_stage.staged[token], NULL);
         }
@@ -179,6 +184,7 @@ theme_preferences_staged_set_color (ThemeSemanticToken token, const GdkRGBA *rgb
         {
                 theme_preferences_stage.staged[token] = *rgba;
                 theme_preferences_stage.staged_valid[token] = TRUE;
+                theme_preferences_stage.staged_dirty[token] = TRUE;
                 theme_preferences_stage_recompute_changed ();
                 if (color_change_flag)
                         *color_change_flag = theme_preferences_stage.changed;
@@ -841,6 +847,10 @@ theme_preferences_manager_dialog_response_cb (GtkDialog *dialog, gint response_i
                         ThemeSemanticToken token;
                         ThemeWidgetStyleValues style_values;
 
+                        /* The runtime palette was just reset; drop any
+                         * pending edits so the reset is not re-pinned. */
+                        memset (theme_preferences_stage.staged_dirty, 0,
+                                sizeof (theme_preferences_stage.staged_dirty));
                         for (token = THEME_TOKEN_MIRC_0; token < THEME_TOKEN_COUNT; token++)
                         {
                                 GdkRGBA rgba;
@@ -855,7 +865,6 @@ theme_preferences_manager_dialog_response_cb (GtkDialog *dialog, gint response_i
                         theme_preferences_stage.staged_valid[THEME_TOKEN_TEXT_FOREGROUND] = TRUE;
                         theme_preferences_stage.staged[THEME_TOKEN_TEXT_BACKGROUND] = style_values.background;
                         theme_preferences_stage.staged_valid[THEME_TOKEN_TEXT_BACKGROUND] = TRUE;
-                        theme_preferences_stage_sync_runtime_to_staged ();
                         theme_preferences_stage_recompute_changed ();
                         if (ui->color_change_flag)
                                 *ui->color_change_flag = theme_preferences_stage.changed;
@@ -1535,10 +1544,30 @@ theme_preferences_gtk3_sync_remove_state (theme_preferences_ui *ui)
 }
 
 static void
+theme_preferences_stage_rebase_color (ThemeSemanticToken token, const GdkRGBA *rgba)
+{
+	if (token < 0 || token >= THEME_TOKEN_COUNT || !rgba)
+		return;
+	if (!theme_preferences_stage.active)
+		return;
+
+	/* The theme changed underneath the dialog: shift the baseline so the
+	 * new theme-provided value is neither treated as a user edit nor
+	 * pinned into the runtime palette. */
+	theme_preferences_stage.snapshot[token] = *rgba;
+	theme_preferences_stage.staged[token] = *rgba;
+	theme_preferences_stage.snapshot_valid[token] = TRUE;
+	theme_preferences_stage.staged_valid[token] = TRUE;
+	theme_preferences_stage.staged_dirty[token] = FALSE;
+	theme_preferences_stage_recompute_changed ();
+}
+
+static void
 theme_preferences_gtk3_sync_runtime_palette (theme_preferences_ui *ui)
 {
 	ThemeWidgetStyleValues style_values;
 	GtkWidget *style_source = NULL;
+	gboolean follows_system_theme = prefs.hex_gui_gtk3_theme[0] == '\0';
 
 	if (ui && ui->parent)
 		style_source = GTK_WIDGET (ui->parent);
@@ -1548,6 +1577,18 @@ theme_preferences_gtk3_sync_runtime_palette (theme_preferences_ui *ui)
 	theme_runtime_clear_gtk_mapped_custom_tokens ();
 
 	theme_get_widget_style_values_for_widget (style_source, &style_values);
+
+	if (follows_system_theme)
+	{
+		/* Following the system GTK3 theme: leave the mapped tokens
+		 * unpinned so they keep tracking the theme, and only refresh
+		 * what the dialog shows. */
+		theme_preferences_stage_rebase_color (THEME_TOKEN_TEXT_FOREGROUND, &style_values.foreground);
+		theme_preferences_stage_rebase_color (THEME_TOKEN_TEXT_BACKGROUND, &style_values.background);
+		theme_preferences_stage_rebase_color (THEME_TOKEN_SELECTION_FOREGROUND, &style_values.selection_foreground);
+		theme_preferences_stage_rebase_color (THEME_TOKEN_SELECTION_BACKGROUND, &style_values.selection_background);
+		return;
+	}
 
 	theme_preferences_staged_set_color (THEME_TOKEN_TEXT_FOREGROUND,
 	                                    &style_values.foreground,

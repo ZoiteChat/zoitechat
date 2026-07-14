@@ -21,7 +21,6 @@
 #include "theme-access.h"
 
 #include "theme-runtime.h"
-#include "theme-gtk3.h"
 
 
 
@@ -32,7 +31,8 @@ enum
 	THEME_XTEXT_MARK_BG_INDEX = 100,
 	THEME_XTEXT_FG_INDEX = 101,
 	THEME_XTEXT_BG_INDEX = 102,
-	THEME_XTEXT_MARKER_INDEX = 103
+	THEME_XTEXT_MARKER_INDEX = 103,
+	THEME_XTEXT_MARKER_LEGACY_INDEX = 36
 };
 
 static const guint8 theme_default_99_mirc_colors[THEME_XTEXT_MIRC_COLS][3] = {
@@ -112,13 +112,48 @@ theme_access_context_get_background_color (GtkStyleContext *context, GtkStateFla
 }
 
 static gboolean
+theme_access_lookup_named_color (GtkStyleContext *context, const char *const *names, GdkRGBA *out_color)
+{
+	size_t i;
+
+	for (i = 0; names[i] != NULL; i++)
+	{
+		if (gtk_style_context_lookup_color (context, names[i], out_color))
+			return TRUE;
+	}
+
+	return FALSE;
+}
+
+static void
+theme_access_resolve_map_background (GtkStyleContext *context, GtkStateFlags state,
+				     const char *const *named_fallbacks, GdkRGBA *out_color)
+{
+	GdkRGBA named;
+
+	theme_access_context_get_background_color (context, state, out_color);
+	if (out_color->alpha > 0.0)
+		return;
+
+	/* Unstyled CSS nodes (e.g. the custom chat text widget) report a fully
+	 * transparent background; fall back to the theme's named colors so the
+	 * mapped palette still follows the active GTK3 theme. */
+	if (theme_access_lookup_named_color (context, named_fallbacks, &named))
+		*out_color = named;
+}
+
+static gboolean
 theme_access_get_gtk_palette_map (GtkWidget *widget, ThemeGtkPaletteMap *out_map)
 {
+	static const char *const base_fallbacks[] = { "theme_base_color", "theme_bg_color", NULL };
+	static const char *const selected_bg_fallbacks[] = { "theme_selected_bg_color", NULL };
+	static const char *const selected_fg_fallbacks[] = { "theme_selected_fg_color", NULL };
 	GtkStyleContext *context;
+	GdkRGBA named;
 	GdkRGBA accent;
 
 	g_return_val_if_fail (out_map != NULL, FALSE);
-	if (!theme_gtk3_is_active () || widget == NULL || !GTK_IS_WIDGET (widget))
+	if (widget == NULL || !GTK_IS_WIDGET (widget))
 		return FALSE;
 
 	context = gtk_widget_get_style_context (widget);
@@ -126,9 +161,14 @@ theme_access_get_gtk_palette_map (GtkWidget *widget, ThemeGtkPaletteMap *out_map
 		return FALSE;
 
 	theme_access_context_get_color (context, GTK_STATE_FLAG_NORMAL, &out_map->text_foreground);
-	theme_access_context_get_background_color (context, GTK_STATE_FLAG_NORMAL, &out_map->text_background);
+	theme_access_resolve_map_background (context, GTK_STATE_FLAG_NORMAL, base_fallbacks,
+					     &out_map->text_background);
 	theme_access_context_get_color (context, GTK_STATE_FLAG_SELECTED, &out_map->selection_foreground);
-	theme_access_context_get_background_color (context, GTK_STATE_FLAG_SELECTED, &out_map->selection_background);
+	theme_access_resolve_map_background (context, GTK_STATE_FLAG_SELECTED, selected_bg_fallbacks,
+					     &out_map->selection_background);
+	if (gdk_rgba_equal (&out_map->selection_foreground, &out_map->text_foreground) &&
+	    theme_access_lookup_named_color (context, selected_fg_fallbacks, &named))
+		out_map->selection_foreground = named;
 	theme_access_context_get_color (context, GTK_STATE_FLAG_LINK, &accent);
 	if (accent.alpha <= 0.0)
 		accent = out_map->selection_background;
@@ -223,14 +263,35 @@ theme_get_xtext_colors (XTextColor *palette, size_t palette_len)
 void
 theme_get_xtext_colors_for_widget (GtkWidget *widget, XTextColor *palette, size_t palette_len)
 {
+	ThemeGtkPaletteMap gtk_map = { 0 };
 	ThemeWidgetStyleValues style_values;
 	GdkRGBA marker_color;
+	gboolean have_marker = FALSE;
 
 	if (!palette)
 		return;
 
-	theme_get_widget_style_values_for_widget (widget, &style_values);
-	theme_runtime_get_xtext_colors (palette, palette_len);
+	if (theme_access_get_gtk_palette_map (widget, &gtk_map))
+	{
+		theme_runtime_get_widget_style_values_mapped (&gtk_map, &style_values);
+		theme_runtime_get_xtext_colors_mapped (&gtk_map, palette, palette_len);
+	}
+	else
+	{
+		theme_runtime_get_widget_style_values (&style_values);
+		theme_runtime_get_xtext_colors (palette, palette_len);
+	}
+	if (palette_len > THEME_XTEXT_MARKER_LEGACY_INDEX)
+	{
+		/* The marker token lives at its legacy slot before the extended
+		 * mIRC palette overwrites it; keep the (possibly theme-mapped)
+		 * value for the dedicated marker index below. */
+		marker_color.red = palette[THEME_XTEXT_MARKER_LEGACY_INDEX].red;
+		marker_color.green = palette[THEME_XTEXT_MARKER_LEGACY_INDEX].green;
+		marker_color.blue = palette[THEME_XTEXT_MARKER_LEGACY_INDEX].blue;
+		marker_color.alpha = palette[THEME_XTEXT_MARKER_LEGACY_INDEX].alpha;
+		have_marker = TRUE;
+	}
 	if (palette_len >= THEME_XTEXT_MIRC_COLS)
 		theme_access_apply_default_99_palette (palette, palette_len);
 	if (palette_len > THEME_XTEXT_MARK_FG_INDEX)
@@ -249,7 +310,7 @@ theme_get_xtext_colors_for_widget (GtkWidget *widget, XTextColor *palette, size_
 	}
 	if (palette_len > THEME_XTEXT_MARKER_INDEX)
 	{
-		if (!theme_runtime_get_color (THEME_TOKEN_MARKER, &marker_color))
+		if (!have_marker && !theme_runtime_get_color (THEME_TOKEN_MARKER, &marker_color))
 			marker_color = style_values.selection_background;
 		palette[THEME_XTEXT_MARKER_INDEX].red = marker_color.red;
 		palette[THEME_XTEXT_MARKER_INDEX].green = marker_color.green;
