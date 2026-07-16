@@ -472,6 +472,34 @@ get_cpu_arch (void)
 	return sysinfo_get_build_arch ();
 }
 
+/* RtlGetVersion is used because GetVersionEx reports a version capped by
+ * the compatibility manifest rather than the real one. */
+gboolean
+win32_is_windows_8_or_newer (void)
+{
+	typedef LONG (WINAPI *rtl_get_version_func) (PRTL_OSVERSIONINFOW);
+	rtl_get_version_func rtl_get_version;
+	RTL_OSVERSIONINFOW version;
+	HMODULE ntdll;
+
+	ntdll = GetModuleHandleW (L"ntdll.dll");
+	if (ntdll == NULL)
+		return FALSE;
+
+	rtl_get_version = (rtl_get_version_func) GetProcAddress (ntdll, "RtlGetVersion");
+	if (rtl_get_version == NULL)
+		return FALSE;
+
+	memset (&version, 0, sizeof (version));
+	version.dwOSVersionInfoSize = sizeof (version);
+	if (rtl_get_version (&version) != 0)
+		return FALSE;
+
+	/* Windows 8 is 6.2; Windows 7 is 6.1 */
+	return version.dwMajorVersion > 6 ||
+	       (version.dwMajorVersion == 6 && version.dwMinorVersion >= 2);
+}
+
 char *
 get_sys_str (int with_cpu)
 {
