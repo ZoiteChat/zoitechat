@@ -89,3 +89,9 @@ theme_gtk3_is_active (void)
 {
 	return FALSE;
 }
+
+ThemeGtk3Variant
+theme_gtk3_active_variant (void)
+{
+	return THEME_GTK3_VARIANT_FOLLOW_SYSTEM;
+}

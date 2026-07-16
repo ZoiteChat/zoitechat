@@ -33,6 +33,7 @@ InputStyle *input_style;
 
 static gboolean gtk_available;
 static int apply_current_calls;
+static int set_token_color_calls;
 static char applied_theme_id[256];
 static ThemeGtk3Variant applied_variant;
 static gboolean removed_selected;
@@ -104,6 +105,7 @@ theme_manager_set_token_color (unsigned int dark_mode, ThemeSemanticToken token,
         (void)dark_mode;
         (void)token;
         (void)color;
+        set_token_color_calls++;
         if (changed)
                 *changed = FALSE;
 }
@@ -419,6 +421,43 @@ test_select_none_resets_theme_and_applies (void)
         gtk_widget_destroy (page);
 }
 
+static void
+test_select_theme_does_not_pin_palette_tokens (void)
+{
+        GtkWidget *page;
+        theme_preferences_ui *ui;
+        struct zoitechatprefs setup_prefs;
+
+        if (!gtk_available)
+        {
+                g_test_message ("GTK display not available");
+                return;
+        }
+
+        memset (&setup_prefs, 0, sizeof (setup_prefs));
+        memset (&prefs, 0, sizeof (prefs));
+        removed_selected = FALSE;
+        apply_current_calls = 0;
+        set_token_color_calls = 0;
+
+        page = theme_preferences_create_page (NULL, &setup_prefs, NULL);
+        ui = g_object_get_data (G_OBJECT (page), "theme-preferences-ui");
+        g_assert_nonnull (ui);
+
+        /* 0 = None, 1 = removed-theme, 2 = fallback-theme */
+        gtk_combo_box_set_active (GTK_COMBO_BOX (ui->gtk3_combo), 2);
+
+        g_assert_cmpstr (prefs.hex_gui_gtk3_theme, ==, "fallback-theme");
+        g_assert_cmpint (apply_current_calls, ==, 1);
+        /* Selecting a GTK3 theme must leave the mapped palette tokens
+         * unpinned so the user list, channel tree and input box keep
+         * resolving their colors from the active theme instead of being
+         * frozen until the next restart. */
+        g_assert_cmpint (set_token_color_calls, ==, 0);
+
+        gtk_widget_destroy (page);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -430,5 +469,7 @@ main (int argc, char **argv)
                          test_unset_theme_keeps_system_default_without_apply);
         g_test_add_func ("/theme/preferences/gtk3_select_none_resets_theme",
                          test_select_none_resets_theme_and_applies);
+        g_test_add_func ("/theme/preferences/gtk3_select_theme_does_not_pin_palette_tokens",
+                         test_select_theme_does_not_pin_palette_tokens);
         return g_test_run ();
 }

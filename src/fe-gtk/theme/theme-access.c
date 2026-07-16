@@ -20,6 +20,8 @@
 
 #include "theme-access.h"
 
+#include "theme-css.h"
+#include "theme-gtk3.h"
 #include "theme-runtime.h"
 
 
@@ -116,6 +118,17 @@ theme_access_lookup_named_color (GtkStyleContext *context, const char *const *na
 {
 	size_t i;
 
+	/* With an in-app GTK3 theme selected, prefer the colors resolved from
+	 * the theme itself: desktop integration CSS (e.g. KDE's color-scheme
+	 * sync) redefines the same named colors with the OS palette in the
+	 * widget cascade, which would drag OS dark/light colors into the
+	 * mapped palette. */
+	for (i = 0; names[i] != NULL; i++)
+	{
+		if (theme_gtk3_lookup_theme_color (names[i], out_color))
+			return TRUE;
+	}
+
 	for (i = 0; names[i] != NULL; i++)
 	{
 		if (gtk_style_context_lookup_color (context, names[i], out_color))
@@ -149,6 +162,8 @@ theme_access_get_gtk_palette_map (GtkWidget *widget, ThemeGtkPaletteMap *out_map
 	static const char *const selected_bg_fallbacks[] = { "theme_selected_bg_color", NULL };
 	static const char *const selected_fg_fallbacks[] = { "theme_selected_fg_color", NULL };
 	GtkStyleContext *context;
+	const char *palette_class;
+	gboolean had_palette_class;
 	GdkRGBA named;
 	GdkRGBA accent;
 
@@ -159,6 +174,16 @@ theme_access_get_gtk_palette_map (GtkWidget *widget, ThemeGtkPaletteMap *out_map
 	context = gtk_widget_get_style_context (widget);
 	if (context == NULL)
 		return FALSE;
+
+	/* The application paints these widgets with fixed colors through the
+	 * zoitechat-palette provider.  Sampling must see the underlying GTK3
+	 * theme, not the colors we applied earlier: otherwise every theme
+	 * change reads back the previous palette and the user list, channel
+	 * tree and input box keep their stale colors until a restart. */
+	palette_class = theme_css_palette_class_name ();
+	had_palette_class = gtk_style_context_has_class (context, palette_class);
+	if (had_palette_class)
+		gtk_style_context_remove_class (context, palette_class);
 
 	theme_access_context_get_color (context, GTK_STATE_FLAG_NORMAL, &out_map->text_foreground);
 	theme_access_resolve_map_background (context, GTK_STATE_FLAG_NORMAL, base_fallbacks,
@@ -173,6 +198,10 @@ theme_access_get_gtk_palette_map (GtkWidget *widget, ThemeGtkPaletteMap *out_map
 	if (accent.alpha <= 0.0)
 		accent = out_map->selection_background;
 	out_map->accent = accent;
+
+	if (had_palette_class)
+		gtk_style_context_add_class (context, palette_class);
+
 	out_map->enabled = TRUE;
 	return TRUE;
 }

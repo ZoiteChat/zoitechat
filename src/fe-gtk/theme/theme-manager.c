@@ -590,11 +590,7 @@ theme_manager_apply_platform_window_theme (GtkWidget *window)
 
 	context = gtk_widget_get_style_context (window);
 	if (theme_gtk3_is_active ())
-	{
-		dark = prefs.hex_gui_gtk3_variant == THEME_GTK3_VARIANT_PREFER_DARK;
-		if (prefs.hex_gui_gtk3_variant == THEME_GTK3_VARIANT_FOLLOW_SYSTEM)
-			dark = theme_policy_system_prefers_dark ();
-	}
+		dark = theme_gtk3_active_variant () == THEME_GTK3_VARIANT_PREFER_DARK;
 	else
 		dark = theme_policy_is_dark_mode_active (prefs.hex_gui_dark_mode);
 	if (context)

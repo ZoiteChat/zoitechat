@@ -695,10 +695,15 @@ zoitechat_gtk3_theme_service_discover (void)
 		else
 			user_data_themes = g_build_filename (g_get_user_data_dir (), "themes", NULL);
 	}
+	/* Scan the app's own themes dir first: imported themes get a symlink
+	 * under the XDG data themes dir so GTK can resolve gtk-theme-name, and
+	 * scanning that link first would make the canonical-root dedup keep
+	 * the symlink path - changing the theme's path-derived id and breaking
+	 * the saved gui_gtk3_theme reference on the next start. */
+	add_theme_root (user_roots, seen_user_roots, user_dir);
 	add_theme_root (user_roots, seen_user_roots, user_data_themes);
 	g_free (user_data_themes);
 	add_theme_root (user_roots, seen_user_roots, home_themes);
-	add_theme_root (user_roots, seen_user_roots, user_dir);
 
 	{
 		const char *xdg_data_dirs = g_getenv ("XDG_DATA_DIRS");

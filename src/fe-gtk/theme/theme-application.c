@@ -56,12 +56,11 @@ theme_application_apply_toplevel_theme (gboolean dark)
 
 	if (theme_gtk3_is_active ())
 	{
-		if (prefs.hex_gui_gtk3_variant == THEME_GTK3_VARIANT_PREFER_DARK)
-			prefer_dark = TRUE;
-		else if (prefs.hex_gui_gtk3_variant == THEME_GTK3_VARIANT_PREFER_LIGHT)
-			prefer_dark = FALSE;
-		else
-			prefer_dark = theme_policy_system_prefers_dark ();
+		/* An explicitly selected in-app theme controls its own
+		 * variant; the OS light/dark preference must not leak into
+		 * the window chrome (menu bar, dialogs).  The active variant
+		 * is always resolved to light or dark. */
+		prefer_dark = theme_gtk3_active_variant () == THEME_GTK3_VARIANT_PREFER_DARK;
 	}
 	else
 	{

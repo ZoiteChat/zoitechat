@@ -23,6 +23,7 @@
 #include <math.h>
 
 #include "../theme-access.h"
+#include "../theme-css.h"
 #include "../theme-manager.h"
 #include "../theme-runtime.h"
 #include "../../xtext-color.h"
@@ -52,6 +53,13 @@ void
 setup_apply_real (const ThemeChangedEvent *event)
 {
 	(void) event;
+}
+
+void
+gtkutil_append_font_css (GString *css, const PangoFontDescription *font_desc)
+{
+	(void) css;
+	(void) font_desc;
 }
 
 gboolean
@@ -171,6 +179,14 @@ gboolean
 theme_gtk3_is_active (void)
 {
 	return stub_gtk3_active;
+}
+
+gboolean
+theme_gtk3_lookup_theme_color (const char *name, GdkRGBA *out_color)
+{
+	(void) name;
+	(void) out_color;
+	return FALSE;
 }
 
 static gboolean
@@ -337,6 +353,79 @@ test_access_xtext_palette_widget_mapping_when_gtk3_active (void)
 }
 
 static void
+test_access_palette_css_does_not_feed_back_into_sampling (void)
+{
+	GtkWidget *window;
+	GtkWidget *label;
+	GtkCssProvider *theme1;
+	GtkCssProvider *theme2;
+	GdkScreen *screen;
+	XTextColor palette[2] = { 0 };
+	GdkRGBA old_bg;
+	GdkRGBA old_fg;
+	GdkRGBA expected;
+
+	if (!gtk_available)
+	{
+		g_test_message ("GTK display not available");
+		return;
+	}
+
+	reset_stubs ();
+	stub_gtk3_active = TRUE;
+	screen = gdk_screen_get_default ();
+	window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
+	label = gtk_label_new ("mapped");
+	gtk_container_add (GTK_CONTAINER (window), label);
+	gtk_widget_realize (window);
+
+	/* Old GTK3 theme active at screen level. */
+	theme1 = gtk_css_provider_new ();
+	gtk_css_provider_load_from_data (theme1,
+		"label { color: #112233; background-color: #445566; }"
+		"label:selected { color: #778899; background-color: #aabbcc; }",
+		-1, NULL);
+	gtk_style_context_add_provider_for_screen (screen,
+		GTK_STYLE_PROVIDER (theme1), GTK_STYLE_PROVIDER_PRIORITY_USER);
+
+	/* The app paints the sampled theme colors onto the widget, like the
+	 * user list / channel tree / input box palette provider does. */
+	g_assert_true (gdk_rgba_parse (&old_bg, "#445566"));
+	g_assert_true (gdk_rgba_parse (&old_fg, "#112233"));
+	theme_css_apply_palette_widget (label, &old_bg, &old_fg, NULL);
+
+	/* The user switches to a new GTK3 theme. */
+	gtk_style_context_remove_provider_for_screen (screen, GTK_STYLE_PROVIDER (theme1));
+	theme2 = gtk_css_provider_new ();
+	gtk_css_provider_load_from_data (theme2,
+		"label { color: #00ff00; background-color: #ff0000; }"
+		"label:selected { color: #0000ff; background-color: #ffff00; }",
+		-1, NULL);
+	gtk_style_context_add_provider_for_screen (screen,
+		GTK_STYLE_PROVIDER (theme2), GTK_STYLE_PROVIDER_PRIORITY_USER);
+	gtk_style_context_reset_widgets (screen);
+
+	/* Re-sampling must see the new theme, not the palette colors the
+	 * app applied for the old theme. */
+	theme_get_xtext_colors_for_widget (label, palette, G_N_ELEMENTS (palette));
+
+	g_assert_true (stub_last_gtk_map_valid);
+	g_assert_true (gdk_rgba_parse (&expected, "#00ff00"));
+	g_assert_true (rgba_close (&stub_last_gtk_map.text_foreground, &expected));
+	g_assert_true (gdk_rgba_parse (&expected, "#ff0000"));
+	g_assert_true (rgba_close (&stub_last_gtk_map.text_background, &expected));
+
+	/* Sampling must not permanently strip the palette class. */
+	g_assert_true (gtk_style_context_has_class (gtk_widget_get_style_context (label),
+		theme_css_palette_class_name ()));
+
+	gtk_style_context_remove_provider_for_screen (screen, GTK_STYLE_PROVIDER (theme2));
+	gtk_widget_destroy (window);
+	g_object_unref (theme1);
+	g_object_unref (theme2);
+}
+
+static void
 test_access_dark_light_switch_affects_token_consumers (void)
 {
 	ThemeSemanticToken token;
@@ -363,6 +452,8 @@ main (int argc, char **argv)
 	g_test_add_func ("/theme/access/xtext_palette_forwarding", test_access_xtext_palette_forwarding);
 	g_test_add_func ("/theme/access/xtext_palette_widget_mapping_when_gtk3_active",
 			 test_access_xtext_palette_widget_mapping_when_gtk3_active);
+	g_test_add_func ("/theme/access/palette_css_does_not_feed_back_into_sampling",
+			 test_access_palette_css_does_not_feed_back_into_sampling);
 	g_test_add_func ("/theme/access/widget_style_forwarding", test_access_widget_style_forwarding);
 	g_test_add_func ("/theme/access/dark_light_switch_affects_token_consumers",
 			 test_access_dark_light_switch_affects_token_consumers);

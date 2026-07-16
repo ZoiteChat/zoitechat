@@ -24,6 +24,7 @@
 #include <glib.h>
 #include <glib/gstdio.h>
 #include <gtk/gtk.h>
+#include <gio/gio.h>
 
 #include "../theme-gtk3.h"
 #include "../../../common/gtk3-theme-service.h"
@@ -39,11 +40,14 @@ static char *xdg_data_home;
 static char *theme_parent_root;
 static char *theme_child_root;
 static char *theme_switch_root;
+static char *theme_chrome_root;
+
+static gboolean stub_system_prefers_dark;
 
 gboolean
 theme_policy_system_prefers_dark (void)
 {
-	return FALSE;
+	return stub_system_prefers_dark;
 }
 
 static void
@@ -131,6 +135,8 @@ zoitechat_gtk3_theme_find_by_id (const char *theme_id)
 		return make_theme (theme_id, theme_child_root);
 	if (g_strcmp0 (theme_id, "switch") == 0)
 		return make_theme (theme_id, theme_switch_root);
+	if (g_strcmp0 (theme_id, "chrome") == 0)
+		return make_theme (theme_id, theme_chrome_root);
 	return NULL;
 }
 
@@ -175,6 +181,11 @@ zoitechat_gtk3_theme_build_inheritance_chain (const char *theme_root)
 	if (g_strcmp0 (theme_root, theme_switch_root) == 0)
 	{
 		g_ptr_array_add (chain, g_strdup (theme_switch_root));
+		return chain;
+	}
+	if (g_strcmp0 (theme_root, theme_chrome_root) == 0)
+	{
+		g_ptr_array_add (chain, g_strdup (theme_chrome_root));
 		return chain;
 	}
 	g_ptr_array_unref (chain);
@@ -247,6 +258,22 @@ setup_themes (void)
 		"gtk-enable-animations=false\n"
 		"gtk-cursor-blink-time=444\n");
 
+	theme_chrome_root = g_build_filename (temp_root, "chrome", NULL);
+	g_assert_cmpint (g_mkdir_with_parents (theme_chrome_root, 0700), ==, 0);
+	ensure_css_dir (theme_chrome_root, "gtk-3.24");
+	/* Defines named colors but no window/menubar/menu rules of its own,
+	 * so all chrome styling must come from the backfill provider. */
+	{
+		char *css = g_build_filename (theme_chrome_root, "gtk-3.24", "gtk.css", NULL);
+		write_file (css,
+			"@define-color theme_bg_color #e8f4e8;\n"
+			"@define-color theme_fg_color #102010;\n"
+			"@define-color theme_selected_bg_color #3465a4;\n"
+			"@define-color theme_selected_fg_color #ffffff;\n"
+			"label { color: #102010; }\n");
+		g_free (css);
+	}
+
 	path = g_build_filename (theme_parent_root, "index.theme", NULL);
 	write_file (path, "[Desktop Entry]\nName=parent\n");
 	g_free (path);
@@ -266,11 +293,13 @@ teardown_themes (void)
 	g_free (theme_parent_root);
 	g_free (theme_child_root);
 	g_free (theme_switch_root);
+	g_free (theme_chrome_root);
 	g_free (xdg_data_home);
 	g_free (temp_root);
 	theme_parent_root = NULL;
 	theme_child_root = NULL;
 	theme_switch_root = NULL;
+	theme_chrome_root = NULL;
 	xdg_data_home = NULL;
 	temp_root = NULL;
 }
@@ -343,6 +372,205 @@ test_settings_restored_on_disable_and_switch (void)
 	g_assert_false (theme_gtk3_is_active ());
 }
 
+static void
+test_follow_system_variant_resolves_to_theme_variant (void)
+{
+	GError *error = NULL;
+
+	if (!gtk_available)
+	{
+		g_test_message ("GTK display not available");
+		return;
+	}
+
+	/* An explicitly selected in-app theme must not follow the OS
+	 * light/dark preference: the legacy FOLLOW_SYSTEM variant resolves
+	 * to the variant the theme itself provides, so the window chrome
+	 * (menu bar) stays on the theme even when the system prefers dark. */
+	stub_system_prefers_dark = TRUE;
+	g_assert_true (theme_gtk3_apply ("switch", THEME_GTK3_VARIANT_FOLLOW_SYSTEM, &error));
+	g_assert_no_error (error);
+	g_assert_true (theme_gtk3_is_active ());
+	g_assert_cmpint (theme_gtk3_active_variant (), ==, THEME_GTK3_VARIANT_PREFER_LIGHT);
+	g_assert_false (get_bool_setting ("gtk-application-prefer-dark-theme"));
+
+	stub_system_prefers_dark = FALSE;
+	theme_gtk3_disable ();
+}
+
+static void
+test_menu_bar_follows_active_theme_colors (void)
+{
+	GError *error = NULL;
+	GtkWidget *window;
+	GtkWidget *menubar;
+	GtkStyleContext *context;
+	GdkRGBA bg;
+	GdkRGBA expected;
+
+	if (!gtk_available)
+	{
+		g_test_message ("GTK display not available");
+		return;
+	}
+
+	/* The chrome theme defines no menubar rules; without the backfill
+	 * provider the menu bar would fall through to the base (OS) theme
+	 * and follow the OS dark/light mode instead of the selected theme. */
+	g_assert_true (theme_gtk3_apply ("chrome", THEME_GTK3_VARIANT_PREFER_LIGHT, &error));
+	g_assert_no_error (error);
+
+	window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
+	menubar = gtk_menu_bar_new ();
+	gtk_container_add (GTK_CONTAINER (window), menubar);
+	gtk_widget_show_all (window);
+
+	context = gtk_widget_get_style_context (menubar);
+	G_GNUC_BEGIN_IGNORE_DEPRECATIONS
+	gtk_style_context_get_background_color (context, GTK_STATE_FLAG_NORMAL, &bg);
+	G_GNUC_END_IGNORE_DEPRECATIONS
+	g_assert_true (gdk_rgba_parse (&expected, "#e8f4e8"));
+	g_assert_cmpfloat (ABS (bg.red - expected.red), <, 0.01);
+	g_assert_cmpfloat (ABS (bg.green - expected.green), <, 0.01);
+	g_assert_cmpfloat (ABS (bg.blue - expected.blue), <, 0.01);
+
+	/* The window background must follow the theme too, or the space
+	 * around and beside the menu bar keeps the OS theme's colors. */
+	context = gtk_widget_get_style_context (window);
+	G_GNUC_BEGIN_IGNORE_DEPRECATIONS
+	gtk_style_context_get_background_color (context, GTK_STATE_FLAG_NORMAL, &bg);
+	G_GNUC_END_IGNORE_DEPRECATIONS
+	g_assert_cmpfloat (ABS (bg.red - expected.red), <, 0.01);
+	g_assert_cmpfloat (ABS (bg.green - expected.green), <, 0.01);
+	g_assert_cmpfloat (ABS (bg.blue - expected.blue), <, 0.01);
+
+	gtk_widget_destroy (window);
+	theme_gtk3_disable ();
+}
+
+static void
+test_desktop_color_sync_does_not_leak_into_chrome (void)
+{
+	GError *error = NULL;
+	GtkWidget *window;
+	GtkWidget *menubar;
+	GtkStyleContext *context;
+	GtkCssProvider *desktop_css;
+	GdkScreen *screen;
+	GdkRGBA bg;
+	GdkRGBA expected;
+	GdkRGBA injected;
+
+	if (!gtk_available)
+	{
+		g_test_message ("GTK display not available");
+		return;
+	}
+
+	/* KDE's GTK color-scheme sync (~/.config/gtk-3.0/gtk.css) redefines
+	 * the standard named colors with the OS palette at USER priority.
+	 * The switch theme defines no named colors of its own, so a naive
+	 * @theme_bg_color reference in the chrome backfill would resolve to
+	 * the injected OS dark palette; the backfill must use its neutral
+	 * variant fallback instead. */
+	screen = gdk_screen_get_default ();
+	desktop_css = gtk_css_provider_new ();
+	gtk_css_provider_load_from_data (desktop_css,
+		"@define-color theme_bg_color #1e1e1e;\n"
+		"@define-color theme_fg_color #eeeeee;\n"
+		"menubar { background-color: #1e1e1e; }\n",
+		-1, NULL);
+	gtk_style_context_add_provider_for_screen (screen,
+		GTK_STYLE_PROVIDER (desktop_css), GTK_STYLE_PROVIDER_PRIORITY_USER);
+
+	g_assert_true (theme_gtk3_apply ("switch", THEME_GTK3_VARIANT_PREFER_LIGHT, &error));
+	g_assert_no_error (error);
+
+	{
+		GtkWidget *item;
+		GdkRGBA item_bg;
+
+		window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
+		menubar = gtk_menu_bar_new ();
+		item = gtk_menu_item_new_with_label ("File");
+		gtk_menu_shell_append (GTK_MENU_SHELL (menubar), item);
+		gtk_container_add (GTK_CONTAINER (window), menubar);
+		gtk_widget_show_all (window);
+
+		context = gtk_widget_get_style_context (menubar);
+		G_GNUC_BEGIN_IGNORE_DEPRECATIONS
+		gtk_style_context_get_background_color (context, GTK_STATE_FLAG_NORMAL, &bg);
+		G_GNUC_END_IGNORE_DEPRECATIONS
+		g_assert_true (gdk_rgba_parse (&expected, "#f6f5f4"));
+		g_assert_true (gdk_rgba_parse (&injected, "#1e1e1e"));
+		g_assert_cmpfloat (ABS (bg.red - injected.red), >, 0.1);
+		g_assert_cmpfloat (ABS (bg.red - expected.red), <, 0.01);
+		g_assert_cmpfloat (ABS (bg.green - expected.green), <, 0.01);
+		g_assert_cmpfloat (ABS (bg.blue - expected.blue), <, 0.01);
+
+		/* The menu bar body and the menu items must be one surface. */
+		context = gtk_widget_get_style_context (item);
+		G_GNUC_BEGIN_IGNORE_DEPRECATIONS
+		gtk_style_context_get_background_color (context, GTK_STATE_FLAG_NORMAL, &item_bg);
+		G_GNUC_END_IGNORE_DEPRECATIONS
+		g_assert_cmpfloat (ABS (item_bg.red - bg.red), <, 0.01);
+		g_assert_cmpfloat (ABS (item_bg.green - bg.green), <, 0.01);
+		g_assert_cmpfloat (ABS (item_bg.blue - bg.blue), <, 0.01);
+	}
+
+	gtk_widget_destroy (window);
+	theme_gtk3_disable ();
+	gtk_style_context_remove_provider_for_screen (screen, GTK_STYLE_PROVIDER (desktop_css));
+	g_object_unref (desktop_css);
+}
+
+static void
+test_stale_theme_symlink_is_replaced (void)
+{
+	GError *error = NULL;
+	char *themes_dir;
+	char *link_path;
+	char *target;
+	char *active_theme_name = NULL;
+
+	if (!gtk_available)
+	{
+		g_test_message ("GTK display not available");
+		return;
+	}
+	if (!has_default_seat ())
+	{
+		g_test_message ("No default seat available");
+		return;
+	}
+
+	/* A dangling symlink left behind by a removed theme must not block
+	 * pinning gtk-theme-name to the newly applied theme. */
+	themes_dir = g_build_filename (xdg_data_home, "themes", NULL);
+	g_assert_cmpint (g_mkdir_with_parents (themes_dir, 0700), ==, 0);
+	link_path = g_build_filename (themes_dir, "switch", NULL);
+	g_unlink (link_path);
+	{
+		GFile *link_file = g_file_new_for_path (link_path);
+		g_assert_true (g_file_make_symbolic_link (link_file, "/nonexistent/switch", NULL, NULL));
+		g_object_unref (link_file);
+	}
+
+	g_assert_true (theme_gtk3_apply ("switch", THEME_GTK3_VARIANT_PREFER_LIGHT, &error));
+	g_assert_no_error (error);
+
+	target = g_file_read_link (link_path, NULL);
+	g_assert_cmpstr (target, ==, theme_switch_root);
+	g_object_get (gtk_settings_get_default (), "gtk-theme-name", &active_theme_name, NULL);
+	g_assert_cmpstr (active_theme_name, ==, "switch");
+
+	g_free (active_theme_name);
+	g_free (target);
+	g_free (link_path);
+	g_free (themes_dir);
+	theme_gtk3_disable ();
+}
+
 int
 main (int argc, char **argv)
 {
@@ -354,6 +582,14 @@ main (int argc, char **argv)
 
 	g_test_add_func ("/theme/gtk3/settings_layer_precedence", test_settings_layer_precedence);
 	g_test_add_func ("/theme/gtk3/settings_restored_on_disable_and_switch", test_settings_restored_on_disable_and_switch);
+	g_test_add_func ("/theme/gtk3/follow_system_variant_resolves_to_theme_variant",
+			 test_follow_system_variant_resolves_to_theme_variant);
+	g_test_add_func ("/theme/gtk3/menu_bar_follows_active_theme_colors",
+			 test_menu_bar_follows_active_theme_colors);
+	g_test_add_func ("/theme/gtk3/desktop_color_sync_does_not_leak_into_chrome",
+			 test_desktop_color_sync_does_not_leak_into_chrome);
+	g_test_add_func ("/theme/gtk3/stale_theme_symlink_is_replaced",
+			 test_stale_theme_symlink_is_replaced);
 
 	prefs.hex_gui_gtk3_variant = THEME_GTK3_VARIANT_PREFER_LIGHT;
 

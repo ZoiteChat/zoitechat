@@ -227,6 +227,20 @@ test('Theme Access Routing Tests', theme_access_tests,
   timeout: 120,
 )
 
+theme_gtk3_settings_tests = executable('theme_gtk3_settings_tests',
+  [
+    'theme/tests/test-theme-gtk3-settings.c',
+    'theme/theme-gtk3.c',
+  ],
+  include_directories: [config_h_include],
+  dependencies: [gtk_dep],
+)
+
+test('Theme GTK3 Settings Tests', theme_gtk3_settings_tests,
+  protocol: 'tap',
+  timeout: 120,
+)
+
 theme_preferences_gtk3_populate_tests = executable('theme_preferences_gtk3_populate_tests',
   'theme/tests/test-theme-preferences-gtk3-populate.c',
   include_directories: [config_h_include],

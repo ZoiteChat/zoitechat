@@ -1567,7 +1567,6 @@ theme_preferences_gtk3_sync_runtime_palette (theme_preferences_ui *ui)
 {
 	ThemeWidgetStyleValues style_values;
 	GtkWidget *style_source = NULL;
-	gboolean follows_system_theme = prefs.hex_gui_gtk3_theme[0] == '\0';
 
 	if (ui && ui->parent)
 		style_source = GTK_WIDGET (ui->parent);
@@ -1578,34 +1577,16 @@ theme_preferences_gtk3_sync_runtime_palette (theme_preferences_ui *ui)
 
 	theme_get_widget_style_values_for_widget (style_source, &style_values);
 
-	if (follows_system_theme)
-	{
-		/* Following the system GTK3 theme: leave the mapped tokens
-		 * unpinned so they keep tracking the theme, and only refresh
-		 * what the dialog shows. */
-		theme_preferences_stage_rebase_color (THEME_TOKEN_TEXT_FOREGROUND, &style_values.foreground);
-		theme_preferences_stage_rebase_color (THEME_TOKEN_TEXT_BACKGROUND, &style_values.background);
-		theme_preferences_stage_rebase_color (THEME_TOKEN_SELECTION_FOREGROUND, &style_values.selection_foreground);
-		theme_preferences_stage_rebase_color (THEME_TOKEN_SELECTION_BACKGROUND, &style_values.selection_background);
-		return;
-	}
-
-	theme_preferences_staged_set_color (THEME_TOKEN_TEXT_FOREGROUND,
-	                                    &style_values.foreground,
-	                                    NULL,
-	                                    TRUE);
-	theme_preferences_staged_set_color (THEME_TOKEN_TEXT_BACKGROUND,
-	                                    &style_values.background,
-	                                    NULL,
-	                                    TRUE);
-	theme_preferences_staged_set_color (THEME_TOKEN_SELECTION_FOREGROUND,
-	                                    &style_values.selection_foreground,
-	                                    NULL,
-	                                    TRUE);
-	theme_preferences_staged_set_color (THEME_TOKEN_SELECTION_BACKGROUND,
-	                                    &style_values.selection_background,
-	                                    NULL,
-	                                    TRUE);
+	/* Leave the mapped tokens unpinned so the user list, channel tree and
+	 * input box keep resolving their colors from whatever GTK3 theme is
+	 * active (system or in-app selected), and only refresh what the
+	 * dialog shows.  Pinning theme-derived values here freezes them into
+	 * the runtime palette (and colors.conf), which left those widgets
+	 * with stale colors until the next restart. */
+	theme_preferences_stage_rebase_color (THEME_TOKEN_TEXT_FOREGROUND, &style_values.foreground);
+	theme_preferences_stage_rebase_color (THEME_TOKEN_TEXT_BACKGROUND, &style_values.background);
+	theme_preferences_stage_rebase_color (THEME_TOKEN_SELECTION_FOREGROUND, &style_values.selection_foreground);
+	theme_preferences_stage_rebase_color (THEME_TOKEN_SELECTION_BACKGROUND, &style_values.selection_background);
 }
 
 static gboolean
