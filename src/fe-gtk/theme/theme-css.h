@@ -30,6 +30,7 @@
  * theme_css_apply_widget_provider:
  * Use for widget-local CSS providers attached to a specific widget context.
  */
+const char *theme_css_palette_class_name (void);
 void theme_css_apply_app_provider (GtkStyleProvider *provider);
 void theme_css_remove_app_provider (GtkStyleProvider *provider);
 void theme_css_apply_widget_provider (GtkWidget *widget, GtkStyleProvider *provider);

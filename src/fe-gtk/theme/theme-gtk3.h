@@ -22,6 +22,7 @@
 #define ZOITECHAT_THEME_GTK3_H
 
 #include <glib.h>
+#include <gdk/gdk.h>
 
 typedef enum
 {
@@ -38,5 +39,7 @@ ThemeGtk3Variant theme_gtk3_variant_for_theme (const char *theme_id);
 void theme_gtk3_invalidate_provider_cache (void);
 void theme_gtk3_disable (void);
 gboolean theme_gtk3_is_active (void);
+ThemeGtk3Variant theme_gtk3_active_variant (void);
+gboolean theme_gtk3_lookup_theme_color (const char *name, GdkRGBA *out_color);
 
 #endif

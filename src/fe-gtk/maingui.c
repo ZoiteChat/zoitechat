@@ -4904,7 +4904,11 @@ mg_create_menu (session_gui *gui, GtkWidget *table, int away_state)
                                                                                         gui->menu_item);
         gtk_widget_set_hexpand (gui->menu, TRUE);
         gtk_widget_set_vexpand (gui->menu, FALSE);
-        gtk_widget_set_halign (gui->menu, GTK_ALIGN_START);
+        /* Fill the row: with GTK_ALIGN_START the menu bar stops after its
+         * last item and the rest of the row shows bare window background,
+         * which reads as a two-colored menu bar whenever the theme styles
+         * menubar and window differently. */
+        gtk_widget_set_halign (gui->menu, GTK_ALIGN_FILL);
         gtk_widget_set_valign (gui->menu, GTK_ALIGN_FILL);
         gtk_grid_attach (GTK_GRID (table), gui->menu, 0, 0, 3, 1);
 }

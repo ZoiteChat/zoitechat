@@ -33,10 +33,59 @@
 
 static GPtrArray *theme_gtk3_providers_base;
 static GPtrArray *theme_gtk3_providers_variant;
+static GtkCssProvider *theme_gtk3_chrome_provider;
+static GHashTable *theme_gtk3_theme_colors;
 static GHashTable *theme_gtk3_provider_cache;
 static gboolean theme_gtk3_active;
 static char *theme_gtk3_current_id;
 static ThemeGtk3Variant theme_gtk3_current_variant;
+
+/* Menu bar and menus fall back to the base gtk-theme-name theme (the OS
+ * theme) for any property the selected in-app theme's CSS does not define,
+ * which mixes OS dark/light colors into the chrome (issue: dark menu bar on
+ * a light in-app theme when the OS is in dark mode).  While an in-app theme
+ * is active, backfill those widgets with the theme's own named colors.  The
+ * provider sits just below the theme providers, so a theme that styles its
+ * menus keeps full control. */
+#define THEME_GTK3_CHROME_PRIORITY (GTK_STYLE_PROVIDER_PRIORITY_USER - 1)
+/* Concrete color values are formatted in: desktop integration CSS (e.g.
+ * KDE's color-scheme sync in ~/.config/gtk-3.0/gtk.css) redefines the
+ * standard named colors with the OS palette at USER priority, so a
+ * "@theme_bg_color" reference here would resolve to the OS dark/light
+ * colors instead of the selected theme's. */
+static const char theme_gtk3_chrome_css_template[] =
+	".background, .background:backdrop {"
+	" background-color: %s;"
+	" color: %s;"
+	"}"
+	"headerbar, headerbar:backdrop, .titlebar, .titlebar:backdrop {"
+	" background-color: %s;"
+	" background-image: none;"
+	" color: %s;"
+	"}";
+
+/* The menu bar body and the menu items are separate CSS surfaces; desktop
+ * integration CSS or a theme can style one but not the other, splitting
+ * the menu bar row into two colors.  These rules sit above the theme and
+ * the desktop CSS so body and items always render as one surface. */
+#define THEME_GTK3_MENU_UNIFORM_PRIORITY (GTK_STYLE_PROVIDER_PRIORITY_USER + 40)
+static const char theme_gtk3_menu_uniform_template[] =
+	"menubar, menubar:backdrop, menubar > menuitem, menubar > menuitem:backdrop,"
+	"menu, menu:backdrop, .menu, .menu:backdrop, menu > menuitem, menu > menuitem:backdrop {"
+	" background-color: %s;"
+	" background-image: none;"
+	" color: %s;"
+	"}"
+	"menubar > menuitem:hover, menubar > menuitem:selected,"
+	"menu > menuitem:hover, menu > menuitem:selected,"
+	".menu menuitem:hover, .menu menuitem:selected {"
+	" background-color: %s;"
+	" background-image: none;"
+	" color: %s;"
+	"}"
+	"menubar > menuitem:disabled, menu > menuitem:disabled {"
+	" color: alpha(%s, 0.5);"
+	"}";
 
 typedef struct
 {
@@ -49,6 +98,7 @@ typedef struct
 static ThemeGtk3SettingsState theme_gtk3_settings_state;
 
 static gboolean settings_apply_property (GtkSettings *settings, const char *property_name, const char *raw_value);
+static void theme_gtk3_menu_uniform_apply (const char *bg, const char *fg, const char *sel_bg, const char *sel_fg);
 
 static gboolean
 theme_gtk3_theme_name_is_dark (const char *name)
@@ -399,6 +449,21 @@ settings_theme_link_search_path (const char *theme_root, const char *theme_name)
 	}
 
 	link_path = g_build_filename (themes_root, theme_name, NULL);
+
+	/* A leftover symlink from a removed or relocated theme would satisfy
+	 * the EXISTS check while pointing at the wrong (or no) theme, leaving
+	 * the base gtk-theme-name on the OS theme.  Replace it. */
+	{
+		char *link_target = g_file_read_link (link_path, NULL);
+		if (link_target)
+		{
+			if (g_strcmp0 (link_target, theme_root) != 0 ||
+			    !g_file_test (link_path, G_FILE_TEST_IS_DIR))
+				g_unlink (link_path);
+			g_free (link_target);
+		}
+	}
+
 	if (!g_file_test (link_path, G_FILE_TEST_EXISTS))
 	{
 		GFile *link_file = g_file_new_for_path (link_path);
@@ -757,12 +822,176 @@ settings_apply_from_file (const char *theme_root, const char *css_dir)
 	g_ptr_array_unref (settings_paths);
 }
 
+static gboolean
+theme_gtk3_providers_define_color (const char *name)
+{
+	char *needle = g_strdup_printf ("@define-color %s ", name);
+	gboolean found = FALSE;
+	guint i;
+
+	for (i = 0; !found && theme_gtk3_providers_base && i < theme_gtk3_providers_base->len; i++)
+	{
+		char *dump = gtk_css_provider_to_string (g_ptr_array_index (theme_gtk3_providers_base, i));
+		found = dump && strstr (dump, needle) != NULL;
+		g_free (dump);
+	}
+	for (i = 0; !found && theme_gtk3_providers_variant && i < theme_gtk3_providers_variant->len; i++)
+	{
+		char *dump = gtk_css_provider_to_string (g_ptr_array_index (theme_gtk3_providers_variant, i));
+		found = dump && strstr (dump, needle) != NULL;
+		g_free (dump);
+	}
+
+	g_free (needle);
+	return found;
+}
+
+/* Resolve a named color from the selected theme itself.  The lookup
+ * context layers the theme's providers over the screen cascade, so the
+ * theme's own @define-color wins; when the theme does not define the
+ * name at all, fall back to a neutral palette matching the theme's
+ * variant instead of whatever the desktop injected into the cascade. */
+static char *
+theme_gtk3_chrome_resolve_color (GtkStyleContext *lookup, const char *name, const char *fallback)
+{
+	GdkRGBA color;
+
+	if (!theme_gtk3_providers_define_color (name) ||
+	    !gtk_style_context_lookup_color (lookup, name, &color))
+		g_assert (gdk_rgba_parse (&color, fallback));
+
+	if (!theme_gtk3_theme_colors)
+		theme_gtk3_theme_colors = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
+	{
+		GdkRGBA *stored = g_new (GdkRGBA, 1);
+		*stored = color;
+		g_hash_table_insert (theme_gtk3_theme_colors, g_strdup (name), stored);
+	}
+
+	return gdk_rgba_to_string (&color);
+}
+
+gboolean
+theme_gtk3_lookup_theme_color (const char *name, GdkRGBA *out_color)
+{
+	GdkRGBA *stored;
+
+	if (!theme_gtk3_active || !theme_gtk3_theme_colors || !name || !out_color)
+		return FALSE;
+
+	stored = g_hash_table_lookup (theme_gtk3_theme_colors, name);
+	if (!stored)
+		return FALSE;
+
+	*out_color = *stored;
+	return TRUE;
+}
+
+static void
+theme_gtk3_chrome_provider_apply (gboolean prefer_dark)
+{
+	GdkScreen *screen = gdk_screen_get_default ();
+	GtkStyleContext *lookup;
+	char *bg;
+	char *fg;
+	char *sel_bg;
+	char *sel_fg;
+	char *css;
+	guint i;
+
+	if (!screen)
+		return;
+
+	lookup = gtk_style_context_new ();
+	for (i = 0; theme_gtk3_providers_base && i < theme_gtk3_providers_base->len; i++)
+		gtk_style_context_add_provider (lookup,
+			GTK_STYLE_PROVIDER (g_ptr_array_index (theme_gtk3_providers_base, i)),
+			GTK_STYLE_PROVIDER_PRIORITY_USER);
+	for (i = 0; theme_gtk3_providers_variant && i < theme_gtk3_providers_variant->len; i++)
+		gtk_style_context_add_provider (lookup,
+			GTK_STYLE_PROVIDER (g_ptr_array_index (theme_gtk3_providers_variant, i)),
+			GTK_STYLE_PROVIDER_PRIORITY_USER);
+
+	if (theme_gtk3_theme_colors)
+		g_hash_table_remove_all (theme_gtk3_theme_colors);
+
+	bg = theme_gtk3_chrome_resolve_color (lookup, "theme_bg_color",
+					      prefer_dark ? "#242424" : "#f6f5f4");
+	fg = theme_gtk3_chrome_resolve_color (lookup, "theme_fg_color",
+					      prefer_dark ? "#eeeeee" : "#2e3436");
+	sel_bg = theme_gtk3_chrome_resolve_color (lookup, "theme_selected_bg_color", "#3584e4");
+	sel_fg = theme_gtk3_chrome_resolve_color (lookup, "theme_selected_fg_color", "#ffffff");
+	/* Not used by the chrome CSS itself, but resolved and stored for the
+	 * mapped-palette sampling fallback (chat area and friends). */
+	g_free (theme_gtk3_chrome_resolve_color (lookup, "theme_base_color",
+						 prefer_dark ? "#1e1e1e" : "#ffffff"));
+	g_object_unref (lookup);
+
+	css = g_strdup_printf (theme_gtk3_chrome_css_template,
+			       bg, fg,
+			       bg, fg);
+
+	if (!theme_gtk3_chrome_provider)
+		theme_gtk3_chrome_provider = gtk_css_provider_new ();
+	gtk_css_provider_load_from_data (theme_gtk3_chrome_provider, css, -1, NULL);
+
+	gtk_style_context_add_provider_for_screen (screen,
+		GTK_STYLE_PROVIDER (theme_gtk3_chrome_provider),
+		THEME_GTK3_CHROME_PRIORITY);
+
+	theme_gtk3_menu_uniform_apply (bg, fg, sel_bg, sel_fg);
+
+	g_free (css);
+	g_free (sel_fg);
+	g_free (sel_bg);
+	g_free (fg);
+	g_free (bg);
+}
+
+static GtkCssProvider *theme_gtk3_menu_uniform_provider;
+
+static void
+theme_gtk3_menu_uniform_apply (const char *bg, const char *fg, const char *sel_bg, const char *sel_fg)
+{
+	GdkScreen *screen = gdk_screen_get_default ();
+	char *css;
+
+	if (!screen)
+		return;
+
+	css = g_strdup_printf (theme_gtk3_menu_uniform_template, bg, fg, sel_bg, sel_fg, fg);
+	if (!theme_gtk3_menu_uniform_provider)
+		theme_gtk3_menu_uniform_provider = gtk_css_provider_new ();
+	gtk_css_provider_load_from_data (theme_gtk3_menu_uniform_provider, css, -1, NULL);
+	gtk_style_context_add_provider_for_screen (screen,
+		GTK_STYLE_PROVIDER (theme_gtk3_menu_uniform_provider),
+		THEME_GTK3_MENU_UNIFORM_PRIORITY);
+	g_free (css);
+}
+
+static void
+theme_gtk3_chrome_provider_remove (void)
+{
+	GdkScreen *screen = gdk_screen_get_default ();
+
+	if (!screen)
+		return;
+
+	if (theme_gtk3_chrome_provider)
+		gtk_style_context_remove_provider_for_screen (screen,
+			GTK_STYLE_PROVIDER (theme_gtk3_chrome_provider));
+	if (theme_gtk3_menu_uniform_provider)
+		gtk_style_context_remove_provider_for_screen (screen,
+			GTK_STYLE_PROVIDER (theme_gtk3_menu_uniform_provider));
+}
+
 static void
 theme_gtk3_remove_provider (void)
 {
 	GdkScreen *screen = gdk_screen_get_default ();
 	guint i;
 
+	theme_gtk3_chrome_provider_remove ();
 	if (screen && theme_gtk3_providers_variant)
 	{
 		for (i = 0; i < theme_gtk3_providers_variant->len; i++)
@@ -866,6 +1095,7 @@ load_css_with_variant (ZoitechatGtk3Theme *theme, ThemeGtk3Variant variant, GErr
 	}
 
 	g_ptr_array_unref (chain);
+	theme_gtk3_chrome_provider_apply (prefer_dark);
 	settings_apply_for_variant (variant);
 	theme_gtk3_reset_widgets ();
 	theme_gtk3_active = TRUE;
@@ -876,23 +1106,34 @@ static gboolean
 theme_gtk3_apply_internal (const char *theme_id, ThemeGtk3Variant variant, gboolean force_reload, GError **error)
 {
 	ZoitechatGtk3Theme *theme;
-	char *previous_id = g_strdup (theme_gtk3_current_id);
-	ThemeGtk3Variant previous_variant = theme_gtk3_current_variant;
-	gboolean had_previous = theme_gtk3_active && previous_id && previous_id[0];
+	char *previous_id;
+	ThemeGtk3Variant previous_variant;
+	gboolean had_previous;
 	gboolean ok;
+
+	theme = zoitechat_gtk3_theme_find_by_id (theme_id);
+	if (!theme)
+		return g_set_error_literal (error, G_FILE_ERROR, G_FILE_ERROR_NOENT, "GTK3 theme not found."), FALSE;
+
+	/* An explicitly selected in-app theme pins the rendering to that
+	 * theme: it must not flip with the OS light/dark preference.  Legacy
+	 * configs still carry FOLLOW_SYSTEM (the pre-inference default), so
+	 * resolve it to the variant the theme itself provides. */
+	if (variant == THEME_GTK3_VARIANT_FOLLOW_SYSTEM)
+		variant = theme_gtk3_infer_variant (theme);
 
 	if (!force_reload &&
 		theme_gtk3_active &&
 		g_strcmp0 (theme_gtk3_current_id, theme_id) == 0 &&
 		theme_gtk3_current_variant == variant)
-		return TRUE;
-
-	theme = zoitechat_gtk3_theme_find_by_id (theme_id);
-	if (!theme)
 	{
-		g_free (previous_id);
-		return g_set_error_literal (error, G_FILE_ERROR, G_FILE_ERROR_NOENT, "GTK3 theme not found."), FALSE;
+		zoitechat_gtk3_theme_free (theme);
+		return TRUE;
 	}
+
+	previous_id = g_strdup (theme_gtk3_current_id);
+	previous_variant = theme_gtk3_current_variant;
+	had_previous = theme_gtk3_active && previous_id && previous_id[0];
 
 	theme_gtk3_remove_provider ();
 	if (force_reload)
@@ -961,6 +1202,12 @@ void
 theme_gtk3_disable (void)
 {
 	theme_gtk3_remove_provider ();
+	g_clear_object (&theme_gtk3_chrome_provider);
+	g_clear_pointer (&theme_gtk3_theme_colors, g_hash_table_destroy);
+	/* Following the system theme: keep the menu bar body and the menu
+	 * items on one surface too, using the system's own colors. */
+	theme_gtk3_menu_uniform_apply ("@theme_bg_color", "@theme_fg_color",
+				       "@theme_selected_bg_color", "@theme_selected_fg_color");
 	g_clear_pointer (&theme_gtk3_current_id, g_free);
 	theme_gtk3_invalidate_provider_cache ();
 	g_clear_pointer (&theme_gtk3_provider_cache, g_hash_table_destroy);
@@ -989,4 +1236,14 @@ gboolean
 theme_gtk3_is_active (void)
 {
 	return theme_gtk3_active;
+}
+
+ThemeGtk3Variant
+theme_gtk3_active_variant (void)
+{
+	/* Always resolved to PREFER_LIGHT or PREFER_DARK while a theme is
+	 * active; FOLLOW_SYSTEM only when no in-app theme is applied. */
+	if (!theme_gtk3_active)
+		return THEME_GTK3_VARIANT_FOLLOW_SYSTEM;
+	return theme_gtk3_current_variant;
 }

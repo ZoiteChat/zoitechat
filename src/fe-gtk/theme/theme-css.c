@@ -60,6 +60,12 @@ typedef struct
 static GtkCssProvider *theme_css_input_provider;
 static ThemeCssInputFingerprint theme_css_input_fp;
 
+const char *
+theme_css_palette_class_name (void)
+{
+	return theme_css_selector_palette_class;
+}
+
 void
 theme_css_apply_app_provider (GtkStyleProvider *provider)
 {
