@@ -796,15 +796,11 @@ userlist_store_color (GtkListStore *store, GtkTreeIter *iter, ThemeSemanticToken
 	}
 }
 
-GtkListStore *
-userlist_create_model (session *sess)
+static void
+userlist_model_set_sort (GtkListStore *store, session *sess)
 {
-	GtkListStore *store;
 	GtkTreeIterCompareFunc cmp_func;
 	GtkSortType sort_type;
-
-	store = gtk_list_store_new (6, GDK_TYPE_PIXBUF, G_TYPE_STRING, G_TYPE_STRING,
-										G_TYPE_STRING, G_TYPE_POINTER, THEME_GTK_COLOR_TYPE);
 
 	switch (prefs.hex_gui_ulist_sort)
 	{
@@ -825,16 +821,75 @@ userlist_create_model (session *sess)
 		sort_type = GTK_SORT_DESCENDING;
 		break;
 	default:
-		/* No sorting */
+		/* No sorting; rows keep their current order and new rows
+		   go wherever they are inserted */
+		gtk_tree_sortable_set_sort_column_id (GTK_TREE_SORTABLE(store),
+							GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID, GTK_SORT_ASCENDING);
 		gtk_tree_sortable_set_default_sort_func (GTK_TREE_SORTABLE(store), NULL, NULL, NULL);
-		return store;
+		return;
 	}
 
 	gtk_tree_sortable_set_default_sort_func (GTK_TREE_SORTABLE(store), cmp_func, sess, NULL);
 	gtk_tree_sortable_set_sort_column_id (GTK_TREE_SORTABLE(store),
 						GTK_TREE_SORTABLE_DEFAULT_SORT_COLUMN_ID, sort_type);
+}
+
+GtkListStore *
+userlist_create_model (session *sess)
+{
+	GtkListStore *store;
+
+	store = gtk_list_store_new (6, GDK_TYPE_PIXBUF, G_TYPE_STRING, G_TYPE_STRING,
+										G_TYPE_STRING, G_TYPE_POINTER, THEME_GTK_COLOR_TYPE);
+	userlist_model_set_sort (store, sess);
 
 	return store;
+}
+
+void
+userlist_apply_sort (session *sess)
+{
+	if (!sess->res || !sess->res->user_model)
+		return;
+
+	userlist_model_set_sort (sess->res->user_model, sess);
+}
+
+/* remove and re-insert every row, so per-row content that depends on
+ * preferences (mode icons vs. text prefixes, hostnames) is rebuilt */
+void
+userlist_refill (session *sess)
+{
+	GtkTreeModel *model;
+	GtkTreeIter iter;
+	GSList *users = NULL;
+	GSList *it;
+	struct User *user;
+
+	if (!sess->res || !sess->res->user_model)
+		return;
+
+	model = GTK_TREE_MODEL (sess->res->user_model);
+	if (gtk_tree_model_get_iter_first (model, &iter))
+	{
+		do
+		{
+			gtk_tree_model_get (model, &iter, COL_USER, &user, -1);
+			if (user)
+				users = g_slist_prepend (users, user);
+		}
+		while (gtk_tree_model_iter_next (model, &iter));
+	}
+
+	fe_userlist_clear (sess);
+
+	/* fe_userlist_insert() prepends, so inserting in reverse display
+	   order restores the on-screen order for unsorted lists; sorted
+	   models position the rows themselves */
+	for (it = users; it; it = it->next)
+		fe_userlist_insert (sess, it->data, FALSE);
+
+	g_slist_free (users);
 }
 
 static void
@@ -904,6 +959,23 @@ userlist_add_columns (GtkTreeView * treeview)
 								G_CALLBACK (userlist_column_width_notify_cb),
 								&prefs.hex_gui_ulist_host_width);
 	}
+}
+
+void
+userlist_rebuild_columns (GtkWidget *treeview)
+{
+	GList *columns;
+	GList *it;
+
+	if (!treeview)
+		return;
+
+	columns = gtk_tree_view_get_columns (GTK_TREE_VIEW (treeview));
+	for (it = columns; it; it = it->next)
+		gtk_tree_view_remove_column (GTK_TREE_VIEW (treeview), it->data);
+	g_list_free (columns);
+
+	userlist_add_columns (GTK_TREE_VIEW (treeview));
 }
 
 static gint

@@ -106,6 +106,11 @@ typedef struct
         gboolean staged_dirty[THEME_TOKEN_COUNT];
         GdkRGBA snapshot[THEME_TOKEN_COUNT];
         GdkRGBA staged[THEME_TOKEN_COUNT];
+        /* the GTK3 theme selection is previewed live from the combo, so
+         * remember what was active when the dialog opened in order to
+         * restore it when the dialog is cancelled */
+        char gtk3_theme_snapshot[sizeof ((struct zoitechatprefs *) 0)->hex_gui_gtk3_theme];
+        int gtk3_variant_snapshot;
 } theme_preferences_stage_state;
 
 static theme_preferences_stage_state theme_preferences_stage;
@@ -204,6 +209,11 @@ theme_preferences_stage_begin (void)
         memset (&theme_preferences_stage, 0, sizeof (theme_preferences_stage));
         theme_preferences_stage.active = TRUE;
 
+        g_strlcpy (theme_preferences_stage.gtk3_theme_snapshot,
+                   prefs.hex_gui_gtk3_theme,
+                   sizeof (theme_preferences_stage.gtk3_theme_snapshot));
+        theme_preferences_stage.gtk3_variant_snapshot = prefs.hex_gui_gtk3_variant;
+
         for (token = THEME_TOKEN_MIRC_0; token < THEME_TOKEN_COUNT; token++)
         {
                 GdkRGBA rgba;
@@ -237,12 +247,36 @@ theme_preferences_stage_commit (void)
         memset (&theme_preferences_stage, 0, sizeof (theme_preferences_stage));
 }
 
+/* undo a live GTK3 theme preview: put the selection that was active when
+ * the dialog opened back and re-apply it */
+static void
+theme_preferences_stage_restore_gtk3 (void)
+{
+        if (g_strcmp0 (prefs.hex_gui_gtk3_theme, theme_preferences_stage.gtk3_theme_snapshot) == 0 &&
+            prefs.hex_gui_gtk3_variant == theme_preferences_stage.gtk3_variant_snapshot)
+                return;
+
+        g_strlcpy (prefs.hex_gui_gtk3_theme,
+                   theme_preferences_stage.gtk3_theme_snapshot,
+                   sizeof (prefs.hex_gui_gtk3_theme));
+        prefs.hex_gui_gtk3_variant = theme_preferences_stage.gtk3_variant_snapshot;
+
+        theme_gtk3_apply_current (NULL);
+        theme_manager_dispatch_changed (THEME_CHANGED_REASON_THEME_PACK |
+                                        THEME_CHANGED_REASON_PALETTE |
+                                        THEME_CHANGED_REASON_WIDGET_STYLE |
+                                        THEME_CHANGED_REASON_USERLIST |
+                                        THEME_CHANGED_REASON_MODE);
+}
+
 void
 theme_preferences_stage_discard (void)
 {
         if (!theme_preferences_stage.active)
                 return;
 
+        /* restore the GTK3 theme first so the color snapshot below wins */
+        theme_preferences_stage_restore_gtk3 ();
         theme_preferences_stage_sync_runtime_to_snapshot ();
         memset (&theme_preferences_stage, 0, sizeof (theme_preferences_stage));
 }

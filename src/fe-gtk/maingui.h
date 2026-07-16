@@ -37,6 +37,24 @@ GtkWidget *mg_create_generic_tab (char *name, char *title, int force_toplevel, i
 void mg_set_title (GtkWidget *button, char *title);
 void mg_set_access_icon (session_gui *gui, GdkPixbuf *pix, gboolean away);
 void mg_apply_setup (void);
+
+/* which parts of the GUI need a live rebuild after a preferences change */
+typedef struct
+{
+	unsigned int chanview:1;			/* rebuild the tab bar / channel tree */
+	unsigned int tab_resort:1;		/* re-sort channel tabs */
+	unsigned int tab_trunc:1;			/* re-truncate tab labels */
+	unsigned int ulist_columns:1;	/* rebuild user list columns */
+	unsigned int ulist_rows:1;		/* re-fill user list rows */
+	unsigned int ulist_sort:1;		/* re-apply user list sort order */
+	unsigned int ulist_count:1;		/* user count label visibility */
+	unsigned int meters:1;				/* rebuild lag/throttle meters */
+	unsigned int input_box:1;			/* nick box visibility and access icon */
+	unsigned int topic_bar:1;			/* topic wrap mode and mode button placement */
+	unsigned int transparency:1;	/* main window opacity */
+} mg_live_prefs;
+
+void mg_apply_live_prefs (const mg_live_prefs *changes);
 void mg_apply_session_font_prefs (session_gui *gui);
 void mg_close_sess (session *);
 void mg_tab_close (session *sess);

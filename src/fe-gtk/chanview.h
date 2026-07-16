@@ -34,6 +34,10 @@ void chanview_set_callbacks (chanview *cv,
 	gboolean (*cb_contextmenu) (chanview *, chan *, int tag, void *userdata, GdkEventButton *),
 	int (*cb_compare) (void *a, void *b));
 void chanview_set_impl (chanview *cv, int type);
+void chanview_set_sorted (chanview *cv, gboolean sorted);
+void chanview_set_use_icons (chanview *cv, gboolean use_icons);
+void chanview_set_trunc_len (chanview *cv, int trunc_len);
+void chanview_resort (chanview *cv);
 chan *chanview_add (chanview *cv, char *name, void *family, void *userdata, gboolean allow_closure, int tag, GdkPixbuf *icon);
 int chanview_get_size (chanview *cv);
 GtkWidget *chanview_get_box (chanview *cv);

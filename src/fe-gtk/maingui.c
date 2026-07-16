@@ -569,6 +569,18 @@ mg_create_tab_colors (void)
         away_list = mg_attr_list_create (&gui_palette[THEME_TOKEN_TAB_AWAY], FALSE);
 }
 
+static PangoAttrList *
+mg_attr_list_for_tab_state (int state)
+{
+        if (state & TAB_STATE_NEW_HILIGHT)
+                return nickseen_list;
+        if (state & TAB_STATE_NEW_MSG)
+                return newmsg_list;
+        if (state & TAB_STATE_NEW_DATA)
+                return newdata_list;
+        return plain_list;
+}
+
 static void
 set_window_urgency (GtkWidget *win, gboolean set)
 {
@@ -714,7 +726,10 @@ mg_set_access_icon (session_gui *gui, GdkPixbuf *pix, gboolean away)
 {
         if (gui->op_xpm)
         {
-                if (pix == gtk_image_get_pixbuf (GTK_IMAGE (gui->op_xpm))) /* no change? */
+                /* no change? (the pref check makes sure a live settings
+                   change can still remove the icon) */
+                if (pix == gtk_image_get_pixbuf (GTK_IMAGE (gui->op_xpm)) &&
+                         prefs.hex_gui_input_icon)
                 {
                         mg_set_myself_away (gui, away);
                         return;
@@ -3596,6 +3611,48 @@ mg_create_topicbar (session *sess, GtkWidget *box)
 	mg_create_chanmodebuttons (gui, bbox);
 }
 
+/* re-apply the multi-line topic and inline mode button preferences to an
+ * already built topic bar (see mg_create_topicbar () for the layout) */
+
+static void
+mg_update_topicbar_layout (session_gui *gui)
+{
+	GtkWidget *topic = gui->topic_entry;
+	GtkWidget *vbox = gui->topic_bar;
+	GtkWidget *topic_scroll;
+	GtkWidget *hbox;
+	GtkWidget *mode_hbox;
+	GtkWidget *desired_parent;
+	GtkWidget *current_parent;
+	gboolean wrap;
+
+	if (!topic || !GTK_IS_TEXT_VIEW (topic) || !vbox || !gui->topicbutton_box)
+		return;
+
+	wrap = prefs.hex_gui_topicbar_multiline && !prefs.hex_gui_mode_buttons_inline;
+	gtk_text_view_set_wrap_mode (GTK_TEXT_VIEW (topic),
+		wrap ? GTK_WRAP_WORD_CHAR : GTK_WRAP_NONE);
+
+	topic_scroll = gtk_widget_get_parent (topic);
+	hbox = topic_scroll ? gtk_widget_get_parent (topic_scroll) : NULL;
+	mode_hbox = gtk_widget_get_parent (gui->topicbutton_box);
+
+	if (mode_hbox && hbox)
+	{
+		desired_parent = prefs.hex_gui_mode_buttons_inline ? hbox : vbox;
+		current_parent = gtk_widget_get_parent (mode_hbox);
+		if (current_parent && current_parent != desired_parent)
+		{
+			g_object_ref (mode_hbox);
+			gtk_container_remove (GTK_CONTAINER (current_parent), mode_hbox);
+			gtk_box_pack_start (GTK_BOX (desired_parent), mode_hbox, 0, 0, 0);
+			g_object_unref (mode_hbox);
+		}
+	}
+
+	mg_topicbar_update_height (topic);
+}
+
 /* check if a word is clickable */
 
 static int
@@ -4004,8 +4061,12 @@ mg_create_userlist (session_gui *gui, GtkWidget *box)
         gtk_widget_set_margin_end (gui->namelistinfo, 0);
         gtk_widget_set_hexpand (gui->namelistinfo, TRUE);
         gtk_widget_set_halign (gui->namelistinfo, GTK_ALIGN_FILL);
+        /* always pack it so the preference can be toggled without a
+           restart; visibility is controlled explicitly */
+        gtk_widget_set_no_show_all (gui->namelistinfo, TRUE);
+        gtk_box_pack_start (GTK_BOX (vbox), gui->namelistinfo, 0, 0, 0);
         if (prefs.hex_gui_ulist_count)
-                gtk_box_pack_start (GTK_BOX (vbox), gui->namelistinfo, 0, 0, 0);
+                gtk_widget_show (gui->namelistinfo);
 
         gui->user_tree = ulist = userlist_create (vbox);
 
@@ -5233,6 +5294,10 @@ mg_apply_setup (void)
                 sess = list->data;
                 gtk_xtext_set_time_stamp (sess->res->buffer, prefs.hex_stamp_text);
                 ((xtext_buffer *)sess->res->buffer)->needs_recalc = TRUE;
+                /* the attribute lists were just recreated, so re-apply the
+                   color matching each tab's activity state */
+                if (sess->res->tab)
+                        chan_set_color (sess->res->tab, mg_attr_list_for_tab_state (sess->tab_state));
                 if (!sess->gui->is_tab || !done_main)
                         mg_place_userlist_and_chanview (sess->gui);
                 if (sess->gui->is_tab)
@@ -5275,6 +5340,49 @@ fe_buttons_update (session *sess)
                 gtk_widget_hide (sess->gui->button_box);
 }
 
+/* tab label for a session that has no joined channel: the channel we are
+ * waiting to join in parentheses, or "<none>". tbuf must hold CHANLEN+6. */
+
+static void
+mg_tab_pending_name (session *sess, char *tbuf)
+{
+        if (sess->waitchannel[0])
+        {
+                if (prefs.hex_gui_tab_trunc > 2 && g_utf8_strlen (sess->waitchannel, -1) > prefs.hex_gui_tab_trunc)
+                {
+                        /* truncate long channel names */
+                        tbuf[0] = '(';
+                        strcpy (tbuf + 1, sess->waitchannel);
+                        g_utf8_offset_to_pointer(tbuf, prefs.hex_gui_tab_trunc)[0] = 0;
+                        strcat (tbuf, "..)");
+                } else
+                {
+                        sprintf (tbuf, "(%s)", sess->waitchannel);
+                }
+        }
+        else
+                strcpy (tbuf, _("<none>"));
+}
+
+/* re-apply the tab label truncation preference to a session's tab */
+
+static void
+mg_retrunc_tab (session *sess)
+{
+        char tbuf[CHANLEN+6];
+
+        if (!sess->res->tab)
+                return;
+
+        if (sess->channel[0])
+                chan_rename (sess->res->tab, sess->channel, prefs.hex_gui_tab_trunc);
+        else
+        {
+                mg_tab_pending_name (sess, tbuf);
+                chan_rename (sess->res->tab, tbuf, prefs.hex_gui_tab_trunc);
+        }
+}
+
 void
 fe_clear_channel (session *sess)
 {
@@ -5283,22 +5391,7 @@ fe_clear_channel (session *sess)
 
         if (sess->gui->is_tab)
         {
-                if (sess->waitchannel[0])
-                {
-                        if (prefs.hex_gui_tab_trunc > 2 && g_utf8_strlen (sess->waitchannel, -1) > prefs.hex_gui_tab_trunc)
-                        {
-                                /* truncate long channel names */
-                                tbuf[0] = '(';
-                                strcpy (tbuf + 1, sess->waitchannel);
-                                g_utf8_offset_to_pointer(tbuf, prefs.hex_gui_tab_trunc)[0] = 0;
-                                strcat (tbuf, "..)");
-                        } else
-                        {
-                                sprintf (tbuf, "(%s)", sess->waitchannel);
-                        }
-                }
-                else
-                        strcpy (tbuf, _("<none>"));
+                mg_tab_pending_name (sess, tbuf);
                 chan_rename (sess->res->tab, tbuf, prefs.hex_gui_tab_trunc);
         }
 
@@ -5420,6 +5513,110 @@ fe_set_channel (session *sess)
 {
         if (sess->res->tab != NULL)
                 chan_rename (sess->res->tab, sess->channel, prefs.hex_gui_tab_trunc);
+}
+
+static void
+mg_apply_live_prefs_to_gui (session_gui *gui, session *sess, const mg_live_prefs *changes)
+{
+        if (changes->meters)
+                mg_update_meters (gui);
+
+        if (changes->ulist_columns && gui->user_tree)
+                userlist_rebuild_columns (gui->user_tree);
+
+        if (changes->ulist_count && gui->namelistinfo)
+        {
+                if (prefs.hex_gui_ulist_count)
+                        gtk_widget_show (gui->namelistinfo);
+                else
+                        gtk_widget_hide (gui->namelistinfo);
+        }
+
+        if (changes->input_box && gui->nick_box)
+        {
+                if (prefs.hex_gui_input_nick)
+                        gtk_widget_show (gui->nick_box);
+                else
+                        gtk_widget_hide (gui->nick_box);
+        }
+
+        /* refresh the access icon; re-filling the user list rows can
+           clear it as a side effect, so restore it here too */
+        if ((changes->input_box || changes->ulist_rows) && sess && is_session (sess))
+        {
+                if (sess->type == SESS_DIALOG)
+                        mg_set_access_icon (gui, NULL, sess->server->is_away);
+                else
+                        mg_set_access_icon (gui, get_user_icon (sess->server, sess->me), sess->server->is_away);
+        }
+
+        if (changes->topic_bar)
+                mg_update_topicbar_layout (gui);
+
+        if (changes->transparency && gui->window)
+                gtk_widget_set_opacity (gui->window, (prefs.hex_gui_transparency / 255.));
+}
+
+/* apply preference changes that used to require a restart. called by
+ * setup.c after the new prefs have been committed. */
+
+void
+mg_apply_live_prefs (const mg_live_prefs *changes)
+{
+        GSList *list;
+        session *sess;
+        int done_main = FALSE;
+
+        if (!changes)
+                return;
+
+        /* the tab bar / channel tree lives in the shared tab window */
+        if (mg_gui && mg_gui->chanview)
+        {
+                if (changes->tab_resort)
+                {
+                        chanview_set_sorted (mg_gui->chanview, prefs.hex_gui_tab_sort);
+                        chanview_resort (mg_gui->chanview);
+                }
+                if (changes->tab_trunc)
+                        chanview_set_trunc_len (mg_gui->chanview, prefs.hex_gui_tab_trunc);
+                if (changes->chanview || changes->tab_resort)
+                {
+                        chanview_set_use_icons (mg_gui->chanview,
+                                                                                        prefs.hex_gui_tab_icons && (pix_tree_channel || pix_tree_dialog ||
+                                                                                                                                                                 pix_tree_server || pix_tree_util));
+                        /* rebuild the tab bar / tree widgets from the model */
+                        chanview_set_impl (mg_gui->chanview, prefs.hex_gui_tab_layout);
+                }
+        }
+
+        list = sess_list;
+        while (list)
+        {
+                sess = list->data;
+
+                if (changes->tab_trunc)
+                        mg_retrunc_tab (sess);
+                if (changes->ulist_sort)
+                        userlist_apply_sort (sess);
+                if (changes->ulist_rows)
+                        userlist_refill (sess);
+
+                if (sess->gui->is_tab)
+                {
+                        /* only apply to the shared tab window once, using the
+                           front-most session for session-dependent bits */
+                        if (!done_main)
+                        {
+                                done_main = TRUE;
+                                mg_apply_live_prefs_to_gui (sess->gui, current_tab, changes);
+                        }
+                }
+                else
+                        mg_apply_live_prefs_to_gui (sess->gui, sess, changes);
+
+                list = list->next;
+        }
 }
 
 void

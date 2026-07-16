@@ -307,6 +307,109 @@ chanview_set_impl (chanview *cv, int type)
 		cv->func_focus (cv->focused);
 }
 
+void
+chanview_set_sorted (chanview *cv, gboolean sorted)
+{
+	cv->sorted = sorted ? 1 : 0;
+}
+
+void
+chanview_set_use_icons (chanview *cv, gboolean use_icons)
+{
+	cv->use_icons = use_icons ? 1 : 0;
+}
+
+void
+chanview_set_trunc_len (chanview *cv, int trunc_len)
+{
+	cv->trunc_len = trunc_len;
+}
+
+typedef struct
+{
+	chan *ch;
+	int old_pos;
+} chanview_sort_entry;
+
+/* re-sort the session rows below one parent with cb_compare, leaving
+ * utility rows (tag != 0) in place; mirrors chanview_insert_sorted() */
+static void
+chanview_resort_children (chanview *cv, GtkTreeIter *parent)
+{
+	GtkTreeModel *model = GTK_TREE_MODEL (cv->store);
+	GtkTreeIter iter;
+	chanview_sort_entry *entries;
+	int *positions;
+	gint *new_order;
+	chan *ch;
+	int n, i, j, count;
+
+	n = gtk_tree_model_iter_n_children (model, parent);
+	if (n < 2)
+		return;
+
+	entries = g_new0 (chanview_sort_entry, n);
+	positions = g_new0 (int, n);
+	new_order = g_new0 (gint, n);
+
+	count = 0;
+	for (i = 0; i < n; i++)
+	{
+		new_order[i] = i;
+		if (!gtk_tree_model_iter_nth_child (model, &iter, parent, i))
+			continue;
+		gtk_tree_model_get (model, &iter, COL_CHAN, &ch, -1);
+		if (ch && ch->tag == 0 && ch->userdata)
+		{
+			entries[count].ch = ch;
+			entries[count].old_pos = i;
+			positions[count] = i;
+			count++;
+		}
+	}
+
+	/* stable insertion sort; tab groups stay small so this is cheap */
+	for (i = 1; i < count; i++)
+	{
+		chanview_sort_entry key = entries[i];
+
+		j = i - 1;
+		while (j >= 0 && cv->cb_compare (entries[j].ch->userdata, key.ch->userdata) > 0)
+		{
+			entries[j + 1] = entries[j];
+			j--;
+		}
+		entries[j + 1] = key;
+	}
+
+	for (i = 0; i < count; i++)
+		new_order[positions[i]] = entries[i].old_pos;
+
+	gtk_tree_store_reorder (cv->store, parent, new_order);
+
+	g_free (entries);
+	g_free (positions);
+	g_free (new_order);
+}
+
+/* top-level rows keep their order (insertion never sorts them either);
+ * only the children within each family are sorted */
+void
+chanview_resort (chanview *cv)
+{
+	GtkTreeIter iter;
+
+	if (!cv->cb_compare)
+		return;
+
+	if (gtk_tree_model_get_iter_first (GTK_TREE_MODEL (cv->store), &iter))
+	{
+		do
+			chanview_resort_children (cv, &iter);
+		while (gtk_tree_model_iter_next (GTK_TREE_MODEL (cv->store), &iter));
+	}
+}
+
 static void
 chanview_free_ch (chanview *cv, GtkTreeIter *iter)
 {
