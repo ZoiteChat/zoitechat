@@ -1045,28 +1045,30 @@ setup_create_spin (GtkWidget *table, int row, const setting *set)
         return wid;
 }
 
+static guint setup_trans_apply_tag = 0;
+/* the window opacity the dialog opened with, so cancelling can undo the
+ * live preview done by the slider */
+static int setup_transparency_snapshot;
+
 static gint
-setup_apply_trans (int *tag)
+setup_apply_trans (gpointer userdata)
 {
         prefs.hex_gui_transparency = setup_prefs.hex_gui_transparency;
-        gtk_widget_set_opacity (current_sess->gui->window,
-                                                        (prefs.hex_gui_transparency / 255.));
+        if (current_sess)
+                gtk_widget_set_opacity (current_sess->gui->window,
+                                                                (prefs.hex_gui_transparency / 255.));
 
-        *tag = 0;
+        setup_trans_apply_tag = 0;
         return 0;
 }
 
 static void
 setup_hscale_cb (GtkRange *wid, const setting *set)
 {
-        static int tag = 0;
-
         setup_set_int (&setup_prefs, set, (int) gtk_range_get_value (wid));
 
-        if (tag == 0)
-        {
-                tag = g_idle_add ((GSourceFunc) setup_apply_trans, &tag);
-        }
+        if (setup_trans_apply_tag == 0)
+                setup_trans_apply_tag = g_idle_add ((GSourceFunc) setup_apply_trans, NULL);
 }
 
 static void
@@ -1091,7 +1093,8 @@ setup_create_hscale (GtkWidget *table, int row, const setting *set)
 
 #ifndef WIN32 /* Windows always supports this */
         /* Only used for transparency currently */
-        if (!gdk_screen_is_composited (gtk_widget_get_screen (current_sess->gui->window)))
+        if (current_sess &&
+                 !gdk_screen_is_composited (gtk_widget_get_screen (current_sess->gui->window)))
                 gtk_widget_set_sensitive (wid, FALSE);
 #endif
 }
@@ -2293,7 +2296,9 @@ setup_apply (struct zoitechatprefs *pr)
 	ThemeChangedEvent event;
 	struct zoitechatprefs old_prefs = prefs;
 	int old_dark_mode = prefs.hex_gui_dark_mode;
+	mg_live_prefs live_changes;
 
+	memset (&live_changes, 0, sizeof (live_changes));
 
 #define DIFF(a) (pr->a != prefs.a)
 
@@ -2301,40 +2306,49 @@ setup_apply (struct zoitechatprefs *pr)
         if (DIFF (hex_gui_lang))
                 noapply = TRUE;
 #endif
-        if (DIFF (hex_gui_compact))
-                noapply = TRUE;
-        if (DIFF (hex_gui_input_icon))
-                noapply = TRUE;
-        if (DIFF (hex_gui_input_nick))
-                noapply = TRUE;
-        if (DIFF (hex_gui_lagometer))
-                noapply = TRUE;
-        if (DIFF (hex_gui_mode_buttons_inline))
-                noapply = TRUE;
-        if (DIFF (hex_gui_tab_icons))
-                noapply = TRUE;
-        if (DIFF (hex_gui_tab_closebuttons))
-                noapply = TRUE;
+        /* server tabs are only created when a connection is opened, so
+           existing connections keep their current tabs until a restart;
+           the channel tree indentation is still re-applied below */
         if (DIFF (hex_gui_tab_server))
+        {
                 noapply = TRUE;
-        if (DIFF (hex_gui_tab_small))
-                noapply = TRUE;
+                live_changes.chanview = TRUE;
+        }
+
+        if (DIFF (hex_gui_compact))
+        {
+                live_changes.chanview = TRUE;
+                live_changes.ulist_columns = TRUE;
+        }
+        if (DIFF (hex_gui_input_icon) || DIFF (hex_gui_input_nick))
+                live_changes.input_box = TRUE;
+        if (DIFF (hex_gui_lagometer) || DIFF (hex_gui_throttlemeter))
+                live_changes.meters = TRUE;
+        if (DIFF (hex_gui_mode_buttons_inline) || DIFF (hex_gui_topicbar_multiline))
+                live_changes.topic_bar = TRUE;
+        if (DIFF (hex_gui_tab_icons) || DIFF (hex_gui_tab_closebuttons) ||
+                 DIFF (hex_gui_tab_small))
+                live_changes.chanview = TRUE;
         if (DIFF (hex_gui_tab_sort))
-                noapply = TRUE;
+                live_changes.tab_resort = TRUE;
         if (DIFF (hex_gui_tab_trunc))
-                noapply = TRUE;
-        if (DIFF (hex_gui_throttlemeter))
-                noapply = TRUE;
-        if (DIFF (hex_gui_topicbar_multiline))
-                noapply = TRUE;
+                live_changes.tab_trunc = TRUE;
         if (DIFF (hex_gui_ulist_count))
-                noapply = TRUE;
+                live_changes.ulist_count = TRUE;
         if (DIFF (hex_gui_ulist_icons))
-                noapply = TRUE;
+                live_changes.ulist_rows = TRUE;
         if (DIFF (hex_gui_ulist_show_hosts))
-                noapply = TRUE;
+        {
+                live_changes.ulist_columns = TRUE;
+                live_changes.ulist_rows = TRUE; /* hostnames may be stale */
+        }
         if (DIFF (hex_gui_ulist_sort))
-                noapply = TRUE;
+                live_changes.ulist_sort = TRUE;
+        /* compare against the pre-dialog value: the slider previews the
+           opacity live on the current window only, so OK still needs to
+           apply it to the other windows */
+        if (pr->hex_gui_transparency != setup_transparency_snapshot)
+                live_changes.transparency = TRUE;
 
         if ((pr->hex_gui_tab_pos == 5 || pr->hex_gui_tab_pos == 6) &&
                  pr->hex_gui_tab_layout == 2 && pr->hex_gui_tab_pos != prefs.hex_gui_tab_pos)
@@ -2378,6 +2392,8 @@ setup_apply (struct zoitechatprefs *pr)
 
 	theme_manager_dispatch_setup_apply (&event);
 
+	mg_apply_live_prefs (&live_changes);
+
         if (noapply)
                 fe_message (_("Some settings were changed that require a"
                                                 " restart to take full effect."), FE_MSG_WARN);
@@ -2410,6 +2426,9 @@ setup_ok_cb (GtkWidget *but, GtkWidget *win)
         if (save_result.success)
         {
                 theme_preferences_stage_commit ();
+                /* the previewed values were accepted, so the close handler
+                   must not revert them */
+                setup_transparency_snapshot = prefs.hex_gui_transparency;
                 gtk_widget_destroy (win);
                 return;
         }
@@ -2472,6 +2491,24 @@ setup_close_cb (GtkWidget *win, GtkWidget **swin)
 {
         *swin = NULL;
 
+        /* drop any pending transparency preview and undo the previewed
+           opacity when the dialog is cancelled; after OK the snapshot
+           was updated so this is a no-op */
+        if (setup_trans_apply_tag)
+        {
+                g_source_remove (setup_trans_apply_tag);
+                setup_trans_apply_tag = 0;
+        }
+        if (prefs.hex_gui_transparency != setup_transparency_snapshot)
+        {
+                mg_live_prefs revert_changes;
+
+                prefs.hex_gui_transparency = setup_transparency_snapshot;
+                memset (&revert_changes, 0, sizeof (revert_changes));
+                revert_changes.transparency = TRUE;
+                mg_apply_live_prefs (&revert_changes);
+        }
+
         theme_preferences_stage_discard ();
 
         if (font_dialog)
@@ -2493,6 +2530,7 @@ setup_open (void)
         memcpy (&setup_prefs, &prefs, sizeof (prefs));
 
         color_change = FALSE;
+        setup_transparency_snapshot = prefs.hex_gui_transparency;
         theme_preferences_stage_begin ();
         setup_window = setup_window_open ();
 
