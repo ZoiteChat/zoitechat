@@ -201,7 +201,7 @@ enum
 #define TAG_IRC 0               /* server, channel, dialog */
 #define TAG_UTIL 1      /* dcc, notify, chanlist */
 
-static void mg_apply_emoji_fallback_widget (GtkWidget *widget);
+static void mg_apply_emoji_fallback_widget (GtkWidget *widget, const PangoFontDescription *font);
 static void mg_reply_show_child (GtkWidget *widget, gpointer data);
 
 #define MG_CONFIG_SAVE_DEBOUNCE_MS 250
@@ -3247,7 +3247,7 @@ mg_create_chanmodebuttons (session_gui *gui, GtkWidget *box)
         gtk_entry_set_max_length (GTK_ENTRY (gui->key_entry), 23);
         gtk_widget_set_size_request (gui->key_entry, 58, 11);
         gtk_box_pack_start (GTK_BOX (box), gui->key_entry, 0, 0, 0);
-        mg_apply_emoji_fallback_widget (gui->key_entry);
+        mg_apply_emoji_fallback_widget (gui->key_entry, NULL);
         mg_apply_compact_mode_css (gui->key_entry);
         g_signal_connect (G_OBJECT (gui->key_entry), "activate",
                                                         G_CALLBACK (mg_key_entry_cb), NULL);
@@ -3265,7 +3265,7 @@ mg_create_chanmodebuttons (session_gui *gui, GtkWidget *box)
 	gtk_entry_set_width_chars (GTK_ENTRY (gui->limit_entry), 5);
         gtk_widget_set_size_request (gui->limit_entry, 45, 11);
         gtk_box_pack_start (GTK_BOX (box), gui->limit_entry, 0, 0, 0);
-        mg_apply_emoji_fallback_widget (gui->limit_entry);
+        mg_apply_emoji_fallback_widget (gui->limit_entry, NULL);
         mg_apply_compact_mode_css (gui->limit_entry);
         g_signal_connect (G_OBJECT (gui->limit_entry), "activate",
                                                         G_CALLBACK (mg_limit_entry_cb), NULL);
@@ -3534,7 +3534,8 @@ mg_apply_session_font_prefs (session_gui *gui)
 	{
 		if (prefs.hex_gui_input_style)
 			theme_manager_apply_entry_palette (gui->input_box, font);
-		mg_apply_emoji_fallback_widget (gui->input_box);
+		mg_apply_emoji_fallback_widget (gui->input_box,
+			prefs.hex_gui_input_style ? font : NULL);
 	}
 
 	if (gui->chanview)
@@ -4426,30 +4427,31 @@ mg_inputbox_rightclick (GtkEntry *entry, GtkWidget *menu)
  *
  * Goal: prefer color emoji fonts when available, without changing existing
  *       font size/style/weight, and without breaking user-configured fonts.
+ *
+ * Pango already routes emoji presentation runs to a color emoji font on its
+ * own, so the base font must NOT list an emoji family explicitly: doing so
+ * hands the emoji font every character its cmap covers, including '#', '*',
+ * digits and adjacent spaces (keycap components), which then render with
+ * wide emoji metrics ("/join #" grows a huge gap in the input box).  Only
+ * Windows 7, which has no color emoji font for Pango to find, gets an
+ * explicit fallback family appended.
  * ------------------------------------------------------------------------- */
 
+#ifdef G_OS_WIN32
 static const char *
 mg_emoji_family_fallback (void)
 {
-#ifdef G_OS_WIN32
         static char family_list[sizeof prefs.hex_text_font_alternative + 32];
 
-        if (!win32_is_windows_8_or_newer ())
+        if (prefs.hex_text_font_alternative[0])
         {
-                if (prefs.hex_text_font_alternative[0])
-                {
-                        g_snprintf (family_list, sizeof family_list, "%s, Segoe UI Symbol", prefs.hex_text_font_alternative);
-                        return family_list;
-                }
-
-                return "Segoe UI Symbol";
+                g_snprintf (family_list, sizeof family_list, "%s, Segoe UI Symbol", prefs.hex_text_font_alternative);
+                return family_list;
         }
 
-        return "Noto Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Apple Color Emoji, Twemoji Mozilla, EmojiOne Color";
-#else
-        return "Noto Color Emoji, Segoe UI Emoji, Apple Color Emoji, Twemoji Mozilla, EmojiOne Color";
-#endif
+        return "Segoe UI Symbol";
 }
+#endif
 
 #ifdef G_OS_WIN32
 /* Only used by the Windows 7 fallback to GTK's built-in emoji chooser */
@@ -4486,6 +4488,7 @@ mg_find_available_icon_name (const char *const *icon_names)
 }
 #endif
 
+#ifdef G_OS_WIN32
 static gboolean
 mg_family_already_has_emoji (const gchar *family)
 {
@@ -4499,44 +4502,40 @@ mg_family_already_has_emoji (const gchar *family)
                (strstr (family, "Twemoji") != NULL) ||
                (strstr (family, "EmojiOne") != NULL);
 }
+#endif
 
 static PangoFontDescription *
-mg_fontdesc_with_fallback (const PangoFontDescription *base_desc, gboolean emoji_first)
+mg_fontdesc_with_fallback (const PangoFontDescription *base_desc)
 {
         PangoFontDescription *desc;
-        const gchar *base_family;
-        gchar *family_list;
 
         if (!base_desc)
                 return NULL;
 
         desc = pango_font_description_copy (base_desc);
-        base_family = pango_font_description_get_family (desc);
 
-        if (mg_family_already_has_emoji (base_family))
-                return desc;
+#ifdef G_OS_WIN32
+        if (!win32_is_windows_8_or_newer ())
+        {
+                const gchar *base_family = pango_font_description_get_family (desc);
+                gchar *family_list;
 
-        if (emoji_first)
-        {
-                family_list = g_strdup_printf ("%s, %s",
-                        mg_emoji_family_fallback (),
-                        (base_family && *base_family) ? base_family : "Sans");
-        }
-        else
-        {
+                if (mg_family_already_has_emoji (base_family))
+                        return desc;
+
                 family_list = g_strdup_printf ("%s, %s",
                         (base_family && *base_family) ? base_family : "Sans",
                         mg_emoji_family_fallback ());
+                pango_font_description_set_family (desc, family_list);
+                g_free (family_list);
         }
-
-        pango_font_description_set_family (desc, family_list);
-        g_free (family_list);
+#endif
 
         return desc;
 }
 
 static void
-mg_apply_emoji_fallback_widget (GtkWidget *widget)
+mg_apply_emoji_fallback_widget (GtkWidget *widget, const PangoFontDescription *font)
 {
         PangoFontDescription *desc;
         GtkStyleContext *context;
@@ -4549,13 +4548,16 @@ mg_apply_emoji_fallback_widget (GtkWidget *widget)
         if (!context)
                 return;
 
-        gtk_style_context_get (context, GTK_STATE_FLAG_NORMAL,
-                               "font", &base_desc,
-                               NULL);
+        if (font)
+                base_desc = pango_font_description_copy (font);
+        else
+                gtk_style_context_get (context, GTK_STATE_FLAG_NORMAL,
+                                       "font", &base_desc,
+                                       NULL);
         if (!base_desc)
                 return;
 
-        desc = mg_fontdesc_with_fallback (base_desc, FALSE);
+        desc = mg_fontdesc_with_fallback (base_desc);
         pango_font_description_free (base_desc);
         if (!desc)
                 return;
@@ -4756,7 +4758,7 @@ mg_create_search(session *sess, GtkWidget *box)
         gui->shentry = entry = gtk_entry_new();
         gtk_box_pack_start(GTK_BOX(gui->shbox), entry, FALSE, FALSE, 0);
         gtk_widget_set_size_request (gui->shentry, 180, -1);
-        mg_apply_emoji_fallback_widget (entry);
+        mg_apply_emoji_fallback_widget (entry, NULL);
         mg_apply_entry_scroll_artifact_fix (entry);
         gui->search_changed_signal = g_signal_connect(G_OBJECT(entry), "changed", G_CALLBACK(search_handle_change), sess);
         g_signal_connect (G_OBJECT (entry), "key-press-event", G_CALLBACK (search_handle_esc), sess);
@@ -4864,7 +4866,8 @@ mg_create_entry (session *sess, GtkWidget *box)
 
         if (prefs.hex_gui_input_style)
                 mg_apply_entry_style (entry);
-        mg_apply_emoji_fallback_widget (entry);
+        mg_apply_emoji_fallback_widget (entry,
+                prefs.hex_gui_input_style && input_style ? input_style->font_desc : NULL);
         mg_apply_entry_scroll_artifact_fix (entry);
 
 #ifdef G_OS_WIN32
