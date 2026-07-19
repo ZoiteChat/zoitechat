@@ -18,6 +18,7 @@ zoitechat_gtk_sources = [
   'custom-list.c',
   'dccgui.c',
   'editlist.c',
+  'emoji-picker.c',
   'fe-gtk.c',
   'fkeys.c',
   'gtkutil.c',

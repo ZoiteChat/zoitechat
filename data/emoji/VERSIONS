@@ -1,0 +1,6 @@
+# Pinned versions of the emoji source data in this directory.
+# Keep in sync with the files themselves; tools/gen-emoji-data.py
+# verifies unicode-emoji against the emoji-test.txt header.
+unicode-emoji=17.0
+cldr=48
+gemoji=4.1.0

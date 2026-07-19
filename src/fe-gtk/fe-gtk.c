@@ -102,6 +102,86 @@ static const GOptionEntry gopt_entries[] =
  {NULL}
 };
 
+/* The emoji font is only bundled with Windows builds; other platforms
+ * rely on the operating system's emoji font (e.g. the distribution's
+ * Noto Color Emoji package on Linux). */
+#ifdef WIN32
+static gunichar2 *win32_private_emoji_font;
+
+static char *
+fe_bundled_emoji_font_path (void)
+{
+	const char *override_path;
+	char *font_path = NULL;
+
+	override_path = g_getenv ("ZOITECHAT_EMOJI_FONT");
+	if (override_path && *override_path)
+		font_path = g_strdup (override_path);
+	else
+	{
+		char *base_path;
+
+		base_path = g_win32_get_package_installation_directory_of_module (NULL);
+		if (base_path)
+		{
+			font_path = g_build_filename (base_path, "share", "fonts",
+			                              "zoitechat", "NotoColorEmoji.ttf", NULL);
+			g_free (base_path);
+		}
+	}
+
+	if (font_path && !g_file_test (font_path, G_FILE_TEST_IS_REGULAR))
+	{
+		g_free (font_path);
+		font_path = NULL;
+	}
+
+	return font_path;
+}
+
+static void
+fe_register_bundled_emoji_font (void)
+{
+	char *font_path;
+
+	/* Windows 7 cannot render color emoji fonts, so the bundled Noto
+	 * Color Emoji font is not registered there; emoji rendering falls
+	 * back to the monochrome Segoe UI Symbol glyphs instead. */
+	if (!win32_is_windows_8_or_newer ())
+	{
+		g_debug ("Windows 7 detected; using Segoe UI Symbol for emoji");
+		return;
+	}
+
+	font_path = fe_bundled_emoji_font_path ();
+	if (!font_path)
+	{
+		g_debug ("Bundled Noto Color Emoji font was not found; using platform font fallback");
+		return;
+	}
+
+	win32_private_emoji_font = g_utf8_to_utf16 (font_path, -1, NULL, NULL, NULL);
+	if (!win32_private_emoji_font ||
+	    AddFontResourceExW ((LPCWSTR) win32_private_emoji_font, FR_PRIVATE, NULL) == 0)
+	{
+		g_warning ("Unable to register bundled emoji font: %s", font_path);
+		g_clear_pointer (&win32_private_emoji_font, g_free);
+	}
+
+	g_free (font_path);
+}
+
+static void
+fe_unregister_bundled_emoji_font (void)
+{
+	if (win32_private_emoji_font)
+	{
+		RemoveFontResourceExW ((LPCWSTR) win32_private_emoji_font, FR_PRIVATE, NULL);
+		g_clear_pointer (&win32_private_emoji_font, g_free);
+	}
+}
+#endif
+
 #ifdef WIN32
 static void
 create_msg_dialog (gchar *title, gchar *message)
@@ -440,6 +520,8 @@ fe_args (int argc, char *argv[])
 	}
 
 #ifdef WIN32
+	fe_register_bundled_emoji_font ();
+
 	win32_set_gsettings_schema_dir ();
 	win32_set_appusermodelid ();
 	win32_configure_pixbuf_loaders ();
@@ -614,6 +696,9 @@ fe_main (void)
 #endif
 
 	gtk_main ();
+#ifdef WIN32
+	fe_unregister_bundled_emoji_font ();
+#endif
 
 	/* sleep for 2 seconds so any QUIT messages are not lost. The  */
 	/* GUI is closed at this point, so the user doesn't even know! */

@@ -47,6 +47,7 @@
 #include "fe-gtk.h"
 #include "xtext.h"
 #include "fkeys.h"
+#include "gtkutil.h"
 #include "theme/theme-access.h"
 
 #define charlen(str) g_utf8_skip[*(guchar *)(str)]
@@ -657,6 +658,93 @@ backend_font_open (GtkXText *xtext, char *name)
 	pango_font_metrics_unref (metrics);
 }
 
+
+#ifdef WIN32
+static gboolean
+xtext_win7_is_emoji_char (gunichar ch)
+{
+	return (ch >= 0x1f000 && ch <= 0x1faff) ||
+	       (ch >= 0x2600 && ch <= 0x27bf) ||
+	       (ch >= 0x2300 && ch <= 0x23ff) ||
+	       (ch >= 0x2b00 && ch <= 0x2bff) ||
+	       (ch >= 0xfe00 && ch <= 0xfe0f) ||
+	       ch == 0x200d;
+}
+
+static const char *
+xtext_win7_emoji_font_family (void)
+{
+	static char family[FONTNAMELEN + 1];
+	static char source[sizeof prefs.hex_text_font_alternative];
+	char **families;
+	int i;
+
+	if (win32_is_windows_8_or_newer ())
+		return NULL;
+
+	if (strcmp (source, prefs.hex_text_font_alternative) == 0 && family[0])
+		return family;
+
+	family[0] = 0;
+	g_strlcpy (source, prefs.hex_text_font_alternative, sizeof source);
+	families = g_strsplit (prefs.hex_text_font_alternative, ",", -1);
+	for (i = 0; families[i]; i++)
+	{
+		char *name = g_strstrip (families[i]);
+
+		if (*name && gtkutil_find_font (name))
+		{
+			g_strlcpy (family, name, sizeof family);
+			break;
+		}
+	}
+	g_strfreev (families);
+
+	if (!family[0] && gtkutil_find_font ("Segoe UI Symbol"))
+		g_strlcpy (family, "Segoe UI Symbol", sizeof family);
+
+	return family[0] ? family : NULL;
+}
+
+static PangoAttrList *
+xtext_win7_emoji_attrs (const char *str, int len, int emphasis)
+{
+	const char *family;
+	const char *p;
+	const char *end;
+	PangoAttrList *attrs = NULL;
+
+	family = xtext_win7_emoji_font_family ();
+	if (!family)
+		return attr_lists[emphasis];
+
+	p = str;
+	end = str + len;
+	while (p < end)
+	{
+		const char *next = g_utf8_next_char (p);
+		gunichar ch = g_utf8_get_char_validated (p, end - p);
+
+		if (ch != (gunichar)-1 && ch != (gunichar)-2 && xtext_win7_is_emoji_char (ch))
+		{
+			PangoAttribute *attr;
+
+			if (!attrs)
+				attrs = pango_attr_list_copy (attr_lists[emphasis]);
+
+			attr = pango_attr_family_new (family);
+			attr->start_index = p - str;
+			attr->end_index = next - str;
+			pango_attr_list_insert (attrs, attr);
+		}
+
+		p = next;
+	}
+
+	return attrs ? attrs : attr_lists[emphasis];
+}
+#endif
+
 static int
 backend_get_text_width_emph (GtkXText *xtext, guchar *str, int len, int emphasis)
 {
@@ -680,8 +768,18 @@ backend_get_text_width_emph (GtkXText *xtext, guchar *str, int len, int emphasis
 			deltaw = fontwidths[emphasis][*str];
 		else
 		{
+#ifdef WIN32
+			PangoAttrList *attrs = xtext_win7_emoji_attrs ((const char *)str, mbl, emphasis);
+
+			pango_layout_set_attributes (xtext->layout, attrs);
+#endif
 			pango_layout_set_text (xtext->layout, str, mbl);
 			pango_layout_get_pixel_size (xtext->layout, &deltaw, NULL);
+#ifdef WIN32
+			if (attrs != attr_lists[emphasis])
+				pango_attr_list_unref (attrs);
+			pango_layout_set_attributes (xtext->layout, attr_lists[emphasis]);
+#endif
 		}
 		width += deltaw;
 		str += mbl;
@@ -715,10 +813,18 @@ backend_draw_text_emph (GtkXText *xtext, gboolean dofill, int x, int y,
 {
 	cairo_t *cr;
 	PangoLayoutLine *line;
+#ifdef WIN32
+	PangoAttrList *attrs;
+#endif
 
 	cr = xtext_create_context (xtext);
 
+#ifdef WIN32
+	attrs = xtext_win7_emoji_attrs (str, len, emphasis);
+	pango_layout_set_attributes (xtext->layout, attrs);
+#else
 	pango_layout_set_attributes (xtext->layout, attr_lists[emphasis]);
+#endif
 	pango_layout_set_text (xtext->layout, str, len);
 
 	if (dofill)
@@ -734,7 +840,10 @@ backend_draw_text_emph (GtkXText *xtext, gboolean dofill, int x, int y,
 	cairo_move_to (cr, x, y);
 	pango_cairo_show_layout_line (cr, line);
 	cairo_restore (cr);
-
+#ifdef WIN32
+	if (attrs != attr_lists[emphasis])
+		pango_attr_list_unref (attrs);
+#endif
 	cairo_destroy (cr);
 }
 
