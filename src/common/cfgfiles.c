@@ -564,6 +564,7 @@ const struct prefs vars[] =
 	{"net_proxy_use", P_OFFINT (hex_net_proxy_use), TYPE_INT},
 	{"net_proxy_user", P_OFFSET (hex_net_proxy_user), TYPE_STR},
 	{"net_reconnect_delay", P_OFFINT (hex_net_reconnect_delay), TYPE_INT},
+	{"net_remote_media", P_OFFINT (hex_net_remote_media), TYPE_BOOL},
 	{"net_throttle", P_OFFINT (hex_net_throttle), TYPE_BOOL},
 
 	{"notify_timeout", P_OFFINT (hex_notify_timeout), TYPE_INT},
@@ -776,6 +777,8 @@ load_default_config(void)
 	prefs.hex_gui_hide_menu = 1;
 #endif
 	prefs.hex_gui_ctrlq_quit = 1;
+	/* hex_net_remote_media stays 0: loading remote media can reveal the
+	   user's IP address, so it is strictly opt-in */
 	prefs.hex_gui_input_attr = 1;
 	prefs.hex_gui_input_icon = 1;
 	prefs.hex_gui_input_nick = 1;

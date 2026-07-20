@@ -23,6 +23,7 @@ zoitechat_gtk_sources = [
   'gtkutil.c',
   'icon-resolver.c',
   'ignoregui.c',
+  'inline-image.c',
   'joind.c',
   'menu.c',
   'maingui.c',

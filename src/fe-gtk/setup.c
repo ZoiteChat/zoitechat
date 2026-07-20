@@ -673,6 +673,11 @@ static const setting network_settings[] =
         {ST_ENTRY,      N_("Username:"), P_OFFSETNL(hex_net_proxy_user), 0, 0, sizeof prefs.hex_net_proxy_user},
         {ST_ENTRY,      N_("Password:"), P_OFFSETNL(hex_net_proxy_pass), 0, GINT_TO_POINTER(1), sizeof prefs.hex_net_proxy_pass},
 
+        {ST_HEADER,     N_("Remote Media"), 0, 0, 0, 0},
+        {ST_TOGGLE,     N_("Allow loading remote media (inline images) when clicked"),
+                                        P_OFFINTNL(hex_net_remote_media),
+                                        N_("Loading remote media contacts the site hosting it, which can reveal your IP address and that you viewed the message. You are asked for confirmation before each new domain is contacted."), 0, 0},
+
         {ST_END, 0, 0, 0, 0, 0}
 };
 
