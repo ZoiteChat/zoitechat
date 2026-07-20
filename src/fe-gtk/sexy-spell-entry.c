@@ -198,14 +198,16 @@ initialize_enchant (void)
     gsize i;
     const char * const libnames[] = {
 #ifdef G_OS_WIN32
+        "libenchant-2.dll",
+        "libenchant-2-2.dll",
         "libenchant.dll",
 #endif
 #ifdef G_OS_UNIX
-        "libenchant.so.1",
         "libenchant.so.2",
         "libenchant-2.so.2",
 #endif
 #ifdef __APPLE__
+        "libenchant-2.dylib",
         "libenchant.dylib",
 #endif
     };
