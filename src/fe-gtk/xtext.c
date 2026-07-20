@@ -92,7 +92,103 @@ struct textentry
 	guchar pad1;
 	guchar pad2;
 	GList *marks;	/* List of found strings */
+	GdkPixbuf *image;	/* inline image shown below the text, or NULL */
+	GdkPixbuf *image_full;	/* larger version for the image viewer */
+	char *image_url;	/* the URL the image was loaded from */
 };
+
+/* inline image display */
+#define XTEXT_IMAGE_PADDING 4
+#define XTEXT_IMAGE_MAX_WIDTH 480
+#define XTEXT_IMAGE_MAX_HEIGHT 360
+#define XTEXT_IMAGE_FULL_MAX_WIDTH 1600
+#define XTEXT_IMAGE_FULL_MAX_HEIGHT 1200
+
+/* an inline image load that has been started but not yet completed;
+   ent/buf/xtext are invalidated (entry removed) when any of them dies */
+typedef struct
+{
+	guint id;
+	GtkXText *xtext;
+	xtext_buffer *buf;
+	textentry *ent;
+	char *url;
+} xtext_image_pending;
+
+static GSList *image_pending_list = NULL;
+static guint image_pending_next_id = 1;
+
+static void
+gtk_xtext_image_pending_forget (gboolean (*match) (xtext_image_pending *, gconstpointer), gconstpointer data)
+{
+	GSList *list = image_pending_list;
+
+	while (list)
+	{
+		GSList *next = list->next;
+		xtext_image_pending *pending = list->data;
+
+		if (match (pending, data))
+		{
+			image_pending_list = g_slist_delete_link (image_pending_list, list);
+			g_free (pending->url);
+			g_free (pending);
+		}
+		list = next;
+	}
+}
+
+static gboolean
+gtk_xtext_image_pending_match_ent (xtext_image_pending *pending, gconstpointer ent)
+{
+	return pending->ent == ent;
+}
+
+static gboolean
+gtk_xtext_image_pending_match_buf (xtext_image_pending *pending, gconstpointer buf)
+{
+	return pending->buf == buf;
+}
+
+static gboolean
+gtk_xtext_image_pending_match_xtext (xtext_image_pending *pending, gconstpointer xtext)
+{
+	return pending->xtext == xtext;
+}
+
+/* number of extra screen lines an entry needs for its inline image */
+
+static int
+gtk_xtext_image_rows (GtkXText *xtext, textentry *ent)
+{
+	if (ent->image == NULL || xtext->fontsize <= 0)
+		return 0;
+
+	return (gdk_pixbuf_get_height (ent->image) + XTEXT_IMAGE_PADDING * 2 +
+			  xtext->fontsize - 1) / xtext->fontsize;
+}
+
+/* free an entry's inline image and drop any pending load aimed at it;
+   must be called whenever a textentry is freed */
+
+static void
+gtk_xtext_ent_free_image (textentry *ent)
+{
+	gtk_xtext_image_pending_forget (gtk_xtext_image_pending_match_ent, ent);
+
+	if (ent->image)
+	{
+		g_object_unref (ent->image);
+		ent->image = NULL;
+	}
+	if (ent->image_full)
+	{
+		g_object_unref (ent->image_full);
+		ent->image_full = NULL;
+	}
+	g_free (ent->image_url);
+	ent->image_url = NULL;
+}
 
 enum
 {
@@ -213,6 +309,7 @@ static gboolean gtk_xtext_search_init (xtext_buffer *buf, const gchar *text, gtk
 static char * gtk_xtext_get_word (GtkXText * xtext, int x, int y, textentry ** ret_ent, int *ret_off, int *ret_len, GSList **slp);
 static gboolean gtk_xtext_word_select_char (const unsigned char *ch);
 static gboolean gtk_xtext_get_word_select_range (GtkXText *xtext, int x, int y, textentry **ret_ent, int *ret_off, int *ret_len);
+static textentry * gtk_xtext_image_hit (GtkXText *xtext, int x, int y);
 
 static inline void
 gtk_xtext_cursor_unref (GdkCursor *cursor)
@@ -1062,6 +1159,8 @@ gtk_xtext_dispose (GObject *object)
 {
 	GtkXText *xtext = GTK_XTEXT (object);
 
+	gtk_xtext_image_pending_forget (gtk_xtext_image_pending_match_xtext, xtext);
+	g_clear_pointer (&xtext->tooltip_url, g_free);
 	gtk_xtext_cleanup (xtext);
 
 	if (G_OBJECT_CLASS (gtk_xtext_parent_class)->dispose)
@@ -1443,7 +1542,7 @@ gtk_xtext_find_x (GtkXText * xtext, int x, textentry * ent, int subline,
 
 	str = ent->str + gtk_xtext_find_subline (xtext, ent, subline);
 	if (str >= ent->str + ent->str_len)
-		return 0;
+		return ent->str_len;	/* e.g. the blank rows of an inline image */
 
 	/* Let user select left a few pixels to grab hidden text e.g. '<' */
 	if (x < indent - xtext->space_width)
@@ -2143,6 +2242,7 @@ gtk_xtext_get_word (GtkXText * xtext, int x, int y, textentry ** ret_ent,
 	int len;
 	int out_of_bounds = 0;
 	int len_to_offset = 0;
+	gboolean has_hidden;
 
 	ent = gtk_xtext_find_char (xtext, x, y, &offset, &out_of_bounds);
 	if (ent == NULL || out_of_bounds || offset < 0 || offset >= ent->str_len)
@@ -2187,10 +2287,15 @@ gtk_xtext_get_word (GtkXText * xtext, int x, int y, textentry ** ret_ent,
 	if (ret_len)
 		*ret_len = len;		/* Length before stripping */
 
+	/* a word with hidden text is a placeholder (e.g. an inline image link
+	   label); its whole visible part acts as the link */
+	has_hidden = memchr (word, ATTR_HIDDEN, len) != NULL;
+
 	word = gtk_xtext_strip_color (word, len, xtext->scratch_buffer, NULL, slp, FALSE);
 
 	/* avoid turning the cursor into a hand for non-url part of the word */
-	if (xtext->urlcheck_function && xtext->urlcheck_function (GTK_WIDGET (xtext), word))
+	if (!has_hidden &&
+		 xtext->urlcheck_function && xtext->urlcheck_function (GTK_WIDGET (xtext), word))
 	{
 		int start, end;
 		url_last (&start, &end);
@@ -2274,11 +2379,42 @@ gtk_xtext_unrender_hilight (GtkXText *xtext)
 	xtext->un_hilight = FALSE;
 }
 
+/* show (or stop showing) the destination URL of a hovered placeholder
+   word as the widget's tooltip */
+
+static void
+gtk_xtext_set_url_tooltip (GtkXText *xtext, const char *url, int url_len)
+{
+	if (url == NULL)
+	{
+		if (xtext->tooltip_url)
+		{
+			g_free (xtext->tooltip_url);
+			xtext->tooltip_url = NULL;
+			gtk_widget_set_tooltip_text (GTK_WIDGET (xtext), NULL);
+			xtext->tooltip_stamp_set = FALSE;
+		}
+		return;
+	}
+
+	if (xtext->tooltip_url &&
+		 strlen (xtext->tooltip_url) == (gsize) url_len &&
+		 memcmp (xtext->tooltip_url, url, url_len) == 0)
+		return;
+
+	g_free (xtext->tooltip_url);
+	xtext->tooltip_url = g_strndup (url, url_len);
+	gtk_widget_set_tooltip_text (GTK_WIDGET (xtext), xtext->tooltip_url);
+	xtext->tooltip_stamp_set = FALSE;
+}
+
 static gboolean
 gtk_xtext_leave_notify (GtkWidget * widget, GdkEventCrossing * event)
 {
 	GtkXText *xtext = GTK_XTEXT (widget);
 	GdkWindow *window = gtk_widget_get_window (widget);
+
+	gtk_xtext_set_url_tooltip (xtext, NULL, 0);
 
 	if (xtext->cursor_hand)
 	{
@@ -2343,6 +2479,7 @@ gtk_xtext_get_word_adjust (GtkXText *xtext, int x, int y, textentry **word_ent, 
 	GSList *slp = NULL;
 	unsigned char *word;
 	int word_type = 0;
+	gboolean placeholder = FALSE;
 
 	word = gtk_xtext_get_word (xtext, x, y, word_ent, offset, len, &slp);
 	if (word)
@@ -2352,7 +2489,18 @@ gtk_xtext_get_word_adjust (GtkXText *xtext, int x, int y, textentry **word_ent, 
 		word_type = xtext->urlcheck_function (GTK_WIDGET (xtext), word);
 		if (word_type > 0)
 		{
-			if (url_last (&laststart, &lastend))
+			/* words with hidden text are placeholders (e.g. inline image
+			   links): hilight the whole word, not just the URL inside it */
+			if (memchr ((*word_ent)->str + *offset, ATTR_HIDDEN, *len))
+			{
+				/* the label hides the real destination, so show the full
+				   URL as a tooltip while hovering */
+				placeholder = TRUE;
+				if (url_last (&laststart, &lastend) && lastend > laststart)
+					gtk_xtext_set_url_tooltip (xtext,
+						(const char *) word + laststart, lastend - laststart);
+			}
+			else if (url_last (&laststart, &lastend))
 			{
 				int cumlen, startadj = 0, endadj = 0;
 				offlen_t *meta;
@@ -2381,6 +2529,9 @@ gtk_xtext_get_word_adjust (GtkXText *xtext, int x, int y, textentry **word_ent, 
 		}
 	}
 	g_slist_free_full (slp, g_free);
+
+	if (!placeholder)
+		gtk_xtext_set_url_tooltip (xtext, NULL, 0);
 
 	return word_type;
 }
@@ -2513,6 +2664,20 @@ gtk_xtext_motion_notify (GtkWidget * widget, GdkEventMotion * event)
 	}
 
 tooltip_check:
+	/* hovering an inline image? it opens the viewer when clicked */
+	if (gtk_xtext_image_hit (xtext, x, y))
+	{
+		if (xtext->hilight_ent)	/* moving here straight from a link */
+			gtk_xtext_leave_notify (widget, NULL);
+		if (!xtext->cursor_hand)
+		{
+			gdk_window_set_cursor (window, xtext->hand_cursor);
+			xtext->cursor_hand = TRUE;
+			xtext->cursor_resize = FALSE;
+		}
+		return FALSE;
+	}
+
 	if (xtext->buffer->time_stamp && xtext->buffer->indent > 0 && x >= 0 && x < xtext->stamp_width)
 	{
 		textentry *ent = gtk_xtext_find_char (xtext, x, y, NULL, NULL);
@@ -2620,6 +2785,46 @@ gtk_xtext_unselect (GtkXText *xtext)
 	xtext->buffer->last_ent_end = NULL;
 }
 
+/* check whether the given widget coordinates hit an entry's inline image;
+   returns the entry if so */
+
+static textentry *
+gtk_xtext_image_hit (GtkXText *xtext, int x, int y)
+{
+	textentry *ent;
+	int line, subline, image_rows, text_rows, rel_y, img_x;
+
+	if (xtext->fontsize <= 0)
+		return NULL;
+
+	/* adjust y value for negative rounding, double to int */
+	if (y < 0)
+		y -= xtext->fontsize;
+
+	line = (y + xtext->pixel_offset) / xtext->fontsize;
+	ent = gtk_xtext_nth (xtext, line + (int) xtext_adj_get_value (xtext->adj),
+								&subline);
+	if (ent == NULL || ent->image == NULL)
+		return NULL;
+
+	image_rows = gtk_xtext_image_rows (xtext, ent);
+	text_rows = ent->subline_count - image_rows;
+	if (subline < text_rows)
+		return NULL;
+
+	img_x = xtext->buffer->indent + XTEXT_IMAGE_PADDING;
+	if (x < img_x || x >= img_x + gdk_pixbuf_get_width (ent->image))
+		return NULL;
+
+	rel_y = (subline - text_rows) * xtext->fontsize +
+		(y + xtext->pixel_offset) - (line * xtext->fontsize) -
+		XTEXT_IMAGE_PADDING;
+	if (rel_y < 0 || rel_y >= gdk_pixbuf_get_height (ent->image))
+		return NULL;
+
+	return ent;
+}
+
 static gboolean
 gtk_xtext_button_release (GtkWidget * widget, GdkEventButton * event)
 {
@@ -2692,8 +2897,15 @@ gtk_xtext_button_release (GtkWidget * widget, GdkEventButton * event)
 
 		if (!gtk_xtext_is_selecting (xtext))
 		{
-			word = gtk_xtext_get_word (xtext, event_x, event_y, 0, 0, 0, 0);
+			textentry *word_ent = NULL;
+
+			word = gtk_xtext_get_word (xtext, event_x, event_y, &word_ent, 0, 0, 0);
+			xtext->clicked_ent = word ? word_ent : NULL;
+			xtext->clicked_image_ent = word ? NULL :
+				gtk_xtext_image_hit (xtext, event_x, event_y);
 			g_signal_emit (G_OBJECT (xtext), xtext_signals[WORD_CLICK], 0, word ? word : NULL, event);
+			xtext->clicked_ent = NULL;
+			xtext->clicked_image_ent = NULL;
 		}
 	}
 
@@ -2720,14 +2932,16 @@ gtk_xtext_button_press (GtkWidget * widget, GdkEventButton * event)
 
 	if (event->button == 3 || event->button == 2) /* right/middle click */
 	{
-		word = gtk_xtext_get_word (xtext, x, y, 0, 0, 0, 0);
+		word = gtk_xtext_get_word (xtext, x, y, &ent, 0, 0, 0);
 		if (word)
 		{
+			xtext->clicked_ent = ent;
 			g_signal_emit (G_OBJECT (xtext), xtext_signals[WORD_CLICK], 0,
 								word, event);
 		} else
 			g_signal_emit (G_OBJECT (xtext), xtext_signals[WORD_CLICK], 0,
 								"", event);
+		xtext->clicked_ent = NULL;
 		return FALSE;
 	}
 
@@ -4105,6 +4319,7 @@ gtk_xtext_render_line (GtkXText * xtext, textentry * ent, int line,
 	unsigned char *str;
 	int indent, taken, entline, len, y, start_subline;
 	int emphasis = 0;
+	int image_rows;
 
 	entline = taken = 0;
 	str = ent->str;
@@ -4174,6 +4389,56 @@ gtk_xtext_render_line (GtkXText * xtext, textentry * ent, int line,
 
 	}
 	while (str < ent->str + ent->str_len);
+
+	/* draw the inline image on its blank rows below the text.  'subline'
+	   still holds the rows left to skip when the page starts inside the
+	   image area (the text loop above only consumes text sublines). */
+	image_rows = gtk_xtext_image_rows (xtext, ent);
+	if (image_rows > 0)
+	{
+		int skip = MIN (subline, image_rows);
+		int rows = image_rows - skip;
+		int first_row_y = (xtext->fontsize * line) - xtext->pixel_offset;
+		int drawn = 0;
+		gboolean render_image = !xtext->dont_render && !xtext->skip_border_fills &&
+			!xtext->render_hilights_only;
+
+		while (rows > 0 && line < lines_max)
+		{
+			y = (xtext->fontsize * line) + xtext->font->ascent - xtext->pixel_offset;
+			if (render_image)
+			{
+				int bg_x = MAX (0, xtext->clip_x);
+				int bg_w = MIN (win_width + MARGIN, xtext->clip_x2) - bg_x;
+
+				if (bg_w > 0)
+					xtext_draw_bg (xtext, bg_x, y - xtext->font->ascent, bg_w, xtext->fontsize);
+				gtk_xtext_draw_sep (xtext, y - xtext->font->ascent);
+			}
+			line++;
+			taken++;
+			rows--;
+			drawn++;
+		}
+
+		if (drawn > 0 && render_image)
+		{
+			/* this may be the shared draw context, so the clip has to be
+			   undone before anything else is rendered with it */
+			cairo_t *cr = xtext_create_context (xtext);
+			int img_x = xtext->buffer->indent + XTEXT_IMAGE_PADDING;
+			int img_y = first_row_y - (skip * xtext->fontsize) + XTEXT_IMAGE_PADDING;
+
+			cairo_save (cr);
+			cairo_rectangle (cr, 0, first_row_y, win_width + MARGIN,
+								  drawn * xtext->fontsize);
+			cairo_clip (cr);
+			gdk_cairo_set_source_pixbuf (cr, ent->image, img_x, img_y);
+			cairo_paint (cr);
+			cairo_restore (cr);
+			cairo_destroy (cr);
+		}
+	}
 
 	gtk_xtext_draw_marker (xtext, ent, y - xtext->fontsize * (taken + start_subline));
 
@@ -4333,6 +4598,7 @@ gtk_xtext_lines_taken (xtext_buffer *buf, textentry * ent)
 	unsigned char *str;
 	int indent, len;
 	int win_width;
+	int image_rows, i;
 
 	g_slist_free (ent->sublines);
 	ent->sublines = NULL;
@@ -4342,21 +4608,27 @@ gtk_xtext_lines_taken (xtext_buffer *buf, textentry * ent)
 	if (win_width >= ent->indent + ent->str_width)
 	{
 		ent->sublines = g_slist_append (ent->sublines, GINT_TO_POINTER (ent->str_len));
-		ent->subline_count = 1;
-		return ent->subline_count;
 	}
-
-	indent = ent->indent;
-	str = ent->str;
-
-	do
+	else
 	{
-		len = find_next_wrap (buf->xtext, ent, str, win_width, indent);
-		ent->sublines = g_slist_append (ent->sublines, GINT_TO_POINTER (str + len - ent->str));
-		indent = buf->indent;
-		str += len;
+		indent = ent->indent;
+		str = ent->str;
+
+		do
+		{
+			len = find_next_wrap (buf->xtext, ent, str, win_width, indent);
+			ent->sublines = g_slist_append (ent->sublines, GINT_TO_POINTER (str + len - ent->str));
+			indent = buf->indent;
+			str += len;
+		}
+		while (str < ent->str + ent->str_len);
 	}
-	while (str < ent->str + ent->str_len);
+
+	/* extra blank rows that make room for an attached inline image;
+	   their offset is str_len, i.e. past the end of the text */
+	image_rows = gtk_xtext_image_rows (buf->xtext, ent);
+	for (i = 0; i < image_rows; i++)
+		ent->sublines = g_slist_append (ent->sublines, GINT_TO_POINTER ((gint) ent->str_len));
 
 	ent->subline_count = g_slist_length (ent->sublines);
 	return ent->subline_count;
@@ -4779,6 +5051,8 @@ gtk_xtext_kill_ent (xtext_buffer *buffer, textentry *ent)
 	ent->sublines = NULL;
 	ent->subline_count = 0;
 
+	gtk_xtext_ent_free_image (ent);
+
 	g_free (ent);
 	return visible;
 }
@@ -4916,6 +5190,7 @@ gtk_xtext_clear (xtext_buffer *buf, int lines)
 		while (buf->text_first)
 		{
 			next = buf->text_first->next;
+			gtk_xtext_ent_free_image (buf->text_first);
 			g_free (buf->text_first);
 			buf->text_first = next;
 		}
@@ -5435,6 +5710,9 @@ gtk_xtext_append_entry (xtext_buffer *buf, textentry * ent, time_t stamp)
 	ent->next = NULL;
 	ent->marks = NULL;
 	ent->subline_count = 0;
+	ent->image = NULL;
+	ent->image_full = NULL;
+	ent->image_url = NULL;
 
 	if (ent->indent < MARGIN)
 		ent->indent = MARGIN;	  /* 2 pixels is the left margin */
@@ -5955,13 +6233,260 @@ gtk_xtext_buffer_free (xtext_buffer *buf)
 		gtk_xtext_search_fini (buf);
 	}
 
+	gtk_xtext_image_pending_forget (gtk_xtext_image_pending_match_buf, buf);
+
 	ent = buf->text_first;
 	while (ent)
 	{
 		next = ent->next;
+		gtk_xtext_ent_free_image (ent);
 		g_free (ent);
 		ent = next;
 	}
 
 	g_free (buf);
+}
+
+/* ========================================= */
+/* ========== INLINE IMAGE API ============= */
+/* ========================================= */
+
+/* the entry the last word_click signal was emitted for; only valid while
+   handling that signal */
+
+textentry *
+gtk_xtext_get_clicked_entry (GtkXText *xtext)
+{
+	return xtext->clicked_ent;
+}
+
+/* the entry whose inline image the last word_click signal (with a NULL
+   word) landed on; only valid while handling that signal */
+
+textentry *
+gtk_xtext_get_clicked_image_entry (GtkXText *xtext)
+{
+	return xtext->clicked_image_ent;
+}
+
+/* check that 'ent' is still an entry of the currently shown buffer; used to
+   validate entry pointers that were remembered across main loop iterations */
+
+gboolean
+gtk_xtext_buffer_contains (GtkXText *xtext, textentry *ent)
+{
+	textentry *walk;
+
+	if (ent == NULL)
+		return FALSE;
+
+	for (walk = xtext->buffer->text_first; walk; walk = walk->next)
+	{
+		if (walk == ent)
+			return TRUE;
+	}
+
+	return FALSE;
+}
+
+gboolean
+gtk_xtext_entry_has_image (GtkXText *xtext, textentry *ent)
+{
+	return ent != NULL && ent->image != NULL;
+}
+
+/* the URL of the entry's attached image, or NULL if it has none */
+
+const char *
+gtk_xtext_entry_get_image_url (GtkXText *xtext, textentry *ent)
+{
+	return ent && ent->image ? ent->image_url : NULL;
+}
+
+/* larger version of the entry's attached image, for the viewer */
+
+GdkPixbuf *
+gtk_xtext_entry_get_full_image (GtkXText *xtext, textentry *ent)
+{
+	if (ent == NULL)
+		return NULL;
+	return ent->image_full ? ent->image_full : ent->image;
+}
+
+/* the entry's subline count changed (image attached or removed):
+   redo its layout, fix the scrollbar and redraw */
+
+static void
+gtk_xtext_image_relayout (GtkXText *xtext, xtext_buffer *buf, textentry *ent)
+{
+	buf->num_lines -= ent->subline_count;
+	buf->num_lines += gtk_xtext_lines_taken (buf, ent);
+	buf->pagetop_ent = NULL;
+	dontscroll (buf);
+
+	if (xtext->buffer == buf)
+	{
+		gtk_xtext_adjustment_set (buf, TRUE);
+		if (buf->scrollbar_down)
+			xtext_adj_set_value (xtext->adj,
+				xtext_adj_get_upper (xtext->adj) -
+				xtext_adj_get_page_size (xtext->adj));
+		if (gtk_widget_get_realized (GTK_WIDGET (xtext)))
+			gtk_widget_queue_draw (GTK_WIDGET (xtext));
+	}
+}
+
+/* scale down (never up) to fit within max_width x max_height */
+
+static GdkPixbuf *
+gtk_xtext_image_scale_max (GdkPixbuf *pixbuf, int max_width, int max_height)
+{
+	int width = gdk_pixbuf_get_width (pixbuf);
+	int height = gdk_pixbuf_get_height (pixbuf);
+	int new_width, new_height;
+	double scale;
+
+	if (width < 1 || height < 1)
+		return NULL;
+
+	if (width <= max_width && height <= max_height)
+		return g_object_ref (pixbuf);
+
+	scale = MIN ((double) max_width / width, (double) max_height / height);
+	new_width = MAX (1, (int) (width * scale));
+	new_height = MAX (1, (int) (height * scale));
+
+	return gdk_pixbuf_scale_simple (pixbuf, new_width, new_height,
+											  GDK_INTERP_BILINEAR);
+}
+
+/* scale down (never up) to fit the usual text area */
+
+static GdkPixbuf *
+gtk_xtext_image_scale (xtext_buffer *buf, GdkPixbuf *pixbuf)
+{
+	int max_width = XTEXT_IMAGE_MAX_WIDTH;
+	int avail;
+
+	avail = buf->window_width - buf->indent - MARGIN - XTEXT_IMAGE_PADDING * 2;
+	if (avail >= 64 && avail < max_width)
+		max_width = avail;
+
+	return gtk_xtext_image_scale_max (pixbuf, max_width, XTEXT_IMAGE_MAX_HEIGHT);
+}
+
+/* register an asynchronous image load for 'ent'.  Returns a handle to pass
+   to gtk_xtext_image_load_finish(), or 0 if the entry already has an image
+   or a load underway. */
+
+guint
+gtk_xtext_image_load_begin (GtkXText *xtext, textentry *ent, const char *url)
+{
+	xtext_image_pending *pending;
+	GSList *list;
+
+	if (ent == NULL || ent->image != NULL)
+		return 0;
+
+	for (list = image_pending_list; list; list = list->next)
+	{
+		pending = list->data;
+		if (pending->ent == ent)
+			return 0;
+	}
+
+	pending = g_new0 (xtext_image_pending, 1);
+	pending->id = image_pending_next_id++;
+	if (image_pending_next_id == 0)	/* skip 0 on wrap, it means failure */
+		image_pending_next_id = 1;
+	pending->xtext = xtext;
+	pending->buf = xtext->buffer;
+	pending->ent = ent;
+	pending->url = g_strdup (url);
+	image_pending_list = g_slist_prepend (image_pending_list, pending);
+
+	return pending->id;
+}
+
+/* complete a load started with gtk_xtext_image_load_begin().  pixbuf may be
+   NULL to abandon the load (e.g. download failed).  Returns TRUE if the
+   image was attached, FALSE if it was dropped (failure, or the entry is
+   gone).  The caller keeps ownership of the pixbuf. */
+
+gboolean
+gtk_xtext_image_load_finish (guint handle, GdkPixbuf *pixbuf)
+{
+	xtext_image_pending *pending = NULL;
+	GSList *list;
+	GdkPixbuf *scaled;
+	GtkXText *xtext;
+	xtext_buffer *buf;
+	textentry *ent;
+
+	if (handle == 0)
+		return FALSE;
+
+	for (list = image_pending_list; list; list = list->next)
+	{
+		xtext_image_pending *walk = list->data;
+		if (walk->id == handle)
+		{
+			pending = walk;
+			break;
+		}
+	}
+
+	if (pending == NULL)	/* entry, buffer or widget died meanwhile */
+		return FALSE;
+
+	xtext = pending->xtext;
+	buf = pending->buf;
+	ent = pending->ent;
+	image_pending_list = g_slist_remove (image_pending_list, pending);
+
+	if (pixbuf == NULL || ent->image != NULL)
+	{
+		g_free (pending->url);
+		g_free (pending);
+		return FALSE;
+	}
+
+	scaled = gtk_xtext_image_scale (buf, pixbuf);
+	if (scaled == NULL)
+	{
+		g_free (pending->url);
+		g_free (pending);
+		return FALSE;
+	}
+
+	ent->image = scaled;
+	ent->image_full = gtk_xtext_image_scale_max (pixbuf,
+		XTEXT_IMAGE_FULL_MAX_WIDTH, XTEXT_IMAGE_FULL_MAX_HEIGHT);
+	ent->image_url = pending->url;	/* transferred */
+	g_free (pending);
+	gtk_xtext_image_relayout (xtext, buf, ent);
+
+	return TRUE;
+}
+
+/* remove an entry's inline image again.  Returns FALSE if it had none. */
+
+gboolean
+gtk_xtext_image_remove (GtkXText *xtext, textentry *ent)
+{
+	if (ent == NULL || ent->image == NULL)
+		return FALSE;
+
+	g_object_unref (ent->image);
+	ent->image = NULL;
+	if (ent->image_full)
+	{
+		g_object_unref (ent->image_full);
+		ent->image_full = NULL;
+	}
+	g_free (ent->image_url);
+	ent->image_url = NULL;
+	gtk_xtext_image_relayout (xtext, xtext->buffer, ent);
+
+	return TRUE;
 }

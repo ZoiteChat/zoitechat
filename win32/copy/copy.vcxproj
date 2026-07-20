@@ -78,6 +78,7 @@
       <Gtk3Immodules Include="$(DepsRoot)\lib\gtk-3.0\3.0.0\immodules\**\*" />
       <Gtk3PrintBackends Include="$(DepsRoot)\lib\gtk-3.0\3.0.0\printbackends\**\*" />
       <GSettingsSchemas Include="$(DepsRoot)\share\glib-2.0\schemas\*" />
+      <GioModules Include="$(DepsRoot)\lib\gio\modules\**\*" />
       <GdkPixbufLoaders Include="$(DepsRoot)\lib\gdk-pixbuf-2.0\**\loaders\**\*" />
       <GdkPixbufLoaderCache Include="$(DepsRoot)\lib\gdk-pixbuf-2.0\**\loaders.cache" />
 
@@ -96,6 +97,7 @@
     <Copy SourceFiles="@(GdkPixbufLoaders)" DestinationFiles="@(GdkPixbufLoaders->'$(ZoiteChatRel)\lib\gdk-pixbuf-2.0\%(RecursiveDir)%(Filename)%(Extension)')" />
     <Copy SourceFiles="@(GdkPixbufLoaderCache)" DestinationFiles="@(GdkPixbufLoaderCache->'$(ZoiteChatRel)\lib\gdk-pixbuf-2.0\%(RecursiveDir)%(Filename)%(Extension)')" />
     <Copy SourceFiles="@(GSettingsSchemas)" DestinationFiles="@(GSettingsSchemas->'$(ZoiteChatRel)\share\glib-2.0\schemas\%(Filename)%(Extension)')" />
+    <Copy SourceFiles="@(GioModules)" DestinationFiles="@(GioModules->'$(ZoiteChatRel)\lib\gio\modules\%(RecursiveDir)%(Filename)%(Extension)')" />
     <Copy SourceFiles="@(Share)" DestinationFiles="@(Share->'$(ZoiteChatRel)\share\%(RecursiveDir)%(Filename)%(Extension)')" />
     <Copy SourceFiles="..\..\COPYING" DestinationFolder="$(ZoiteChatRel)\share\doc\zoitechat" />
     <Copy SourceFiles="$(WinSparklePath)\COPYING" DestinationFolder="$(ZoiteChatRel)\share\doc\WinSparkle" />

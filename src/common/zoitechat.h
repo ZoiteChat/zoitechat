@@ -204,6 +204,7 @@ struct zoitechatprefs
 	unsigned int hex_net_auto_reconnect;
 	unsigned int hex_net_auto_reconnectonfail;
 	unsigned int hex_net_proxy_auth;
+	unsigned int hex_net_remote_media;
 	unsigned int hex_net_throttle;
 	unsigned int hex_notify_whois_online;
 	unsigned int hex_perl_warnings;

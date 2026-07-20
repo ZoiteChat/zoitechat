@@ -151,6 +151,7 @@ Source: "tiff.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 Source: "plugins\hcnotifications-winrt.dll"; DestDir: "{app}\plugins"; Flags: ignoreversion; Components: libs
 
 Source: "lib\enchant\*"; DestDir: "{app}\lib\enchant"; Flags: ignoreversion; Components: libs
+Source: "lib\gio\modules\*"; DestDir: "{app}\lib\gio\modules"; Flags: ignoreversion recursesubdirs; Components: libs
 
 Source: "girepository-2.0-0.dll"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist; Components: langs\lua
 Source: "lua51.dll"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist; Components: langs\lua
