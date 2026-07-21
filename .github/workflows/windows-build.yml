@@ -65,8 +65,9 @@ jobs:
           Download-WithRetry -Url https://github.com/jrsoftware/issrc/releases/download/is-6_7_1/innosetup-6.7.1.exe -OutFile deps\innosetup-unicode.exe
           & deps\innosetup-unicode.exe /VERYSILENT | Out-Null
 
-          Download-WithRetry -Url https://github.com/ZoiteChat/gvsbuild/releases/download/zoitechat-2.18.1/GTK3_Gvsbuild_zoitechat-2.18.1_x64.zip -OutFile deps\gtk-${{ matrix.arch }}.zip
-          Expand-Archive -LiteralPath deps\gtk-${{ matrix.arch }}.zip -DestinationPath C:\gtk-build\gtk\x64\release -Force
+          $zoiteVersion = Select-String -Path meson.build -Pattern "^  version: '([^']+)'," | Select-Object -First 1 | ForEach-Object { $_.Matches[0].Groups[1].Value }
+          Download-WithRetry -Url "https://github.com/ZoiteChat/zoitedeps/releases/download/zoitechat-$zoiteVersion/GTK3_Gvsbuild_zoitechat-zoitechat-${zoiteVersion}_${{ matrix.arch }}.zip" -OutFile deps\gtk-${{ matrix.arch }}.zip
+          Expand-Archive -LiteralPath deps\gtk-${{ matrix.arch }}.zip -DestinationPath C:\gtk-build -Force
 
           Download-WithRetry -Url https://repo.msys2.org/mingw/x86_64/mingw-w64-x86_64-hicolor-icon-theme-0.18-1-any.pkg.tar.zst -OutFile deps\hicolor-icon-theme.pkg.tar.zst
           python -c "import tarfile,zstandard,pathlib;archive=pathlib.Path(r'deps\\hicolor-icon-theme.pkg.tar.zst');target=pathlib.Path(r'C:\\gtk-build\\gtk\\x64\\release');dctx=zstandard.ZstdDecompressor();f=archive.open('rb');reader=dctx.stream_reader(f);tf=tarfile.open(fileobj=reader,mode='r|');[tf.extract(m,path=target) for m in tf if m.name.startswith('mingw64/share/icons/hicolor/')];tf.close();reader.close();f.close()"
@@ -159,6 +160,7 @@ jobs:
           set "INCLUDE=%PYTHON_DIR%\include;%INCLUDE%"
 
           powershell -NoProfile -ExecutionPolicy Bypass -Command "$archiveLib='C:\gtk-build\gtk\x64\release\lib\libarchive.lib'; if (-not (Test-Path $archiveLib)) { $archiveDll = Get-ChildItem 'C:\gtk-build\gtk\x64\release\bin\libarchive*.dll' | Select-Object -First 1; if ($archiveDll) { Push-Location 'C:\gtk-build\gtk\x64\release\lib'; & 'C:\gtk-build\gendef\gendef.exe' $archiveDll.FullName | Out-Null; $archiveDef = Get-ChildItem 'libarchive*.def' | Select-Object -First 1; if ($archiveDef) { & lib /def:$archiveDef.Name /machine:${{ matrix.platform }} /out:libarchive.lib | Out-Null }; Pop-Location } }"
+          powershell -NoProfile -ExecutionPolicy Bypass -Command "$deps='C:\gtk-build\gtk\x64\release'; $libs=@{ 'libgtk-3-0.dll'='libgtk-3.lib'; 'libgdk-3-0.dll'='libgdk-3.lib'; 'libatk-1.0-0.dll'='atk-1.0.lib'; 'libgio-2.0-0.dll'='gio-2.0.lib'; 'libgdk_pixbuf-2.0-0.dll'='gdk_pixbuf-2.0.lib'; 'libpangowin32-1.0-0.dll'='pangowin32-1.0.lib'; 'libpangocairo-1.0-0.dll'='pangocairo-1.0.lib'; 'libpango-1.0-0.dll'='pango-1.0.lib'; 'libcairo-2.dll'='cairo.lib'; 'libgobject-2.0-0.dll'='gobject-2.0.lib'; 'libgmodule-2.0-0.dll'='gmodule-2.0.lib'; 'libglib-2.0-0.dll'='glib-2.0.lib'; 'libintl-8.dll'='intl.lib'; 'libiconv-2.dll'='iconv.lib'; 'zlib1.dll'='zlib1.lib'; 'libxml2-16.dll'='libxml2.lib'; 'libjpeg-8.dll'='jpeg.lib'; 'libpng16-16.dll'='libpng16.lib'; 'lua51.dll'='lua51.lib' }; Push-Location (Join-Path $deps 'lib'); foreach ($entry in $libs.GetEnumerator()) { if (-not (Test-Path $entry.Value)) { $dll=Join-Path (Join-Path $deps 'bin') $entry.Key; if (Test-Path $dll) { & 'C:\gtk-build\gendef\gendef.exe' $dll | Out-Null; $def=Get-ChildItem *.def | Sort-Object LastWriteTime -Descending | Select-Object -First 1; if ($def) { $out='/out:' + $entry.Value; & lib /def:$def.Name /machine:${{ matrix.platform }} $out | Out-Null; Remove-Item $def.Name -Force } } } }; Pop-Location"
 
           msbuild win32\zoitechat.sln /m /verbosity:minimal /p:Configuration=Release /p:Platform=${{ matrix.platform }}
           if errorlevel 1 exit /b 1
