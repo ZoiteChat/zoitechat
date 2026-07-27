@@ -192,6 +192,7 @@ struct _GtkXText
 	int hilight_end;
 	time_t tooltip_stamp;
 	unsigned int tooltip_stamp_set:1;
+	char *tooltip_url;			  /* URL shown while hovering a placeholder */
 
 	guint16 fontwidth[128];	  /* each char's width, only the ASCII ones */
 
@@ -254,6 +255,9 @@ struct _GtkXText
 	unsigned int force_render:1;
 	unsigned int color_paste:1; /* CTRL was pressed when selection finished */
 
+	textentry *clicked_ent;		  /* entry under the last word_click, or NULL */
+	textentry *clicked_image_ent; /* entry whose inline image was clicked */
+
 	/* settings/prefs */
 	unsigned int auto_indent:1;
 	unsigned int thinline:1;
@@ -308,5 +312,20 @@ xtext_buffer *gtk_xtext_buffer_new (GtkXText *xtext);
 void gtk_xtext_buffer_free (xtext_buffer *buf);
 void gtk_xtext_buffer_show (GtkXText *xtext, xtext_buffer *buf, int render);
 void gtk_xtext_copy_selection (GtkXText *xtext);
+
+/* inline image support.  A textentry can have one image attached, which is
+ * rendered below its text.  Loading is asynchronous: begin() registers the
+ * target entry and returns a handle, finish() attaches the downloaded pixbuf
+ * if the entry still exists.  The handle stays valid even if the entry, its
+ * buffer or the widget are destroyed in the meantime. */
+textentry *gtk_xtext_get_clicked_entry (GtkXText *xtext);
+textentry *gtk_xtext_get_clicked_image_entry (GtkXText *xtext);
+gboolean gtk_xtext_buffer_contains (GtkXText *xtext, textentry *ent);
+gboolean gtk_xtext_entry_has_image (GtkXText *xtext, textentry *ent);
+const char *gtk_xtext_entry_get_image_url (GtkXText *xtext, textentry *ent);
+GdkPixbuf *gtk_xtext_entry_get_full_image (GtkXText *xtext, textentry *ent);
+guint gtk_xtext_image_load_begin (GtkXText *xtext, textentry *ent, const char *url);
+gboolean gtk_xtext_image_load_finish (guint handle, GdkPixbuf *pixbuf);
+gboolean gtk_xtext_image_remove (GtkXText *xtext, textentry *ent);
 
 #endif
