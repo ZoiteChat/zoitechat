@@ -1,6 +1,20 @@
 ZoiteChat ChangeLog
 =================
 
+2.19.0 (2026-07-28)
+-------------------
+
+- Added Python 3.8 compatibility for older Windows releases.
+- Added on-demand SASL password prompts, including renewed prompts after reconnecting.
+- Corrected NickServ authentication to use the decrypted password for the active network.
+- Made system theme matching the default and polished GTK3 theme integration.
+- Applied more settings changes immediately, reducing the need to restart ZoiteChat.
+- Added descriptive tooltips to the color picker choices and refined default text-event colors.
+- Stabilized channel tree font handling across palette and theme updates.
+- Corrected the chat scrollbar increment used by its arrow buttons.
+- Improved Windows URL launching through the native shell.
+- Restored expected minimize behavior when clicking ZoiteChat on the Windows taskbar.
+
 2.18.3 (2026-06-29)
 -------------------
 
