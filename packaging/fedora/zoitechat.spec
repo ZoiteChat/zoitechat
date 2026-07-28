@@ -1,5 +1,5 @@
 Name:           zoitechat
-Version:        2.18.3
+Version:        %(cat VERSION)
 Release:        %autorelease
 Summary:        HexChat-based IRC client
 License:        GPL-2.0-or-later WITH cryptsetup-OpenSSL-exception

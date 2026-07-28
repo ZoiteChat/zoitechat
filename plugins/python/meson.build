@@ -13,8 +13,16 @@ else
   python_dep = dependency(python_opt, version: '>= 2.7')
 endif
 
+python_py_conf = configuration_data()
+python_py_conf.set('VERSION', meson.project_version())
+python_py = configure_file(
+  input: 'python.py',
+  output: 'python.py',
+  configuration: python_py_conf
+)
+
 python3_source = custom_target('python-bindings',
-  input: ['../../src/common/zoitechat-plugin.h', 'python.py'],
+  input: ['../../src/common/zoitechat-plugin.h', python_py],
   output: 'python.c',
   command: [find_program('generate_plugin.py'), '@INPUT@', '@OUTPUT@']
 )
