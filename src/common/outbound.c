@@ -3025,7 +3025,7 @@ cmd_msg (struct session *sess, char *tbuf, char *word[], char *word_eol[])
 									  newsess->server->nick, msg + offset, TRUE, FALSE,
 									  &no_tags);
 			}
-			else
+			else if (!sess->server->have_echo_message)
 			{
 				/* mask out passwords */
 				if (g_ascii_strcasecmp (nick, "nickserv") == 0)
@@ -5056,6 +5056,11 @@ handle_user_input (session *sess, char *text, int history, int nocommand)
 	if (nocommand || text[0] != cmd_char)
 	{
 		handle_say (sess, text, TRUE);
+		return 1;
+	}
+	if (text[0] == cmd_char && text[1] == cmd_char)
+	{
+		handle_say (sess, text + 1, TRUE);
 		return 1;
 	}
 
