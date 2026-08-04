@@ -3025,7 +3025,7 @@ cmd_msg (struct session *sess, char *tbuf, char *word[], char *word_eol[])
 									  newsess->server->nick, msg + offset, TRUE, FALSE,
 									  &no_tags);
 			}
-			else
+			else if (!sess->server->have_echo_message)
 			{
 				/* mask out passwords */
 				if (g_ascii_strcasecmp (nick, "nickserv") == 0)
