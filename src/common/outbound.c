@@ -5058,6 +5058,11 @@ handle_user_input (session *sess, char *text, int history, int nocommand)
 		handle_say (sess, text, TRUE);
 		return 1;
 	}
+	if (text[0] == cmd_char && text[1] == cmd_char)
+	{
+		handle_say (sess, text + 1, TRUE);
+		return 1;
+	}
 
 	for (i = 1; text[i]; i++)
 	{
