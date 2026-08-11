@@ -150,7 +150,7 @@ Source: "tiff.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 
 Source: "plugins\hcnotifications-winrt.dll"; DestDir: "{app}\plugins"; Flags: ignoreversion; Components: libs
 
-Source: "lib\enchant\*"; DestDir: "{app}\lib\enchant"; Flags: ignoreversion; Components: libs
+Source: "lib\enchant-2\*"; DestDir: "{app}\lib\enchant-2"; Flags: ignoreversion; Components: libs
 
 Source: "girepository-2.0-0.dll"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist; Components: langs\lua
 Source: "lua51.dll"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist; Components: langs\lua
@@ -326,7 +326,7 @@ begin
 	if Version.NTPlatform and (Version.Major > 6) or ((Version.Major = 6) and (Version.Minor > 1)) then
 		Result := True
 	else
-		Result := DirExists(ExpandConstant('{localappdata}') + '\enchant\myspell');
+		Result := DirExists(ExpandConstant('{localappdata}') + '\enchant-2\myspell');
 end;
 
 // Python >= 3.9 dropped support for Windows versions before 10;
