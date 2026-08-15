@@ -13,9 +13,9 @@ dbus_includes = [
 dbus_service_dir = join_paths(get_option('datadir'), 'dbus-1/services')
 
 if get_option('dbus-service-use-appid')
-  dbus_service_name = 'io.github.Hexchat'
-  dbus_output_file = 'io.github.Hexchat.service'
-  dbus_cargs = '-DDBUS_SERVICE="io.github.Hexchat"'
+  dbus_service_name = 'net.zoite.Zoitechat'
+  dbus_output_file = 'net.zoite.Zoitechat.service'
+  dbus_cargs = '-DDBUS_SERVICE="net.zoite.Zoitechat"'
 else
   dbus_service_name = 'org.zoitechat.service'
   dbus_output_file = 'org.zoitechat.service.service'
