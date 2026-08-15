@@ -373,10 +373,10 @@ begin
     idpClearFiles;
 
 	if WizardIsComponentSelected('themes\windows10') then
-		idpAddFile('https://dl.zoitechat.zoite.net/themes/GTK3Themes/Windows-10-3.2.1.zip', ExpandConstant('{tmp}\Windows-10-3.2.1.zip'));
+		idpAddFile('https://dl.zoitechat.org/themes/GTK3Themes/Windows-10-3.2.1.zip', ExpandConstant('{tmp}\Windows-10-3.2.1.zip'));
 
 	if WizardIsComponentSelected('themes\windows10dark') then
-		idpAddFile('https://dl.zoitechat.zoite.net/themes/GTK3Themes/Windows-10-Dark-3.2.1-dark.zip', ExpandConstant('{tmp}\Windows-10-Dark-3.2.1-dark.zip'));
+		idpAddFile('https://dl.zoitechat.org/themes/GTK3Themes/Windows-10-Dark-3.2.1-dark.zip', ExpandConstant('{tmp}\Windows-10-Dark-3.2.1-dark.zip'));
 
 	if not WizardIsTaskSelected('portable') then
 	begin
