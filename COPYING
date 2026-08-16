@@ -336,3 +336,26 @@ proprietary programs.  If your program is a subroutine library, you may
 consider it more useful to permit linking proprietary applications with the
 library.  If this is what you want to do, use the GNU Lesser General
 Public License instead of this License.
+
+
+
+======================================================================
+ADDITIONAL LICENSE NOTICE
+======================================================================
+
+ZoiteChat source code:
+GPL version 2
+See Above.
+
+Unicode Emoji and CLDR data:
+Unicode License v3
+data/emoji/LICENSE-UNICODE.txt
+
+gemoji shortcode data:
+MIT License
+Copyright (c) 2019 GitHub, Inc.
+data/emoji/LICENSE-GEMOJI.txt
+
+Noto Color Emoji:
+SIL Open Font License 1.1
+data/fonts/OFL.txt

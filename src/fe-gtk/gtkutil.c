@@ -168,7 +168,28 @@ gtkutil_append_font_css (GString *css, const PangoFontDescription *font_desc)
 		const char *family = pango_font_description_get_family (font_desc);
 
 		if (family && *family)
-			g_string_append_printf (css, " font-family: \"%s\";", family);
+		{
+			char **families = g_strsplit (family, ",", -1);
+			gboolean appended = FALSE;
+			int i;
+
+			g_string_append (css, " font-family:");
+			for (i = 0; families[i]; i++)
+			{
+				char *name = g_strstrip (families[i]);
+
+				if (!*name)
+					continue;
+
+				if (appended)
+					g_string_append (css, ",");
+				g_string_append_printf (css, " \"%s\"", name);
+				appended = TRUE;
+			}
+			if (appended)
+				g_string_append (css, ";");
+			g_strfreev (families);
+		}
 	}
 
 	if (mask & PANGO_FONT_MASK_STYLE)

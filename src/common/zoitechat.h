@@ -259,6 +259,7 @@ struct zoitechatprefs
 	int hex_gui_dialog_left;
 	int hex_gui_dialog_top;
 	int hex_gui_dialog_width;
+	int hex_gui_emoji_skin_tone;
 	int hex_gui_lagometer;
 	int hex_gui_lang;
 	int hex_gui_pane_divider_position;

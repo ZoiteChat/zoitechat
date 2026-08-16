@@ -3,6 +3,7 @@ common_sources = [
   'chanopt.c',
   'ctcp.c',
   'dcc.c',
+  'emoji-data.c',
   'gtk3-theme-service.c',
   'zoitechat.c',
   'history.c',
@@ -109,6 +110,20 @@ public_suffix_data = custom_target('public_suffix_data_h',
   command: [python3, files('gen-public-suffix.py'), '@OUTPUT@']
 )
 
+emoji_data_table = custom_target('emoji_data_table_h',
+  input: [
+    '../../data/emoji/emoji-test.txt',
+    '../../data/emoji/cldr-annotations-en.xml',
+    '../../data/emoji/cldr-annotations-derived-en.xml',
+    '../../data/emoji/gemoji.json',
+    '../../data/emoji/VERSIONS',
+  ],
+  output: 'emoji-data-table.h',
+  command: [python3, files('../../tools/gen-emoji-data.py'),
+            '@INPUT0@', '@INPUT1@', '@INPUT2@', '@INPUT3@', '@INPUT4@',
+            '@OUTPUT@']
+)
+
 textevents = custom_target('textevents',
   input: 'textevents.in',
   output: ['textevents.h', 'textenums.h'],
@@ -132,7 +147,7 @@ if get_option('plugin')
 endif
 
 zoitechat_common = static_library('zoitechatcommon',
-  sources: [textevents, public_suffix_data] + marshal + common_sources + secretstore_sources,
+  sources: [textevents, public_suffix_data, emoji_data_table] + marshal + common_sources + secretstore_sources,
   include_directories: config_h_include,
   dependencies: common_deps + common_sysinfo_deps,
   c_args: common_cflags,
@@ -164,6 +179,21 @@ gtk3_theme_service_tests = executable('gtk3_theme_service_tests',
 )
 
 test('GTK3 Theme Service Tests', gtk3_theme_service_tests,
+  protocol: 'tap',
+  timeout: 120,
+)
+
+emoji_data_tests = executable('emoji_data_tests',
+  [
+    'tests/test-emoji-data.c',
+    'emoji-data.c',
+    emoji_data_table,
+  ],
+  include_directories: [config_h_include, include_directories('.')],
+  dependencies: [libgio_dep],
+)
+
+test('Emoji Data Tests', emoji_data_tests,
   protocol: 'tap',
   timeout: 120,
 )

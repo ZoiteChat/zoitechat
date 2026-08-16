@@ -65,7 +65,8 @@
         "/share/man"
       ],
       "post-install": [
-        "install -d /app/extensions"
+        "install -d /app/extensions",
+        "test ! -e /app/share/fonts/zoitechat/NotoColorEmoji.ttf"
       ],
       "sources": [
         {

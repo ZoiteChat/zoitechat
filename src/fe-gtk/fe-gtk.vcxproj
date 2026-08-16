@@ -31,7 +31,7 @@
     </ClCompile>
     <Link>
       <AdditionalLibraryDirectories>$(ArchiveLibDir);$(DepsRoot)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>$(DepLibs);$(ZoiteChatLib)common.lib;wbemuuid.lib;dwmapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(DepLibs);$(ZoiteChatLib)common.lib;wbemuuid.lib;dwmapi.lib;gdi32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
     </Link>
   </ItemDefinitionGroup>
@@ -97,6 +97,7 @@ powershell "Get-Content -Encoding UTF8 '$(ZoiteChatLib)zoitechat.rc.utf8' | Out-
     <ClCompile Include="custom-list.c" />
     <ClCompile Include="dccgui.c" />
     <ClCompile Include="editlist.c" />
+    <ClCompile Include="emoji-picker.c" />
     <ClCompile Include="fe-gtk.c" />
     <ClCompile Include="fkeys.c" />
     <ClCompile Include="gtkutil.c" />
