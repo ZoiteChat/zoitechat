@@ -45,6 +45,7 @@
 #include "../common/util.h"
 #include "../common/text.h"
 #include "xtext.h"
+#include "inline-image.h"
 #include "ascii.h"
 #include "banlist.h"
 #include "chanlist.h"
@@ -1056,14 +1057,54 @@ open_url_cb (GtkWidget *item, char *url)
 	handle_command (current_sess, buf, FALSE);
 }
 
+/* the text entry the open URL menu was created for; the widget pointer is
+   nulled automatically if the widget dies while the menu is up */
+static GtkXText *urlmenu_xtext = NULL;
+static textentry *urlmenu_ent = NULL;
+
+static void
+menu_urlmenu_set_entry (GtkWidget *xtext, textentry *ent)
+{
+	if (urlmenu_xtext)
+		g_object_remove_weak_pointer (G_OBJECT (urlmenu_xtext),
+												(gpointer *) &urlmenu_xtext);
+	urlmenu_xtext = xtext ? GTK_XTEXT (xtext) : NULL;
+	urlmenu_ent = ent;
+	if (urlmenu_xtext)
+		g_object_add_weak_pointer (G_OBJECT (urlmenu_xtext),
+											(gpointer *) &urlmenu_xtext);
+}
+
+static void
+inline_image_menu_cb (GtkWidget *item, char *url)
+{
+	if (urlmenu_xtext == NULL || urlmenu_ent == NULL)
+		return;
+
+	/* the line may have scrolled out of the buffer since the menu opened */
+	if (!gtk_xtext_buffer_contains (urlmenu_xtext, urlmenu_ent))
+		return;
+
+	inline_image_toggle (current_sess, urlmenu_xtext, urlmenu_ent, url);
+}
+
 void
-menu_urlmenu (GdkEventButton *event, char *url)
+menu_urlmenu_entry (GdkEventButton *event, char *url, GtkWidget *xtext,
+						  textentry *ent)
 {
 	GtkWidget *menu;
 	char *tmp, *chop;
 
 	g_free (str_copy);
 	str_copy = g_strdup (url);
+
+	if (xtext == NULL || ent == NULL || !prefs.hex_net_remote_media ||
+		 !inline_image_is_image_url (str_copy))
+	{
+		xtext = NULL;
+		ent = NULL;
+	}
+	menu_urlmenu_set_entry (xtext, ent);
 
 	menu = menu_new ();
 	/* more than 51 chars? Chop it */
@@ -1087,11 +1128,26 @@ menu_urlmenu (GdkEventButton *event, char *url)
 		menu_quick_item_with_callback (open_url_cb, _("Connect"), menu, str_copy);
 	else
 		menu_quick_item_with_callback (open_url_cb, _("Open Link in Browser"), menu, str_copy);
+	if (ent)
+	{
+		const char *shown = gtk_xtext_entry_get_image_url (GTK_XTEXT (xtext), ent);
+
+		menu_quick_item_with_callback (inline_image_menu_cb,
+			shown && strcmp (shown, str_copy) == 0 ?
+				_("Hide Inline Image") : _("Show Image Inline"),
+			menu, str_copy);
+	}
 	menu_quick_item_with_callback (copy_to_clipboard_cb, _("Copy Selected Link"), menu, str_copy);
 	/* custom ones from urlhandlers.conf */
 	menu_create (menu, urlhandler_list, str_copy, TRUE);
 	menu_add_plugin_items (menu, "\x4$URL", str_copy);
 	menu_popup (menu, event, NULL);
+}
+
+void
+menu_urlmenu (GdkEventButton *event, char *url)
+{
+	menu_urlmenu_entry (event, url, NULL, NULL);
 }
 
 static void
