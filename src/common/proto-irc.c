@@ -1368,7 +1368,7 @@ process_named_msg (session *sess, char *type, char *word[], char *word_eol[],
 						{
 							if (ignore_check (word[1], IG_PRIV))
 								return;
-							if (serv->have_echo_message && !serv->p_cmp (nick, serv->nick))
+							if (!serv->p_cmp (nick, serv->nick))
 							{
 								session *target_sess = find_dialog (serv, to);
 
