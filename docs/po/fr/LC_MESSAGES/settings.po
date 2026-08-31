@@ -1,0 +1,2159 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2013, TingPing
+# This file is distributed under the same license as the ZoiteChat package.
+# 
+# Translators:
+# Ben Dem <online@bendem.be>, 2015
+# Calinou, 2015
+msgid ""
+msgstr ""
+"Project-Id-Version: zoitechat-documentation\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2015-03-28 15:24-0400\n"
+"PO-Revision-Date: 2015-03-28 20:10+0000\n"
+"Last-Translator: Ben Dem <online@bendem.be>\n"
+"Language-Team: French (http://www.transifex.com/projects/p/zoitechat-documentation/language/fr/)\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: fr\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+#: ../../settings.rst:2
+msgid "Settings"
+msgstr "Configurations"
+
+#: ../../settings.rst:5
+msgid "Config Files"
+msgstr "Fichier de Configurations"
+
+#: ../../settings.rst:7
+msgid ""
+"Config files are stored as plaintext files (which shouldn't be edited by "
+"hand). They are located in:"
+msgstr "Les fichiers de configurations sont stockés au format texte (et ne devrait pas être édité manuellement). Ils sont situés dans :"
+
+#: ../../settings.rst:9
+msgid "Windows: :file:`%APPDATA%\\\\ZoiteChat`"
+msgstr "Windows: :file:`%APPDATA%\\\\ZoiteChat`"
+
+#: ../../settings.rst:10
+msgid "Unix: :file:`~/.config/zoitechat`"
+msgstr "Unix: :file:`~/.config/zoitechat`"
+
+#: ../../settings.rst:13
+msgid ""
+"Type the path into your file browser to expand them into a full directory."
+msgstr ""
+
+#: ../../settings.rst:15
+msgid ""
+"Custom directories can be set with the `-d` or `--cfgdir` command line "
+"argument."
+msgstr ""
+
+#: ../../settings.rst:17
+msgid ""
+"On Windows there is a portable mode option which makes ZoiteChat store "
+"settings inside of a :file:`\\\\config` subdir within the main installation "
+"folder. Though this option should only be used if you must for a portable "
+"drive or if you lack administrative priviliges for installation."
+msgstr ""
+
+#: ../../settings.rst:20
+msgid "Network List"
+msgstr "Liste des réseaux"
+
+#: ../../settings.rst:22
+msgid ""
+"The network list contains a list of networks, basic user information, and "
+"per network settings. It can be accessed in :menuselection:`ZoiteChat --> "
+"Network List` or by the keyboard shortcut :kbd:`Control-s`."
+msgstr ""
+
+#: ../../settings.rst:25
+msgid "User Information"
+msgstr "Informations utilisateur"
+
+#: ../../settings.rst:27
+msgid ""
+"This is where basic information is set for the user such as nicknames, these"
+" will be used as defaults for networks but can be overridden. The Realname "
+"field is entirely optional. The username is often used for options like "
+"Server and SASL password."
+msgstr ""
+
+#: ../../settings.rst:30
+msgid "Networks"
+msgstr "Réseaux"
+
+#: ../../settings.rst:32
+msgid ""
+"ZoiteChat comes with a list of default networks but you can easily add your "
+"own or edit existing ones. The sorting and names of networks do matter as "
+"some commands reference the network by the name here, e.g. "
+":command:`/newserver`. The order they are sorted in this list also "
+"determines the order of auto-connecting. To edit the order just select one "
+"and hit :kbd:`Shift-up` or :kbd:`Shift-down`."
+msgstr ""
+
+#: ../../settings.rst:36
+msgid "Servers"
+msgstr "Serveurs"
+
+#: ../../settings.rst:38
+msgid ""
+"Per network you can maintain a list of servers in case of one fails. The "
+"syntax for these servers *hostname/port*. The port is entirely optional and "
+"can be prefixed by *+* to signify SSL. If no port is given the default port "
+"used is 6667 and 6697 for SSL."
+msgstr ""
+
+#: ../../settings.rst:41
+msgid "Your Details"
+msgstr "Vos détails"
+
+#: ../../settings.rst:43
+msgid ""
+"Unticking *Use global user information* allows unique nicknames or usernames"
+" between networks."
+msgstr ""
+
+#: ../../settings.rst:46
+msgid "Connecting"
+msgstr "Connexion"
+
+#: ../../settings.rst:48
+msgid ""
+"Ticking *Auto connect to this network at startup* combined with *Favorite "
+"channels* will allow you to quickly connect and join chats."
+msgstr ""
+
+#: ../../settings.rst:50
+msgid ""
+"The password fields allow you to login to a password protected server or "
+"services. They take the syntax *username:password* or just the password if "
+"username has been set as mentioned above."
+msgstr ""
+
+#: ../../settings.rst:53
+msgid ""
+"See the `FAQ <faq.html#why-does-zoitechat-join-channels-before-identifying>`_ "
+"if you have trouble identifying before join."
+msgstr ""
+
+#: ../../settings.rst:56
+msgid "Channel Options"
+msgstr ""
+
+#: ../../settings.rst:58
+msgid ""
+"Some options can be specific to channels. To access these you can right "
+"click on any tab or use the command :command:`/chanopt`. Any option other "
+"than *0* or *1* is considered *unset* and will use the globally set "
+"defaults."
+msgstr ""
+
+#: ../../settings.rst:61
+msgid "Preferences"
+msgstr "Préférences"
+
+#: ../../settings.rst:64
+msgid "Keyboard Shortcuts"
+msgstr "Raccourcis clavier"
+
+#: ../../settings.rst:66
+msgid ""
+"There are two types of keyboard shortcuts in ZoiteChat hardcoded ones which "
+"can be found by looking around in the menu, e.g. :kbd:`Control-s`, and "
+"configurable ones in :menuselection:`Settings --> Keyboard Shortcuts`. These"
+" have help messages to guide you through setting up custom bindings."
+msgstr ""
+
+#: ../../settings.rst:69
+msgid "Url Handlers"
+msgstr "Gestionnaires d'URL"
+
+#: ../../settings.rst:71
+msgid ""
+"Url handlers add alternative browsers to you your right click menu on urls "
+"(they do not set the default). They take the syntax:"
+msgstr ""
+
+#: ../../settings.rst:73
+msgid "!program %s or !C:/PROGRA~1/program/program.exe %s"
+msgstr ""
+
+#: ../../settings.rst:76
+msgid ""
+"If ZoiteChat does not find the executable it will not add it to the menu. The "
+"command MUST use unix style slashes and does not handle spaces at all."
+msgstr ""
+
+#: ../../settings.rst:80
+msgid "Auto Replace"
+msgstr "Remplacement automatique"
+
+#: ../../settings.rst:82
+msgid ""
+"Located in :menuselection:`Settings --> Auto Replace` this setting allows "
+"you to replace text while typing. The Text column is what it is to detect "
+"and the Replace with column is what will replace it. This column accepts "
+"color codes from `Text Events <appearance.html#text-events>`_"
+msgstr ""
+
+#: ../../settings.rst:84
+msgid "For Example:"
+msgstr "Par exemple :"
+
+#: ../../settings.rst:86
+msgid "text: -->  replace: %C8→%O"
+msgstr ""
+
+#: ../../settings.rst:88
+msgid ""
+"This will replace that arrow with a green unicode arrow upon pressing enter "
+"or space. The keys that check for replace are defined in "
+":menuselection:`Settings --> Keyboard Shortcuts`. A trick to avoid replacing"
+" it :kbd:`Shift-Space` since that is not defined by default."
+msgstr ""
+
+#: ../../settings.rst:91
+msgid "CTCP Replies"
+msgstr ""
+
+#: ../../settings.rst:93
+msgid ""
+"Custom CTCP replies can be set in :menuselection:`Settings --> CTCP Replies`"
+" and accept the same format as `User Commands <commands.html#user-"
+"commands>`_ with the addition of *%s* for the nick replying to."
+msgstr ""
+
+#: ../../settings.rst:96
+msgid ""
+"To hide the default VERSION reply you must :command:`/set irc_hide_version "
+"on`"
+msgstr ""
+
+#: ../../settings.rst:99
+msgid "Set Command"
+msgstr ""
+
+#: ../../settings.rst:101
+msgid "The set command can be used to change options. The usage is:"
+msgstr ""
+
+#: ../../settings.rst:103
+msgid ":command:`/set option_name [number|string]`"
+msgstr ""
+
+#: ../../settings.rst:105
+msgid ""
+"Togglable options take *1* for on and *0* for off but as an alternative you "
+"can type:"
+msgstr ""
+
+#: ../../settings.rst:107
+msgid ":command:`/set toggle_option on`"
+msgstr ""
+
+#: ../../settings.rst:109
+msgid ""
+"If no value is given it will show the current value of a setting. You can "
+"also use wildcards to find or show multiple values for example"
+msgstr ""
+
+#: ../../settings.rst:112
+msgid ":command:`/set gui_*`"
+msgstr ""
+
+#: ../../settings.rst:114
+msgid "Some options such as *gui_tray* require running this after changing:"
+msgstr ""
+
+#: ../../settings.rst:116
+msgid ":command:`/gui apply`"
+msgstr ""
+
+#: ../../settings.rst:118
+msgid ""
+"This can be avoided by using the preferences window instead, which is "
+"recommended, also using the gui will warn if a setting requires restart."
+msgstr ""
+
+#: ../../settings.rst:121
+msgid "List of Settings"
+msgstr ""
+
+#: ../../settings.rst:124
+msgid "**away\\_auto\\_unmark**"
+msgstr ""
+
+#: ../../settings.rst:124
+msgid "Toggle automatically unmarking away before message send."
+msgstr ""
+
+#: ../../settings.rst:126
+msgid "**away\\_omit\\_alerts**"
+msgstr ""
+
+#: ../../settings.rst:126
+msgid "Toggle omitting alerts when marked as being away."
+msgstr ""
+
+#: ../../settings.rst:128
+msgid "**away\\_reason**"
+msgstr ""
+
+#: ../../settings.rst:128
+msgid "Default away reason."
+msgstr ""
+
+#: ../../settings.rst:130
+msgid "**away\\_show\\_message**"
+msgstr ""
+
+#: ../../settings.rst:130
+msgid "Toggle announcing of away messages."
+msgstr ""
+
+#: ../../settings.rst:132
+msgid "**away\\_show\\_once**"
+msgstr ""
+
+#: ../../settings.rst:132
+msgid "Show identical away messages only once."
+msgstr ""
+
+#: ../../settings.rst:134
+msgid "**away\\_size\\_max**"
+msgstr ""
+
+#: ../../settings.rst:134
+msgid "How many users can be away in userlist before they are not colored."
+msgstr ""
+
+#: ../../settings.rst:136
+msgid "**away\\_timeout**"
+msgstr ""
+
+#: ../../settings.rst:136
+msgid "How often in seconds to check for max size for colors in userlist."
+msgstr ""
+
+#: ../../settings.rst:138
+msgid "**away\\_track**"
+msgstr ""
+
+#: ../../settings.rst:138
+msgid "Toggle color change for away users in userlist."
+msgstr ""
+
+#: ../../settings.rst:140
+msgid "**completion\\_amount**"
+msgstr ""
+
+#: ../../settings.rst:140
+msgid ""
+"How may nicks starting with input there should be before all are shown in "
+"text box. (E.g. if you have 'k' and completion\\_amount is set to 6, and "
+"there are 6 more people beginning with 'k' in the userlist, then all of the "
+"nicks starting with that are shown in the text box. To always cycle nicks, "
+"set to 123456 (or any other high number)."
+msgstr ""
+
+#: ../../settings.rst:143
+msgid "**completion\\_auto**"
+msgstr ""
+
+#: ../../settings.rst:143
+msgid "Toggle automatic nick completion."
+msgstr ""
+
+#: ../../settings.rst:145
+msgid "**completion\\_sort**"
+msgstr ""
+
+#: ../../settings.rst:145
+msgid "Toggle nick completion sorting in \"last talk\" order."
+msgstr ""
+
+#: ../../settings.rst:147
+msgid "**completion\\_suffix**"
+msgstr ""
+
+#: ../../settings.rst:147
+msgid "Suffix to be appended to nicks after completion."
+msgstr ""
+
+#: ../../settings.rst:149
+msgid "**dcc\\_auto\\_chat**"
+msgstr ""
+
+#: ../../settings.rst:149
+msgid "Toggle auto accept for DCC chats."
+msgstr ""
+
+#: ../../settings.rst:151
+msgid "**dcc\\_auto\\_recv**"
+msgstr ""
+
+#: ../../settings.rst:151
+msgid "How to accept DCC transfers."
+msgstr ""
+
+#: ../../settings.rst:153
+msgid "0=Ask for confirmation"
+msgstr ""
+
+#: ../../settings.rst:154
+msgid "1=Ask for download folder"
+msgstr ""
+
+#: ../../settings.rst:155
+msgid "2=Save without interaction"
+msgstr ""
+
+#: ../../settings.rst:157
+msgid "**dcc\\_auto\\_resume**"
+msgstr ""
+
+#: ../../settings.rst:157
+msgid "Toggle auto resume of DCC transfers."
+msgstr ""
+
+#: ../../settings.rst:159
+msgid "**dcc\\_blocksize**"
+msgstr ""
+
+#: ../../settings.rst:159
+msgid "The blocksize for DCC transfers."
+msgstr ""
+
+#: ../../settings.rst:161
+msgid "**dcc\\_completed\\_dir**"
+msgstr ""
+
+#: ../../settings.rst:161
+msgid "Directory to move completed files to."
+msgstr ""
+
+#: ../../settings.rst:163
+msgid "**dcc\\_dir**"
+msgstr ""
+
+#: ../../settings.rst:163
+msgid "Directory to download files to from DCC."
+msgstr ""
+
+#: ../../settings.rst:165
+msgid "**dcc\\_fast\\_send**"
+msgstr ""
+
+#: ../../settings.rst:165
+msgid ""
+"Toggle speed up of DCC transfers by not waiting to heard if last part was "
+"received before sending next (currently disabled on Win32)."
+msgstr ""
+
+#: ../../settings.rst:167
+msgid "**dcc\\_global\\_max\\_get\\_cps**"
+msgstr ""
+
+#: ../../settings.rst:167
+msgid ""
+"Max file transfer speed for all downloads combined in bytes per second."
+msgstr ""
+
+#: ../../settings.rst:169
+msgid "**dcc\\_global\\_max\\_send\\_cps**"
+msgstr ""
+
+#: ../../settings.rst:169
+msgid "Max file transfer speed for all uploads combined in bytes per second."
+msgstr ""
+
+#: ../../settings.rst:171
+msgid "**dcc\\_ip**"
+msgstr ""
+
+#: ../../settings.rst:171
+msgid "DCC IP address to bind to."
+msgstr ""
+
+#: ../../settings.rst:173
+msgid "**dcc\\_ip\\_from\\_server**"
+msgstr ""
+
+#: ../../settings.rst:173
+msgid "Get address from IRC server."
+msgstr ""
+
+#: ../../settings.rst:175
+msgid "**dcc\\_max\\_get\\_cps**"
+msgstr ""
+
+#: ../../settings.rst:175
+msgid "Max file transfer speed for one download in bytes per second."
+msgstr ""
+
+#: ../../settings.rst:177
+msgid "**dcc\\_max\\_send\\_cps**"
+msgstr ""
+
+#: ../../settings.rst:177
+msgid "Max file transfer speed for one upload in bytes per second."
+msgstr ""
+
+#: ../../settings.rst:179
+msgid "**dcc\\_permissions**"
+msgstr ""
+
+#: ../../settings.rst:179
+msgid ""
+"What permissions to set on received files. (It's a CHMOD value in decimal, "
+"e.g. to CHMOD a file to 644, which is octal, you need to set "
+"dcc\\_permissions to 420, which is it's decimal equivalent)"
+msgstr ""
+
+#: ../../settings.rst:182
+msgid "**dcc\\_port\\_first**"
+msgstr ""
+
+#: ../../settings.rst:182
+msgid "First DCC port in range (leave ports at 0 for full range)."
+msgstr ""
+
+#: ../../settings.rst:184
+msgid "**dcc\\_port\\_last**"
+msgstr ""
+
+#: ../../settings.rst:184
+msgid "Last DCC port in range (leave ports at 0 for full range)."
+msgstr ""
+
+#: ../../settings.rst:186
+msgid "**dcc\\_remove**"
+msgstr ""
+
+#: ../../settings.rst:186
+msgid "Toggle automatic removal of finished/failed DCCs."
+msgstr ""
+
+#: ../../settings.rst:188
+msgid "**dcc\\_save\\_nick**"
+msgstr ""
+
+#: ../../settings.rst:188
+msgid "Toggle saving of nicks in filenames."
+msgstr ""
+
+#: ../../settings.rst:190
+msgid "**dcc\\_send\\_fillspaces**"
+msgstr ""
+
+#: ../../settings.rst:190
+msgid "Replace spaces in filenames with underscores."
+msgstr ""
+
+#: ../../settings.rst:192
+msgid "**dcc\\_stall\\_timeout**"
+msgstr ""
+
+#: ../../settings.rst:192
+msgid "Time in seconds to wait before timing out during a DCC send."
+msgstr ""
+
+#: ../../settings.rst:194
+msgid "**dcc\\_timeout**"
+msgstr ""
+
+#: ../../settings.rst:194
+msgid ""
+"Time in seconds to wait before timing out a DCC transfer waiting to be "
+"accepted."
+msgstr ""
+
+#: ../../settings.rst:196
+msgid "**dnsprogram**"
+msgstr ""
+
+#: ../../settings.rst:196
+msgid "Program to be used for DNS."
+msgstr ""
+
+#: ../../settings.rst:198
+msgid "**flood\\_ctcp\\_num**"
+msgstr ""
+
+#: ../../settings.rst:198
+msgid "Number of CTCPs within flood\\_ctcp\\_time to be considered a flood."
+msgstr ""
+
+#: ../../settings.rst:200
+msgid "**flood\\_ctcp\\_time**"
+msgstr ""
+
+#: ../../settings.rst:200
+msgid "Time in seconds for use with flood\\_ctcp\\_num."
+msgstr ""
+
+#: ../../settings.rst:202
+msgid "**flood\\_msg\\_num**"
+msgstr ""
+
+#: ../../settings.rst:202
+msgid "Number of messages within flood\\_msg\\_time to be considered a flood."
+msgstr ""
+
+#: ../../settings.rst:204
+msgid "**flood\\_msg\\_time**"
+msgstr ""
+
+#: ../../settings.rst:204
+msgid "Time in seconds for use with flood\\_msg\\_num."
+msgstr ""
+
+#: ../../settings.rst:206
+msgid "**gui\\_autoopen\\_chat**"
+msgstr ""
+
+#: ../../settings.rst:206
+msgid "Toggle auto opening of Direct Chat Window on DCC Chat."
+msgstr ""
+
+#: ../../settings.rst:208
+msgid "**gui\\_autoopen\\_dialog**"
+msgstr ""
+
+#: ../../settings.rst:208
+msgid "Toggle auto opening of dialog windows."
+msgstr ""
+
+#: ../../settings.rst:210
+msgid "**gui\\_autoopen\\_recv**"
+msgstr ""
+
+#: ../../settings.rst:210
+msgid "Toggle auto opening of transfer window on DCC Recv."
+msgstr ""
+
+#: ../../settings.rst:212
+msgid "**gui\\_autoopen\\_send**"
+msgstr ""
+
+#: ../../settings.rst:212
+msgid "Toggle auto opening of transfer window on DCC Send."
+msgstr ""
+
+#: ../../settings.rst:214
+msgid "**gui\\_chanlist\\_maxusers**"
+msgstr ""
+
+#: ../../settings.rst:214
+msgid "Maximum number of users in channels to be listed in List of Channels."
+msgstr ""
+
+#: ../../settings.rst:216
+msgid "**gui\\_chanlist\\_minusers**"
+msgstr ""
+
+#: ../../settings.rst:216
+msgid "Minimum number of users in channels to be listed in List of Channels."
+msgstr ""
+
+#: ../../settings.rst:218
+msgid "**gui\\_compact**"
+msgstr ""
+
+#: ../../settings.rst:218
+msgid ""
+"Toggle compact mode (more or less spacing between user list/channel tree "
+"rows)."
+msgstr ""
+
+#: ../../settings.rst:220
+msgid "**gui\\_dialog\\_height**"
+msgstr ""
+
+#: ../../settings.rst:220
+msgid "New dialog height in pixels."
+msgstr ""
+
+#: ../../settings.rst:222
+msgid "**gui\\_dialog\\_left**"
+msgstr ""
+
+#: ../../settings.rst:222
+msgid "The X co-ordinance of dialogs when opened."
+msgstr ""
+
+#: ../../settings.rst:224
+msgid "**gui\\_dialog\\_top**"
+msgstr ""
+
+#: ../../settings.rst:224
+msgid "The Y co-ordinance of dialogs when opened."
+msgstr ""
+
+#: ../../settings.rst:226
+msgid "**gui\\_dialog\\_width**"
+msgstr ""
+
+#: ../../settings.rst:226
+msgid "New dialog width in pixels."
+msgstr ""
+
+#: ../../settings.rst:228
+msgid "**gui\\_hide\\_menu**"
+msgstr ""
+
+#: ../../settings.rst:228
+msgid "Hide or unhide menu bar."
+msgstr ""
+
+#: ../../settings.rst:230
+msgid "**gui\\_input\\_icon**"
+msgstr ""
+
+#: ../../settings.rst:230
+msgid "Toggle user mode icon in the nick box."
+msgstr ""
+
+#: ../../settings.rst:232
+msgid "**gui\\_input\\_nick**"
+msgstr ""
+
+#: ../../settings.rst:232
+msgid "Toggle the nick box in the input box."
+msgstr ""
+
+#: ../../settings.rst:234
+msgid "**gui\\_input\\_spell**"
+msgstr ""
+
+#: ../../settings.rst:234
+msgid "Enable or disable spell checking."
+msgstr ""
+
+#: ../../settings.rst:236
+msgid "**gui\\_input\\_style**"
+msgstr ""
+
+#: ../../settings.rst:236
+msgid "Toggle use of text box colors and fonts in input box."
+msgstr ""
+
+#: ../../settings.rst:238
+msgid "**gui\\_join\\_dialog**"
+msgstr ""
+
+#: ../../settings.rst:238
+msgid "Toggle join dialog after connect."
+msgstr ""
+
+#: ../../settings.rst:240
+msgid "**gui\\_lagometer**"
+msgstr ""
+
+#: ../../settings.rst:240
+msgid "Toggle types of Lag-O-Meters."
+msgstr ""
+
+#: ../../settings.rst:242 ../../settings.rst:300 ../../settings.rst:312
+msgid "0=Off"
+msgstr ""
+
+#: ../../settings.rst:243 ../../settings.rst:313
+msgid "1=Graph"
+msgstr ""
+
+#: ../../settings.rst:244 ../../settings.rst:314
+msgid "2=Text"
+msgstr ""
+
+#: ../../settings.rst:245 ../../settings.rst:315
+msgid "3=Both"
+msgstr ""
+
+#: ../../settings.rst:247
+msgid "**gui\\_lang**"
+msgstr ""
+
+#: ../../settings.rst:247
+msgid "Set GUI language. Possible values are from 0 to 50 (Win32 only)."
+msgstr ""
+
+#: ../../settings.rst:249
+msgid "**gui\\_mode\\_buttons**"
+msgstr ""
+
+#: ../../settings.rst:249
+msgid "Toggle mode buttons."
+msgstr ""
+
+#: ../../settings.rst:251
+msgid "**gui\\_pane\\_left\\_size**"
+msgstr ""
+
+#: ../../settings.rst:251
+msgid "Change size left pane."
+msgstr ""
+
+#: ../../settings.rst:253
+msgid "**gui\\_pane\\_right\\_size**"
+msgstr ""
+
+#: ../../settings.rst:253
+msgid "Change size right pane."
+msgstr ""
+
+#: ../../settings.rst:255
+msgid "**gui\\_pane\\_divider\\_position**"
+msgstr ""
+
+#: ../../settings.rst:255
+msgid ""
+"Saves position of divider when channel switcher and user list are on the "
+"same side."
+msgstr ""
+
+#: ../../settings.rst:257
+msgid "**gui\\_pane\\_right\\_size\\_min**"
+msgstr ""
+
+#: ../../settings.rst:257
+msgid "FIXME"
+msgstr ""
+
+#: ../../settings.rst:259
+msgid "**gui\\_quit\\_dialog**"
+msgstr ""
+
+#: ../../settings.rst:259
+msgid "Toggle quit dialog."
+msgstr ""
+
+#: ../../settings.rst:261
+msgid "**gui\\_slist\\_fav**"
+msgstr ""
+
+#: ../../settings.rst:261
+msgid "Toggle showing favorites only in network list."
+msgstr ""
+
+#: ../../settings.rst:263
+msgid "**gui\\_slist\\_select**"
+msgstr ""
+
+#: ../../settings.rst:263
+msgid ""
+"The number of the server to select by default in the server list starting at"
+" 0. (E.g. to select the 67th server, set it to 66)"
+msgstr ""
+
+#: ../../settings.rst:265
+msgid "**gui\\_slist\\_skip**"
+msgstr ""
+
+#: ../../settings.rst:265
+msgid "Toggle server list on startup."
+msgstr ""
+
+#: ../../settings.rst:267
+msgid "**gui\\_tab\\_chans**"
+msgstr ""
+
+#: ../../settings.rst:267
+msgid "Open channels in tabs instead of windows."
+msgstr ""
+
+#: ../../settings.rst:269
+msgid "**gui\\_tab\\_dialogs**"
+msgstr ""
+
+#: ../../settings.rst:269
+msgid "Open dialogs in tabs instead of windows."
+msgstr ""
+
+#: ../../settings.rst:271
+msgid "**gui\\_tab\\_dots**"
+msgstr ""
+
+#: ../../settings.rst:271
+msgid "Toggle dotted lines in the channel tree."
+msgstr ""
+
+#: ../../settings.rst:273
+msgid "**gui\\_tab\\_icons**"
+msgstr ""
+
+#: ../../settings.rst:273
+msgid "Toggle channel tree icons."
+msgstr ""
+
+#: ../../settings.rst:275
+msgid "**gui\\_tab\\_layout**"
+msgstr ""
+
+#: ../../settings.rst:275
+msgid "Use treeview or tabs."
+msgstr ""
+
+#: ../../settings.rst:277
+msgid "0=Tabs"
+msgstr ""
+
+#: ../../settings.rst:278
+msgid "2=Treeview"
+msgstr ""
+
+#: ../../settings.rst:280
+msgid "**gui\\_tab\\_newtofront**"
+msgstr ""
+
+#: ../../settings.rst:280
+msgid "When to focus new tabs."
+msgstr ""
+
+#: ../../settings.rst:282
+msgid "0=Never"
+msgstr ""
+
+#: ../../settings.rst:283
+msgid "1=Always"
+msgstr ""
+
+#: ../../settings.rst:284
+msgid "2=Only on requested tabs"
+msgstr ""
+
+#: ../../settings.rst:286
+msgid "**gui\\_tab\\_pos**"
+msgstr ""
+
+#: ../../settings.rst:286
+msgid "Set position of tabs."
+msgstr ""
+
+#: ../../settings.rst:288 ../../settings.rst:343
+msgid "1=Left-Upper"
+msgstr ""
+
+#: ../../settings.rst:289
+msgid "2=Left"
+msgstr ""
+
+#: ../../settings.rst:290 ../../settings.rst:345
+msgid "3=Right-Upper"
+msgstr ""
+
+#: ../../settings.rst:291
+msgid "4=Right"
+msgstr ""
+
+#: ../../settings.rst:292
+msgid "5=Top"
+msgstr ""
+
+#: ../../settings.rst:293
+msgid "6=Bottom"
+msgstr ""
+
+#: ../../settings.rst:294
+msgid "7=Hidden"
+msgstr ""
+
+#: ../../settings.rst:296
+msgid "**gui\\_tab\\_server**"
+msgstr ""
+
+#: ../../settings.rst:296
+msgid "Open an extra tab for server messages."
+msgstr ""
+
+#: ../../settings.rst:298
+msgid "**gui\\_tab\\_small**"
+msgstr ""
+
+#: ../../settings.rst:298
+msgid "Set small tabs."
+msgstr ""
+
+#: ../../settings.rst:301
+msgid "1=Small tabs"
+msgstr ""
+
+#: ../../settings.rst:302
+msgid "2=Extra small tabs"
+msgstr ""
+
+#: ../../settings.rst:304
+msgid "**gui\\_tab\\_sort**"
+msgstr ""
+
+#: ../../settings.rst:304
+msgid "Toggle alphabetical sorting of tabs."
+msgstr ""
+
+#: ../../settings.rst:306
+msgid "**gui\\_tab\\_trunc**"
+msgstr ""
+
+#: ../../settings.rst:306
+msgid "Number or letters to shorten tab names to."
+msgstr ""
+
+#: ../../settings.rst:308
+msgid "**gui\\_tab\\_utils**"
+msgstr ""
+
+#: ../../settings.rst:308
+msgid "Open utils in tabs instead of windows."
+msgstr ""
+
+#: ../../settings.rst:310
+msgid "**gui\\_throttlemeter**"
+msgstr ""
+
+#: ../../settings.rst:310
+msgid "Toggle types of throttle meters."
+msgstr ""
+
+#: ../../settings.rst:317
+msgid "**gui\\_topicbar**"
+msgstr ""
+
+#: ../../settings.rst:317
+msgid "Toggle topic bar."
+msgstr ""
+
+#: ../../settings.rst:319
+msgid "**gui\\_tray**"
+msgstr ""
+
+#: ../../settings.rst:319
+msgid "Enable system tray icon."
+msgstr ""
+
+#: ../../settings.rst:321
+msgid "**gui\\_tray\\_away**"
+msgstr ""
+
+#: ../../settings.rst:321
+msgid "Automatically mark away/back when the tray is toggled."
+msgstr ""
+
+#: ../../settings.rst:323
+msgid "**gui\\_tray\\_blink**"
+msgstr ""
+
+#: ../../settings.rst:323
+msgid "Toggle tray icon blinking or using static images."
+msgstr ""
+
+#: ../../settings.rst:325
+msgid "**gui\\_tray\\_close**"
+msgstr ""
+
+#: ../../settings.rst:325
+msgid "Close to tray."
+msgstr ""
+
+#: ../../settings.rst:327
+msgid "**gui\\_tray\\_minimize**"
+msgstr ""
+
+#: ../../settings.rst:327
+msgid "Minimize to tray."
+msgstr ""
+
+#: ../../settings.rst:329
+msgid "**gui\\_tray\\_quiet**"
+msgstr ""
+
+#: ../../settings.rst:329
+msgid "Only show tray balloons when hidden or iconified."
+msgstr ""
+
+#: ../../settings.rst:331
+msgid "**gui\\_ulist\\_buttons**"
+msgstr ""
+
+#: ../../settings.rst:331
+msgid "Toggle userlist buttons."
+msgstr ""
+
+#: ../../settings.rst:333
+msgid "**gui\\_ulist\\_count**"
+msgstr ""
+
+#: ../../settings.rst:333
+msgid "Toggle displaying user count on top of the user list."
+msgstr ""
+
+#: ../../settings.rst:335
+msgid "**gui\\_ulist\\_doubleclick**"
+msgstr ""
+
+#: ../../settings.rst:335
+msgid "Command to run upon double click of user in userlist."
+msgstr ""
+
+#: ../../settings.rst:337
+msgid "**gui\\_ulist\\_hide**"
+msgstr ""
+
+#: ../../settings.rst:337
+msgid "Hides userlist."
+msgstr ""
+
+#: ../../settings.rst:339
+msgid "**gui\\_ulist\\_icons**"
+msgstr ""
+
+#: ../../settings.rst:339
+msgid "Toggle use of icons instead of text symbols in user list."
+msgstr ""
+
+#: ../../settings.rst:341
+msgid "**gui\\_ulist\\_pos**"
+msgstr ""
+
+#: ../../settings.rst:341
+msgid "Set userlist position."
+msgstr ""
+
+#: ../../settings.rst:344
+msgid "2=Left-Lower"
+msgstr ""
+
+#: ../../settings.rst:346
+msgid "4=Right-Lower"
+msgstr ""
+
+#: ../../settings.rst:348
+msgid "**gui\\_ulist\\_resizable**"
+msgstr ""
+
+#: ../../settings.rst:348
+msgid "Toggle resizable userlist."
+msgstr ""
+
+#: ../../settings.rst:350
+msgid "**gui\\_ulist\\_show\\_hosts**"
+msgstr ""
+
+#: ../../settings.rst:350
+msgid "Toggle user's hosts displaying in userlist. (requires irc_who_join)"
+msgstr ""
+
+#: ../../settings.rst:352
+msgid "**gui\\_ulist\\_sort**"
+msgstr ""
+
+#: ../../settings.rst:352
+msgid "How to sort users in the userlist."
+msgstr ""
+
+#: ../../settings.rst:354
+msgid "0=A-Z with Ops first"
+msgstr ""
+
+#: ../../settings.rst:355
+msgid "1=A-Z"
+msgstr ""
+
+#: ../../settings.rst:356
+msgid "2=A-Z with Ops last"
+msgstr ""
+
+#: ../../settings.rst:357
+msgid "3=Z-A"
+msgstr ""
+
+#: ../../settings.rst:358
+msgid "4=Unsorted"
+msgstr ""
+
+#: ../../settings.rst:360
+msgid "**gui\\_ulist\\_style**"
+msgstr ""
+
+#: ../../settings.rst:360
+msgid "Toggle use of text box colors and fonts in userlist."
+msgstr ""
+
+#: ../../settings.rst:362
+msgid "**gui\\_url\\_mod**"
+msgstr ""
+
+#: ../../settings.rst:362
+msgid "How to handle URLs when clicked. (And what to hold.)"
+msgstr ""
+
+#: ../../settings.rst:364
+msgid "0=Left Click Only"
+msgstr ""
+
+#: ../../settings.rst:365
+msgid "1=Shift"
+msgstr ""
+
+#: ../../settings.rst:366
+msgid "2=Caps Lock"
+msgstr ""
+
+#: ../../settings.rst:367
+msgid "4=CTRL"
+msgstr ""
+
+#: ../../settings.rst:368
+msgid "8=ALT"
+msgstr ""
+
+#: ../../settings.rst:370
+msgid "**gui\\_usermenu**"
+msgstr ""
+
+#: ../../settings.rst:370
+msgid "Toggle editable usermenu."
+msgstr ""
+
+#: ../../settings.rst:372
+msgid "**gui\\_win\\_height**"
+msgstr ""
+
+#: ../../settings.rst:372
+msgid "Main window height in pixels."
+msgstr ""
+
+#: ../../settings.rst:374
+msgid "**gui\\_win\\_left**"
+msgstr ""
+
+#: ../../settings.rst:374
+msgid "The X co-ordinance of main window when opened."
+msgstr ""
+
+#: ../../settings.rst:376
+msgid "**gui\\_win\\_modes**"
+msgstr ""
+
+#: ../../settings.rst:376
+msgid "Show channel modes in title bar."
+msgstr ""
+
+#: ../../settings.rst:378
+msgid "**gui\\_win\\_save**"
+msgstr ""
+
+#: ../../settings.rst:378
+msgid "Toggles saving of state on exit."
+msgstr ""
+
+#: ../../settings.rst:380
+msgid "**gui\\_win\\_state**"
+msgstr ""
+
+#: ../../settings.rst:380
+msgid "Default state of the main window."
+msgstr ""
+
+#: ../../settings.rst:382
+msgid "0=Not Maximized"
+msgstr ""
+
+#: ../../settings.rst:383
+msgid "1=Maximized"
+msgstr ""
+
+#: ../../settings.rst:385
+msgid "**gui\\_win\\_swap**"
+msgstr ""
+
+#: ../../settings.rst:385
+msgid "Swap the middle and left panes (allows side-by-side userlist/tree)."
+msgstr ""
+
+#: ../../settings.rst:387
+msgid "**gui\\_win\\_top**"
+msgstr ""
+
+#: ../../settings.rst:387
+msgid "The Y co-ordinance of main window when opened."
+msgstr ""
+
+#: ../../settings.rst:389
+msgid "**gui\\_win\\_ucount**"
+msgstr ""
+
+#: ../../settings.rst:389
+msgid "Show number of users in title bar."
+msgstr ""
+
+#: ../../settings.rst:391
+msgid "**gui\\_win\\_width**"
+msgstr ""
+
+#: ../../settings.rst:391
+msgid "Main window width in pixels."
+msgstr ""
+
+#: ../../settings.rst:393
+msgid "**identd**"
+msgstr ""
+
+#: ../../settings.rst:393
+msgid "Toggle internal IDENTD (Win32 only)."
+msgstr ""
+
+#: ../../settings.rst:395
+msgid "**input\\_balloon\\_chans**"
+msgstr ""
+
+#: ../../settings.rst:395
+msgid "Show tray balloons on channel messages."
+msgstr ""
+
+#: ../../settings.rst:397
+msgid "**input\\_balloon\\_hilight**"
+msgstr ""
+
+#: ../../settings.rst:397
+msgid "Show tray balloons on highlighted messages."
+msgstr ""
+
+#: ../../settings.rst:399
+msgid "**input\\_balloon\\_priv**"
+msgstr ""
+
+#: ../../settings.rst:399
+msgid "Show tray balloons on private messages."
+msgstr ""
+
+#: ../../settings.rst:401
+msgid "**input\\_balloon\\_time**"
+msgstr ""
+
+#: ../../settings.rst:401
+msgid "How long balloon messages should be displayed. (2.8.8+)"
+msgstr ""
+
+#: ../../settings.rst:403
+msgid "**input\\_beep\\_chans**"
+msgstr ""
+
+#: ../../settings.rst:403
+msgid "Toggle beep on channel messages."
+msgstr ""
+
+#: ../../settings.rst:405
+msgid "**input\\_beep\\_hilight**"
+msgstr ""
+
+#: ../../settings.rst:405
+msgid "Toggle beep on highlighted messages."
+msgstr ""
+
+#: ../../settings.rst:407
+msgid "**input\\_beep\\_priv**"
+msgstr ""
+
+#: ../../settings.rst:407
+msgid "Toggle beep on private messages."
+msgstr ""
+
+#: ../../settings.rst:409
+msgid "**input\\_command\\_char**"
+msgstr ""
+
+#: ../../settings.rst:409
+msgid ""
+"Character used to execute commands. (E.g. if set to '[' then you would use "
+"commands like '[me jumps around')"
+msgstr ""
+
+#: ../../settings.rst:412
+msgid "**input\\_filter\\_beep**"
+msgstr ""
+
+#: ../../settings.rst:412
+msgid "Toggle filtering of beeps sent by others."
+msgstr ""
+
+#: ../../settings.rst:414
+msgid "**input\\_flash\\_chans**"
+msgstr ""
+
+#: ../../settings.rst:414
+msgid "Toggle whether or not to flash taskbar on channel messages."
+msgstr ""
+
+#: ../../settings.rst:416
+msgid "**input\\_flash\\_hilight**"
+msgstr ""
+
+#: ../../settings.rst:416
+msgid "Toggle whether or not to flash taskbar on highlighted messages."
+msgstr ""
+
+#: ../../settings.rst:418
+msgid "**input\\_flash\\_priv**"
+msgstr ""
+
+#: ../../settings.rst:418
+msgid "Toggle whether or not to flash taskbar on private messages."
+msgstr ""
+
+#: ../../settings.rst:420
+msgid "**input\\_perc\\_ascii**"
+msgstr ""
+
+#: ../../settings.rst:420
+msgid "Toggle interpreting of %nnn as ASCII value."
+msgstr ""
+
+#: ../../settings.rst:422
+msgid "**input\\_perc\\_color**"
+msgstr ""
+
+#: ../../settings.rst:422
+msgid "Toggle interpreting of %C, %B as color, bold, etc."
+msgstr ""
+
+#: ../../settings.rst:424
+msgid "**input\\_tray\\_chans**"
+msgstr ""
+
+#: ../../settings.rst:424
+msgid "Blink tray icon on channel messages."
+msgstr ""
+
+#: ../../settings.rst:426
+msgid "**input\\_tray\\_hilight**"
+msgstr ""
+
+#: ../../settings.rst:426
+msgid "Blink tray icon on highlighted messages."
+msgstr ""
+
+#: ../../settings.rst:428
+msgid "**input\\_tray\\_priv**"
+msgstr ""
+
+#: ../../settings.rst:428
+msgid "Blink tray icon on private messages."
+msgstr ""
+
+#: ../../settings.rst:430
+msgid "**irc\\_auto\\_rejoin**"
+msgstr ""
+
+#: ../../settings.rst:430
+msgid "Toggle auto rejoining when kicked."
+msgstr ""
+
+#: ../../settings.rst:432
+msgid "**irc\\_ban\\_type**"
+msgstr ""
+
+#: ../../settings.rst:432
+msgid "The default ban type to use for all bans. (requres irc_who_join)"
+msgstr ""
+
+#: ../../settings.rst:434
+msgid "0=\\*!\\*\\@\\*.host"
+msgstr ""
+
+#: ../../settings.rst:435
+msgid "1=\\*!\\*\\@domain"
+msgstr ""
+
+#: ../../settings.rst:436
+msgid "2=\\*!\\*user\\@\\*.host"
+msgstr ""
+
+#: ../../settings.rst:437
+msgid "3=\\*!\\*user\\@domain"
+msgstr ""
+
+#: ../../settings.rst:439
+msgid "**irc\\_conf\\_mode**"
+msgstr ""
+
+#: ../../settings.rst:439
+msgid ""
+"Toggle hiding of join, part and quit messages. (`More info "
+"<http://toxin.jottit.com/xchat_tips_&_tricks#09>`_)"
+msgstr ""
+
+#: ../../settings.rst:441
+msgid "0=Show join/part/quits"
+msgstr ""
+
+#: ../../settings.rst:442
+msgid "1=Hide join/part/quits"
+msgstr ""
+
+#: ../../settings.rst:444
+msgid "**irc\\_extra\\_hilight**"
+msgstr ""
+
+#: ../../settings.rst:444
+msgid "Extra words to highlight on."
+msgstr ""
+
+#: ../../settings.rst:446
+msgid "**irc\\_hide\\_version**"
+msgstr ""
+
+#: ../../settings.rst:446
+msgid "Toggle hiding of VERSION reply."
+msgstr ""
+
+#: ../../settings.rst:448
+msgid "**irc\\_id\\_ntext**"
+msgstr ""
+
+#: ../../settings.rst:448
+msgid ""
+"$4 in the channel message, channel message hilight and private message "
+"events if unidentified."
+msgstr ""
+
+#: ../../settings.rst:450
+msgid "**irc\\_id\\_ytext**"
+msgstr ""
+
+#: ../../settings.rst:450
+msgid ""
+"$4 in the channel message, channel message hilight and private message "
+"events if identified."
+msgstr ""
+
+#: ../../settings.rst:452
+msgid "**irc\\_invisible**"
+msgstr ""
+
+#: ../../settings.rst:452
+msgid "Toggle invisible mode (+i)."
+msgstr ""
+
+#: ../../settings.rst:454
+msgid "**irc\\_join\\_delay**"
+msgstr ""
+
+#: ../../settings.rst:454
+msgid "How long to delay auto-joining a channel after connect."
+msgstr ""
+
+#: ../../settings.rst:456
+msgid "**irc\\_logging**"
+msgstr ""
+
+#: ../../settings.rst:456
+msgid "Toggle logging."
+msgstr ""
+
+#: ../../settings.rst:458
+msgid "**irc\\_logmask**"
+msgstr ""
+
+#: ../../settings.rst:458
+msgid ""
+"Mask used to create log filenames (strftime details: `Windows "
+"<http://msdn.microsoft.com/en-us/library/fe06s4ak%28v=vs.100%29.aspx>`_ "
+"`Unix <http://linux.die.net/man/3/strftime>`_)."
+msgstr ""
+
+#: ../../settings.rst:460
+msgid "**irc\\_nick1**"
+msgstr ""
+
+#: ../../settings.rst:460
+msgid "First choice nick."
+msgstr ""
+
+#: ../../settings.rst:462
+msgid "**irc\\_nick2**"
+msgstr ""
+
+#: ../../settings.rst:462
+msgid "Second choice nick."
+msgstr ""
+
+#: ../../settings.rst:464
+msgid "**irc\\_nick3**"
+msgstr ""
+
+#: ../../settings.rst:464
+msgid "Third choice nick."
+msgstr ""
+
+#: ../../settings.rst:466
+msgid "**irc\\_nick\\_hilight**"
+msgstr ""
+
+#: ../../settings.rst:466
+msgid "What nicks to highlight when they talk."
+msgstr ""
+
+#: ../../settings.rst:468
+msgid "**irc\\_notice\\_pos**"
+msgstr ""
+
+#: ../../settings.rst:468
+msgid "Placement of Notices:"
+msgstr ""
+
+#: ../../settings.rst:470
+msgid "0 = Automatic"
+msgstr ""
+
+#: ../../settings.rst:471
+msgid "1 = Open extra (notices) tab"
+msgstr ""
+
+#: ../../settings.rst:472
+msgid "2 = Always place in front tab"
+msgstr ""
+
+#: ../../settings.rst:474
+msgid "**irc\\_no\\_hilight**"
+msgstr ""
+
+#: ../../settings.rst:474
+msgid "Nicks not to highlight on."
+msgstr ""
+
+#: ../../settings.rst:476
+msgid "**irc\\_part\\_reason**"
+msgstr ""
+
+#: ../../settings.rst:476
+msgid "Default reason when leaving channel."
+msgstr ""
+
+#: ../../settings.rst:478
+msgid "**irc\\_quit\\_reason**"
+msgstr ""
+
+#: ../../settings.rst:478
+msgid "Default quit reason."
+msgstr ""
+
+#: ../../settings.rst:480
+msgid "**irc\\_raw\\_modes**"
+msgstr ""
+
+#: ../../settings.rst:480
+msgid "Toggle RAW channel modes."
+msgstr ""
+
+#: ../../settings.rst:482
+msgid "**irc\\_real\\_name**"
+msgstr ""
+
+#: ../../settings.rst:482
+msgid "Real name to be sent to server."
+msgstr ""
+
+#: ../../settings.rst:484
+msgid "**irc\\_servernotice**"
+msgstr ""
+
+#: ../../settings.rst:484
+msgid "Toggle receiving of server notices."
+msgstr ""
+
+#: ../../settings.rst:486
+msgid "**irc\\_skip\\_motd**"
+msgstr ""
+
+#: ../../settings.rst:486
+msgid "Toggle skipping of server MOTD."
+msgstr ""
+
+#: ../../settings.rst:488
+msgid "**irc\\_user\\_name**"
+msgstr ""
+
+#: ../../settings.rst:488
+msgid "Username to be sent to server."
+msgstr ""
+
+#: ../../settings.rst:490
+msgid "**irc\\_wallops**"
+msgstr ""
+
+#: ../../settings.rst:490
+msgid "Toggle receiving wallops."
+msgstr ""
+
+#: ../../settings.rst:492
+msgid "**irc\\_who\\_join**"
+msgstr ""
+
+#: ../../settings.rst:492
+msgid "Toggle running WHO after joining channel."
+msgstr ""
+
+#: ../../settings.rst:494
+msgid "**irc\\_whois\\_front**"
+msgstr ""
+
+#: ../../settings.rst:494
+msgid "Toggle whois results being sent to currently active tab."
+msgstr ""
+
+#: ../../settings.rst:496
+msgid "**net\\_auto\\_reconnect**"
+msgstr ""
+
+#: ../../settings.rst:496
+msgid "Toggle auto reconnect to server."
+msgstr ""
+
+#: ../../settings.rst:498
+msgid "**net\\_auto\\_reconnectonfail**"
+msgstr ""
+
+#: ../../settings.rst:498
+msgid ""
+"Toggle auto reconnect upon failed connection. (Unix only command, not "
+"available on Windows)"
+msgstr ""
+
+#: ../../settings.rst:500
+msgid "**net\\_bind\\_host**"
+msgstr ""
+
+#: ../../settings.rst:500
+msgid "Network address to bind ZoiteChat to."
+msgstr ""
+
+#: ../../settings.rst:502
+msgid "**net\\_ping\\_timeout**"
+msgstr ""
+
+#: ../../settings.rst:502
+msgid "How long server ping has to be to timeout."
+msgstr ""
+
+#: ../../settings.rst:504
+msgid "**net\\_proxy\\_auth**"
+msgstr ""
+
+#: ../../settings.rst:504
+msgid "Toggle proxy authentication."
+msgstr ""
+
+#: ../../settings.rst:506
+msgid "**net\\_proxy\\_host**"
+msgstr ""
+
+#: ../../settings.rst:506
+msgid "Proxy host to use."
+msgstr ""
+
+#: ../../settings.rst:508
+msgid "**net\\_proxy\\_pass**"
+msgstr ""
+
+#: ../../settings.rst:508
+msgid "Password to use if proxy authentication is turned on."
+msgstr ""
+
+#: ../../settings.rst:510
+msgid "**net\\_proxy\\_port**"
+msgstr ""
+
+#: ../../settings.rst:510
+msgid "Port to use for proxy host."
+msgstr ""
+
+#: ../../settings.rst:512
+msgid "**net\\_proxy\\_type**"
+msgstr ""
+
+#: ../../settings.rst:512
+msgid "Type of proxy to use."
+msgstr ""
+
+#: ../../settings.rst:514
+msgid "0=Disabled"
+msgstr ""
+
+#: ../../settings.rst:515
+msgid "1=Wingate"
+msgstr ""
+
+#: ../../settings.rst:516
+msgid "2=Socks4"
+msgstr ""
+
+#: ../../settings.rst:517
+msgid "3=Socks5"
+msgstr ""
+
+#: ../../settings.rst:518
+msgid "4=HTTP"
+msgstr ""
+
+#: ../../settings.rst:519
+msgid "5=MS Proxy (ISA)"
+msgstr ""
+
+#: ../../settings.rst:521
+msgid "**net\\_proxy\\_use**"
+msgstr ""
+
+#: ../../settings.rst:521
+msgid "What to use proxies for (if set)."
+msgstr ""
+
+#: ../../settings.rst:523
+msgid "0=All"
+msgstr ""
+
+#: ../../settings.rst:524
+msgid "1=IRC Only"
+msgstr ""
+
+#: ../../settings.rst:525
+msgid "2=DCC Only"
+msgstr ""
+
+#: ../../settings.rst:527
+msgid "**net\\_proxy\\_user**"
+msgstr ""
+
+#: ../../settings.rst:527
+msgid "Username to use if proxy authentication is turned on."
+msgstr ""
+
+#: ../../settings.rst:529
+msgid "**net\\_reconnect\\_delay**"
+msgstr ""
+
+#: ../../settings.rst:529
+msgid "How many seconds to wait before reconnection."
+msgstr ""
+
+#: ../../settings.rst:531
+msgid "**net\\_throttle**"
+msgstr ""
+
+#: ../../settings.rst:531
+msgid "Toggle flood protection (to keep from getting kicked)."
+msgstr ""
+
+#: ../../settings.rst:533
+msgid "**notify\\_timeout**"
+msgstr ""
+
+#: ../../settings.rst:533
+msgid "How often in seconds to check for users in your notify list."
+msgstr ""
+
+#: ../../settings.rst:535
+msgid "**notify\\_whois\\_online**"
+msgstr ""
+
+#: ../../settings.rst:535
+msgid ""
+"Toggle performing WHOIS on users on your notify list when they come online."
+msgstr ""
+
+#: ../../settings.rst:537
+msgid "**perl\\_warnings**"
+msgstr ""
+
+#: ../../settings.rst:537
+msgid "Toggle perl warnings."
+msgstr ""
+
+#: ../../settings.rst:539
+msgid "**sound\\_dir**"
+msgstr ""
+
+#: ../../settings.rst:539
+msgid "Directory where sounds are located."
+msgstr ""
+
+#: ../../settings.rst:541
+msgid "**stamp\\_log**"
+msgstr ""
+
+#: ../../settings.rst:541
+msgid "Toggle timestamps in logs."
+msgstr ""
+
+#: ../../settings.rst:543
+msgid "**stamp\\_log\\_format**"
+msgstr ""
+
+#: ../../settings.rst:543
+msgid ""
+"Format to use for log timestamps (strftime details: `Windows "
+"<http://msdn.microsoft.com/en-us/library/fe06s4ak%28v=vs.100%29.aspx>`_ "
+"`Unix <http://linux.die.net/man/3/strftime>`_)."
+msgstr ""
+
+#: ../../settings.rst:545
+msgid "**stamp\\_text**"
+msgstr ""
+
+#: ../../settings.rst:545
+msgid "Toggle timestamps in text box."
+msgstr ""
+
+#: ../../settings.rst:547
+msgid "**stamp\\_text\\_format**"
+msgstr ""
+
+#: ../../settings.rst:547
+msgid ""
+"Format to use for timestamps in textbox (strftime details: `Windows "
+"<http://msdn.microsoft.com/en-us/library/fe06s4ak%28v=vs.100%29.aspx>`_ "
+"`Unix <http://linux.die.net/man/3/strftime>`_)."
+msgstr ""
+
+#: ../../settings.rst:549
+msgid "**text\\_autocopy\\_color**"
+msgstr ""
+
+#: ../../settings.rst:549
+msgid "Toggle automatic copying of color information."
+msgstr ""
+
+#: ../../settings.rst:551
+msgid "**text\\_autocopy\\_stamp**"
+msgstr ""
+
+#: ../../settings.rst:551
+msgid "Toggle automatic copying of time stamps."
+msgstr ""
+
+#: ../../settings.rst:553
+msgid "**text\\_autocopy\\_text**"
+msgstr ""
+
+#: ../../settings.rst:553
+msgid "Toggle automatic copying of selected text."
+msgstr ""
+
+#: ../../settings.rst:555
+msgid "**text\\_background**"
+msgstr ""
+
+#: ../../settings.rst:555
+msgid "Sets the background image for text box."
+msgstr ""
+
+#: ../../settings.rst:557
+msgid "**text\\_color\\_nicks**"
+msgstr ""
+
+#: ../../settings.rst:557
+msgid "Toggle colored nicks."
+msgstr ""
+
+#: ../../settings.rst:559
+msgid "**text\\_font**"
+msgstr ""
+
+#: ../../settings.rst:559
+msgid ""
+"All fonts to be used (main and alternative fonts combined, shouldn't be "
+"edited manually)."
+msgstr ""
+
+#: ../../settings.rst:561
+msgid "**text\\_font\\_main**"
+msgstr ""
+
+#: ../../settings.rst:561
+msgid "Primary font to be used."
+msgstr ""
+
+#: ../../settings.rst:563
+msgid "**text\\_font\\_alternative**"
+msgstr ""
+
+#: ../../settings.rst:563
+msgid ""
+"Alternative fonts to be used for glyphs not supported by the primary font."
+msgstr ""
+
+#: ../../settings.rst:565
+msgid "**text\\_indent**"
+msgstr ""
+
+#: ../../settings.rst:565
+msgid "Toggle text indentation."
+msgstr ""
+
+#: ../../settings.rst:567
+msgid "**text\\_max\\_indent**"
+msgstr ""
+
+#: ../../settings.rst:567
+msgid "Max pixels to indent text with."
+msgstr ""
+
+#: ../../settings.rst:569
+msgid "**text\\_max\\_lines**"
+msgstr ""
+
+#: ../../settings.rst:569
+msgid "Max number or scrollback lines."
+msgstr ""
+
+#: ../../settings.rst:571
+msgid "**text\\_replay**"
+msgstr ""
+
+#: ../../settings.rst:571
+msgid "Reloads conversation buffers on next startup."
+msgstr ""
+
+#: ../../settings.rst:573
+msgid "**text\\_search\\_case\\_match**"
+msgstr ""
+
+#: ../../settings.rst:573
+msgid "Toggle performing a case-sensitive search."
+msgstr ""
+
+#: ../../settings.rst:575
+msgid "**text\\_search\\_backward**"
+msgstr ""
+
+#: ../../settings.rst:575
+msgid "Toggle searching from newest text line to the oldest."
+msgstr ""
+
+#: ../../settings.rst:577
+msgid "**text\\_search\\_highlight\\_all**"
+msgstr ""
+
+#: ../../settings.rst:577
+msgid ""
+"Toggle highlighting all occurences and underlining of the current occurence."
+msgstr ""
+
+#: ../../settings.rst:579
+msgid "**text\\_search\\_follow**"
+msgstr ""
+
+#: ../../settings.rst:579
+msgid "Toggle search for newly arriving messages."
+msgstr ""
+
+#: ../../settings.rst:581
+msgid "**text\\_search\\_regexp**"
+msgstr ""
+
+#: ../../settings.rst:581
+msgid "Toggle regarding search string as a regular expression."
+msgstr ""
+
+#: ../../settings.rst:583
+msgid "**text\\_show\\_marker**"
+msgstr ""
+
+#: ../../settings.rst:583
+msgid "Toggle red marker line feature."
+msgstr ""
+
+#: ../../settings.rst:585
+msgid "**text\\_show\\_sep**"
+msgstr ""
+
+#: ../../settings.rst:585
+msgid "Toggle separator line."
+msgstr ""
+
+#: ../../settings.rst:587
+msgid "**text\\_spell\\_langs**"
+msgstr ""
+
+#: ../../settings.rst:587
+msgid ""
+"List of languages to have spelling for, by language codes, separated by "
+"commas."
+msgstr ""
+
+#: ../../settings.rst:589
+msgid "**text\\_stripcolor\\_msg**"
+msgstr ""
+
+#: ../../settings.rst:589
+msgid "Toggle stripping colors from messages."
+msgstr ""
+
+#: ../../settings.rst:591
+msgid "**text\\_stripcolor\\_replay**"
+msgstr ""
+
+#: ../../settings.rst:591
+msgid "Toggle stripping colors from scrollback."
+msgstr ""
+
+#: ../../settings.rst:593
+msgid "**text\\_stripcolor\\_topic**"
+msgstr ""
+
+#: ../../settings.rst:593
+msgid "Toggle stripping colors from topic."
+msgstr ""
+
+#: ../../settings.rst:595
+msgid "**text\\_thin\\_sep**"
+msgstr ""
+
+#: ../../settings.rst:595
+msgid "Use thin separator line instead of thick line."
+msgstr ""
+
+#: ../../settings.rst:597
+msgid "**text\\_transparent**"
+msgstr ""
+
+#: ../../settings.rst:597
+msgid "Toggle transparent background."
+msgstr ""
+
+#: ../../settings.rst:599
+msgid "**text\\_wordwrap**"
+msgstr ""
+
+#: ../../settings.rst:599
+msgid "Toggle wordwrap."
+msgstr ""
+
+#: ../../settings.rst:601
+msgid "**url\\_grabber**"
+msgstr ""
+
+#: ../../settings.rst:601
+msgid "Toggle URL grabber."
+msgstr ""
+
+#: ../../settings.rst:603
+msgid "**url\\_grabber\\_limit**"
+msgstr ""
+
+#: ../../settings.rst:603
+msgid "Limit the number of URLs handled by the url grabber."
+msgstr ""
+
+#: ../../settings.rst:605
+msgid "**url\\_logging**"
+msgstr ""
+
+#: ../../settings.rst:605
+msgid "Toggle logging URLs to *<config>/url.log*."
+msgstr ""

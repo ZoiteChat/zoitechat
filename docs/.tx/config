@@ -1,0 +1,94 @@
+[main]
+host = https://www.transifex.com
+type = PO
+
+[zoitechat-documentation.addons]
+file_filter = po/<lang>/LC_MESSAGES/addons.po
+source_file = _build/locale/addons.pot
+source_lang = en
+
+[zoitechat-documentation.appearance]
+file_filter = po/<lang>/LC_MESSAGES/appearance.po
+source_file = _build/locale/appearance.pot
+source_lang = en
+
+[zoitechat-documentation.building]
+file_filter = po/<lang>/LC_MESSAGES/building.po
+source_file = _build/locale/building.pot
+source_lang = en
+
+[zoitechat-documentation.changelog]
+file_filter = po/<lang>/LC_MESSAGES/changelog.po
+source_file = _build/locale/changelog.pot
+source_lang = en
+
+[zoitechat-documentation.commands]
+file_filter = po/<lang>/LC_MESSAGES/commands.po
+source_file = _build/locale/commands.pot
+source_lang = en
+
+#[zoitechat-documentation.developers]
+#file_filter = po/<lang>/LC_MESSAGES/developers.po
+#source_file = _build/locale/developers.pot
+#source_lang = en
+
+[zoitechat-documentation.faq]
+file_filter = po/<lang>/LC_MESSAGES/faq.po
+source_file = _build/locale/faq.pot
+source_lang = en
+
+#[zoitechat-documentation.getting_started]
+#file_filter = po/<lang>/LC_MESSAGES/getting_started.po
+#source_file = _build/locale/getting_started.pot
+#source_lang = en
+
+#[zoitechat-documentation.helping]
+#file_filter = po/<lang>/LC_MESSAGES/helping.po
+#source_file = _build/locale/helping.pot
+#source_lang = en
+
+#[zoitechat-documentation.index]
+#file_filter = po/<lang>/LC_MESSAGES/index.po
+#source_file = _build/locale/index.pot
+#source_lang = en
+
+#[zoitechat-documentation.perl_modules]
+#file_filter = po/<lang>/LC_MESSAGES/perl_modules.po
+#source_file = _build/locale/perl_modules.pot
+#source_lang = en
+
+#[zoitechat-documentation.plugins]
+#file_filter = po/<lang>/LC_MESSAGES/plugins.po
+#source_file = _build/locale/plugins.pot
+#source_lang = en
+
+#[zoitechat-documentation.script_dbus]
+#file_filter = po/<lang>/LC_MESSAGES/script_dbus.po
+#source_file = _build/locale/script_dbus.pot
+#source_lang = en
+
+#[zoitechat-documentation.script_javascript]
+#file_filter = po/<lang>/LC_MESSAGES/script_javascript.po
+#source_file = _build/locale/script_javascript.pot
+#source_lang = en
+
+#[zoitechat-documentation.script_perl]
+#file_filter = po/<lang>/LC_MESSAGES/script_perl.po
+#source_file = _build/locale/script_perl.pot
+#source_lang = en
+
+#[zoitechat-documentation.script_python]
+#file_filter = po/<lang>/LC_MESSAGES/script_python.po
+#source_file = _build/locale/script_python.pot
+#source_lang = en
+
+[zoitechat-documentation.settings]
+file_filter = po/<lang>/LC_MESSAGES/settings.po
+source_file = _build/locale/settings.pot
+source_lang = en
+
+[zoitechat-documentation.tips]
+file_filter = po/<lang>/LC_MESSAGES/tips.po
+source_file = _build/locale/tips.pot
+source_lang = en
+
