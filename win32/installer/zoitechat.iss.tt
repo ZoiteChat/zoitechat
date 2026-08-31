@@ -49,7 +49,7 @@ Name: "icons"; Description: "Create Shortcuts"; Types: custom; Flags: disablenou
 Name: "icons\desktopicon"; Description: "Create Desktop Shortcut"; Types: custom; Flags: disablenouninstallwarning
 Name: "icons\quicklaunchicon"; Description: "Create Quick Launch Shortcut"; Types: custom; Flags: disablenouninstallwarning
 Name: "translations"; Description: "Translations"; Types: normal custom; Flags: disablenouninstallwarning
-Name: "spell"; Description: "Spelling Dictionaries"; Types: custom; Flags: disablenouninstallwarning
+Name: "spell"; Description: "Spelling Dictionaries (Windows 7 fallback)"; Types: custom; Flags: disablenouninstallwarning
 Name: "plugins"; Description: "Plugins"; Types: custom; Flags: disablenouninstallwarning
 Name: "plugins\checksum"; Description: "Checksum"; Types: custom; Flags: disablenouninstallwarning
 Name: "plugins\exec"; Description: "Exec"; Types: custom; Flags: disablenouninstallwarning
@@ -322,7 +322,8 @@ var
 begin
 	GetWindowsVersionEx(Version);
 
-	// Windows 8 or greater has built in spell check.
+	// Enchant's WinSpell provider uses the built-in spell checker on Windows 8+.
+	// Downloaded dictionaries for other providers are retained only as a Windows 7 fallback.
 	if Version.NTPlatform and (Version.Major > 6) or ((Version.Major = 6) and (Version.Minor > 1)) then
 		Result := True
 	else
