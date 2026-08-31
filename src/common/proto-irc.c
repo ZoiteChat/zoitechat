@@ -1169,6 +1169,8 @@ process_named_msg (session *sess, char *type, char *word[], char *word_eol[],
 			return;
 
 		case WORDL('P', 'I', 'N', 'G'):
+			serv->ping_recv = time (0);
+			serv->lag_sent = 0;
 			tcp_sendf (sess->server, "PONG %s\r\n", word_eol[3]);
 			return;
 
@@ -1489,6 +1491,8 @@ process_named_servermsg (session *sess, char *buf, char *rawname, char *word_eol
 
 	if (!strncmp (buf, "PING ", 5))
 	{
+		sess->server->ping_recv = time (0);
+		sess->server->lag_sent = 0;
 		tcp_sendf (sess->server, "PONG %s\r\n", buf + 5);
 		return;
 	}
