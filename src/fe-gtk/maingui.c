@@ -4688,7 +4688,11 @@ mg_search_toggle(session *sess)
         {
                 gtk_widget_hide(sess->gui->shbox);
                 gtk_widget_grab_focus(sess->gui->input_box);
+                if (prefs.hex_text_search_keep_position)
+                        g_signal_handler_block (sess->gui->shentry, sess->gui->search_changed_signal);
                 gtk_entry_set_text(GTK_ENTRY(sess->gui->shentry), "");
+                if (prefs.hex_text_search_keep_position)
+                        g_signal_handler_unblock (sess->gui->shentry, sess->gui->search_changed_signal);
         }
         else
         {
@@ -4702,10 +4706,19 @@ mg_search_toggle(session *sess)
 }
 
 static gboolean
-search_handle_esc (GtkWidget *win, GdkEventKey *key, session *sess)
+search_handle_keypress (GtkWidget *win, GdkEventKey *key, session *sess)
 {
         if (key->keyval == GDK_KEY_Escape)
+        {
                 mg_search_toggle(sess);
+                return TRUE;
+        }
+
+        if (((key->keyval == GDK_KEY_Page_Up || key->keyval == GDK_KEY_Page_Down) &&
+             !(key->state & gtk_accelerator_get_default_mod_mask ())) ||
+            ((key->keyval == GDK_KEY_Up || key->keyval == GDK_KEY_Down) &&
+             (key->state & gtk_accelerator_get_default_mod_mask ()) == GDK_SHIFT_MASK))
+                return key_handle_key_press (sess->gui->input_box, key, sess);
 
         return FALSE;
 }
@@ -4732,10 +4745,9 @@ mg_create_search(session *sess, GtkWidget *box)
         gui->shentry = entry = gtk_entry_new();
         gtk_box_pack_start(GTK_BOX(gui->shbox), entry, FALSE, FALSE, 0);
         gtk_widget_set_size_request (gui->shentry, 180, -1);
-        mg_apply_emoji_fallback_widget (entry);
         mg_apply_entry_scroll_artifact_fix (entry);
         gui->search_changed_signal = g_signal_connect(G_OBJECT(entry), "changed", G_CALLBACK(search_handle_change), sess);
-        g_signal_connect (G_OBJECT (entry), "key-press-event", G_CALLBACK (search_handle_esc), sess);
+        g_signal_connect (G_OBJECT (entry), "key-press-event", G_CALLBACK (search_handle_keypress), sess);
         g_signal_connect(G_OBJECT(entry), "activate", G_CALLBACK(mg_search_handle_next), sess);
         gtk_entry_set_icon_activatable (GTK_ENTRY (entry), GTK_ENTRY_ICON_SECONDARY, FALSE);
         gtk_entry_set_icon_tooltip_text (GTK_ENTRY (sess->gui->shentry), GTK_ENTRY_ICON_SECONDARY, _("Search hit end or not found."));
