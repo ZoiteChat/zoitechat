@@ -324,7 +324,7 @@ begin
 
 	// Enchant's WinSpell provider uses the built-in spell checker on Windows 8+.
 	// Downloaded dictionaries for other providers are retained only as a Windows 7 fallback.
-	if Version.NTPlatform and (Version.Major > 6) or ((Version.Major = 6) and (Version.Minor > 1)) then
+	if Version.NTPlatform and ((Version.Major > 6) or ((Version.Major = 6) and (Version.Minor > 1))) then
 		Result := True
 	else
 		Result := DirExists(ExpandConstant('{localappdata}') + '\enchant-2\myspell');
