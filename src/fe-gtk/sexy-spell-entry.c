@@ -113,6 +113,9 @@ static void (*enchant_dict_describe) (struct EnchantDict * dict, EnchantDictDesc
 static void (*enchant_dict_free_suggestions) (struct EnchantDict * dict, char **suggestions);
 static void (*enchant_dict_store_replacement) (struct EnchantDict * dict, const char *const mis, ssize_t mis_len, const char *const cor, ssize_t cor_len);
 static char ** (*enchant_dict_suggest) (struct EnchantDict * dict, const char *const word, ssize_t len, size_t * out_n_suggs);
+#ifdef G_OS_WIN32
+static void (*enchant_set_prefix_dir) (const char *dir);
+#endif
 static gboolean have_enchant = FALSE;
 
 struct _SexySpellEntryPriv
@@ -257,6 +260,23 @@ initialize_enchant (void)
 	MODULE_SYMBOL("enchant_dict_store_replacement",
 				  enchant_dict_store_replacement, NULL)
 	MODULE_SYMBOL("enchant_dict_suggest", enchant_dict_suggest, NULL)
+
+#ifdef G_OS_WIN32
+	if (g_module_symbol(enchant, "enchant_set_prefix_dir", &funcptr))
+	{
+		gchar *install_dir;
+
+		enchant_set_prefix_dir = funcptr;
+		install_dir = g_win32_get_package_installation_directory_of_module(NULL);
+
+		if (install_dir)
+		{
+			enchant_set_prefix_dir(install_dir);
+			g_info("Enchant prefix dir set to %s", install_dir);
+			g_free(install_dir);
+		}
+	}
+#endif
 }
 
 static void
