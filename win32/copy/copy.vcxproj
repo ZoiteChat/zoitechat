@@ -73,7 +73,7 @@
       <LuaShare Include="$(LuaShareDir)\**\*.lua" Condition="'$(LuaEnabled)'=='true' and '$(LuaShareDir)'!=''" />
       <Typelib Include="$(DepsRoot)\lib\girepository-1.0\*.typelib" Condition="'$(LuaEnabled)'=='true' and '$(LuaLibDir)'!=''" />
 
-      <EnchantProviders Include="$(DepsRoot)\lib\enchant\*.dll" />
+      <EnchantProviders Include="$(DepsRoot)\lib\enchant-2\*.dll" />
 
       <Gtk3Immodules Include="$(DepsRoot)\lib\gtk-3.0\3.0.0\immodules\**\*" />
       <Gtk3PrintBackends Include="$(DepsRoot)\lib\gtk-3.0\3.0.0\printbackends\**\*" />
@@ -99,7 +99,7 @@
     <Copy SourceFiles="@(Share)" DestinationFiles="@(Share->'$(ZoiteChatRel)\share\%(RecursiveDir)%(Filename)%(Extension)')" />
     <Copy SourceFiles="..\..\COPYING" DestinationFolder="$(ZoiteChatRel)\share\doc\zoitechat" />
     <Copy SourceFiles="$(WinSparklePath)\COPYING" DestinationFolder="$(ZoiteChatRel)\share\doc\WinSparkle" />
-    <Copy SourceFiles="@(EnchantProviders)" DestinationFolder="$(ZoiteChatRel)\lib\enchant" />
+    <Copy SourceFiles="@(EnchantProviders)" DestinationFolder="$(ZoiteChatRel)\lib\enchant-2" />
     <Copy SourceFiles="@(Locale)" DestinationFiles="@(Locale->'$(ZoiteChatRel)\share\locale\%(RecursiveDir)%(Filename)%(Extension)')" />
     <Copy SourceFiles="@(MSWindowsTheme)" DestinationFiles="@(MSWindowsTheme->'$(ZoiteChatRel)\share\themes\MS-Windows\%(RecursiveDir)%(Filename)%(Extension)')" />
     <Copy SourceFiles="@(HicolorIcons)" DestinationFiles="@(HicolorIcons->'$(ZoiteChatRel)\share\icons\hicolor\%(RecursiveDir)%(Filename)%(Extension)')" />

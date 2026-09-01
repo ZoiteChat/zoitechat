@@ -66,7 +66,7 @@ jobs:
           Download-WithRetry -Url https://github.com/jrsoftware/issrc/releases/download/is-6_7_1/innosetup-6.7.1.exe -OutFile deps\innosetup-unicode.exe
           & deps\innosetup-unicode.exe /VERYSILENT | Out-Null
 
-          Download-WithRetry -Url https://github.com/ZoiteChat/gvsbuild/releases/download/zoitechat-2.18.1/GTK3_Gvsbuild_zoitechat-2.18.1_x64.zip -OutFile deps\gtk-${{ matrix.arch }}.zip
+          Download-WithRetry -Url https://github.com/ZoiteChat/gvsbuild/releases/download/zoitechat-2.20.0-alpha.1/GTK3_Gvsbuild_zoitechat-2.20.0-alpha.1_x64.zip -OutFile deps\gtk-${{ matrix.arch }}.zip
           Expand-Archive -LiteralPath deps\gtk-${{ matrix.arch }}.zip -DestinationPath C:\gtk-build\gtk\x64\release -Force
 
           Download-WithRetry -Url https://repo.msys2.org/mingw/x86_64/mingw-w64-x86_64-hicolor-icon-theme-0.18-1-any.pkg.tar.zst -OutFile deps\hicolor-icon-theme.pkg.tar.zst

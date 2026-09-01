@@ -49,7 +49,7 @@ Name: "icons"; Description: "Create Shortcuts"; Types: custom; Flags: disablenou
 Name: "icons\desktopicon"; Description: "Create Desktop Shortcut"; Types: custom; Flags: disablenouninstallwarning
 Name: "icons\quicklaunchicon"; Description: "Create Quick Launch Shortcut"; Types: custom; Flags: disablenouninstallwarning
 Name: "translations"; Description: "Translations"; Types: normal custom; Flags: disablenouninstallwarning
-Name: "spell"; Description: "Spelling Dictionaries"; Types: custom; Flags: disablenouninstallwarning
+Name: "spell"; Description: "Spelling Dictionaries (Windows 7 fallback)"; Types: custom; Flags: disablenouninstallwarning
 Name: "plugins"; Description: "Plugins"; Types: custom; Flags: disablenouninstallwarning
 Name: "plugins\checksum"; Description: "Checksum"; Types: custom; Flags: disablenouninstallwarning
 Name: "plugins\exec"; Description: "Exec"; Types: custom; Flags: disablenouninstallwarning
@@ -150,7 +150,7 @@ Source: "tiff.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 
 Source: "plugins\hcnotifications-winrt.dll"; DestDir: "{app}\plugins"; Flags: ignoreversion; Components: libs
 
-Source: "lib\enchant\*"; DestDir: "{app}\lib\enchant"; Flags: ignoreversion; Components: libs
+Source: "lib\enchant-2\*"; DestDir: "{app}\lib\enchant-2"; Flags: ignoreversion; Components: libs
 
 Source: "girepository-2.0-0.dll"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist; Components: langs\lua
 Source: "lua51.dll"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist; Components: langs\lua
@@ -322,11 +322,12 @@ var
 begin
 	GetWindowsVersionEx(Version);
 
-	// Windows 8 or greater has built in spell check.
-	if Version.NTPlatform and (Version.Major > 6) or ((Version.Major = 6) and (Version.Minor > 1)) then
+	// Enchant's WinSpell provider uses the built-in spell checker on Windows 8+.
+	// Downloaded dictionaries for other providers are retained only as a Windows 7 fallback.
+	if Version.NTPlatform and ((Version.Major > 6) or ((Version.Major = 6) and (Version.Minor > 1))) then
 		Result := True
 	else
-		Result := DirExists(ExpandConstant('{localappdata}') + '\enchant\myspell');
+		Result := DirExists(ExpandConstant('{localappdata}') + '\enchant-2\myspell');
 end;
 
 // Python >= 3.9 dropped support for Windows versions before 10;
