@@ -217,6 +217,7 @@ struct zoitechatprefs
 	unsigned int hex_text_replay;
 	unsigned int hex_text_search_case_match;
 	unsigned int hex_text_search_highlight_all;
+	unsigned int hex_text_search_keep_position;
 	unsigned int hex_text_search_follow;
 	unsigned int hex_text_search_regexp;
 	unsigned int hex_text_show_marker;

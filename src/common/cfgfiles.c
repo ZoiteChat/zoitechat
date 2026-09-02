@@ -591,6 +591,7 @@ const struct prefs vars[] =
 	{"text_replay", P_OFFINT (hex_text_replay), TYPE_BOOL},
 	{"text_search_case_match", P_OFFINT (hex_text_search_case_match), TYPE_BOOL},
 	{"text_search_highlight_all", P_OFFINT (hex_text_search_highlight_all), TYPE_BOOL},
+	{"text_search_keep_position", P_OFFINT (hex_text_search_keep_position), TYPE_BOOL},
 	{"text_search_follow", P_OFFINT (hex_text_search_follow), TYPE_BOOL},
 	{"text_search_regexp", P_OFFINT (hex_text_search_regexp), TYPE_BOOL},
 	{"text_show_marker", P_OFFINT (hex_text_show_marker), TYPE_BOOL},
