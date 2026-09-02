@@ -4745,6 +4745,7 @@ mg_create_search(session *sess, GtkWidget *box)
         gui->shentry = entry = gtk_entry_new();
         gtk_box_pack_start(GTK_BOX(gui->shbox), entry, FALSE, FALSE, 0);
         gtk_widget_set_size_request (gui->shentry, 180, -1);
+        mg_apply_emoji_fallback_widget (entry);
         mg_apply_entry_scroll_artifact_fix (entry);
         gui->search_changed_signal = g_signal_connect(G_OBJECT(entry), "changed", G_CALLBACK(search_handle_change), sess);
         g_signal_connect (G_OBJECT (entry), "key-press-event", G_CALLBACK (search_handle_keypress), sess);
