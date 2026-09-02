@@ -35,6 +35,9 @@ config_h.set_quoted('PACKAGE_NAME', meson.project_name())
 config_h.set_quoted('GETTEXT_PACKAGE', 'zoitechat')
 config_h.set_quoted('LOCALEDIR', join_paths(get_option('prefix'),
                                  get_option('datadir'), 'locale'))
+config_h.set_quoted('ZOITECHAT_DOCDIR',
+  join_paths(get_option('prefix'), get_option('datadir'), 'doc', 'zoitechat', 'html')
+)
 config_h.set10('ENABLE_NLS', true)
 
 # Optional features
@@ -159,6 +162,41 @@ foreach ldflag : test_ldflags
   endif
 endforeach
 add_project_link_arguments(global_ldflags, language: 'c')
+
+if get_option('install-docs')
+  docs_python = find_program('python3', 'python')
+  docs_sphinx = run_command(docs_python, '-c', 'import sphinx', check: false)
+  if docs_sphinx.returncode() != 0
+    error('Sphinx is required to build the local HTML documentation. Install Sphinx or configure with -Dinstall-docs=false.')
+  endif
+
+  docs_source_dir = join_paths(meson.source_root(), 'docs')
+  docs_output_dir = join_paths(meson.build_root(), 'docs-html')
+  docs_build_script = join_paths(docs_source_dir, 'build-docs.py')
+  docs_install_script = join_paths(docs_source_dir, 'install-docs.py')
+
+  docs_target = custom_target(
+    'html-documentation',
+    output: 'html-documentation.stamp',
+    command: [
+      docs_python,
+      docs_build_script,
+      docs_source_dir,
+      docs_output_dir,
+      '@OUTPUT@',
+    ],
+    build_by_default: true,
+    build_always_stale: true,
+  )
+
+  meson.add_install_script(
+    docs_python,
+    docs_install_script,
+    docs_target,
+    docs_output_dir,
+    get_option('datadir'),
+  )
+endif
 
 subdir('src')
 if get_option('plugin')

@@ -15,6 +15,7 @@ BuildRequires:  perl
 BuildRequires:  perl-devel
 BuildRequires:  python3
 BuildRequires:  python3-cffi
+BuildRequires:  python3-sphinx
 BuildRequires:  publicsuffix-list
 BuildRequires:  xwayland-run
 BuildRequires:  weston
@@ -87,6 +88,7 @@ xwfb-run -- /usr/bin/meson test -C %{_vpath_builddir} --num-processes %{_smp_bui
 %{_datadir}/icons/hicolor/scalable/apps/net.zoite.Zoitechat.svg
 %{_datadir}/metainfo/net.zoite.Zoitechat.appdata.xml
 %{_datadir}/metainfo/net.zoite.Zoitechat*.metainfo.xml
+%{_datadir}/doc/zoitechat/html/
 %dir %{_libdir}/zoitechat
 %dir %{_libdir}/zoitechat/plugins
 %dir %{_libdir}/zoitechat/python

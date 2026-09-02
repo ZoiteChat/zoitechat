@@ -24,6 +24,7 @@
 #ifdef WIN32
 #include <windows.h>
 #include <io.h>
+#include <glib/gwin32.h>
 #else
 #include <unistd.h>
 #endif
@@ -1740,9 +1741,50 @@ menu_ctcpguiopen (void)
 	editlist_gui_open (NULL, NULL, ctcp_list, buf, "ctcpreply", "ctcpreply.conf", ctcp_help);
 }
 
+static char *
+menu_find_local_docs (void)
+{
+	char *path;
+
+#ifdef WIN32
+	char *base_path;
+
+	base_path = g_win32_get_package_installation_directory_of_module (NULL);
+	if (!base_path)
+		return NULL;
+
+	path = g_build_filename (base_path, "share", "doc", "zoitechat", "html", "index.html", NULL);
+	g_free (base_path);
+#else
+	const char *appdir;
+
+	appdir = g_getenv ("APPDIR");
+	if (appdir && *appdir)
+		path = g_build_filename (appdir, "usr", "share", "doc", "zoitechat", "html", "index.html", NULL);
+	else
+		path = g_build_filename (ZOITECHAT_DOCDIR, "index.html", NULL);
+#endif
+
+	if (g_file_test (path, G_FILE_TEST_IS_REGULAR))
+		return path;
+
+	g_free (path);
+	return NULL;
+}
+
 static void
 menu_docs (GtkWidget *wid, gpointer none)
 {
+	char *path;
+
+	path = menu_find_local_docs ();
+	if (path)
+	{
+		fe_open_url (path);
+		g_free (path);
+		return;
+	}
+
 	fe_open_url ("https://docs.zoitechat.org/en/latest/");
 }
 
