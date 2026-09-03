@@ -126,7 +126,21 @@ ctcp_handle (session *sess, char *to, char *nick, char *ip,
 		if (ctcp_check (sess, nick, word, word_eol, word[4] + ctcp_offset))
 			goto generic;
 
-		inbound_action (sess, to, nick, ip, msg + 7, FALSE, tags_data->identified, tags_data);
+		{
+			gboolean fromme = !serv->p_cmp (nick, serv->nick);
+
+			if (fromme && !is_channel (serv, to))
+			{
+				session *target = find_dialog (serv, to);
+
+				if (target)
+					sess = target;
+				else if (serv->front_session)
+					sess = serv->front_session;
+			}
+
+			inbound_action (sess, to, nick, ip, msg + 7, fromme, tags_data->identified, tags_data);
+		}
 		return;
 	}
 
