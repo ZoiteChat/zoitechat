@@ -127,9 +127,9 @@ ctcp_handle (session *sess, char *to, char *nick, char *ip,
 			goto generic;
 
 		{
-			gboolean fromme = !serv->p_cmp (nick, serv->nick);
+			gboolean private_fromme = !serv->p_cmp (nick, serv->nick) && !is_channel (serv, to);
 
-			if (fromme && !is_channel (serv, to))
+			if (private_fromme)
 			{
 				session *target = find_dialog (serv, to);
 
@@ -139,7 +139,7 @@ ctcp_handle (session *sess, char *to, char *nick, char *ip,
 					sess = serv->front_session;
 			}
 
-			inbound_action (sess, to, nick, ip, msg + 7, fromme, tags_data->identified, tags_data);
+			inbound_action (sess, to, nick, ip, msg + 7, private_fromme, tags_data->identified, tags_data);
 		}
 		return;
 	}
