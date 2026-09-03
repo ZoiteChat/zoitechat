@@ -11,6 +11,7 @@
 #define _WIN32_WINNT 0x0601
 #endif
 
+#include <winsock2.h>
 #include <windows.h>
 #include <winternl.h>
 #include <dxgi.h>
