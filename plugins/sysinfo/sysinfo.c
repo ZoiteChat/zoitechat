@@ -40,8 +40,8 @@ static zoitechat_plugin *ph;
 
 static char name[] = "Sysinfo";
 static char desc[] = "Display info about your hardware and OS";
-static char version[] = "1.0";
-static char sysinfo_help[] = "SysInfo Usage:\n  /SYSINFO [-e|-o] [CLIENT|UI|OS|CPU|RAM|STORAGE|GPU|CHIPSET|SOUND|ETHERNET|UPTIME], print various details about your system or print a summary without arguments\n  /SYSINFO SET <variable>\n";
+static char version[] = "2.0";
+static char sysinfo_help[] = "SysInfo Usage:\n  /SYSINFO [-e|-o] [CLIENT|UI|OS|CPU|RAM|MEMORY|STORAGE|DISK|GPU|VGA|CHIPSET|SOUND|NETWORK|ETHERNET|UPTIME], print various details about your system or print a summary without arguments\n  /SYSINFO SET <variable>\n";
 
 typedef struct
 {
@@ -68,11 +68,15 @@ static hwinfo hwinfos[] = {
 	{"os", "OS", sysinfo_backend_get_os},
 	{"cpu", "CPU", sysinfo_backend_get_cpu},
 	{"memory", "Memory", sysinfo_backend_get_memory},
+#if defined(__linux__)
+	{"storage", "Storage", sysinfo_backend_get_disk, FALSE},
+#else
 	{"storage", "Storage", sysinfo_backend_get_disk, TRUE},
+#endif
 	{"gpu", "GPU", sysinfo_backend_get_gpu},
-	{"chipset", "CHIPSET", sysinfo_backend_get_chipset, TRUE},
+	{"chipset", "Chipset", sysinfo_backend_get_chipset, TRUE},
 	{"sound", "Sound", sysinfo_backend_get_sound, TRUE},
-	{"ethernet", "Ethernet", sysinfo_backend_get_network, TRUE},
+	{"ethernet", "Network", sysinfo_backend_get_network, TRUE},
 	{"uptime", "Uptime", sysinfo_backend_get_uptime},
 	{NULL, NULL},
 };
@@ -115,14 +119,30 @@ print_summary (gboolean announce)
 	g_free (output);
 }
 
+static const char *
+normalize_info_name (const char *info)
+{
+	if (!g_ascii_strcasecmp (info, "ram"))
+		return "memory";
+	if (!g_ascii_strcasecmp (info, "disk"))
+		return "storage";
+	if (!g_ascii_strcasecmp (info, "vga"))
+		return "gpu";
+	if (!g_ascii_strcasecmp (info, "network"))
+		return "ethernet";
+
+	return info;
+}
+
 static void
 print_info (char *info, gboolean announce)
 {
+	const char *normalized = normalize_info_name (info);
 	int i;
 
 	for (i = 0; hwinfos[i].name != NULL; i++)
 	{
-		if (!g_ascii_strcasecmp (info, hwinfos[i].name))
+		if (!g_ascii_strcasecmp (normalized, hwinfos[i].name))
 		{
 			char *str = hwinfos[i].callback();
 			if (str)
@@ -183,12 +203,17 @@ sysinfo_set_pref (char *key, char *value)
 	}
 	else if (g_str_has_prefix (key, "hide_"))
 	{
+		const char *normalized = normalize_info_name (key + 5);
 		int i;
+
 		for (i = 0; hwinfos[i].name != NULL; i++)
 		{
-			if (!strcmp (key + 5, hwinfos[i].name))
+			if (!strcmp (normalized, hwinfos[i].name))
 			{
-				sysinfo_set_pref_real (key, value, hwinfos[i].def);
+				char canonical[32];
+
+				g_snprintf (canonical, sizeof (canonical), "hide_%s", hwinfos[i].name);
+				sysinfo_set_pref_real (canonical, value, hwinfos[i].def);
 				return;
 			}
 		}
