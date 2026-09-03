@@ -925,10 +925,217 @@ mg_send_reply_or_text (session *sess, char *cmd)
 	mg_reply_update (sess);
 }
 
+typedef struct
+{
+	gboolean bold;
+	gboolean italic;
+	gboolean underline;
+	gboolean strikethrough;
+	gboolean reverse;
+	gint foreground;
+	gint background;
+	gboolean pending_foreground;
+	gboolean pending_background;
+} MgInputFormatState;
+
+static void
+mg_input_format_state_at_cursor (GtkEntry *entry, MgInputFormatState *state)
+{
+	const char *text;
+	const char *cursor;
+	gsize limit;
+	gsize i;
+	gint cursor_pos;
+
+	memset (state, 0, sizeof (*state));
+	state->foreground = -1;
+	state->background = -1;
+
+	text = gtk_entry_get_text (entry);
+	cursor_pos = gtk_editable_get_position (GTK_EDITABLE (entry));
+	if (!text || cursor_pos < 0)
+		return;
+
+	cursor = g_utf8_offset_to_pointer (text, cursor_pos);
+	limit = (gsize) (cursor - text);
+
+	for (i = 0; i < limit;)
+	{
+		guchar ch = (guchar) text[i++];
+
+		switch (ch)
+		{
+		case ATTR_BOLD:
+			state->bold = !state->bold;
+			break;
+		case ATTR_ITALICS:
+			state->italic = !state->italic;
+			break;
+		case ATTR_UNDERLINE:
+			state->underline = !state->underline;
+			break;
+		case ATTR_STRIKETHROUGH:
+			state->strikethrough = !state->strikethrough;
+			break;
+		case ATTR_REVERSE:
+			state->reverse = !state->reverse;
+			break;
+		case ATTR_RESET:
+		case '\n':
+			state->bold = FALSE;
+			state->italic = FALSE;
+			state->underline = FALSE;
+			state->strikethrough = FALSE;
+			state->reverse = FALSE;
+			state->foreground = -1;
+			state->background = -1;
+			state->pending_foreground = FALSE;
+			state->pending_background = FALSE;
+			break;
+		case ATTR_COLOR:
+			{
+				gint value = 0;
+				gint digits = 0;
+
+				state->pending_foreground = FALSE;
+				state->pending_background = FALSE;
+
+				if (i >= limit)
+				{
+					state->pending_foreground = TRUE;
+					break;
+				}
+
+				if (!g_ascii_isdigit (text[i]))
+				{
+					state->foreground = -1;
+					state->background = -1;
+					break;
+				}
+
+				while (i < limit && digits < 2 && g_ascii_isdigit (text[i]))
+				{
+					value = (value * 10) + (text[i] - '0');
+					i++;
+					digits++;
+				}
+				state->foreground = value;
+				state->background = -1;
+
+				if (i < limit && text[i] == ',')
+				{
+					i++;
+					if (i >= limit)
+					{
+						state->pending_background = TRUE;
+						break;
+					}
+
+					value = 0;
+					digits = 0;
+					while (i < limit && digits < 2 && g_ascii_isdigit (text[i]))
+					{
+						value = (value * 10) + (text[i] - '0');
+						i++;
+						digits++;
+					}
+					if (digits > 0)
+						state->background = value;
+				}
+			}
+			break;
+		default:
+			break;
+		}
+	}
+}
+
+static void
+mg_input_format_append (GString *summary, const char *text)
+{
+	if (summary->len > 0)
+		g_string_append (summary, " · ");
+	g_string_append (summary, text);
+}
+
+static void
+mg_input_format_update (GtkEntry *entry)
+{
+	GtkWidget *format_box;
+	GtkWidget *format_label;
+	MgInputFormatState state;
+	GString *summary;
+	char color[48];
+	char *markup;
+
+	format_box = g_object_get_data (G_OBJECT (entry), "zoitechat-format-box");
+	format_label = g_object_get_data (G_OBJECT (entry), "zoitechat-format-label");
+	if (!format_box || !format_label)
+		return;
+
+	if (!prefs.hex_gui_input_attr)
+	{
+		gtk_widget_hide (format_box);
+		return;
+	}
+
+	mg_input_format_state_at_cursor (entry, &state);
+	summary = g_string_new (NULL);
+
+	if (state.bold)
+		mg_input_format_append (summary, "<b>Bold</b>");
+	if (state.italic)
+		mg_input_format_append (summary, "<i>Italic</i>");
+	if (state.underline)
+		mg_input_format_append (summary, "<u>Underline</u>");
+	if (state.strikethrough)
+		mg_input_format_append (summary, "<s>Strikethrough</s>");
+	if (state.reverse)
+		mg_input_format_append (summary, "Reverse");
+
+	if (state.foreground >= 0)
+	{
+		g_snprintf (color, sizeof (color), "Text color <b>%02d</b>", state.foreground);
+		mg_input_format_append (summary, color);
+	}
+	if (state.background >= 0)
+	{
+		g_snprintf (color, sizeof (color), "Background <b>%02d</b>", state.background);
+		mg_input_format_append (summary, color);
+	}
+	if (state.pending_foreground)
+		mg_input_format_append (summary, "Color: type foreground[,background]");
+	else if (state.pending_background)
+		mg_input_format_append (summary, "Background: type color");
+
+	if (summary->len == 0)
+	{
+		gtk_widget_hide (format_box);
+		g_string_free (summary, TRUE);
+		return;
+	}
+
+	markup = g_strdup_printf ("<span foreground='#7d8790'>Formatting · %s</span>", summary->str);
+	gtk_label_set_markup (GTK_LABEL (format_label), markup);
+	gtk_widget_show (format_label);
+	gtk_widget_show (format_box);
+	g_free (markup);
+	g_string_free (summary, TRUE);
+}
+
+static void
+mg_inputbox_cursor_changed (GObject *object, GParamSpec *pspec, gpointer userdata)
+{
+	(void) pspec;
+	(void) userdata;
+	mg_input_format_update (GTK_ENTRY (object));
+}
+
 static void
 mg_inputbox_changed (GtkEditable *editable, session_gui *gui)
 {
         key_check_replace_on_change (editable, NULL);
+        mg_input_format_update (GTK_ENTRY (editable));
         if (current_sess && current_sess->gui == gui)
                 mg_typing_update (current_sess, gtk_entry_get_text (GTK_ENTRY (editable)));
 }
@@ -4799,7 +5006,7 @@ mg_create_search(session *sess, GtkWidget *box)
 static void
 mg_create_entry (session *sess, GtkWidget *box)
 {
-        GtkWidget *hbox, *but, *entry;
+        GtkWidget *hbox, *but, *entry, *format_box, *format_label;
         session_gui *gui = sess->gui;
         const char *emoji_fallback_icon_names[] = {
                 "face-smile-symbolic",
@@ -4810,6 +5017,16 @@ mg_create_entry (session *sess, GtkWidget *box)
                 NULL
         };
         const char *emoji_fallback_icon_name;
+
+        format_box = mg_box_new (GTK_ORIENTATION_HORIZONTAL, FALSE, 6);
+        gtk_widget_set_name (format_box, "zoitechat-formatbar");
+        gtk_widget_set_no_show_all (format_box, TRUE);
+        gtk_box_pack_start (GTK_BOX (box), format_box, 0, 0, 0);
+        format_label = gtk_label_new ("");
+        gtk_label_set_ellipsize (GTK_LABEL (format_label), PANGO_ELLIPSIZE_END);
+        gtk_box_pack_start (GTK_BOX (format_box), format_label, TRUE, TRUE, 8);
+        gtk_widget_show (format_label);
+        gtk_widget_hide (format_box);
 
         gui->reply_box = mg_box_new (GTK_ORIENTATION_HORIZONTAL, FALSE, 6);
         gtk_widget_set_name (gui->reply_box, "zoitechat-replybar");
@@ -4841,12 +5058,16 @@ mg_create_entry (session *sess, GtkWidget *box)
         gui->input_box = entry = sexy_spell_entry_new ();
         sexy_spell_entry_set_checked ((SexySpellEntry *)entry, prefs.hex_gui_input_spell);
         sexy_spell_entry_set_parse_attributes ((SexySpellEntry *)entry, prefs.hex_gui_input_attr);
+        g_object_set_data (G_OBJECT (entry), "zoitechat-format-box", format_box);
+        g_object_set_data (G_OBJECT (entry), "zoitechat-format-label", format_label);
 
         gtk_entry_set_max_length (GTK_ENTRY (gui->input_box), 0);
         g_signal_connect (G_OBJECT (entry), "activate",
                                                         G_CALLBACK (mg_inputbox_cb), gui);
         g_signal_connect (G_OBJECT (entry), "changed",
                                                         G_CALLBACK (mg_inputbox_changed), gui);
+        g_signal_connect (G_OBJECT (entry), "notify::cursor-position",
+                                                        G_CALLBACK (mg_inputbox_cursor_changed), gui);
         gtk_box_pack_start (GTK_BOX (hbox), entry, TRUE, TRUE, 0);
 
         gtk_widget_set_name (entry, "zoitechat-inputbox");
