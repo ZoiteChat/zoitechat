@@ -24,7 +24,6 @@
 #ifdef WIN32
 #include <windows.h>
 #include <io.h>
-#include <glib/gwin32.h>
 #else
 #include <unistd.h>
 #endif
