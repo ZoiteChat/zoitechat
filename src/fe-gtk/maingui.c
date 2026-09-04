@@ -59,6 +59,7 @@
 #include "pixmaps.h"
 #include "plugin-tray.h"
 #include "xtext.h"
+#include "inline-image.h"
 #include "sexy-spell-entry.h"
 #include "gtkutil.h"
 
@@ -3687,7 +3688,13 @@ mg_word_clicked (GtkWidget *xtext, char *word, GdkEventButton *even)
         {
                 if (word == NULL)
                 {
-                        mg_focus (sess);
+                        /* a click on a shown inline image opens the viewer */
+                        textentry *img_ent = gtk_xtext_get_clicked_image_entry (GTK_XTEXT (xtext));
+
+                        if (img_ent)
+                                inline_image_show_viewer (GTK_XTEXT (xtext), img_ent);
+                        else
+                                mg_focus (sess);
                         return;
                 }
 
@@ -3699,6 +3706,20 @@ mg_word_clicked (GtkWidget *xtext, char *word, GdkEventButton *even)
                         case WORD_HOST6:
                         case WORD_HOST:
                                 word[end] = 0;
+                                /* image links toggle an inline preview instead
+                                   of opening the browser */
+                                if (word_type == WORD_URL &&
+                                    prefs.hex_net_remote_media &&
+                                    inline_image_is_image_url (word + start))
+                                {
+                                        textentry *ent = gtk_xtext_get_clicked_entry (GTK_XTEXT (xtext));
+
+                                        if (ent)
+                                        {
+                                                inline_image_toggle (sess, GTK_XTEXT (xtext), ent, word + start);
+                                                break;
+                                        }
+                                }
                                 fe_open_url (word + start);
                         }
                 }
@@ -3727,7 +3748,8 @@ mg_word_clicked (GtkWidget *xtext, char *word, GdkEventButton *even)
         case WORD_HOST:
                 word[end] = 0;
                 word += start;
-                menu_urlmenu (even, word);
+                menu_urlmenu_entry (even, word, xtext,
+                                    gtk_xtext_get_clicked_entry (GTK_XTEXT (xtext)));
                 break;
         case WORD_NICK:
                 word[end] = 0;

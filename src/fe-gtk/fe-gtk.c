@@ -49,6 +49,7 @@
 #include "chanlist.h"
 #include "joind.h"
 #include "xtext.h"
+#include "inline-image.h"
 #include "theme/theme-gtk.h"
 #include "menu.h"
 #include "notifygui.h"
@@ -943,7 +944,13 @@ void
 fe_print_text (struct session *sess, char *text, time_t stamp,
 			   gboolean no_activity)
 {
-	PrintTextRaw (sess->res->buffer, (unsigned char *)text, prefs.hex_text_indent, stamp);
+	/* image links become a "[view image]" placeholder with a hidden URL */
+	char *filtered = inline_image_filter_text (text);
+
+	PrintTextRaw (sess->res->buffer,
+					  (unsigned char *)(filtered ? filtered : text),
+					  prefs.hex_text_indent, stamp);
+	g_free (filtered);
 
 	if (no_activity || !sess->gui->is_tab)
 		return;
