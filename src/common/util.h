@@ -65,6 +65,7 @@ int waitline (int sok, char *buf, int bufsize, int);
 #ifdef WIN32
 int waitline2 (GIOChannel *source, char *buf, int bufsize);
 int get_cpu_arch (void);
+gboolean win32_is_windows_8_or_newer (void);
 #else
 #define waitline2(source,buf,size) waitline(serv->childread,buf,size,0)
 #endif

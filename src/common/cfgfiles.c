@@ -40,18 +40,18 @@
 
 #define DEF_FONT "Monospace 9"
 #ifdef WIN32
-#define DEF_FONT_ALTER "Segoe UI Emoji,Arial Unicode MS,Lucida Sans Unicode,Meiryo,Symbola,Unifont"
+#define DEF_FONT_ALTER "Segoe UI Emoji,Segoe UI Symbol,Arial Unicode MS,Lucida Sans Unicode,Meiryo,Symbola,Unifont"
 #else
 #define DEF_FONT_ALTER "Arial Unicode MS,Segoe UI Emoji,Lucida Sans Unicode,Meiryo,Symbola,Unifont"
 #endif
 
 const char * const languages[LANGUAGES_LENGTH] = {
-	"af", "sq", "am", "ast", "az", "eu", "be", "bg", "ca", "zh_CN",      /*  0 ..  9 */
-	"zh_TW", "cs", "da", "nl", "en_GB", "en", "et", "fi", "fr", "gl",    /* 10 .. 19 */
-	"de", "el", "gu", "hi", "hu", "id", "it", "ja_JP", "kn", "rw",       /* 20 .. 29 */
-	"ko", "lv", "lt", "mk", "ml", "ms", "nb", "no", "pl", "pt",          /* 30 .. 39 */
-	"pt_BR", "pa", "ru", "sr", "sk", "sl", "es", "sv", "th", "tr",       /* 40 .. 49 */
-	"uk", "vi", "wa"                                                     /* 50 .. */
+	"af", "sq", "am", "ast", "az", "eu", "be", "bg", "ca", "zh_CN",
+	"zh_TW", "cs", "da", "nl", "en_GB", "en", "et", "fi", "fr", "gl",
+	"de", "el", "gu", "hi", "hu", "id", "it", "ja_JP", "kn", "rw",
+	"ko", "lv", "lt", "mk", "ml", "ms", "nb", "no", "pl", "pt",
+	"pt_BR", "pa", "ru", "sr", "sk", "sl", "es", "sv", "th", "tr",
+	"uk", "vi", "wa"
 };
 
 void
@@ -77,8 +77,6 @@ list_addentry (GSList ** list, char *cmd, char *name)
 
 	*list = g_slist_append (*list, pop);
 }
-
-/* read it in from a buffer to our linked list */
 
 static void
 list_load_from_data (GSList ** list, char *ibuf, int size)
@@ -181,9 +179,9 @@ list_delentry (GSList ** list, char *name)
 char *
 cfg_get_str (char *cfg, const char *var, char *dest, int dest_len)
 {
-	char buffer[128];	/* should be plenty for a variable name */
+	char buffer[128];
 
-	sprintf (buffer, "%s ", var);	/* add one space, this way it works against var - var2 checks too */
+	sprintf (buffer, "%s ", var);
 
 	while (1)
 	{
@@ -197,8 +195,6 @@ cfg_get_str (char *cfg, const char *var, char *dest, int dest_len)
 				cfg++;
 			while (*cfg == ' ')
 				cfg++;
-			/*while (*cfg == ' ' || *cfg == '=')
-			   cfg++; */
 			value = cfg;
 			while (*cfg != 0 && *cfg != '\n')
 				cfg++;
@@ -293,7 +289,7 @@ cfg_get_int (char *cfg, char *var)
 	return atoi (str);
 }
 
-char *xdir = NULL;	/* utf-8 encoding */
+char *xdir = NULL;
 
 #ifdef WIN32
 #include <windows.h>
@@ -416,6 +412,7 @@ const struct prefs vars[] =
 	{"gui_dialog_left", P_OFFINT (hex_gui_dialog_left), TYPE_INT},
 	{"gui_dialog_top", P_OFFINT (hex_gui_dialog_top), TYPE_INT},
 	{"gui_dialog_width", P_OFFINT (hex_gui_dialog_width), TYPE_INT},
+	{"gui_emoji_skin_tone", P_OFFINT (hex_gui_emoji_skin_tone), TYPE_INT},
 	{"gui_filesize_iec", P_OFFINT (hex_gui_filesize_iec), TYPE_BOOL},
 	{"gui_focus_omitalerts", P_OFFINT (hex_gui_focus_omitalerts), TYPE_BOOL},
 	{"gui_hide_menu", P_OFFINT (hex_gui_hide_menu), TYPE_BOOL},
@@ -435,7 +432,6 @@ const struct prefs vars[] =
 	{"gui_pane_right_size_min", P_OFFINT (hex_gui_pane_right_size_min), TYPE_INT},
 	{"gui_quit_dialog", P_OFFINT (hex_gui_quit_dialog), TYPE_BOOL},
 	{"gui_search_pos", P_OFFINT (hex_gui_search_pos), TYPE_INT},
-	/* {"gui_single", P_OFFINT (hex_gui_single), TYPE_BOOL}, */
 	{"gui_slist_fav", P_OFFINT (hex_gui_slist_fav), TYPE_BOOL},
 	{"gui_slist_select", P_OFFINT (hex_gui_slist_select), TYPE_INT},
 	{"gui_slist_skip", P_OFFINT (hex_gui_slist_skip), TYPE_BOOL},

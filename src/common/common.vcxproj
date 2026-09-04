@@ -55,6 +55,7 @@
     <ClCompile Include="chanopt.c" />
     <ClCompile Include="ctcp.c" />
     <ClCompile Include="dcc.c" />
+    <ClCompile Include="emoji-data.c" />
     <ClCompile Include="history.c" />
     <ClCompile Include="plugin-identd.c" />
     <ClCompile Include="ignore.c" />
@@ -113,6 +114,7 @@
 SET SOLUTIONDIR=$(SolutionDir)..\
 "$(Python3Path)\python.exe" $(ProjectDir)make-te.py "$(ProjectDir)textevents.in" "$(ZoiteChatLib)textevents.h" "$(ZoiteChatLib)textenums.h"
 "$(Python3Path)\python.exe" $(ProjectDir)gen-public-suffix.py "$(ZoiteChatLib)public_suffix_data.h"
+"$(Python3Path)\python.exe" "$(SolutionDir)..\tools\gen-emoji-data.py" "$(SolutionDir)..\data\emoji\emoji-test.txt" "$(SolutionDir)..\data\emoji\cldr-annotations-en.xml" "$(SolutionDir)..\data\emoji\cldr-annotations-derived-en.xml" "$(SolutionDir)..\data\emoji\gemoji.json" "$(SolutionDir)..\data\emoji\VERSIONS" "$(ZoiteChatLib)emoji-data-table.h"
 powershell -File "$(SolutionDir)..\win32\version-template.ps1" "$(SolutionDir)..\win32\config.h.tt" "$(ZoiteChatLib)config.h"
 $(GlibGenMarshal) --prefix=_zoitechat_marshal --header "$(ProjectDir)marshalers.list" --output "$(ZoiteChatLib)marshal.h"
 $(GlibGenMarshal) --prefix=_zoitechat_marshal --body "$(ProjectDir)marshalers.list" --output "$(ZoiteChatLib)marshal.c"

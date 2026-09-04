@@ -31,6 +31,7 @@ BuildRequires:  pkgconfig(lua)
 BuildRequires:  pkgconfig(openssl) >= 0.9.8
 BuildRequires:  pkgconfig(python3)
 
+Requires:       google-noto-color-emoji-fonts
 Requires:       hicolor-icon-theme
 Requires:       iso-codes
 
