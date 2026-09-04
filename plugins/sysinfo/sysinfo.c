@@ -68,11 +68,7 @@ static hwinfo hwinfos[] = {
 	{"os", "OS", sysinfo_backend_get_os},
 	{"cpu", "CPU", sysinfo_backend_get_cpu},
 	{"memory", "Memory", sysinfo_backend_get_memory},
-#if defined(__linux__)
-	{"storage", "Storage", sysinfo_backend_get_disk, FALSE},
-#else
-	{"storage", "Storage", sysinfo_backend_get_disk, TRUE},
-#endif
+        {"storage", "Storage", sysinfo_backend_get_disk},
 	{"gpu", "GPU", sysinfo_backend_get_gpu},
 	{"chipset", "Chipset", sysinfo_backend_get_chipset, TRUE},
 	{"sound", "Sound", sysinfo_backend_get_sound, TRUE},
