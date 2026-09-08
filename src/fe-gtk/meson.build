@@ -107,7 +107,7 @@ zoitechat_theme_lib = static_library('zoitechat_theme',
 iso_codes = dependency('iso-codes', required: false)
 if iso_codes.found()
   zoitechat_gtk_sources += 'sexy-iso-codes.c'
-  iso_codes_prefix = iso_codes.get_pkgconfig_variable('prefix')
+  iso_codes_prefix = iso_codes.get_variable(pkgconfig : 'prefix')
   zoitechat_gtk_cflags += '-DISO_CODES_PREFIX="@0@"'.format(iso_codes_prefix)
   zoitechat_gtk_cflags += '-DISO_CODES_LOCALEDIR="@0@"'.format(
                         join_paths(iso_codes_prefix, 'share/locale'))
@@ -136,7 +136,7 @@ executable('zoitechat',
   link_args: zoitechat_gtk_ldflags,
   pie: true,
   install: true,
-  gui_app: true,
+  win_subsystem: 'windows',
 )
 
 theme_manager_policy_tests = executable('theme_manager_policy_tests',

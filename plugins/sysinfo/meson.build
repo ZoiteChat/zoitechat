@@ -26,7 +26,7 @@ if system == 'linux' or system == 'gnu' or system.startswith('gnu/') or system =
       sysinfo_cargs += '-DHAVE_LIBPCI'
       sysinfo_sources += 'unix/pci.c'
 
-      picidsdir = libpci.get_pkgconfig_variable('idsdir')
+      picidsdir = libpci.get_variable(pkgconfig : 'idsdir') 
       pciids = join_paths(picidsdir, 'pci.ids')
       sysinfo_cargs += '-DPCIIDS_FILE="@0@"'.format(pciids)
     endif
