@@ -114,7 +114,7 @@ typedef struct restore_gui
 
 	/* information stored when this tab isn't front-most */
 	GtkListStore *user_model;	/* for filling the GtkTreeView */
-	GHashTable *user_row_refs;
+	GHashTable *user_row_iters; /* User * -> persistent GtkTreeIter * */
 	void *buffer;		/* xtext_Buffer */
 	char *input_text;	/* input text buffer (while not-front tab) */
 	char *topic_text;	/* topic GtkEntry buffer */

@@ -3130,6 +3130,7 @@ gtk_xtext_class_init (GtkXTextClass * class)
 
 typedef struct chunk_s {
 	GSList *slp;
+	gboolean collect_metadata;
 	int off1, len1, emph;
 	offlen_t meta;
 } chunk_t;
@@ -3142,12 +3143,19 @@ xtext_do_chunk(chunk_t *c)
 	if (c->len1 == 0)
 		return;
 
+	/* Copying, searching and saving only need the stripped text. */
+	if (!c->collect_metadata)
+	{
+		c->len1 = 0;
+		return;
+	}
+
 	meta = g_new (offlen_t, 1);
 	meta->off = c->off1;
 	meta->len = c->len1;
 	meta->emph = c->emph;
 	meta->width = 0;
-	c->slp = g_slist_append (c->slp, meta);
+	c->slp = g_slist_prepend (c->slp, meta);
 
 	c->len1 = 0;
 }
@@ -3170,6 +3178,7 @@ gtk_xtext_strip_color (unsigned char *text, int len, unsigned char *outbuf,
 		new_str = outbuf;
 
 	c.slp = NULL;
+	c.collect_metadata = slpp != NULL;
 	c.off1 = 0;
 	c.len1 = 0;
 	c.emph = 0;
@@ -3240,9 +3249,7 @@ bad_utf8:		/* Normal ending sequence, and give up if bad utf8 */
 		*newlen = i;
 
 	if (slpp)
-		*slpp = c.slp;
-	else
-		g_slist_free_full (c.slp, g_free);
+		*slpp = g_slist_reverse (c.slp);
 
 	return new_str;
 }
@@ -4341,7 +4348,7 @@ gtk_xtext_lines_taken (xtext_buffer *buf, textentry * ent)
 
 	if (win_width >= ent->indent + ent->str_width)
 	{
-		ent->sublines = g_slist_append (ent->sublines, GINT_TO_POINTER (ent->str_len));
+		ent->sublines = g_slist_prepend (ent->sublines, GINT_TO_POINTER (ent->str_len));
 		ent->subline_count = 1;
 		return ent->subline_count;
 	}
@@ -4352,13 +4359,15 @@ gtk_xtext_lines_taken (xtext_buffer *buf, textentry * ent)
 	do
 	{
 		len = find_next_wrap (buf->xtext, ent, str, win_width, indent);
-		ent->sublines = g_slist_append (ent->sublines, GINT_TO_POINTER (str + len - ent->str));
+		ent->sublines = g_slist_prepend (ent->sublines, GINT_TO_POINTER (str + len - ent->str));
+		ent->subline_count++;
 		indent = buf->indent;
 		str += len;
 	}
 	while (str < ent->str + ent->str_len);
 
-	ent->subline_count = g_slist_length (ent->sublines);
+	/* Preserve display order without walking the growing list per wrap. */
+	ent->sublines = g_slist_reverse (ent->sublines);
 	return ent->subline_count;
 }
 

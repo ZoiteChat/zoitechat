@@ -218,75 +218,49 @@ scroll_to_iter (GtkTreeIter *iter, GtkTreeView *treeview, GtkTreeModel *model)
 static GHashTable *
 userlist_row_map_ensure (session *sess)
 {
-	if (!sess->res->user_row_refs)
-		sess->res->user_row_refs = g_hash_table_new_full (g_direct_hash, g_direct_equal, NULL, (GDestroyNotify) gtk_tree_row_reference_free);
+	if (!sess->res->user_row_iters)
+		sess->res->user_row_iters = g_hash_table_new_full (g_direct_hash, g_direct_equal, NULL, (GDestroyNotify) gtk_tree_iter_free);
 
-	return sess->res->user_row_refs;
+	return sess->res->user_row_iters;
 }
 
 static void
 userlist_row_map_remove (session *sess, struct User *user)
 {
-	if (!sess->res->user_row_refs)
+	if (!sess->res->user_row_iters)
 		return;
 
-	g_hash_table_remove (sess->res->user_row_refs, user);
+	g_hash_table_remove (sess->res->user_row_iters, user);
 }
 
 static void
 userlist_row_map_set (session *sess, GtkTreeModel *model, struct User *user, GtkTreeIter *iter)
 {
-	GtkTreePath *path;
-	GtkTreeRowReference *ref;
-
-	path = gtk_tree_model_get_path (model, iter);
-	if (!path)
+	/* The shared tree view can still show another session's model while a
+	 * tab switch is pending. Never cache an iterator from that model. */
+	if (model != GTK_TREE_MODEL (sess->res->user_model))
 		return;
 
-	ref = gtk_tree_row_reference_new (model, path);
-	gtk_tree_path_free (path);
-	if (!ref)
-		return;
-
-	g_hash_table_replace (userlist_row_map_ensure (sess), user, ref);
+	/* GtkListStore guarantees persistent iterators until their row is
+	 * removed, including across sorting. Unlike row references, these do
+	 * not require every cached position to be updated on each insertion. */
+	g_hash_table_replace (userlist_row_map_ensure (sess), user, gtk_tree_iter_copy (iter));
 }
 
 static gboolean
 userlist_row_map_get_iter (session *sess, GtkTreeModel *model, struct User *user, GtkTreeIter *iter)
 {
-	GtkTreeRowReference *ref;
-	GtkTreePath *path;
-	struct User *row_user;
+	GtkTreeIter *cached;
 
-	if (!sess->res->user_row_refs)
+	if (model != GTK_TREE_MODEL (sess->res->user_model) || !sess->res->user_row_iters)
 		return FALSE;
 
-	ref = g_hash_table_lookup (sess->res->user_row_refs, user);
-	if (!ref)
+	cached = g_hash_table_lookup (sess->res->user_row_iters, user);
+	if (!cached)
 		return FALSE;
 
-	path = gtk_tree_row_reference_get_path (ref);
-	if (!path)
-	{
-		g_hash_table_remove (sess->res->user_row_refs, user);
-		return FALSE;
-	}
-
-	if (!gtk_tree_model_get_iter (model, iter, path))
-	{
-		gtk_tree_path_free (path);
-		g_hash_table_remove (sess->res->user_row_refs, user);
-		return FALSE;
-	}
-	gtk_tree_path_free (path);
-
-	gtk_tree_model_get (model, iter, COL_USER, &row_user, -1);
-	if (row_user != user)
-	{
-		g_hash_table_remove (sess->res->user_row_refs, user);
-		return FALSE;
-	}
-
+	/* Removal and clear invalidate the cache before deleting model rows. */
+	*iter = *cached;
 	return TRUE;
 }
 
@@ -587,7 +561,6 @@ fe_userlist_rehash (session *sess, struct User *user)
 					  GTK_TREE_MODEL(sess->res->user_model), user, &sel);
 	if (!iter)
 		return;
-	userlist_row_map_set (sess, GTK_TREE_MODEL (sess->res->user_model), user, iter);
 
 	if (prefs.hex_away_track && user->away)
 	{
@@ -698,8 +671,8 @@ fe_userlist_insert (session *sess, struct User *newuser, gboolean sel)
 void
 fe_userlist_clear (session *sess)
 {
-	if (sess->res->user_row_refs)
-		g_hash_table_remove_all (sess->res->user_row_refs);
+	if (sess->res->user_row_iters)
+		g_hash_table_remove_all (sess->res->user_row_iters);
 	gtk_list_store_clear (sess->res->user_model);
 }
 
