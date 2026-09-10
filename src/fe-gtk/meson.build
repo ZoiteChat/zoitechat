@@ -18,6 +18,8 @@ zoitechat_gtk_sources = [
   'custom-list.c',
   'dccgui.c',
   'editlist.c',
+  'emoji-picker.c',
+  'emoji-font.c',
   'fe-gtk.c',
   'fkeys.c',
   'gtkutil.c',
@@ -72,7 +74,8 @@ if host_machine.system() != 'windows'
   endif
 endif
 
-zoitechat_gtk_deps += gtk_dep
+emoji_font_deps = [gtk_dep, dependency('pangoft2', version: '>= 1.44'), dependency('fontconfig', version: '>= 2.13')]
+zoitechat_gtk_deps += emoji_font_deps
 
 if host_machine.system() != 'windows'
   gdk_x11_dep = dependency('gdk-x11-3.0', required: false)
@@ -137,6 +140,18 @@ executable('zoitechat',
   pie: true,
   install: true,
   gui_app: true,
+)
+
+emoji_ui_tests = executable('emoji_ui_tests',
+  ['tests/test-emoji-ui.c', 'emoji-font.c', 'emoji-picker.c',
+   '../common/emoji-data.c', emoji_data_table],
+  include_directories: [config_h_include, include_directories('../common')],
+  dependencies: emoji_font_deps,
+)
+test('Emoji UI Tests', emoji_ui_tests,
+  env: ['ZOITECHAT_EMOJI_FONT=' + join_paths(meson.source_root(), 'data/fonts/NotoColorEmoji.ttf')],
+  protocol: 'tap',
+  timeout: 120,
 )
 
 theme_manager_policy_tests = executable('theme_manager_policy_tests',
@@ -248,6 +263,17 @@ theme_preferences_gtk3_populate_tests = executable('theme_preferences_gtk3_popul
 )
 
 test('Theme Preferences GTK3 Populate Tests', theme_preferences_gtk3_populate_tests,
+  protocol: 'tap',
+  timeout: 120,
+)
+
+emoji_font_tests = executable('emoji_font_tests',
+  ['tests/test-emoji-font.c', 'emoji-font.c', '../common/emoji-data.c', emoji_data_table],
+  include_directories: [config_h_include, include_directories('../common')],
+  dependencies: emoji_font_deps,
+)
+test('Emoji Font Tests', emoji_font_tests,
+  env: ['ZOITECHAT_EMOJI_FONT=' + join_paths(meson.source_root(), 'data/fonts/NotoColorEmoji.ttf')],
   protocol: 'tap',
   timeout: 120,
 )

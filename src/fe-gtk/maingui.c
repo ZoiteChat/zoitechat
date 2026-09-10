@@ -45,6 +45,8 @@
 #include "theme/theme-manager.h"
 #include "theme/theme-css.h"
 #include "banlist.h"
+#include "emoji-picker.h"
+#include "emoji-font.h"
 #include "gtkutil.h"
 #include "icon-resolver.h"
 #include "joind.h"
@@ -200,7 +202,6 @@ enum
 #define TAG_IRC 0               /* server, channel, dialog */
 #define TAG_UTIL 1      /* dcc, notify, chanlist */
 
-static void mg_apply_emoji_fallback_widget (GtkWidget *widget);
 static void mg_reply_show_child (GtkWidget *widget, gpointer data);
 
 #define MG_CONFIG_SAVE_DEBOUNCE_MS 250
@@ -3246,7 +3247,7 @@ mg_create_chanmodebuttons (session_gui *gui, GtkWidget *box)
         gtk_entry_set_max_length (GTK_ENTRY (gui->key_entry), 23);
         gtk_widget_set_size_request (gui->key_entry, 58, 11);
         gtk_box_pack_start (GTK_BOX (box), gui->key_entry, 0, 0, 0);
-        mg_apply_emoji_fallback_widget (gui->key_entry);
+        emoji_font_apply (gui->key_entry);
         mg_apply_compact_mode_css (gui->key_entry);
         g_signal_connect (G_OBJECT (gui->key_entry), "activate",
                                                         G_CALLBACK (mg_key_entry_cb), NULL);
@@ -3264,7 +3265,7 @@ mg_create_chanmodebuttons (session_gui *gui, GtkWidget *box)
 	gtk_entry_set_width_chars (GTK_ENTRY (gui->limit_entry), 5);
         gtk_widget_set_size_request (gui->limit_entry, 45, 11);
         gtk_box_pack_start (GTK_BOX (box), gui->limit_entry, 0, 0, 0);
-        mg_apply_emoji_fallback_widget (gui->limit_entry);
+        emoji_font_apply (gui->limit_entry);
         mg_apply_compact_mode_css (gui->limit_entry);
         g_signal_connect (G_OBJECT (gui->limit_entry), "activate",
                                                         G_CALLBACK (mg_limit_entry_cb), NULL);
@@ -3529,8 +3530,12 @@ mg_apply_session_font_prefs (session_gui *gui)
 		mg_topicbar_update_height (gui->topic_entry);
 	}
 
-	if (gui->input_box && prefs.hex_gui_input_style)
-		theme_manager_apply_entry_palette (gui->input_box, font);
+	if (gui->input_box)
+	{
+		if (prefs.hex_gui_input_style)
+			theme_manager_apply_entry_palette (gui->input_box, font);
+		emoji_font_apply (gui->input_box);
+	}
 
 	if (gui->chanview)
 		chanview_apply_theme (gui->chanview);
@@ -4416,131 +4421,6 @@ mg_inputbox_rightclick (GtkEntry *entry, GtkWidget *menu)
         mg_create_color_menu (menu, NULL);
 }
 
-/* ------------------------------------------------------------------------- *
- * Emoji font handling
- *
- * Goal: prefer color emoji fonts when available, without changing existing
- *       font size/style/weight, and without breaking user-configured fonts.
- * ------------------------------------------------------------------------- */
-
-static const char *mg_emoji_family_fallback =
-#ifdef G_OS_WIN32
-        "Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji, Apple Color Emoji, Twemoji Mozilla, EmojiOne Color";
-#else
-        "Noto Color Emoji, Segoe UI Emoji, Apple Color Emoji, Twemoji Mozilla, EmojiOne Color";
-#endif
-
-static const char *
-mg_find_available_icon_name (const char *const *icon_names)
-{
-        GtkIconTheme *theme;
-        int i;
-
-        theme = gtk_icon_theme_get_default ();
-        if (!theme || !icon_names)
-                return NULL;
-
-        for (i = 0; icon_names[i] != NULL; i++)
-        {
-                int action;
-
-                if (gtk_icon_theme_has_icon (theme, icon_names[i]))
-                        return icon_names[i];
-
-                if (icon_resolver_menu_action_from_name (icon_names[i], &action))
-                {
-                        char *resource_path = icon_resolver_resolve_path (ICON_RESOLVER_ROLE_MENU_ACTION, action, GTK_ICON_SIZE_MENU, "menu", ICON_RESOLVER_THEME_SYSTEM, NULL);
-
-                        if (resource_path)
-                        {
-                                g_free (resource_path);
-                                return icon_names[i];
-                        }
-                }
-        }
-
-        return NULL;
-}
-
-static gboolean
-mg_family_already_has_emoji (const gchar *family)
-{
-        if (!family || !*family)
-                return FALSE;
-
-        /* cheap but effective */
-        return (strstr (family, "Noto Color Emoji") != NULL) ||
-               (strstr (family, "Segoe UI Emoji") != NULL) ||
-               (strstr (family, "Apple Color Emoji") != NULL) ||
-               (strstr (family, "Twemoji") != NULL) ||
-               (strstr (family, "EmojiOne") != NULL);
-}
-
-static PangoFontDescription *
-mg_fontdesc_with_fallback (const PangoFontDescription *base_desc, gboolean emoji_first)
-{
-        PangoFontDescription *desc;
-        const gchar *base_family;
-        gchar *family_list;
-
-        if (!base_desc)
-                return NULL;
-
-        desc = pango_font_description_copy (base_desc);
-        base_family = pango_font_description_get_family (desc);
-
-        if (mg_family_already_has_emoji (base_family))
-                return desc;
-
-        if (emoji_first)
-        {
-                family_list = g_strdup_printf ("%s, %s",
-                        mg_emoji_family_fallback,
-                        (base_family && *base_family) ? base_family : "Sans");
-        }
-        else
-        {
-                family_list = g_strdup_printf ("%s, %s",
-                        (base_family && *base_family) ? base_family : "Sans",
-                        mg_emoji_family_fallback);
-        }
-
-        pango_font_description_set_family (desc, family_list);
-        g_free (family_list);
-
-        return desc;
-}
-
-static void
-mg_apply_emoji_fallback_widget (GtkWidget *widget)
-{
-        PangoFontDescription *desc;
-        GtkStyleContext *context;
-        PangoFontDescription *base_desc = NULL;
-
-        if (!widget)
-                return;
-
-        context = gtk_widget_get_style_context (widget);
-        if (!context)
-                return;
-
-        gtk_style_context_get (context, GTK_STATE_FLAG_NORMAL,
-                               "font", &base_desc,
-                               NULL);
-        if (!base_desc)
-                return;
-
-        desc = mg_fontdesc_with_fallback (base_desc, FALSE);
-        pango_font_description_free (base_desc);
-        if (!desc)
-                return;
-
-        mg_apply_font_css (widget, desc, "zoitechat-emoji-font",
-                           "zoitechat-emoji-font-provider");
-        pango_font_description_free (desc);
-}
-
 /* Search bar adapted from Conspire's by William Pitcock */
 
 #define SEARCH_CHANGE           1
@@ -4745,7 +4625,7 @@ mg_create_search(session *sess, GtkWidget *box)
         gui->shentry = entry = gtk_entry_new();
         gtk_box_pack_start(GTK_BOX(gui->shbox), entry, FALSE, FALSE, 0);
         gtk_widget_set_size_request (gui->shentry, 180, -1);
-        mg_apply_emoji_fallback_widget (entry);
+        emoji_font_apply (entry);
         mg_apply_entry_scroll_artifact_fix (entry);
         gui->search_changed_signal = g_signal_connect(G_OBJECT(entry), "changed", G_CALLBACK(search_handle_change), sess);
         g_signal_connect (G_OBJECT (entry), "key-press-event", G_CALLBACK (search_handle_keypress), sess);
@@ -4801,15 +4681,6 @@ mg_create_entry (session *sess, GtkWidget *box)
 {
         GtkWidget *hbox, *but, *entry;
         session_gui *gui = sess->gui;
-        const char *emoji_fallback_icon_names[] = {
-                "face-smile-symbolic",
-                "face-smile",
-                "insert-emoticon-symbolic",
-                "insert-emoticon",
-                "zc-menu-emoji",
-                NULL
-        };
-        const char *emoji_fallback_icon_name;
 
         gui->reply_box = mg_box_new (GTK_ORIENTATION_HORIZONTAL, FALSE, 6);
         gtk_widget_set_name (gui->reply_box, "zoitechat-replybar");
@@ -4862,16 +4733,14 @@ mg_create_entry (session *sess, GtkWidget *box)
 
         if (prefs.hex_gui_input_style)
                 mg_apply_entry_style (entry);
+        emoji_font_apply (entry);
         mg_apply_entry_scroll_artifact_fix (entry);
 
-        g_object_set (G_OBJECT (entry), "show-emoji-icon", TRUE, NULL);
-
-        if (gtk_entry_get_icon_storage_type (GTK_ENTRY (entry), GTK_ENTRY_ICON_SECONDARY) == GTK_IMAGE_EMPTY)
-        {
-                emoji_fallback_icon_name = mg_find_available_icon_name (emoji_fallback_icon_names);
-                if (emoji_fallback_icon_name)
-                        gtk_entry_set_icon_from_icon_name (GTK_ENTRY (entry), GTK_ENTRY_ICON_SECONDARY, emoji_fallback_icon_name);
-        }
+        /* ZoiteChat's own emoji picker; deliberately not GTK's
+         * "show-emoji-icon" machinery, so the catalog is the same on every
+         * GTK runtime and the button always has a working callback */
+        but = emoji_picker_button_new (entry);
+        gtk_box_pack_start (GTK_BOX (hbox), but, FALSE, FALSE, 0);
 }
 
 static void
@@ -5019,6 +4888,7 @@ mg_create_topwindow (session *sess)
                                                                                   prefs.hex_gui_win_width,
                                                                                   prefs.hex_gui_win_height, 0);
         sess->gui->window = win;
+        emoji_font_apply (win);
         gtk_container_set_border_width (GTK_CONTAINER (win), GUI_BORDER);
         gtk_widget_set_opacity (win, (prefs.hex_gui_transparency / 255.));
 
@@ -5223,6 +5093,7 @@ mg_create_tabwindow (session *sess)
         win = gtkutil_window_new ("ZoiteChat", NULL, prefs.hex_gui_win_width,
                                                                           prefs.hex_gui_win_height, 0);
         sess->gui->window = win;
+        emoji_font_apply (win);
         gtk_window_move (GTK_WINDOW (win), prefs.hex_gui_win_left,
                                                   prefs.hex_gui_win_top);
         if (prefs.hex_gui_win_state)

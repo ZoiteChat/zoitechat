@@ -4,6 +4,7 @@ data/misc/net.zoite.Zoitechat.ThemeManager.desktop.in
 src/common/cfgfiles.c
 src/common/chanopt.c
 src/common/dcc.c
+src/common/emoji-data.c
 src/common/zoitechat.c
 src/common/ignore.c
 src/common/inbound.c
@@ -24,6 +25,7 @@ src/fe-gtk/banlist.c
 src/fe-gtk/chanlist.c
 src/fe-gtk/dccgui.c
 src/fe-gtk/editlist.c
+src/fe-gtk/emoji-picker.c
 src/fe-gtk/fe-gtk.c
 src/fe-gtk/fkeys.c
 src/fe-gtk/gtkutil.c

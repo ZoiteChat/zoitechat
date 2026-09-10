@@ -23,6 +23,8 @@ BuildRequires:  pkgconfig(dbus-glib-1)
 BuildRequires:  pkgconfig(gio-2.0) >= 2.36.0
 BuildRequires:  pkgconfig(gmodule-2.0)
 BuildRequires:  pkgconfig(gtk+-3.0) >= 3.22
+BuildRequires:  pkgconfig(fontconfig) >= 2.13
+BuildRequires:  pkgconfig(pangoft2) >= 1.44
 BuildRequires:  pkgconfig(iso-codes)
 BuildRequires:  pkgconfig(libarchive)
 BuildRequires:  pkgconfig(libcanberra) >= 0.22
@@ -72,6 +74,9 @@ appstream-util validate-relax --nonet %{buildroot}%{_datadir}/metainfo/net.zoite
 appstream-util validate-relax --nonet %{buildroot}%{_datadir}/metainfo/net.zoite.Zoitechat*.metainfo.xml
 
 xwfb-run -- /usr/bin/meson test -C %{_vpath_builddir} --num-processes %{_smp_build_ncpus} --print-errorlogs \
+  "Emoji Data Tests" \
+  "Emoji Font Tests" \
+  "Emoji UI Tests" \
   "Theme Manager Dispatch Routing Tests" \
   "Validate net.zoite.Zoitechat.desktop" \
   "Validate translations" \
@@ -80,6 +85,8 @@ xwfb-run -- /usr/bin/meson test -C %{_vpath_builddir} --num-processes %{_smp_bui
 %files -f %{name}.lang
 %license COPYING
 %doc readme.md troubleshooting.md
+%{_datadir}/fonts/zoitechat/
+%{_datadir}/doc/zoitechat/fonts/
 %{_bindir}/zoitechat
 %{_datadir}/applications/net.zoite.Zoitechat.desktop
 %{_datadir}/dbus-1/services/org.zoitechat.service.service
