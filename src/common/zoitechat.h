@@ -134,6 +134,8 @@ struct zoitechatprefs
 	unsigned int hex_gui_join_dialog;
 	unsigned int hex_gui_mode_buttons;
 	unsigned int hex_gui_mode_buttons_inline;
+	unsigned int hex_gui_onboarding_disable;
+	unsigned int hex_gui_onboarding_pending;
 	unsigned int hex_gui_quit_dialog;
 	/* unsigned int hex_gui_single; */
 	unsigned int hex_gui_slist_fav;

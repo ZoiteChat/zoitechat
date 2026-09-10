@@ -93,6 +93,7 @@ extern GSList *network_list;
 #define IRC_DEFAULT_CHARSET		"UTF-8 (Unicode)"
 
 void servlist_init (void);
+gboolean servlist_needs_onboarding (void);
 int servlist_save (void);
 int servlist_cycle (server *serv);
 void servlist_connect (session *sess, ircnet *net, gboolean join);
