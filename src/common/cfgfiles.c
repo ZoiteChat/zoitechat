@@ -429,6 +429,8 @@ const struct prefs vars[] =
 	{"gui_lang", P_OFFINT (hex_gui_lang), TYPE_INT},
 	{"gui_mode_buttons", P_OFFINT (hex_gui_mode_buttons), TYPE_BOOL},
 	{"gui_mode_buttons_inline", P_OFFINT (hex_gui_mode_buttons_inline), TYPE_BOOL},
+	{"gui_onboarding_disable", P_OFFINT (hex_gui_onboarding_disable), TYPE_BOOL},
+	{"gui_onboarding_pending", P_OFFINT (hex_gui_onboarding_pending), TYPE_BOOL},
 	{"gui_pane_divider_position", P_OFFINT (hex_gui_pane_divider_position), TYPE_INT},
 	{"gui_pane_left_size", P_OFFINT (hex_gui_pane_left_size), TYPE_INT},
 	{"gui_pane_right_size", P_OFFINT (hex_gui_pane_right_size), TYPE_INT},
