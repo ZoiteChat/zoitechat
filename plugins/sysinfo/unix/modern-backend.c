@@ -217,20 +217,28 @@ read_os_pretty_name (void)
 {
 	char *pretty = NULL;
 
-	/* Flatpak exposes the host os-release here. Prefer it over the runtime. */
-	if (g_file_test ("/run/host/etc/os-release", G_FILE_TEST_IS_REGULAR))
+	/* Flatpak always exposes this file, without host filesystem access. */
+	pretty = read_pretty_name_from_os_release ("/run/host/os-release");
+	if (!pretty)
 	{
 		pretty = read_pretty_name_from_os_release ("/run/host/etc/os-release");
 	}
 
+	/* Keep the plugin buildable with the project's GLib 2.36 minimum. */
+#if GLIB_CHECK_VERSION(2, 64, 0)
 	if (!pretty)
 	{
 		pretty = g_get_os_info (G_OS_INFO_KEY_PRETTY_NAME);
 	}
+#endif
 
 	if (!pretty)
 	{
 		pretty = read_pretty_name_from_os_release ("/etc/os-release");
+	}
+	if (!pretty)
+	{
+		pretty = read_pretty_name_from_os_release ("/usr/lib/os-release");
 	}
 
 	return pretty ? pretty : g_strdup ("Linux");
@@ -334,11 +342,30 @@ count_physical_cores (void)
 		char *package_id;
 		char *core_id;
 		char *key;
+		char *online_path;
+		char *online;
+		const char *suffix;
 
 		if (!g_str_has_prefix (entry, "cpu") || !g_ascii_isdigit (entry[3]))
 		{
 			continue;
 		}
+		for (suffix = entry + 3; g_ascii_isdigit (*suffix); suffix++)
+			;
+		if (*suffix != '\0')
+			continue;
+
+		/* sysconf counts online threads; exclude offline cores as well.
+		 * CPUs that cannot be offlined (usually CPU0) have no online file. */
+		online_path = g_build_filename ("/sys/devices/system/cpu", entry, "online", NULL);
+		online = read_trimmed_file (online_path);
+		g_free (online_path);
+		if (g_strcmp0 (online, "0") == 0)
+		{
+			g_free (online);
+			continue;
+		}
+		g_free (online);
 
 		package_path = g_build_filename ("/sys/devices/system/cpu", entry, "topology", "physical_package_id", NULL);
 		core_path = g_build_filename ("/sys/devices/system/cpu", entry, "topology", "core_id", NULL);
@@ -347,11 +374,14 @@ count_physical_cores (void)
 		g_free (package_path);
 		g_free (core_path);
 
-		if (!package_id || !core_id)
+		if (!package_id || !core_id || package_id[0] == '-' || core_id[0] == '-')
 		{
 			g_free (package_id);
 			g_free (core_id);
-			continue;
+			/* Partial or unknown topology cannot give a reliable core count. */
+			g_hash_table_destroy (cores);
+			g_dir_close (dir);
+			return 0;
 		}
 
 		key = g_strdup_printf ("%s:%s", package_id, core_id);
@@ -379,14 +409,15 @@ build_cpu_string (void)
 	logical = logical_long > 0 ? (guint) logical_long : 0;
 	physical = count_physical_cores ();
 
-	if (physical == 0)
-	{
-		physical = logical;
-	}
-
 	if (physical != 0 && logical != 0)
 	{
 		char *result = g_strdup_printf ("%s" SYSINFO_SEP "%uC/%uT", model, physical, logical);
+		g_free (model);
+		return result;
+	}
+	if (logical != 0)
+	{
+		char *result = g_strdup_printf ("%s" SYSINFO_SEP "%uT", model, logical);
 		g_free (model);
 		return result;
 	}
@@ -536,9 +567,13 @@ scan_pci_devices (void)
 	chipsets = g_ptr_array_new_with_free_func (g_free);
 
 #ifdef HAVE_LIBPCI
-	pacc = pci_alloc ();
-	if (pacc)
+	/* We only need name lookup: autodetection can exit the client if sysfs
+	 * is hidden in a sandbox and libpci tries privileged access methods.
+	 * Explicit sysfs initialization installs callbacks without probing. */
+	if (pci_lookup_method ("linux-sysfs") >= 0)
 	{
+		pacc = pci_alloc ();
+		pacc->method = pci_lookup_method ("linux-sysfs");
 		pci_init (pacc);
 	}
 #endif
@@ -825,7 +860,10 @@ sysinfo_backend_get_disk (void)
 	guint64 available;
 	char *usage;
 
-	path = g_get_home_dir ();
+	/* Flatpak's home itself can be tmpfs; its data directory is persistent
+	 * storage on the host filesystem that actually holds the app's data. */
+	path = g_file_test ("/.flatpak-info", G_FILE_TEST_IS_REGULAR)
+		? g_get_user_data_dir () : g_get_home_dir ();
 	if (!path || path[0] == '\0')
 	{
 		path = "/";
