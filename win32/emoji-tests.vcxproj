@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{BF0C17A9-2562-4BDC-A6A2-34381C5C5173}</ProjectGuid>
+    <SolutionDir>$(MSBuildThisFileDirectory)</SolutionDir>
+    <EmojiTestKind Condition="'$(EmojiTestKind)'==''">ui</EmojiTestKind>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Label="Configuration">
+    <PlatformToolset>v142</PlatformToolset>
+    <ConfigurationType>Application</ConfigurationType>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <Import Project="zoitechat.props" />
+  <PropertyGroup>
+    <TargetName>emoji-$(EmojiTestKind)-tests</TargetName>
+    <OutDir>$(ZoiteChatBuild)\$(ZoiteChatPlatform)\tests\</OutDir>
+    <IntDir>$(ZoiteChatObj)emoji-tests-$(EmojiTestKind)\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <PreprocessorDefinitions>WIN32;_WIN64;_CONSOLE;$(OwnFlags);%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(ZoiteChatLib);$(DepsRoot)\include;$(Glib);$(Gtk);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <AdditionalLibraryDirectories>$(DepsRoot)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>$(Gtk3Lib);$(Gdk3Lib);atk-1.0.lib;gio-2.0.lib;gdk_pixbuf-2.0.lib;pangocairo-1.0.lib;pango-1.0.lib;pangoft2-1.0.lib;fontconfig.lib;cairo.lib;gobject-2.0.lib;glib-2.0.lib;$(IntlLib);%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\src\common\emoji-data.c" />
+    <ClCompile Include="..\src\fe-gtk\tests\test-emoji-font.c" Condition="'$(EmojiTestKind)'=='font'" />
+    <ClCompile Include="..\src\common\tests\test-emoji-data.c" Condition="'$(EmojiTestKind)'=='data'" />
+    <ClCompile Include="..\src\fe-gtk\emoji-font.c" Condition="'$(EmojiTestKind)'!='data'" />
+    <ClCompile Include="..\src\fe-gtk\emoji-picker.c" Condition="'$(EmojiTestKind)'=='ui'" />
+    <ClCompile Include="..\src\fe-gtk\tests\test-emoji-ui.c" Condition="'$(EmojiTestKind)'=='ui'" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+</Project>

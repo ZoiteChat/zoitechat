@@ -36,6 +36,7 @@ config_h.set_quoted('GETTEXT_PACKAGE', 'zoitechat')
 config_h.set_quoted('LOCALEDIR', join_paths(get_option('prefix'),
                                  get_option('datadir'), 'locale'))
 config_h.set10('ENABLE_NLS', true)
+config_h.set_quoted('ZOITECHAT_DATADIR', join_paths(get_option('prefix'), get_option('datadir')))
 
 # Optional features
 config_h.set('USE_OPENSSL', libssl_dep.found())

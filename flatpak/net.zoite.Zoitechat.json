@@ -52,6 +52,11 @@
     {
       "name": "zoitechat",
       "buildsystem": "meson",
+      "run-tests": true,
+      "test-rule": "",
+      "test-commands": [
+        "meson test --print-errorlogs 'Emoji Data Tests' 'Emoji Font Tests'"
+      ],
       "config-opts": [
         "-Ddbus-service-use-appid=true",
         "-Dwith-perl=perl",
@@ -65,7 +70,8 @@
         "/share/man"
       ],
       "post-install": [
-        "install -d /app/extensions"
+        "install -d /app/extensions",
+        "cmp ../data/fonts/NotoColorEmoji.ttf /app/share/fonts/zoitechat/NotoColorEmoji.ttf"
       ],
       "sources": [
         {

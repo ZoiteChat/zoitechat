@@ -47,6 +47,7 @@
 #include "fe-gtk.h"
 #include "xtext.h"
 #include "fkeys.h"
+#include "emoji-font.h"
 #include "theme/theme-access.h"
 
 #define charlen(str) g_utf8_skip[*(guchar *)(str)]
@@ -581,6 +582,7 @@ backend_init (GtkXText *xtext)
 {
 	if (xtext->layout == NULL)
 	{
+		emoji_font_apply (GTK_WIDGET (xtext));
 		xtext->layout = gtk_widget_create_pango_layout (GTK_WIDGET (xtext), 0); 
 		if (xtext->font)
 			pango_layout_set_font_description (xtext->layout, xtext->font->font);

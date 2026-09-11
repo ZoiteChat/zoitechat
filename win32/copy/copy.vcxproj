@@ -37,6 +37,7 @@
       <None Include="$(DepsRoot)\bin\*fribidi*.dll" />
       <None Include="$(DepsRoot)\bin\*fontconfig*.dll" />
       <None Include="$(DepsRoot)\bin\*gdk_pixbuf*.dll" />
+      <None Include="$(DepsRoot)\bin\rsvg-2-2.dll" />
       <None Include="$(DepsRoot)\bin\*gdk-3*.dll" />
       <None Include="$(DepsRoot)\bin\*epoxy*.dll" />
       <None Include="$(DepsRoot)\bin\*gio-2*.dll" />
@@ -78,10 +79,12 @@
       <Gtk3Immodules Include="$(DepsRoot)\lib\gtk-3.0\3.0.0\immodules\**\*" />
       <Gtk3PrintBackends Include="$(DepsRoot)\lib\gtk-3.0\3.0.0\printbackends\**\*" />
       <GSettingsSchemas Include="$(DepsRoot)\share\glib-2.0\schemas\*" />
-      <GdkPixbufLoaders Include="$(DepsRoot)\lib\gdk-pixbuf-2.0\**\loaders\**\*" />
-      <GdkPixbufLoaderCache Include="$(DepsRoot)\lib\gdk-pixbuf-2.0\**\loaders.cache" />
+      <!-- Preserve the version/loaders directories used by the relative cache. -->
+      <GdkPixbufRuntime Include="$(DepsRoot)\lib\gdk-pixbuf-2.0\**\*" />
 
-      <FontConfig Include="$(DepsRoot)\etc\fonts\*" />
+      <FontConfig Include="$(DepsRoot)\etc\fonts\**\*" />
+      <EmojiFont Include="..\..\data\fonts\NotoColorEmoji.ttf" />
+      <EmojiFontLicense Include="..\..\data\fonts\OFL.txt;..\..\data\fonts\README.md" />
       <Share Include="share\**\*" />
       <Locale Include="$(ZoiteChatBin)locale\**\*;$(DepsRoot)\share\locale\**\*" />
       <MSWindowsTheme Include="$(DepsRoot)\share\themes\MS-Windows\**\*" />
@@ -90,11 +93,13 @@
     </ItemGroup>
 
     <Copy SourceFiles="@(None)" DestinationFolder="$(ZoiteChatRel)" />
-    <Copy SourceFiles="@(FontConfig)" DestinationFolder="$(ZoiteChatRel)\etc\fonts" />
+    <Copy SourceFiles="@(FontConfig)" DestinationFiles="@(FontConfig->'$(ZoiteChatRel)\etc\fonts\%(RecursiveDir)%(Filename)%(Extension)')" />
+    <Copy SourceFiles="@(EmojiFont)" DestinationFolder="$(ZoiteChatRel)\share\fonts\zoitechat" />
+    <Copy SourceFiles="@(EmojiFontLicense)" DestinationFolder="$(ZoiteChatRel)\share\doc\zoitechat\fonts" />
     <Copy SourceFiles="@(Gtk3Immodules)" DestinationFiles="@(Gtk3Immodules->'$(ZoiteChatRel)\lib\gtk-3.0\3.0.0\immodules\%(RecursiveDir)%(Filename)%(Extension)')" />
     <Copy SourceFiles="@(Gtk3PrintBackends)" DestinationFiles="@(Gtk3PrintBackends->'$(ZoiteChatRel)\lib\gtk-3.0\3.0.0\printbackends\%(RecursiveDir)%(Filename)%(Extension)')" />
-    <Copy SourceFiles="@(GdkPixbufLoaders)" DestinationFiles="@(GdkPixbufLoaders->'$(ZoiteChatRel)\lib\gdk-pixbuf-2.0\%(RecursiveDir)%(Filename)%(Extension)')" />
-    <Copy SourceFiles="@(GdkPixbufLoaderCache)" DestinationFiles="@(GdkPixbufLoaderCache->'$(ZoiteChatRel)\lib\gdk-pixbuf-2.0\%(RecursiveDir)%(Filename)%(Extension)')" />
+    <Copy SourceFiles="@(GdkPixbufRuntime)" DestinationFiles="@(GdkPixbufRuntime->'$(ZoiteChatRel)\lib\gdk-pixbuf-2.0\%(RecursiveDir)%(Filename)%(Extension)')" />
+    <Copy SourceFiles="$(DepsRoot)\share\doc\librsvg\COPYING.LIB" DestinationFolder="$(ZoiteChatRel)\share\doc\librsvg" />
     <Copy SourceFiles="@(GSettingsSchemas)" DestinationFiles="@(GSettingsSchemas->'$(ZoiteChatRel)\share\glib-2.0\schemas\%(Filename)%(Extension)')" />
     <Copy SourceFiles="@(Share)" DestinationFiles="@(Share->'$(ZoiteChatRel)\share\%(RecursiveDir)%(Filename)%(Extension)')" />
     <Copy SourceFiles="..\..\COPYING" DestinationFolder="$(ZoiteChatRel)\share\doc\zoitechat" />

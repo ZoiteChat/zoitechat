@@ -3,6 +3,7 @@ if get_option('plugin')
 endif
 
 if get_option('gtk-frontend')
+  subdir('fonts')
   subdir('icons')
   subdir('misc')
   subdir('man')

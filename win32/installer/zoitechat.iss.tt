@@ -104,7 +104,10 @@ Source: "readme.url"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 Source: "cert.pem"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 Source: "share\xml\*"; DestDir: "{app}\share\xml"; Flags: ignoreversion createallsubdirs recursesubdirs; Components: libs
 Source: "share\doc\zoitechat\*"; DestDir: "{app}\share\doc\zoitechat"; Flags: ignoreversion createallsubdirs recursesubdirs; Components: libs
+Source: "share\fonts\zoitechat\*"; DestDir: "{app}\share\fonts\zoitechat"; Flags: ignoreversion createallsubdirs recursesubdirs; Components: libs
 Source: "share\doc\WinSparkle\*"; DestDir: "{app}\share\doc\WinSparkle"; Flags: ignoreversion createallsubdirs recursesubdirs; Components: libs
+Source: "share\doc\librsvg\*"; DestDir: "{app}\share\doc\librsvg"; Flags: ignoreversion createallsubdirs recursesubdirs; Components: libs
+Source: "lib\gdk-pixbuf-2.0\*"; DestDir: "{app}\lib\gdk-pixbuf-2.0"; Flags: ignoreversion createallsubdirs recursesubdirs; Components: libs
 Source: "share\themes\MS-Windows\*"; DestDir: "{app}\share\themes\MS-Windows"; Flags: ignoreversion createallsubdirs recursesubdirs skipifsourcedoesntexist; Components: libs
 Source: "share\glib-2.0\schemas\*"; DestDir: "{app}\share\glib-2.0\schemas"; Flags: ignoreversion createallsubdirs recursesubdirs skipifsourcedoesntexist; Components: libs
 Source: "share\icons\hicolor\*"; DestDir: "{app}\share\icons\hicolor"; Flags: ignoreversion createallsubdirs recursesubdirs skipifsourcedoesntexist; Components: libs
@@ -117,6 +120,7 @@ Source: "freetype-6.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: li
 Source: "fribidi-0.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 Source: "fontconfig-1.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 Source: "gdk_pixbuf-2.0-0.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
+Source: "rsvg-2-2.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 Source: "gdk-3-vs17.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 Source: "epoxy-0.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
 Source: "gio-2.0-0.dll"; DestDir: "{app}"; Flags: ignoreversion; Components: libs
