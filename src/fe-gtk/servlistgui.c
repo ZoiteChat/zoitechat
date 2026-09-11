@@ -24,6 +24,13 @@
 
 #include <gdk/gdkkeysyms.h>
 #include <gio/gio.h>
+#ifdef WIN32
+#include <windows.h>
+#include <winhttp.h>
+#ifdef _MSC_VER
+#pragma comment(lib, "winhttp.lib")
+#endif
+#endif
 
 #include "../common/zoitechat.h"
 #include "../common/zoitechatc.h"
@@ -4273,6 +4280,158 @@ servlist_onboarding_can_prepare_registration (ServlistOnboardingChoice *choice)
 	return choice && (choice->registration_verified || servlist_onboarding_common_registration (choice));
 }
 
+#ifdef WIN32
+static gboolean
+servlist_atlas_winhttp_cancelled (GCancellable *cancellable, GError **error)
+{
+	if (!cancellable || !g_cancellable_is_cancelled (cancellable))
+		return FALSE;
+
+	if (error)
+		g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_CANCELLED, "Operation was cancelled");
+	return TRUE;
+}
+
+static void
+servlist_atlas_winhttp_error (GError **error, GCancellable *cancellable,
+                              const char *operation, DWORD code)
+{
+	if (servlist_atlas_winhttp_cancelled (cancellable, error) || !error)
+		return;
+
+	g_set_error (error, G_IO_ERROR, G_IO_ERROR_FAILED,
+	             "Network Atlas %s failed (WinHTTP error %lu)",
+	             operation, (unsigned long) code);
+}
+
+static char *
+servlist_atlas_http_get (const char *path, GCancellable *cancellable, GError **error)
+{
+	static const wchar_t *accept_types[] = { L"application/json", NULL };
+	HINTERNET session = NULL;
+	HINTERNET connection = NULL;
+	HINTERNET request = NULL;
+	GByteArray *response = NULL;
+	WCHAR wide_host[256];
+	WCHAR wide_path[512];
+	char buffer[8192];
+	DWORD status = 0;
+	DWORD status_size = sizeof status;
+	DWORD read = 0;
+	char *result = NULL;
+
+	if (servlist_atlas_winhttp_cancelled (cancellable, error))
+		return NULL;
+
+	if (!path ||
+	    MultiByteToWideChar (CP_UTF8, MB_ERR_INVALID_CHARS, ONBOARDING_ATLAS_HOST, -1,
+	                         wide_host, G_N_ELEMENTS (wide_host)) == 0 ||
+	    MultiByteToWideChar (CP_UTF8, MB_ERR_INVALID_CHARS, path, -1,
+	                         wide_path, G_N_ELEMENTS (wide_path)) == 0)
+	{
+		g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_INVALID_ARGUMENT,
+		                     "Network Atlas request address is invalid");
+		return NULL;
+	}
+
+	session = WinHttpOpen (L"ZoiteChat Network Atlas",
+	                       WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
+	                       WINHTTP_NO_PROXY_NAME,
+	                       WINHTTP_NO_PROXY_BYPASS, 0);
+	if (!session)
+	{
+		servlist_atlas_winhttp_error (error, cancellable, "session setup", GetLastError ());
+		goto done;
+	}
+	if (!WinHttpSetTimeouts (session, 8000, 8000, 8000, 8000))
+	{
+		servlist_atlas_winhttp_error (error, cancellable, "timeout setup", GetLastError ());
+		goto done;
+	}
+
+	connection = WinHttpConnect (session, wide_host, 443, 0);
+	if (!connection)
+	{
+		servlist_atlas_winhttp_error (error, cancellable, "connection", GetLastError ());
+		goto done;
+	}
+
+	request = WinHttpOpenRequest (connection, L"GET", wide_path, NULL,
+	                              WINHTTP_NO_REFERER, accept_types,
+	                              WINHTTP_FLAG_SECURE);
+	if (!request)
+	{
+		servlist_atlas_winhttp_error (error, cancellable, "request setup", GetLastError ());
+		goto done;
+	}
+
+	if (!WinHttpSendRequest (request, WINHTTP_NO_ADDITIONAL_HEADERS, 0,
+	                         WINHTTP_NO_REQUEST_DATA, 0, 0, 0))
+	{
+		servlist_atlas_winhttp_error (error, cancellable, "request", GetLastError ());
+		goto done;
+	}
+	if (!WinHttpReceiveResponse (request, NULL))
+	{
+		servlist_atlas_winhttp_error (error, cancellable, "response", GetLastError ());
+		goto done;
+	}
+
+	if (!WinHttpQueryHeaders (request,
+	                          WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER,
+	                          WINHTTP_HEADER_NAME_BY_INDEX, &status, &status_size,
+	                          WINHTTP_NO_HEADER_INDEX))
+	{
+		servlist_atlas_winhttp_error (error, cancellable, "status check", GetLastError ());
+		goto done;
+	}
+	if (status != 200)
+	{
+		if (error)
+			g_set_error (error, G_IO_ERROR, G_IO_ERROR_FAILED,
+			             "Network Atlas returned HTTP status %lu", (unsigned long) status);
+		goto done;
+	}
+
+	response = g_byte_array_new ();
+	for (;;)
+	{
+		if (servlist_atlas_winhttp_cancelled (cancellable, error))
+			goto done;
+
+		read = 0;
+		if (!WinHttpReadData (request, buffer, (DWORD) sizeof buffer, &read))
+		{
+			servlist_atlas_winhttp_error (error, cancellable, "read", GetLastError ());
+			goto done;
+		}
+		if (read == 0)
+			break;
+		if ((guint64) response->len + read > ONBOARDING_ATLAS_MAX_RESPONSE)
+		{
+			g_set_error_literal (error, G_IO_ERROR, G_IO_ERROR_FAILED,
+			                     "Network Atlas response was too large");
+			goto done;
+		}
+		g_byte_array_append (response, (const guint8 *) buffer, read);
+	}
+
+	g_byte_array_append (response, (const guint8 *) "\0", 1);
+	result = (char *) g_byte_array_free (response, FALSE);
+	response = NULL;
+
+done:
+	if (response)
+		g_byte_array_free (response, TRUE);
+	if (request)
+		WinHttpCloseHandle (request);
+	if (connection)
+		WinHttpCloseHandle (connection);
+	if (session)
+		WinHttpCloseHandle (session);
+	return result;
+}
+#else
 static char *
 servlist_atlas_http_get (const char *path, GCancellable *cancellable, GError **error)
 {
@@ -4352,6 +4511,7 @@ servlist_atlas_http_get (const char *path, GCancellable *cancellable, GError **e
 	memmove (raw, body, strlen (raw + body_offset) + 1);
 	return raw;
 }
+#endif
 
 static void
 servlist_atlas_detail_thread (GTask *task, gpointer source_object, gpointer task_data, GCancellable *cancellable)
