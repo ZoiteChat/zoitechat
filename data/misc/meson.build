@@ -2,6 +2,7 @@ appdir = join_paths(get_option('datadir'), 'applications')
 metainfodir = join_paths(get_option('datadir'), 'metainfo')
 mimedir = join_paths(get_option('datadir'), 'mime', 'packages')
 desktop_utils = find_program('desktop-file-validate', required: false)
+appstreamcli = find_program('appstreamcli', required: false)
 
 if get_option('gtk-frontend')
   if get_option('install-appdata')
@@ -13,7 +14,6 @@ if get_option('gtk-frontend')
       install_dir: metainfodir
     )
 
-    appstreamcli = find_program('appstreamcli', required: false)
     if appstreamcli.found()
       test('Validate net.zoite.Zoitechat.appdata.xml', appstreamcli,
         args: ['validate', zoitechat_appdata]

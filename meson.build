@@ -1,6 +1,6 @@
 project('zoitechat', 'c',
   version: run_command('cat', 'VERSION', check: true).stdout().strip(),
-  meson_version: '>= 0.55.0',
+  meson_version: '>= 0.59.0',
   default_options: [
     'c_std=c17',
     'buildtype=debugoptimized',
