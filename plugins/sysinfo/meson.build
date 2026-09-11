@@ -12,7 +12,7 @@ sysinfo_includes = []
 sysinfo_cargs = ['-DHAVE_CONFIG_H']
 
 system = host_machine.system()
-if system == 'linux' or system == 'gnu' or system.startswith('gnu/')
+if system == 'linux'
   if get_option('gtk-frontend')
     sysinfo_deps += dependency('gtk+-3.0', version: '>= 3.22')
   endif
@@ -26,7 +26,20 @@ if system == 'linux' or system == 'gnu' or system.startswith('gnu/')
   sysinfo_includes += 'unix'
   sysinfo_sources += 'unix/modern-backend.c'
 
-elif system == 'freebsd'
+  sysinfo_test_deps = [libgio_dep]
+  sysinfo_test_cargs = []
+  if libpci.found()
+    sysinfo_test_deps += libpci
+    sysinfo_test_cargs += '-DHAVE_LIBPCI'
+  endif
+  sysinfo_backend_tests = executable('sysinfo_backend_tests',
+    ['tests/test-linux-backend.c', 'format.c'],
+    dependencies: sysinfo_test_deps,
+    c_args: sysinfo_test_cargs,
+  )
+  test('Sysinfo Backend Tests', sysinfo_backend_tests, protocol: 'tap')
+
+elif system == 'freebsd' or system == 'gnu' or system.startswith('gnu/')
   sysinfo_includes += ['shared', 'unix']
   sysinfo_sources += [
     'shared/df.c',
@@ -41,7 +54,7 @@ elif system == 'freebsd'
     sysinfo_cargs += '-DHAVE_LIBPCI'
     sysinfo_sources += 'unix/pci.c'
 
-    picidsdir = libpci.get_pkgconfig_variable('idsdir')
+    picidsdir = libpci.get_variable(pkgconfig: 'idsdir')
     pciids = join_paths(picidsdir, 'pci.ids')
     sysinfo_cargs += '-DPCIIDS_FILE="@0@"'.format(pciids)
   endif

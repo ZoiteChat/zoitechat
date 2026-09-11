@@ -315,13 +315,16 @@ build_cpu_string (void)
 		GetNativeSystemInfo (&info);
 		threads = info.dwNumberOfProcessors;
 	}
-	if (cores == 0)
+	if (cores != 0)
 	{
-		cores = threads;
+		result = g_strdup_printf ("%s" SYSINFO_SEP "%luC/%luT",
+			name, (unsigned long) cores, (unsigned long) threads);
 	}
-
-	result = g_strdup_printf ("%s" SYSINFO_SEP "%luC/%luT",
-		name, (unsigned long) cores, (unsigned long) threads);
+	else
+	{
+		/* Logical processor count cannot establish the physical core count. */
+		result = g_strdup_printf ("%s" SYSINFO_SEP "%luT", name, (unsigned long) threads);
+	}
 	g_free (name);
 	return result;
 }
@@ -399,7 +402,9 @@ build_gpu_string (void)
 		}
 		if (FAILED (hr) || !adapter)
 		{
-			continue;
+			/* A failed enumeration is not another adapter. Retrying every
+			 * index can freeze the client indefinitely after a device error. */
+			break;
 		}
 
 		ZeroMemory (&desc, sizeof (desc));
