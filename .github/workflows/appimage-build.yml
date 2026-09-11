@@ -33,7 +33,7 @@ jobs:
             libgtk-3-dev libfontconfig1-dev libpango1.0-dev xvfb xauth dbus-daemon at-spi2-core \
             libwayland-client0 libwayland-cursor0 libwayland-egl1 \
             libxkbcommon0 \
-            libgtk-3-bin libglib2.0-bin shared-mime-info gsettings-desktop-schemas \
+            libgtk-3-bin libglib2.0-bin glib-networking shared-mime-info gsettings-desktop-schemas \
             liblua5.4-dev libpci-dev libperl-dev libssl-dev libayatana-appindicator3-dev \
             perl python3 python3-minimal python3-dev python3-cffi mono-devel desktop-file-utils \
             breeze-gtk-theme \
@@ -134,6 +134,20 @@ jobs:
             install -d AppDir/usr/lib/gtk-3.0
             cp -a /usr/lib/gtk-3.0/modules AppDir/usr/lib/gtk-3.0/
           fi
+
+          # HTTPS inline-image downloads use GSocketClient TLS on Linux.
+          # GLib provides the API, but TLS and system-proxy support live in
+          # loadable GIO modules shipped by glib-networking. Bundle those
+          # modules so the AppImage does not depend on the host copy.
+          gio_module_dir="$(pkg-config --variable=giomoduledir gio-2.0)"
+
+          test -n "$gio_module_dir"
+          test -f "${gio_module_dir}/libgiognutls.so"
+          install -d "AppDir${gio_module_dir}"
+          cp -a "${gio_module_dir}"/libgio*.so "AppDir${gio_module_dir}/"
+          gio-querymodules "AppDir${gio_module_dir}"
+          test -f "AppDir${gio_module_dir}/libgiognutls.so"
+          test -s "AppDir${gio_module_dir}/giomodule.cache"
 
       - name: Verify bundled plugins
         run: |
