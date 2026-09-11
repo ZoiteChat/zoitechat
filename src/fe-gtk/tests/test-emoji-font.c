@@ -3,6 +3,52 @@
 #include "../emoji-font.h"
 #include "../../common/emoji-data.h"
 #include <pango/pangofc-fontmap.h>
+#include <pango/pangofc-font.h>
+
+static GHashTable *font_checksums;
+static char *bundled_checksum;
+
+static const char *
+font_checksum (const char *path)
+{
+	const char *cached = g_hash_table_lookup (font_checksums, path);
+	char *contents, *checksum;
+	gsize length;
+
+	if (cached)
+		return cached;
+	g_assert_true (g_file_get_contents (path, &contents, &length, NULL));
+	checksum = g_compute_checksum_for_data (G_CHECKSUM_SHA256,
+		(const guchar *) contents, length);
+	g_free (contents);
+	g_hash_table_insert (font_checksums, g_strdup (path), checksum);
+	return checksum;
+}
+
+static void
+assert_bundled_font (PangoFont *font, gboolean expected)
+{
+	FcPattern *pattern;
+	FcChar8 *path;
+	const char *checksum;
+
+	/* Pango can describe a face by its embedded name rather than its
+	 * Fontconfig alias. Verify the resolved file's bytes, not that name.
+	 * Cache by filename so catalog coverage does not reread the font for
+	 * every glyph. An older system Noto must still fail this assertion. */
+	g_assert_true (PANGO_IS_FC_FONT (font));
+#if PANGO_VERSION_CHECK(1, 48, 0)
+	pattern = pango_fc_font_get_pattern (PANGO_FC_FONT (font));
+#else
+	pattern = PANGO_FC_FONT (font)->font_pattern;
+#endif
+	g_assert_cmpint (FcPatternGetString (pattern, FC_FILE, 0, &path), ==, FcResultMatch);
+	checksum = font_checksum ((const char *) path);
+	if (expected)
+		g_assert_cmpstr (checksum, ==, bundled_checksum);
+	else
+		g_assert_cmpstr (checksum, !=, bundled_checksum);
+}
 
 static void
 test_font_catalog (void)
@@ -34,9 +80,7 @@ test_font_catalog (void)
 				PangoLayoutRun *run = pango_layout_iter_get_run_readonly (iter);
 				if (run)
 				{
-					PangoFontDescription *actual = pango_font_describe (run->item->analysis.font);
-					g_assert_cmpstr (pango_font_description_get_family (actual), ==, ZOITECHAT_EMOJI_FAMILY);
-					pango_font_description_free (actual);
+					assert_bundled_font (run->item->analysis.font, TRUE);
 				}
 			} while (pango_layout_iter_next_run (iter));
 			pango_layout_iter_free (iter);
@@ -68,9 +112,7 @@ test_plain_text_font (void)
 		PangoLayoutRun *run = pango_layout_iter_get_run_readonly (iter);
 		if (run)
 		{
-			PangoFontDescription *actual = pango_font_describe (run->item->analysis.font);
-			g_assert_cmpstr (pango_font_description_get_family (actual), !=, ZOITECHAT_EMOJI_FAMILY);
-			pango_font_description_free (actual);
+			assert_bundled_font (run->item->analysis.font, FALSE);
 		}
 	} while (pango_layout_iter_next_run (iter));
 	pango_layout_iter_free (iter);
@@ -101,9 +143,7 @@ test_implicit_emoji_font (void)
 			PangoLayoutRun *run = pango_layout_iter_get_run_readonly (iter);
 			if (run)
 			{
-				PangoFontDescription *actual = pango_font_describe (run->item->analysis.font);
-				g_assert_cmpstr (pango_font_description_get_family (actual), ==, ZOITECHAT_EMOJI_FAMILY);
-				pango_font_description_free (actual);
+				assert_bundled_font (run->item->analysis.font, TRUE);
 			}
 		} while (pango_layout_iter_next_run (iter));
 		pango_layout_iter_free (iter);
@@ -116,9 +156,19 @@ test_implicit_emoji_font (void)
 int
 main (int argc, char **argv)
 {
+	const char *path;
+	int result;
+
 	g_test_init (&argc, &argv, NULL);
+	path = g_getenv ("ZOITECHAT_EMOJI_FONT");
+	g_assert_nonnull (path);
+	font_checksums = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
+	bundled_checksum = g_strdup (font_checksum (path));
 	g_test_add_func ("/emoji-font/catalog", test_font_catalog);
 	g_test_add_func ("/emoji-font/plain-text", test_plain_text_font);
 	g_test_add_func ("/emoji-font/implicit-emoji", test_implicit_emoji_font);
-	return g_test_run ();
+	result = g_test_run ();
+	g_free (bundled_checksum);
+	g_hash_table_destroy (font_checksums);
+	return result;
 }

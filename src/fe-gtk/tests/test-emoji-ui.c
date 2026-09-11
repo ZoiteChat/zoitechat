@@ -12,6 +12,22 @@
 struct zoitechatprefs prefs;
 static char *config_dir;
 
+static void
+test_theme_svg_loader (void)
+{
+	GError *error = NULL;
+	GdkPixbuf *pixbuf;
+
+	/* Exercise the theme asset that failed in the packaged Windows runtime. */
+	pixbuf = gdk_pixbuf_new_from_resource (
+		"/org/gtk/libgtk/theme/Adwaita/assets/bullet-symbolic.svg", &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (pixbuf);
+	g_assert_cmpint (gdk_pixbuf_get_width (pixbuf), >, 0);
+	g_assert_cmpint (gdk_pixbuf_get_height (pixbuf), >, 0);
+	g_object_unref (pixbuf);
+}
+
 char *get_xdir (void) { return config_dir; }
 PreferencesPersistenceResult preferences_persistence_save_all (void)
 {
@@ -125,6 +141,7 @@ main (int argc, char **argv)
 	g_object_set (gtk_settings_get_default (), "gtk-enable-animations", FALSE, NULL);
 	config_dir = g_dir_make_tmp ("zoitechat-emoji-tests-XXXXXX", NULL);
 	g_assert_nonnull (config_dir);
+	g_test_add_func ("/emoji-ui/theme-svg-loader", test_theme_svg_loader);
 	g_test_add ("/emoji-ui/search-insertion", PickerFixture, NULL, fixture_setup, test_search_insertion, fixture_teardown);
 	g_test_add ("/emoji-ui/read-only", PickerFixture, NULL, fixture_setup, test_read_only, fixture_teardown);
 	g_test_add ("/emoji-ui/sequence-limit", PickerFixture, NULL, fixture_setup, test_sequence_limit, fixture_teardown);

@@ -78,7 +78,9 @@ emoji_font_get_map (void)
 		"<edit name='family' mode='assign'><string>" ZOITECHAT_EMOJI_FAMILY
 		"</string></edit></match>"
 		"<match target='pattern'><test name='family'><string>emoji</string></test>"
-		"<edit name='family' mode='prepend' binding='strong'><string>"
+		/* System rules may already have prepended older emoji families.
+		 * Put our bundled family before those, not just before 'emoji'. */
+		"<edit name='family' mode='prepend_first' binding='strong'><string>"
 		ZOITECHAT_EMOJI_FAMILY "</string></edit></match>"
 		"</fontconfig>", escaped);
 	registered = FcConfigParseAndLoadFromMemory (config, (const FcChar8 *) rules, FcTrue) &&

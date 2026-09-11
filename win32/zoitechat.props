@@ -75,7 +75,7 @@
 
 		<UsingGtk3 Condition="Exists('$(DepsRoot)\\include\\gtk-3.0\\gtk\\gtk.h')">true</UsingGtk3>
 		<Gtk3>$(DepsRoot)\include\gtk-3.0;$(DepsRoot)\lib\gtk-3.0\include</Gtk3>
-		<GtkCommon>$(DepsRoot)\include\atk-1.0;$(DepsRoot)\include\cairo;$(DepsRoot)\include\pango-1.0;$(DepsRoot)\include\gdk-pixbuf-2.0;$(DepsRoot)\include\harfbuzz</GtkCommon>
+		<GtkCommon>$(DepsRoot)\include\atk-1.0;$(DepsRoot)\include\cairo;$(DepsRoot)\include\pango-1.0;$(DepsRoot)\include\gdk-pixbuf-2.0;$(DepsRoot)\include\harfbuzz;$(DepsRoot)\include\freetype2</GtkCommon>
 		<Gtk>$(Gtk3);$(GtkCommon)</Gtk>
 
 		<SslLegacyLib Condition="Exists('$(DepsRoot)\\lib\\ssleay32.lib')">ssleay32.lib</SslLegacyLib>
