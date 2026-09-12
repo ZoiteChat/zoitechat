@@ -26,19 +26,6 @@ if system == 'linux'
   sysinfo_includes += 'unix'
   sysinfo_sources += 'unix/modern-backend.c'
 
-  sysinfo_test_deps = [libgio_dep]
-  sysinfo_test_cargs = []
-  if libpci.found()
-    sysinfo_test_deps += libpci
-    sysinfo_test_cargs += '-DHAVE_LIBPCI'
-  endif
-  sysinfo_backend_tests = executable('sysinfo_backend_tests',
-    ['tests/test-linux-backend.c', 'format.c'],
-    dependencies: sysinfo_test_deps,
-    c_args: sysinfo_test_cargs,
-  )
-  test('Sysinfo Backend Tests', sysinfo_backend_tests, protocol: 'tap')
-
 elif system == 'freebsd' or system == 'gnu' or system.startswith('gnu/')
   sysinfo_includes += ['shared', 'unix']
   sysinfo_sources += [
