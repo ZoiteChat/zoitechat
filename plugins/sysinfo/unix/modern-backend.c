@@ -225,7 +225,7 @@ read_os_pretty_name (void)
 	}
 
 	/* Keep the plugin buildable with the project's GLib 2.36 minimum. */
-#if GLIB_CHECK_VERSION(2, 64, 0)
+#if GLIB_CHECK_VERSION(2, 64, 0) && GLIB_VERSION_MAX_ALLOWED >= GLIB_VERSION_2_64
 	if (!pretty)
 	{
 		pretty = g_get_os_info (G_OS_INFO_KEY_PRETTY_NAME);
