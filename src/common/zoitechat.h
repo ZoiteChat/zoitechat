@@ -315,6 +315,7 @@ struct zoitechatprefs
 	char hex_dcc_completed_dir[PATHLEN + 1];
 	char hex_dcc_dir[PATHLEN + 1];
 	char hex_dcc_ip[DOMAINLEN + 1];
+	char hex_gui_tab_font[FONTNAMELEN + 1];
 	char hex_gui_ulist_doubleclick[256];
 	char hex_input_command_char[4];
 	char hex_irc_extra_hilight[300];
