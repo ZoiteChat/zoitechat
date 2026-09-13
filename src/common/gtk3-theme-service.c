@@ -858,8 +858,10 @@ path_depth_from_root (const char *base, const char *path)
 static gint
 theme_root_candidate_compare (gconstpointer a, gconstpointer b)
 {
-	const ThemeRootCandidate *ca = a;
-	const ThemeRootCandidate *cb = b;
+	/* g_ptr_array_sort() passes pointers to the array slots, not the values
+	 * stored in those slots. Dereference once before comparing candidates. */
+	const ThemeRootCandidate *ca = *(ThemeRootCandidate * const *) a;
+	const ThemeRootCandidate *cb = *(ThemeRootCandidate * const *) b;
 	if (ca->has_index_theme != cb->has_index_theme)
 		return ca->has_index_theme ? -1 : 1;
 	if (ca->depth != cb->depth)
