@@ -301,26 +301,35 @@ cv_tree_focus (chan *ch)
 	path = gtk_tree_model_get_path (model, &ch->iter);
 	if (path)
 	{
-		/* This full section does what
-		 * gtk_tree_view_scroll_to_cell (tree, path, NULL, TRUE, 0.5, 0.5);
-		 * does, except it only scrolls the window if the provided cell is
-		 * not visible. Basic algorithm taken from gtktreeview.c */
-
-		/* obtain information to see if the cell is visible */
-		gtk_tree_view_get_background_area (tree, path, NULL, &cell_rect);
-		gtk_tree_view_get_visible_rect (tree, &vis_rect);
-
-		/* The cordinates aren't offset correctly */
-		gtk_tree_view_convert_widget_to_bin_window_coords ( tree, cell_rect.x, cell_rect.y, NULL, &cell_rect.y );
-
-		/* only need to scroll if out of bounds */
-		if (cell_rect.y < vis_rect.y ||
-				cell_rect.y + cell_rect.height > vis_rect.y + vis_rect.height)
+		if (!gtk_widget_get_realized (GTK_WIDGET (tree)))
 		{
-			dest_y = cell_rect.y - ((vis_rect.height - cell_rect.height) * 0.5);
-			if (dest_y < 0)
-				dest_y = 0;
-			gtk_tree_view_scroll_to_point (tree, -1, dest_y);
+			/* Layout changes can restore focus before the new tree is realized.
+			 * Let GTK track the row and scroll once its geometry is available. */
+			gtk_tree_view_scroll_to_cell (tree, path, NULL, TRUE, 0.5, 0.5);
+		}
+		else
+		{
+			/* This full section does what
+			 * gtk_tree_view_scroll_to_cell (tree, path, NULL, TRUE, 0.5, 0.5);
+			 * does, except it only scrolls the window if the provided cell is
+			 * not visible. Basic algorithm taken from gtktreeview.c */
+
+			/* obtain information to see if the cell is visible */
+			gtk_tree_view_get_background_area (tree, path, NULL, &cell_rect);
+			gtk_tree_view_get_visible_rect (tree, &vis_rect);
+
+			/* The cordinates aren't offset correctly */
+			gtk_tree_view_convert_widget_to_bin_window_coords ( tree, cell_rect.x, cell_rect.y, NULL, &cell_rect.y );
+
+			/* only need to scroll if out of bounds */
+			if (cell_rect.y < vis_rect.y ||
+					cell_rect.y + cell_rect.height > vis_rect.y + vis_rect.height)
+			{
+				dest_y = cell_rect.y - ((vis_rect.height - cell_rect.height) * 0.5);
+				if (dest_y < 0)
+					dest_y = 0;
+				gtk_tree_view_scroll_to_point (tree, -1, dest_y);
+			}
 		}
 		/* theft done, now make it focused like */
 		gtk_tree_view_set_cursor (tree, path, NULL, FALSE);
