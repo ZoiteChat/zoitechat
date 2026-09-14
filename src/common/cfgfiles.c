@@ -443,6 +443,7 @@ const struct prefs vars[] =
 	{"gui_tab_chans", P_OFFINT (hex_gui_tab_chans), TYPE_BOOL},
 	{"gui_tab_dialogs", P_OFFINT (hex_gui_tab_dialogs), TYPE_BOOL},
 	{"gui_tab_dots", P_OFFINT (hex_gui_tab_dots), TYPE_BOOL},
+	{"gui_tab_font", P_OFFSET (hex_gui_tab_font), TYPE_STR},
 	{"gui_tab_icons", P_OFFINT (hex_gui_tab_icons), TYPE_BOOL},
 	{"gui_dark_mode", P_OFFINT (hex_gui_dark_mode), TYPE_INT},
 	{"gui_gtk3_variant", P_OFFINT (hex_gui_gtk3_variant), TYPE_INT},

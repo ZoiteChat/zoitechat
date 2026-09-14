@@ -19,6 +19,8 @@
 
 /* file included in chanview.c */
 
+#include "theme/theme-css.h"
+
 typedef struct
 {
 	GtkWidget *outer;	/* outer box */
@@ -690,6 +692,7 @@ cv_tabs_add (chanview *cv, chan *ch, char *name, GtkTreeIter *parent)
 	GtkWidget *label;
 	GtkWidget *close_button;
 	GtkWidget *close_icon;
+	GtkCssProvider *close_css;
 
 	but = gtk_toggle_button_new ();
 	gtk_widget_set_name (but, "zoitechat-tab");
@@ -698,9 +701,27 @@ cv_tabs_add (chanview *cv, chan *ch, char *name, GtkTreeIter *parent)
 	cv_add_scroll_events (but);
 	hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 2);
 	label = gtk_label_new (name);
+	if (prefs.hex_gui_tab_font[0])
+	{
+		PangoFontDescription *font_desc;
+
+		/* Keep activity colours and the Smaller text scale in the label attributes. */
+		font_desc = pango_font_description_from_string (prefs.hex_gui_tab_font);
+		gtkutil_apply_palette (label, NULL, NULL, font_desc);
+		pango_font_description_free (font_desc);
+	}
 	close_button = gtk_button_new ();
 	cv_add_scroll_events (close_button);
 	gtk_style_context_add_class (gtk_widget_get_style_context (close_button), "flat");
+	gtk_style_context_add_class (gtk_widget_get_style_context (close_button), "zoitechat-tab-close");
+	/* Theme button minimums and padding must not determine the tab height. */
+	close_css = gtk_css_provider_new ();
+	gtk_css_provider_load_from_data (close_css,
+		".zoitechat-tab-close { min-width: 0; min-height: 0; padding: 1px; margin: 0; }",
+		-1, NULL);
+	theme_css_apply_widget_provider (close_button, GTK_STYLE_PROVIDER (close_css));
+	g_object_unref (close_css);
+	gtk_widget_set_valign (close_button, GTK_ALIGN_CENTER);
 	close_icon = gtk_image_new_from_icon_name ("window-close-symbolic", GTK_ICON_SIZE_MENU);
 	gtk_image_set_pixel_size (GTK_IMAGE (close_icon), 8);
 	gtk_button_set_always_show_image (GTK_BUTTON (close_button), TRUE);

@@ -340,6 +340,9 @@ static const setting tabs_settings[] =
         {ST_TOGGLE, N_("Show close button on tabs"), P_OFFINTNL(hex_gui_tab_closebuttons), 0, 0, 0},
         {ST_TOGGLE, N_("Middle click to close tab"), P_OFFINTNL(hex_gui_tab_middleclose), 0, 0, 0},
         {ST_TOGGLE, N_("Smaller text"), P_OFFINTNL(hex_gui_tab_small), 0, 0, 0},
+        {ST_EFONT,  N_("Tab font:"), P_OFFSETNL(hex_gui_tab_font),
+                N_("Font for server and channel tabs in the Tabs layout. Leave blank to use the theme font. Smaller text still applies."),
+                0, sizeof prefs.hex_gui_tab_font},
         {ST_MENU,       N_("Focus new tabs:"), P_OFFINTNL(hex_gui_tab_newtofront), 0, focusnewtabsmenu, 0},
         {ST_MENU,       N_("Placement of notices:"), P_OFFINTNL(hex_irc_notice_pos), 0, noticeposmenu, 0},
         {ST_MENU,       N_("Show channel switcher at:"), P_OFFINTNL(hex_gui_tab_pos), 0, cspos, 1},
@@ -2334,6 +2337,9 @@ setup_apply (struct zoitechatprefs *pr)
                 live_changes.topic_bar = TRUE;
         if (DIFF (hex_gui_tab_icons) || DIFF (hex_gui_tab_closebuttons) ||
                  DIFF (hex_gui_tab_small))
+                live_changes.chanview = TRUE;
+        if (pr->hex_gui_tab_layout == 0 &&
+                strcmp (pr->hex_gui_tab_font, prefs.hex_gui_tab_font) != 0)
                 live_changes.chanview = TRUE;
         if (DIFF (hex_gui_tab_sort))
                 live_changes.tab_resort = TRUE;
