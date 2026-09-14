@@ -191,6 +191,8 @@ struct defaultserver
 	gboolean ssl;
 };
 
+static gboolean servlist_needs_onboarding_flag;
+
 static const struct defaultserver def[] =
 {
 	{"2600net",	0},
@@ -1181,7 +1183,10 @@ servlist_load (void)
 
 	fp = zoitechat_fopen_file ("servlist.conf", "r", 0);
 	if (!fp)
+	{
+		servlist_needs_onboarding_flag = TRUE;
 		return FALSE;
+	}
 
 	while (fgets (buf, sizeof (buf) - 2, fp))
 	{
@@ -1245,6 +1250,7 @@ servlist_load (void)
 			net = servlist_net_add (buf + 2, NULL, FALSE);
 	}
 	fclose (fp);
+	servlist_needs_onboarding_flag = (network_list == NULL);
 
 	return TRUE;
 }
@@ -1253,8 +1259,16 @@ void
 servlist_init (void)
 {
 	if (!network_list)
-		if (!servlist_load ())
+	{
+		if (!servlist_load () || !network_list)
 			servlist_load_defaults ();
+	}
+}
+
+gboolean
+servlist_needs_onboarding (void)
+{
+	return servlist_needs_onboarding_flag;
 }
 
 /* check if a charset is known by Iconv */
@@ -1395,6 +1409,7 @@ servlist_save (void)
 	}
 
 	fclose (fp);
+	servlist_needs_onboarding_flag = FALSE;
 	return TRUE;
 }
 
