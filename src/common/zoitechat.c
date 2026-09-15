@@ -463,8 +463,7 @@ doover:
 		while (list)
 		{
 			sess = list->data;
-			if (!sess->server->have_awaynotify)
-				sess->done_away_check = FALSE;
+			sess->done_away_check = FALSE;
 			list = list->next;
 		}
 		loop++;
