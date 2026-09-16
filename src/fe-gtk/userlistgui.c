@@ -594,7 +594,7 @@ fe_userlist_rehash (session *sess, struct User *user)
 		nick_token = THEME_TOKEN_TAB_AWAY;
 		have_nick_token = TRUE;
 	}
-	else if (prefs.hex_gui_ulist_color || prefs.hex_text_color_nicks)
+	else if (prefs.hex_gui_ulist_color)
 	{
 		int mirc_index = text_color_of (user->nick);
 
@@ -635,7 +635,7 @@ fe_userlist_insert (session *sess, struct User *newuser, gboolean sel)
 		nick_token = THEME_TOKEN_TAB_AWAY;
 		have_nick_token = TRUE;
 	}
-	else if (prefs.hex_gui_ulist_color || prefs.hex_text_color_nicks)
+	else if (prefs.hex_gui_ulist_color)
 	{
 		int mirc_index = text_color_of (newuser->nick);
 
