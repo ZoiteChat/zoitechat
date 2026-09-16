@@ -3172,7 +3172,7 @@ gtk_xtext_selection_get (GtkWidget * widget,
 			if (!window || !GDK_IS_WINDOW (window))
 				break;
 			display = gdk_window_get_display (window);
-			if (!display)
+			if (!display || !GDK_IS_X11_DISPLAY (display))
 				break;
 			GdkAtom encoding;
 			gint format;
