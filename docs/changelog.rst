@@ -1,6 +1,20 @@
 ZoiteChat ChangeLog
 =================
 
+2.19.1 (2026-09-15)
+-------------------
+
+- Fixed ``/msg`` messages showing twice on servers using IRCv3 ``echo-message``.
+- Fixed escaping a leading command slash so ``//text`` sends ``/text`` as normal chat.
+- Fixed automatic away clearing when sending messages on servers using ``echo-message``.
+- Fixed other users' away status not updating until rejoining a channel when ``away-notify`` updates are missed.
+- Fixed private messages and ``/me`` actions being routed to the wrong window when using WeeChat's IRC relay, while preserving channel ACTION routing.
+- Fixed a Flatpak startup error caused by the D-Bus service still using the old HexChat app ID.
+- Fixed optional Windows 10 theme downloads in the Windows installer.
+- Fixed the GTK warning when switching from channel tabs to the channel tree.
+- Fixed GTK3 theme archive root detection so themes with an ``index.theme`` file are preferred correctly.
+- Fixed source-build configuration when plugin AppStream metadata installation is disabled, and corrected the minimum Meson version to 0.59.
+
 2.19.0 (2026-07-28)
 -------------------
 
