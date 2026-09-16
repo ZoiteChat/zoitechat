@@ -683,7 +683,7 @@ theme_manager_get_userlist_palette_behavior (const PangoFontDescription *font_de
 
 	behavior.font_desc = font_desc;
 	behavior.apply_background = TRUE;
-	behavior.apply_foreground = (prefs.hex_gui_ulist_color || prefs.hex_text_color_nicks) ? FALSE : TRUE;
+	behavior.apply_foreground = prefs.hex_gui_ulist_color ? FALSE : TRUE;
 
 	return behavior;
 }
