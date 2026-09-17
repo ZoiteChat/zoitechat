@@ -374,6 +374,14 @@ server_inline (server *serv, char *line, gssize len)
 	else
 		line = text_convert_invalid (line, len, serv->read_converter, unicode_fallback_string, &len_utf8);
 
+	/* Any complete IRC line proves that the connection is alive. */
+	serv->ping_recv = time (0);
+	if (serv->lag_sent)
+	{
+		serv->lag_sent = 0;
+		fe_set_lag (serv, serv->lag);
+	}
+
 	fe_add_rawlog (serv, line, len_utf8, FALSE);
 
 	/* let proto-irc.c handle it */
