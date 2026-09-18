@@ -1266,8 +1266,6 @@ attr_list_has_attrs (PangoAttrList *attrs)
 static void
 sexy_spell_entry_recheck_all(SexySpellEntry *entry)
 {
-	GdkRectangle rect;
-	GtkAllocation allocation;
 	GtkWidget *widget = GTK_WIDGET(entry);
 	int length, i, text_len;
 	const char *text;
@@ -1299,15 +1297,8 @@ sexy_spell_entry_recheck_all(SexySpellEntry *entry)
 
 	gtk_entry_set_attributes (GTK_ENTRY (entry), attr_list_has_attrs (entry->priv->attr_list) ? entry->priv->attr_list : NULL);
 
-	if (gtk_widget_get_realized (GTK_WIDGET(entry)))
-	{
-		gtk_widget_get_allocation (GTK_WIDGET(entry), &allocation);
-		
-		rect.x = 0; rect.y = 0;
-		rect.width  = allocation.width;
-		rect.height = allocation.height;
-		gdk_window_invalidate_rect(gtk_widget_get_window (widget), &rect, TRUE);
-	}
+	/* GtkEntry shares its parent's GdkWindow in GTK3; redraw the widget area. */
+	gtk_widget_queue_draw (widget);
 }
 
 static gboolean

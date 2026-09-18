@@ -273,6 +273,8 @@ static void gtk_xtext_render_page (GtkXText * xtext);
 static void gtk_xtext_calc_lines (xtext_buffer *buf, int);
 static gboolean gtk_xtext_is_selecting (GtkXText *xtext);
 static char *gtk_xtext_selection_get_text (GtkXText *xtext, int *len_ret);
+static void gtk_xtext_clipboard_get (GtkClipboard *, GtkSelectionData *, guint, gpointer);
+static void gtk_xtext_clipboard_clear (GtkClipboard *, gpointer);
 static textentry *gtk_xtext_nth (GtkXText *xtext, int line, int *subline);
 static void gtk_xtext_adjustment_changed (GtkAdjustment * adj,
 												GtkXText * xtext);
@@ -1083,8 +1085,28 @@ gtk_xtext_new (const XTextColor *palette, int separator)
 }
 
 static void
+gtk_xtext_release_selections (GtkXText *xtext)
+{
+	GdkAtom selections[] = { GDK_SELECTION_PRIMARY, GDK_SELECTION_SECONDARY };
+	guint i;
+
+	if (!gtk_widget_has_screen (GTK_WIDGET (xtext)))
+		return;
+
+	for (i = 0; i < G_N_ELEMENTS (selections); i++)
+	{
+		GtkClipboard *clipboard = gtk_widget_get_clipboard (GTK_WIDGET (xtext), selections[i]);
+
+		if (gtk_clipboard_get_owner (clipboard) == G_OBJECT (xtext))
+			gtk_clipboard_clear (clipboard);
+	}
+}
+
+static void
 gtk_xtext_cleanup (GtkXText *xtext)
 {
+	gtk_xtext_release_selections (xtext);
+
 	if (xtext->add_io_tag)
 	{
 		g_source_remove (xtext->add_io_tag);
@@ -1179,6 +1201,7 @@ gtk_xtext_finalize (GObject *object)
 static void
 gtk_xtext_unrealize (GtkWidget * widget)
 {
+	gtk_xtext_release_selections (GTK_XTEXT (widget));
 	backend_deinit (GTK_XTEXT (widget));
 
 	/*
@@ -2743,8 +2766,16 @@ gtk_xtext_set_clip_owner (GtkWidget * xtext, GdkEventButton * event)
 		{
 			gtk_clipboard_set_text (gtk_widget_get_clipboard (xtext, GDK_SELECTION_CLIPBOARD), str, len);
 			
-			gtk_selection_owner_set (xtext, GDK_SELECTION_PRIMARY, event ? event->time : GDK_CURRENT_TIME);
-			gtk_selection_owner_set (xtext, GDK_SELECTION_SECONDARY, event ? event->time : GDK_CURRENT_TIME);
+			/* Let GtkClipboard own the X11 selection window. Making xtext
+			 * the selection owner forces its window native and bypasses
+			 * GTK's toplevel backing buffer on subsequent redraws.
+			 */
+			gtk_clipboard_set_with_owner (gtk_widget_get_clipboard (xtext, GDK_SELECTION_PRIMARY),
+				gtk_xtext_selection_targets, G_N_ELEMENTS (gtk_xtext_selection_targets),
+				gtk_xtext_clipboard_get, gtk_xtext_clipboard_clear, G_OBJECT (xtext));
+			gtk_clipboard_set_with_owner (gtk_widget_get_clipboard (xtext, GDK_SELECTION_SECONDARY),
+				gtk_xtext_selection_targets, G_N_ELEMENTS (gtk_xtext_selection_targets),
+				gtk_xtext_clipboard_get, gtk_xtext_clipboard_clear, G_OBJECT (xtext));
 		}
 
 		g_free (str);
@@ -3195,6 +3226,29 @@ gtk_xtext_selection_get (GtkWidget * widget,
 	}
 
 	g_free (stripped);
+}
+
+static void
+gtk_xtext_clipboard_get (GtkClipboard *clipboard, GtkSelectionData *selection_data,
+						 guint info, gpointer owner)
+{
+	int len;
+	char *text = gtk_xtext_selection_get_text (GTK_XTEXT (owner), &len);
+
+	if (text)
+	{
+		gtk_selection_data_set_text (selection_data, text, len);
+		g_free (text);
+	}
+}
+
+static void
+gtk_xtext_clipboard_clear (GtkClipboard *clipboard, gpointer owner)
+{
+	GtkXText *xtext = GTK_XTEXT (owner);
+
+	if (xtext->orig_buffer)
+		gtk_xtext_selection_kill (xtext, NULL);
 }
 
 static gboolean
