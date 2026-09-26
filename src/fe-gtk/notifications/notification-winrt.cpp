@@ -22,6 +22,8 @@
 
 #include <string>
 #include <codecvt>
+#include <vector>
+#include <windows.h>
 #include <strsafe.h>
 
 #include <roapi.h>
@@ -31,6 +33,30 @@ using namespace Windows::UI::Notifications;
 using namespace Windows::Data::Xml::Dom;
 
 static ToastNotifier ^ notifier = nullptr;
+
+static Platform::String ^
+current_package_aumid (void)
+{
+	HMODULE kernel32;
+	LONG (WINAPI *get_current_aumid) (UINT32 *, PWSTR);
+	UINT32 length = 0;
+
+	kernel32 = GetModuleHandleW (L"kernel32.dll");
+	if (!kernel32)
+		return nullptr;
+
+	get_current_aumid = (LONG (WINAPI *) (UINT32 *, PWSTR))
+		GetProcAddress (kernel32, "GetCurrentApplicationUserModelId");
+	if (!get_current_aumid ||
+		get_current_aumid (&length, nullptr) != ERROR_INSUFFICIENT_BUFFER)
+		return nullptr;
+
+	std::vector<wchar_t> app_id (length);
+	if (get_current_aumid (&length, app_id.data ()) != ERROR_SUCCESS)
+		return nullptr;
+
+	return ref new Platform::String (app_id.data ());
+}
 
 static std::wstring
 widen(const std::string & to_widen)
@@ -87,7 +113,14 @@ extern "C"
 		try
 		{
 			if (!notifier)
-				notifier = ToastNotificationManager::CreateToastNotifier (L"ZoiteChat.Desktop.Notify");
+			{
+				auto package_aumid = current_package_aumid ();
+
+				if (package_aumid != nullptr)
+					notifier = ToastNotificationManager::CreateToastNotifier (package_aumid);
+				else
+					notifier = ToastNotificationManager::CreateToastNotifier (L"ZoiteChat.Desktop.Notify");
+			}
 		}
 		catch (Platform::Exception ^ ex)
 		{

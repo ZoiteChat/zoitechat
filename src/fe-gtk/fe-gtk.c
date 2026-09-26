@@ -124,11 +124,37 @@ create_msg_dialog (gchar *title, gchar *message)
 
 static char *win32_argv0_dir;
 
+static gboolean
+win32_has_package_identity (void)
+{
+	HMODULE kernel32;
+	LONG (WINAPI *get_current_aumid) (UINT32 *, PWSTR);
+	UINT32 length = 0;
+
+	kernel32 = GetModuleHandleW (L"kernel32.dll");
+	if (!kernel32)
+		return FALSE;
+
+	get_current_aumid = (LONG (WINAPI *) (UINT32 *, PWSTR))
+		GetProcAddress (kernel32, "GetCurrentApplicationUserModelId");
+	if (!get_current_aumid)
+		return FALSE;
+
+	return get_current_aumid (&length, NULL) == ERROR_INSUFFICIENT_BUFFER;
+}
+
 static void
 win32_set_appusermodelid (void)
 {
 	HMODULE shell32;
 	HRESULT (WINAPI *set_appid) (PCWSTR);
+
+	/*
+	 * Packaged desktop apps must use the AUMID assigned by the Windows app
+	 * package. Keep the existing explicit AUMID only for Inno/MSI installs.
+	 */
+	if (win32_has_package_identity ())
+		return;
 
 	shell32 = GetModuleHandleW (L"shell32.dll");
 	if (!shell32)

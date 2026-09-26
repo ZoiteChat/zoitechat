@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <!--
+    This MSI intentionally mirrors the staged portion of the normal Inno Setup
+    payload. Optional/custom-only files are excluded below. In particular,
+    portable-mode must never be harvested because copy.vcxproj always stages
+    that marker. Inno-only download-at-install components remain outside the MSI.
+  -->
+  <Package
+    Name="ZoiteChat"
+    Manufacturer="ZoiteChat"
+    Version="$(ProductVersion)"
+    UpgradeCode="{E9F09DF3-12FA-4BDF-A8AA-A6D62A327ED5}"
+    Scope="perMachine"
+    InstallerVersion="500"
+    Compressed="yes">
+
+    <MajorUpgrade
+      AllowSameVersionUpgrades="yes"
+      DowngradeErrorMessage="A newer version of ZoiteChat is already installed." />
+
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+    <Icon Id="ZoiteChat.ico" SourceFile="$(sys.SOURCEFILEDIR)..\..\data\icons\zoitechat.ico" />
+    <Property Id="ARPPRODUCTICON" Value="ZoiteChat.ico" />
+    <Property Id="ARPHELPLINK" Value="https://github.com/ZoiteChat/zoitechat/issues" />
+    <Property Id="ARPURLINFOABOUT" Value="https://zoitechat.org/" />
+    <Property Id="ARPURLUPDATEINFO" Value="https://zoitechat.org/downloads.html" />
+    <Property Id="ARPNOMODIFY" Value="1" />
+
+    <!--
+      The Inno installer can bootstrap the VC++ runtime. A plain MSI should not
+      run an EXE prerequisite as an MSI custom action, so require the runtime.
+      Administrative extraction is allowed regardless of prerequisite state.
+    -->
+    <Property Id="VCREDIST_X64_INSTALLED">
+      <RegistrySearch
+        Id="FindVCRedistX64"
+        Root="HKLM"
+        Key="SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x64"
+        Name="Installed"
+        Type="raw"
+        Bitness="always64" />
+    </Property>
+    <Launch
+      Condition="Installed OR ACTION = &quot;ADMIN&quot; OR VCREDIST_X64_INSTALLED = &quot;#1&quot;"
+      Message="Microsoft Visual C++ 2015-2022 x64 Redistributable is required before installing ZoiteChat." />
+    <Launch
+      Condition="Installed OR ACTION = &quot;ADMIN&quot; OR VersionNT64 &gt; 601 OR (VersionNT64 = 601 AND ServicePackLevel &gt;= 1)"
+      Message="ZoiteChat requires 64-bit Windows 7 SP1 or later." />
+
+    <StandardDirectory Id="ProgramFiles6432Folder">
+      <Directory Id="INSTALLFOLDER" Name="ZoiteChat" />
+    </StandardDirectory>
+
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="ApplicationProgramsFolder" Name="ZoiteChat" />
+    </StandardDirectory>
+
+    <Feature Id="MainFeature" Title="ZoiteChat" Level="1">
+      <ComponentGroupRef Id="ApplicationFiles" />
+      <ComponentRef Id="StartMenuShortcuts" />
+      <ComponentRef Id="ProtocolAndThemeAssociations" />
+    </Feature>
+  </Package>
+
+  <Fragment>
+    <ComponentGroup Id="ApplicationFiles">
+      <Files Directory="INSTALLFOLDER" Include="$(SourceDir)\**">
+        <!-- Created by copy.vcxproj for Inno's optional portable task only. -->
+        <Exclude Files="$(SourceDir)\portable-mode" />
+
+        <!-- Inno custom-only application component. -->
+        <Exclude Files="$(SourceDir)\zoitechat-text.exe" />
+
+        <!--
+          The MSI has no Inno-style component selection UI, so keep the
+          bundled utility plugins (Checksum, Exec, FiSHLiM, SysInfo) available.
+        -->
+
+        <!--
+          Keep the Python and Perl bridge plugins in the MSI. They use the
+          matching system runtimes when present: Python 3.14 on Windows 10+
+          (Python 3.8 on legacy Windows) and Perl 5.42. ZoiteChat checks for
+          those runtime DLLs before auto-loading the bridge plugins.
+        -->
+      </Files>
+    </ComponentGroup>
+  </Fragment>
+
+  <Fragment>
+    <Component Id="StartMenuShortcuts" Directory="ApplicationProgramsFolder" Guid="*">
+      <Shortcut
+        Id="ZoiteChatShortcut"
+        Name="ZoiteChat"
+        Description="ZoiteChat IRC client"
+        Target="[INSTALLFOLDER]zoitechat.exe"
+        WorkingDirectory="INSTALLFOLDER"
+        Icon="ZoiteChat.ico">
+        <ShortcutProperty Key="System.AppUserModel.ID" Value="ZoiteChat.Desktop.Notify" />
+      </Shortcut>
+
+      <Shortcut
+        Id="ZoiteChatSafeModeShortcut"
+        Name="ZoiteChat Safe Mode"
+        Description="Start ZoiteChat without auto-connect or plugins"
+        Target="[INSTALLFOLDER]zoitechat.exe"
+        Arguments="--no-auto --no-plugins"
+        WorkingDirectory="INSTALLFOLDER"
+        Icon="ZoiteChat.ico" />
+
+      <Shortcut
+        Id="ZoiteChatChangelogShortcut"
+        Name="ZoiteChat ChangeLog"
+        Target="[INSTALLFOLDER]changelog.url" />
+
+      <Shortcut
+        Id="ZoiteChatReadmeShortcut"
+        Name="ZoiteChat ReadMe"
+        Target="[INSTALLFOLDER]readme.url" />
+
+      <Shortcut
+        Id="ZoiteChatUninstallShortcut"
+        Name="Uninstall ZoiteChat"
+        Target="[System64Folder]msiexec.exe"
+        Arguments="/x [ProductCode]" />
+
+      <RemoveFolder Id="RemoveApplicationProgramsFolder" On="uninstall" />
+      <RegistryValue
+        Root="HKLM"
+        Key="Software\ZoiteChat\Installer"
+        Name="StartMenuShortcuts"
+        Type="integer"
+        Value="1"
+        KeyPath="yes" />
+    </Component>
+  </Fragment>
+
+  <Fragment>
+    <Component Id="ProtocolAndThemeAssociations" Directory="INSTALLFOLDER" Guid="*">
+      <RegistryValue
+        Root="HKCR"
+        Key="irc"
+        Type="string"
+        Value="URL:IRC Protocol"
+        KeyPath="yes" />
+      <RegistryValue Root="HKCR" Key="irc" Name="URL Protocol" Type="string" Value="" />
+      <RegistryValue Root="HKCR" Key="irc\DefaultIcon" Type="string" Value="[INSTALLFOLDER]zoitechat.exe,0" />
+      <RegistryValue Root="HKCR" Key="irc\shell" Type="string" Value="open" />
+      <RegistryValue
+        Root="HKCR"
+        Key="irc\shell\open\command"
+        Type="string"
+        Value="&quot;[INSTALLFOLDER]zoitechat.exe&quot; --url=&quot;%1&quot;" />
+
+      <RegistryValue Root="HKCR" Key=".zct" Type="string" Value="ZoiteChat.Theme" />
+      <RegistryValue Root="HKCR" Key=".hct" Type="string" Value="ZoiteChat.Theme" />
+      <RegistryValue Root="HKCR" Key="ZoiteChat.Theme" Type="string" Value="ZoiteChat Theme" />
+      <RegistryValue
+        Root="HKCR"
+        Key="ZoiteChat.Theme\DefaultIcon"
+        Type="string"
+        Value="[INSTALLFOLDER]zoitechat.exe,0" />
+      <RegistryValue
+        Root="HKCR"
+        Key="ZoiteChat.Theme\shell\open\command"
+        Type="string"
+        Value="&quot;[INSTALLFOLDER]zoitechat.exe&quot; &quot;%1&quot;" />
+    </Component>
+  </Fragment>
+</Wix>

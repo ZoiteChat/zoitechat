@@ -1,0 +1,382 @@
+name: Windows MSI/MSIX Build
+
+on:
+  push:
+    branches:
+      - master
+      - 'release/**'
+  pull_request:
+    branches:
+      - master
+  workflow_dispatch:
+
+jobs:
+  windows_msi_build:
+    runs-on: windows-2022
+
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+      artifact-metadata: write
+
+    strategy:
+      matrix:
+        platform: [x64]
+        arch: [x64]
+      fail-fast: false
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.14.3'
+          architecture: ${{ matrix.arch }}
+
+      - name: Install Dependencies
+        shell: pwsh
+        run: |
+          New-Item -Name "deps" -ItemType "Directory" -Force | Out-Null
+
+          python -m pip install --upgrade pip
+          python -m pip install cffi
+          python -m pip install zstandard
+
+          $ProgressPreference = 'SilentlyContinue'
+          function Download-WithRetry {
+            param(
+              [string]$Url,
+              [string]$OutFile,
+              [int]$MaxAttempts = 5,
+              [int]$InitialDelaySeconds = 2
+            )
+            for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
+              try {
+                Invoke-WebRequest -Uri $Url -OutFile $OutFile -ErrorAction Stop
+                return
+              }
+              catch {
+                if ($attempt -eq $MaxAttempts) {
+                  throw
+                }
+                Start-Sleep -Seconds ($InitialDelaySeconds * [math]::Pow(2, $attempt - 1))
+              }
+            }
+          }
+
+          # The existing solution includes installer.vcxproj, so Inno Setup is
+          # still required to build the unmodified solution. This workflow does
+          # not publish that EXE; it packages the same staged rel tree as MSI/MSIX.
+          Download-WithRetry -Url https://github.com/jrsoftware/issrc/releases/download/is-6_7_1/innosetup-6.7.1.exe -OutFile deps\innosetup-unicode.exe
+          & deps\innosetup-unicode.exe /VERYSILENT | Out-Null
+
+          Download-WithRetry -Url https://github.com/ZoiteChat/gvsbuild/releases/download/zoitechat-2.18.1/GTK3_Gvsbuild_zoitechat-2.18.1_x64.zip -OutFile deps\gtk-${{ matrix.arch }}.zip
+          Expand-Archive -LiteralPath deps\gtk-${{ matrix.arch }}.zip -DestinationPath C:\gtk-build\gtk\x64\release -Force
+
+          Download-WithRetry -Url https://repo.msys2.org/mingw/x86_64/mingw-w64-x86_64-hicolor-icon-theme-0.18-1-any.pkg.tar.zst -OutFile deps\hicolor-icon-theme.pkg.tar.zst
+          python -c "import tarfile,zstandard,pathlib;archive=pathlib.Path(r'deps\\hicolor-icon-theme.pkg.tar.zst');target=pathlib.Path(r'C:\\gtk-build\\gtk\\x64\\release');dctx=zstandard.ZstdDecompressor();f=archive.open('rb');reader=dctx.stream_reader(f);tf=tarfile.open(fileobj=reader,mode='r|');[tf.extract(m,path=target) for m in tf if m.name.startswith('mingw64/share/icons/hicolor/')];tf.close();reader.close();f.close()"
+
+          Download-WithRetry -Url https://repo.msys2.org/mingw/x86_64/mingw-w64-x86_64-libarchive-3.8.6-1-any.pkg.tar.zst -OutFile deps\libarchive.pkg.tar.zst
+          python -c "import tarfile,zstandard,pathlib;archive=pathlib.Path(r'deps\\libarchive.pkg.tar.zst');target=pathlib.Path(r'C:\\gtk-build\\gtk\\x64\\release');dctx=zstandard.ZstdDecompressor();f=archive.open('rb');reader=dctx.stream_reader(f);tf=tarfile.open(fileobj=reader,mode='r|');[tf.extract(m,path=target) for m in tf if m.name.startswith(('mingw64/include/archive','mingw64/lib/libarchive','mingw64/bin/libarchive'))];tf.close();reader.close();f.close()"
+
+          if (Test-Path C:\gtk-build\gtk\x64\release\mingw64\share\icons\hicolor) {
+            New-Item -Path C:\gtk-build\gtk\x64\release\share\icons -ItemType Directory -Force | Out-Null
+            Copy-Item -Path C:\gtk-build\gtk\x64\release\mingw64\share\icons\hicolor -Destination C:\gtk-build\gtk\x64\release\share\icons\hicolor -Recurse -Force
+          }
+          if (Test-Path C:\gtk-build\gtk\x64\release\mingw64\include) {
+            New-Item -Path C:\gtk-build\gtk\x64\release\include -ItemType Directory -Force | Out-Null
+            Copy-Item -Path C:\gtk-build\gtk\x64\release\mingw64\include\archive* -Destination C:\gtk-build\gtk\x64\release\include -Recurse -Force
+          }
+          if (Test-Path C:\gtk-build\gtk\x64\release\mingw64\lib) {
+            New-Item -Path C:\gtk-build\gtk\x64\release\lib -ItemType Directory -Force | Out-Null
+            Copy-Item -Path C:\gtk-build\gtk\x64\release\mingw64\lib\libarchive* -Destination C:\gtk-build\gtk\x64\release\lib -Force
+          }
+          if (Test-Path C:\gtk-build\gtk\x64\release\mingw64\bin) {
+            New-Item -Path C:\gtk-build\gtk\x64\release\bin -ItemType Directory -Force | Out-Null
+            Copy-Item -Path C:\gtk-build\gtk\x64\release\mingw64\bin\libarchive*.dll -Destination C:\gtk-build\gtk\x64\release\bin -Force
+          }
+          if (Test-Path C:\gtk-build\gtk\x64\release\mingw64) {
+            Remove-Item -Path C:\gtk-build\gtk\x64\release\mingw64 -Recurse -Force
+          }
+
+          Download-WithRetry -Url https://github.com/ZoiteChat/gvsbuild/releases/download/zoitechat-2.18.0-pre4/gendef20260315.7z -OutFile deps\gendef.7z
+          & 7z.exe x deps\gendef.7z -oC:\gtk-build
+
+          Download-WithRetry -Url https://github.com/ZoiteChat/gvsbuild/releases/download/zoitechat-2.18.0-pre4/WinSparkle-20260315.7z -OutFile deps\WinSparkle.7z
+          & 7z.exe x deps\WinSparkle.7z -oC:\gtk-build\WinSparkle
+
+          Download-WithRetry -Url https://github.com/ZoiteChat/gvsbuild/releases/download/zoitechat-2.18.0-pre4/perl-5.42.0.1-${{ matrix.arch }}.7z -OutFile deps\perl-${{ matrix.arch }}.7z
+          & 7z.exe x deps\perl-${{ matrix.arch }}.7z -oC:\gtk-build\perl-5.42.0.1\${{ matrix.platform }}
+
+          $pyRoot = $env:pythonLocation
+          if (-not $pyRoot) { $pyRoot = & python -c "import sys; print(sys.prefix)" }
+
+          foreach ($pyDir in @("C:\gtk-build\python-3.14.3", "C:\gtk-build\python-3.14")) {
+            New-Item -Path $pyDir -ItemType Directory -Force | Out-Null
+            $target = Join-Path $pyDir "${{ matrix.platform }}"
+            if (Test-Path $target) { Remove-Item $target -Recurse -Force }
+            New-Item -Path $pyDir -Name "${{ matrix.platform }}" -ItemType Junction -Value $pyRoot | Out-Null
+          }
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.8.10'
+          architecture: ${{ matrix.arch }}
+
+      - name: Prepare Python 3.8
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install cffi
+
+          $pyRoot = $env:pythonLocation
+          if (-not $pyRoot) { $pyRoot = & python -c "import sys; print(sys.prefix)" }
+
+          foreach ($pyDir in @("C:\gtk-build\python-3.8.10", "C:\gtk-build\python-3.8")) {
+            New-Item -Path $pyDir -ItemType Directory -Force | Out-Null
+            $target = Join-Path $pyDir "${{ matrix.platform }}"
+            if (Test-Path $target) { Remove-Item $target -Recurse -Force }
+            New-Item -Path $pyDir -Name "${{ matrix.platform }}" -ItemType Junction -Value $pyRoot | Out-Null
+          }
+
+      - name: Build
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat"
+
+          set "PYTHON_DIR=C:\gtk-build\python-3.14.3\${{ matrix.platform }}"
+          if not exist "%PYTHON_DIR%\libs\python314.lib" (
+            echo Missing %PYTHON_DIR%\libs\python314.lib
+            dir "%PYTHON_DIR%\libs"
+            exit /b 1
+          )
+
+          set "PYTHON38_DIR=C:\gtk-build\python-3.8\${{ matrix.platform }}"
+          if not exist "%PYTHON38_DIR%\libs\python38.lib" (
+            echo Missing %PYTHON38_DIR%\libs\python38.lib
+            dir "%PYTHON38_DIR%\libs"
+            exit /b 1
+          )
+          if not exist "%PYTHON38_DIR%\Lib\site-packages\_cffi_backend.cp38*.pyd" (
+            echo Missing %PYTHON38_DIR%\Lib\site-packages\_cffi_backend.cp38*.pyd
+            exit /b 1
+          )
+
+          set "LIB=%PYTHON_DIR%\libs;%LIB%"
+          set "INCLUDE=%PYTHON_DIR%\include;%INCLUDE%"
+
+          powershell -NoProfile -ExecutionPolicy Bypass -Command "$archiveLib='C:\gtk-build\gtk\x64\release\lib\libarchive.lib'; if (-not (Test-Path $archiveLib)) { $archiveDll = Get-ChildItem 'C:\gtk-build\gtk\x64\release\bin\libarchive*.dll' | Select-Object -First 1; if ($archiveDll) { Push-Location 'C:\gtk-build\gtk\x64\release\lib'; & 'C:\gtk-build\gendef\gendef.exe' $archiveDll.FullName | Out-Null; $archiveDef = Get-ChildItem 'libarchive*.def' | Select-Object -First 1; if ($archiveDef) { & lib /def:$archiveDef.Name /machine:${{ matrix.platform }} /out:libarchive.lib | Out-Null }; Pop-Location } }"
+
+          msbuild win32\zoitechat.sln /m /verbosity:minimal /p:Configuration=Release /p:Platform=${{ matrix.platform }}
+          if errorlevel 1 exit /b 1
+
+          if not exist "..\zoitechat-build\${{ matrix.platform }}\rel\plugins\hcpython38.dll" (
+            echo hcpython38.dll was not built
+            exit /b 1
+          )
+          if not exist "..\zoitechat-build\${{ matrix.platform }}\rel\_cffi_backend.cp38*.pyd" (
+            echo _cffi_backend for Python 3.8 was not staged for the installer
+            exit /b 1
+          )
+
+      - name: Install WiX Toolset
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          # Keep this pinned. WiX v6 introduced OSMF terms and WiX v7 adds
+          # explicit EULA acceptance; do not silently accept new terms in CI.
+          dotnet tool install --tool-path .wix wix --version 5.0.2
+          if ($LASTEXITCODE -ne 0) { throw 'Failed to install WiX Toolset 5.0.2' }
+          & .\.wix\wix.exe --version
+          if ($LASTEXITCODE -ne 0) { throw 'WiX Toolset could not be executed' }
+
+      - name: Build MSI
+        id: build_msi
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $rawVersion = (Get-Content VERSION -Raw).Trim()
+          if ($rawVersion -notmatch '^(\d+)\.(\d+)\.(\d+)') {
+            throw "VERSION '$rawVersion' does not begin with an MSI-compatible major.minor.patch version"
+          }
+
+          # Windows Installer ProductVersion is numeric. Keep the full project
+          # version in the artifact filename while using major.minor.patch in MSI.
+          $msiVersion = "$($Matches[1]).$($Matches[2]).$($Matches[3])"
+          $safeVersion = $rawVersion -replace '[^0-9A-Za-z._-]', '-'
+          $sourceDir = (Resolve-Path "..\zoitechat-build\${{ matrix.platform }}\rel").Path
+          $outputPath = Join-Path $PWD "ZoiteChat-$safeVersion_${{ matrix.arch }}.msi"
+
+          if (-not (Test-Path (Join-Path $sourceDir 'zoitechat.exe'))) {
+            throw "Staged ZoiteChat executable is missing from $sourceDir"
+          }
+
+          & .\.wix\wix.exe build win32\wix\zoitechat.wxs `
+            -arch x64 `
+            -d "SourceDir=$sourceDir" `
+            -d "ProductVersion=$msiVersion" `
+            -out $outputPath
+          if ($LASTEXITCODE -ne 0) { throw 'WiX MSI build failed' }
+
+          if (-not (Test-Path $outputPath)) {
+            throw "Expected MSI was not created: $outputPath"
+          }
+
+          "path=$outputPath" >> $env:GITHUB_OUTPUT
+          "filename=$(Split-Path $outputPath -Leaf)" >> $env:GITHUB_OUTPUT
+
+      - name: Test MSI administrative extraction
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $msi = '${{ steps.build_msi.outputs.path }}'
+          $adminImage = Join-Path $PWD 'msi-admin-image'
+          New-Item -ItemType Directory -Path $adminImage -Force | Out-Null
+
+          $arguments = "/a `"$msi`" /qn TARGETDIR=`"$adminImage`""
+          $process = Start-Process -FilePath msiexec.exe -ArgumentList $arguments -Wait -PassThru
+          if ($process.ExitCode -ne 0) {
+            throw "MSI administrative extraction failed with exit code $($process.ExitCode)"
+          }
+
+          foreach ($requiredFile in @(
+            'zoitechat.exe',
+            'hclua.dll',
+            'hcupd.dll',
+            'WinSparkle.dll',
+            'hcchecksum.dll',
+            'hcexec.dll',
+            'hcfishlim.dll',
+            'hcsysinfo.dll',
+            'system.png',
+            'hcperl.dll',
+            'hcpython3.dll',
+            'hcpython38.dll'
+          )) {
+            $match = Get-ChildItem -Path $adminImage -Filter $requiredFile -File -Recurse | Select-Object -First 1
+            if ($null -eq $match) {
+              throw "Administrative image does not contain required normal-install file: $requiredFile"
+            }
+          }
+
+          foreach ($requiredPattern in @('_cffi_backend.cp314*.pyd', '_cffi_backend.cp38*.pyd')) {
+            $match = Get-ChildItem -Path $adminImage -Filter $requiredPattern -File -Recurse | Select-Object -First 1
+            if ($null -eq $match) {
+              throw "Administrative image does not contain required Python support file: $requiredPattern"
+            }
+          }
+
+          foreach ($requiredPythonFile in @('zoitechat.py', '_zoitechat.py', 'hexchat.py', 'xchat.py')) {
+            $match = Get-ChildItem -Path $adminImage -Filter $requiredPythonFile -File -Recurse |
+              Where-Object { $_.Directory.Name -eq 'python' } |
+              Select-Object -First 1
+            if ($null -eq $match) {
+              throw "Administrative image does not contain required Python bridge file: $requiredPythonFile"
+            }
+          }
+
+          foreach ($excludedFile in @(
+            'portable-mode',
+            'zoitechat-text.exe'
+          )) {
+            $match = Get-ChildItem -Path $adminImage -Filter $excludedFile -File -Recurse | Select-Object -First 1
+            if ($null -ne $match) {
+              throw "MSI incorrectly contains Inno custom/portable-only file: $excludedFile"
+            }
+          }
+
+      - name: Build MSIX
+        id: build_msix
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $rawVersion = (Get-Content VERSION -Raw).Trim()
+          if ($rawVersion -notmatch '^(\d+)\.(\d+)\.(\d+)') {
+            throw "VERSION '$rawVersion' does not begin with a Store-compatible major.minor.build version"
+          }
+
+          $versionParts = @(
+            [int]$Matches[1],
+            [int]$Matches[2],
+            [int]$Matches[3]
+          )
+          if ($versionParts[0] -eq 0) {
+            throw 'The Microsoft Store requires a non-zero major package version.'
+          }
+          foreach ($part in $versionParts) {
+            if ($part -lt 0 -or $part -gt 65535) {
+              throw "MSIX version component '$part' is outside the Store-supported 0-65535 range."
+            }
+          }
+
+          # Partner Center reserves the fourth version field and requires it to
+          # be zero in submitted Windows 10/11 app packages.
+          $packageVersion = "$($versionParts[0]).$($versionParts[1]).$($versionParts[2]).0"
+          $safeVersion = $rawVersion -replace '[^0-9A-Za-z._-]', '-'
+          $sourceDir = (Resolve-Path "..\zoitechat-build\${{ matrix.platform }}\rel").Path
+          $outputPath = Join-Path $PWD "ZoiteChat-$safeVersion_${{ matrix.arch }}.msix"
+
+          # Microsoft Store identity reserved for ZoiteChat in Partner Center.
+          # These three values are case-sensitive and must exactly match the
+          # Product identity page for the Store submission.
+          $identityName = 'deependtilde.ZoiteChat'
+          $publisher = 'CN=6C7766BB-6AC6-488B-A09E-E3F8E68E63E4'
+          $publisherDisplayName = 'deepend_tilde'
+          $artifactName = 'MSIX Store Package ${{ matrix.arch }}'
+
+          Write-Host "Building Store MSIX for identity: $identityName"
+
+          & .\win32\msix\build-msix.ps1 `
+            -SourceDir $sourceDir `
+            -OutputPath $outputPath `
+            -PackageVersion $packageVersion `
+            -IdentityName $identityName `
+            -Publisher $publisher `
+            -PublisherDisplayName $publisherDisplayName `
+            -SelfSign
+          if ($LASTEXITCODE -ne 0) {
+            throw 'MSIX build script failed'
+          }
+
+          if (-not (Test-Path $outputPath)) {
+            throw "Expected MSIX was not created: $outputPath"
+          }
+
+          "path=$outputPath" >> $env:GITHUB_OUTPUT
+          "filename=$(Split-Path $outputPath -Leaf)" >> $env:GITHUB_OUTPUT
+          "package_version=$packageVersion" >> $env:GITHUB_OUTPUT
+          "store_ready=true" >> $env:GITHUB_OUTPUT
+          "artifact_name=$artifactName" >> $env:GITHUB_OUTPUT
+
+      - name: Upload MSI Installer
+        id: upload_msi
+        uses: actions/upload-artifact@v6
+        with:
+          name: MSI Installer ${{ matrix.arch }}
+          path: ${{ steps.build_msi.outputs.path }}
+          if-no-files-found: error
+
+      - name: Attest MSI Installer (Artifact Attestation)
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-name: MSI Installer ${{ matrix.arch }}
+          subject-digest: sha256:${{ steps.upload_msi.outputs.artifact-digest }}
+
+      - name: Upload MSIX Package
+        id: upload_msix
+        uses: actions/upload-artifact@v6
+        with:
+          name: ${{ steps.build_msix.outputs.artifact_name }}
+          path: ${{ steps.build_msix.outputs.path }}
+          if-no-files-found: error
+
+      - name: Attest MSIX Package (Artifact Attestation)
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-name: ${{ steps.build_msix.outputs.artifact_name }}
+          subject-digest: sha256:${{ steps.upload_msix.outputs.artifact-digest }}

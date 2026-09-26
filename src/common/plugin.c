@@ -86,6 +86,88 @@ plugin_windows_needs_python38 (void)
 
 	return version.dwMajorVersion < 10;
 }
+
+/*
+ * The Windows scripting plugins are linked against exact runtime DLL names.
+ * Keep the bridge DLLs installed and resolve the matching system runtimes at
+ * startup so installing Python/Perl later only requires restarting ZoiteChat.
+ */
+static gboolean
+plugin_windows_dll_available (const wchar_t *dll_name)
+{
+	return SearchPathW (NULL, dll_name, NULL, 0, NULL, NULL) != 0;
+}
+
+/*
+ * MSIX packaged processes do not search the normal user PATH for dependent
+ * DLLs. Official CPython installs register an InstallPath using PEP 514, so
+ * explicitly load pythonXY.dll from that absolute path before loading the
+ * ZoiteChat Python bridge. The loaded-module list will then satisfy the
+ * hcpython*.dll import of the same Python runtime DLL.
+ */
+static HMODULE
+plugin_windows_load_python_runtime_from_registry (const wchar_t *version,
+                                                   const wchar_t *dll_name)
+{
+	static const HKEY roots[] = { HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE };
+	wchar_t key_name[128];
+	wchar_t install_path[32768];
+	wchar_t dll_path[32768];
+	DWORD install_size;
+	LONG status;
+	HMODULE module;
+	int install_len;
+	const wchar_t *separator;
+	guint i;
+
+	if (_snwprintf_s (key_name, G_N_ELEMENTS (key_name), _TRUNCATE,
+	                  L"Software\\Python\\PythonCore\\%ls\\InstallPath",
+	                  version) < 0)
+		return NULL;
+
+	for (i = 0; i < G_N_ELEMENTS (roots); i++)
+	{
+		install_size = sizeof (install_path);
+		status = RegGetValueW (roots[i], key_name, NULL,
+		                       RRF_RT_REG_SZ | RRF_RT_REG_EXPAND_SZ,
+		                       NULL, install_path, &install_size);
+		if (status != ERROR_SUCCESS)
+			continue;
+
+		install_path[G_N_ELEMENTS (install_path) - 1] = L'\0';
+		install_len = lstrlenW (install_path);
+		if (install_len == 0)
+			continue;
+
+		separator = (install_path[install_len - 1] == L'\\' ||
+		             install_path[install_len - 1] == L'/') ? L"" : L"\\";
+
+		if (_snwprintf_s (dll_path, G_N_ELEMENTS (dll_path), _TRUNCATE,
+		                  L"%ls%ls%ls", install_path, separator, dll_name) < 0)
+			continue;
+
+		module = LoadLibraryW (dll_path);
+		if (module != NULL)
+			return module;
+	}
+
+	return NULL;
+}
+
+static gboolean
+plugin_windows_prepare_python_runtime (const wchar_t *version,
+                                       const wchar_t *dll_name)
+{
+	HMODULE module;
+
+	module = GetModuleHandleW (dll_name);
+	if (module == NULL)
+		module = LoadLibraryW (dll_name);
+	if (module == NULL)
+		module = plugin_windows_load_python_runtime_from_registry (version, dll_name);
+
+	return module != NULL;
+}
 #endif
 
 /* crafted to be an even 32 bytes */
@@ -521,11 +603,18 @@ plugin_auto_load (session *sess)
 	for_files (lib_dir, "hcexec.dll", plugin_auto_load_cb);
 	for_files (lib_dir, "hcfishlim.dll", plugin_auto_load_cb);
 	for_files(lib_dir, "hclua.dll", plugin_auto_load_cb);
-	for_files (lib_dir, "hcperl.dll", plugin_auto_load_cb);
+	if (plugin_windows_dll_available (L"perl542.dll"))
+		for_files (lib_dir, "hcperl.dll", plugin_auto_load_cb);
 	if (plugin_windows_needs_python38 ())
-		for_files (lib_dir, "hcpython38.dll", plugin_auto_load_cb);
+	{
+		if (plugin_windows_prepare_python_runtime (L"3.8", L"python38.dll"))
+			for_files (lib_dir, "hcpython38.dll", plugin_auto_load_cb);
+	}
 	else
-		for_files (lib_dir, "hcpython3.dll", plugin_auto_load_cb);
+	{
+		if (plugin_windows_prepare_python_runtime (L"3.14", L"python314.dll"))
+			for_files (lib_dir, "hcpython3.dll", plugin_auto_load_cb);
+	}
 	for_files (lib_dir, "hcupd.dll", plugin_auto_load_cb);
 	for_files (lib_dir, "hcsysinfo.dll", plugin_auto_load_cb);
 #else
