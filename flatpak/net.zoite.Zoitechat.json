@@ -59,6 +59,7 @@
       ],
       "config-opts": [
         "-Ddbus-service-use-appid=true",
+        "-Dinstall-docs=false",
         "-Dwith-perl=perl",
         "-Dwith-python=python3",
         "-Dwith-lua=lua"

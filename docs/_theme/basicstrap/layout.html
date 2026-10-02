@@ -135,7 +135,9 @@
     {{ js_tag(scriptfile) }}
   {%- endif -%}
 {%- endfor %}
+{%- if theme_theme_preview|tobool %}
 <script type="text/javascript" src="{{ pathto('_static/js/jquery.cookie.min.js', 1) }}"></script>
+{%- endif %}
 <script type="text/javascript" src="{{ pathto('_static/js/basicstrap.js', 1) }}"></script>
 <script type="text/javascript">
   DOCUMENTATION_OPTIONS.FILE_SUFFIX = DOCUMENTATION_OPTIONS.FILE_SUFFIX || '.html';
