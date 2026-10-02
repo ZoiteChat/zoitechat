@@ -1187,6 +1187,16 @@ zoitechat_get_info (zoitechat_plugin *ph, const char *id)
 		return text_find_format_string (e);
 	}
 
+	/* Report the comparison actually used by this connection, not an
+	 * advertised mapping that the current core does not implement. */
+	if (strcmp (id, "casemapping") == 0)
+	{
+		if (!is_session (ph->context))
+			return NULL;
+		return ph->context->server->p_cmp == g_ascii_strcasecmp
+			? "ascii" : "rfc1459";
+	}
+
 	hash = str_hash (id);
 	/* do the session independant ones first */
 	switch (hash)
