@@ -212,6 +212,16 @@ zoitechat_hook *zoitechat_hook_print_after (zoitechat_plugin *ph,
     int (*callback) (char *word[], zoitechat_event_attrs *attrs, void *userdata),
     void *userdata);
 
+/* api_context_filters=1: connection_id -1 is any; NULL channel is any. */
+zoitechat_hook *zoitechat_hook_server_filtered (zoitechat_plugin *ph,
+    const char *name, int pri, int flags, int connection_id, const char *channel,
+    int (*callback) (char *word[], char *word_eol[], zoitechat_event_attrs *attrs, void *userdata),
+    void *userdata);
+zoitechat_hook *zoitechat_hook_print_filtered (zoitechat_plugin *ph,
+    const char *name, int pri, int flags, int connection_id, const char *channel,
+    int (*callback) (char *word[], zoitechat_event_attrs *attrs, void *userdata),
+    void *userdata);
+
 zoitechat_hook *
 zoitechat_hook_command (zoitechat_plugin *ph,
 		    const char *name,
@@ -431,6 +441,8 @@ zoitechat_pluginpref_list (zoitechat_plugin *ph,
 #define zoitechat_hook_server ((ZOITECHAT_PLUGIN_HANDLE)->zoitechat_hook_server)
 #define zoitechat_hook_server_attrs ((ZOITECHAT_PLUGIN_HANDLE)->zoitechat_hook_server_attrs)
 #define zoitechat_hook_print ((ZOITECHAT_PLUGIN_HANDLE)->zoitechat_hook_print)
+#define zoitechat_hook_server_filtered ((ZOITECHAT_PLUGIN_HANDLE)->zoitechat_hook_server_filtered)
+#define zoitechat_hook_print_filtered ((ZOITECHAT_PLUGIN_HANDLE)->zoitechat_hook_print_filtered)
 #define zoitechat_hook_print_after ((ZOITECHAT_PLUGIN_HANDLE)->zoitechat_hook_print_after)
 #define zoitechat_hook_print_attrs ((ZOITECHAT_PLUGIN_HANDLE)->zoitechat_hook_print_attrs)
 #define zoitechat_hook_timer ((ZOITECHAT_PLUGIN_HANDLE)->zoitechat_hook_timer)
