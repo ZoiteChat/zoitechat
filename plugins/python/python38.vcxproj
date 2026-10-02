@@ -52,6 +52,7 @@
     <None Include="xchat.py" />
     <None Include="hexchat.py" />
     <None Include="_zoitechat.py" />
+    <None Include="_zoitechat_*.py" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(IntDir)python.c" />

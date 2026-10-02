@@ -590,7 +590,12 @@ def _on_plugin_deinit():
     sys.stderr = sys.__stderr__
     pydoc.help = pydoc.Helper()
 
-    for mod in ('_zoitechat', 'zoitechat', 'xchat', '_zoitechat_embedded'):
+    # CFFI callbacks keep the embedding module's ffi/lib identity for the
+    # process lifetime; deleting it creates incompatible types on reload.
+    for mod in ('_zoitechat', 'zoitechat', 'hexchat', 'xchat',
+                '_zoitechat_fd', '_zoitechat_events', '_zoitechat_async',
+                '_zoitechat_names', '_zoitechat_contexts', '_zoitechat_post',
+                '_zoitechat_filters', '_zoitechat_caps'):
         try:
             del sys.modules[mod]
 
