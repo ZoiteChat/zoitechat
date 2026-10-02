@@ -99,6 +99,7 @@ struct _zoitechat_hook
 	int tag;				/* for timers & FDs only */
 	int type;			/* HOOK_* */
 	int pri;	/* fd */	/* priority / fd for HOOK_FD only */
+	int cap_connection_id;
 	int connection_filter;
 	char *channel_filter;
 	gboolean context_filtered;
@@ -147,6 +148,7 @@ enum
 	HOOK_TIMER        = 1 << 5, /* timeouts */
 	HOOK_FD           = 1 << 6, /* sockets & fds */
 	HOOK_PRINT_AFTER  = 1 << 8, /* opt-in post-display observers */
+	HOOK_CAPABILITY   = 1 << 9, /* script-owned CAP requests */
 	HOOK_DELETED      = 1 << 7  /* marked for deletion */
 };
 
@@ -355,6 +357,7 @@ plugin_add (session *sess, char *filename, void *handle, void *init_func,
 		pl->zoitechat_emit_print_attrs = zoitechat_emit_print_attrs;
 		pl->zoitechat_event_attrs_create = zoitechat_event_attrs_create;
 		pl->zoitechat_event_attrs_free = zoitechat_event_attrs_free;
+		pl->zoitechat_register_capability = zoitechat_register_capability;
 		pl->zoitechat_hook_server_filtered = zoitechat_hook_server_filtered;
 		pl->zoitechat_hook_print_filtered = zoitechat_hook_print_filtered;
 		pl->zoitechat_hook_print_after = zoitechat_hook_print_after;
@@ -1115,6 +1118,39 @@ zoitechat_hook_print_filtered (zoitechat_plugin *ph, const char *name, int pri,
 }
 
 zoitechat_hook *
+zoitechat_register_capability (zoitechat_plugin *ph, const char *name, int flags,
+                              int connection_id, void *userdata)
+{
+	const unsigned char *p;
+	zoitechat_hook *hook;
+	if (flags != 0 || connection_id < -1 || !name || !name[0] || strlen (name) > 200 ||
+		strcmp (name, "sasl") == 0 || strcmp (name, "sts") == 0)
+		return NULL; /* authentication and transport policy belong to core */
+	for (p = (const unsigned char *)name; *p; p++)
+		if (!g_ascii_islower (*p) && !g_ascii_isdigit (*p) &&
+			*p != '-' && *p != '.' && *p != '/' && *p != '_')
+			return NULL;
+	hook = plugin_add_hook (ph, HOOK_CAPABILITY, 0, name, NULL, NULL, 0, userdata);
+	hook->cap_connection_id = connection_id;
+	return hook;
+}
+
+gboolean
+plugin_requests_capability (server *serv, const char *name)
+{
+	GSList *entry;
+	for (entry = hook_list; entry; entry = entry->next)
+	{
+		zoitechat_hook *hook = entry->data;
+		if (hook && hook->type == HOOK_CAPABILITY &&
+			(hook->cap_connection_id == -1 || hook->cap_connection_id == serv->id) &&
+			strcmp (hook->name, name) == 0)
+			return TRUE;
+	}
+	return FALSE;
+}
+
+zoitechat_hook *
 zoitechat_hook_command (zoitechat_plugin *ph, const char *name, int pri,
 						  zoitechat_cmd_cb *callb, const char *help_text, void *userdata)
 {
@@ -1287,6 +1323,9 @@ zoitechat_get_info (zoitechat_plugin *ph, const char *id)
 		return "1";
 
 	if (strcmp (id, "api_context_filters") == 0)
+		return "1";
+
+	if (strcmp (id, "api_plugin_caps") == 0)
 		return "1";
 
 	hash = str_hash (id);
