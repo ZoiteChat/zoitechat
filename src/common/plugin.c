@@ -99,6 +99,7 @@ struct _zoitechat_hook
 	int tag;				/* for timers & FDs only */
 	int type;			/* HOOK_* */
 	int pri;	/* fd */	/* priority / fd for HOOK_FD only */
+	int cap_connection_id;
 };
 
 struct _zoitechat_list
@@ -143,7 +144,8 @@ enum
 	HOOK_PRINT_ATTRS  = 1 << 4, /* same as above, with attributes */
 	HOOK_TIMER        = 1 << 5, /* timeouts */
 	HOOK_FD           = 1 << 6, /* sockets & fds */
-	HOOK_DELETED      = 1 << 7  /* marked for deletion */
+	HOOK_DELETED      = 1 << 7, /* marked for deletion */
+	HOOK_CAPABILITY   = 1 << 9  /* script-owned CAP requests */
 };
 
 enum
@@ -351,6 +353,7 @@ plugin_add (session *sess, char *filename, void *handle, void *init_func,
 		pl->zoitechat_emit_print_attrs = zoitechat_emit_print_attrs;
 		pl->zoitechat_event_attrs_create = zoitechat_event_attrs_create;
 		pl->zoitechat_event_attrs_free = zoitechat_event_attrs_free;
+		pl->zoitechat_register_capability = zoitechat_register_capability;
 
 		/* run zoitechat_plugin_init, if it returns 0, close the plugin */
 		if (((zoitechat_init_func *)init_func) (pl, &pl->name, &pl->desc, &pl->version, arg) == 0)
@@ -1029,6 +1032,41 @@ zoitechat_unhook (zoitechat_plugin *ph, zoitechat_hook *hook)
 }
 
 zoitechat_hook *
+zoitechat_register_capability (zoitechat_plugin *ph, const char *name, int flags,
+                              int connection_id, void *userdata)
+{
+    const unsigned char *p;
+    zoitechat_hook *hook;
+    if (flags != 0 || connection_id < -1 || !name || !name[0] || strlen (name) > 200 ||
+        strcmp (name, "sasl") == 0 || strcmp (name, "sts") == 0)
+        return NULL;
+    for (p = (const unsigned char *)name; *p; p++)
+    {
+        if (!g_ascii_islower (*p) && !g_ascii_isdigit (*p) &&
+            *p != '-' && *p != '.' && *p != '/' && *p != '_')
+            return NULL;
+    }
+    hook = plugin_add_hook (ph, HOOK_CAPABILITY, 0, name, NULL, NULL, 0, userdata);
+    hook->cap_connection_id = connection_id;
+    return hook;
+}
+
+gboolean
+plugin_requests_capability (server *serv, const char *name)
+{
+    GSList *entry;
+    for (entry = hook_list; entry; entry = entry->next)
+    {
+        zoitechat_hook *hook = entry->data;
+        if (hook && hook->type == HOOK_CAPABILITY &&
+            (hook->cap_connection_id == -1 || hook->cap_connection_id == serv->id) &&
+            strcmp (hook->name, name) == 0)
+            return TRUE;
+    }
+    return FALSE;
+}
+
+zoitechat_hook *
 zoitechat_hook_command (zoitechat_plugin *ph, const char *name, int pri,
 						  zoitechat_cmd_cb *callb, const char *help_text, void *userdata)
 {
@@ -1186,6 +1224,9 @@ zoitechat_get_info (zoitechat_plugin *ph, const char *id)
 		if (*e == ' ') e++;	/* 2.8.0 only worked without a space */
 		return text_find_format_string (e);
 	}
+
+	if (strcmp (id, "api_plugin_caps") == 0)
+		return "1";
 
 	hash = str_hash (id);
 	/* do the session independant ones first */
