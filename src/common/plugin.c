@@ -143,6 +143,7 @@ enum
 	HOOK_PRINT_ATTRS  = 1 << 4, /* same as above, with attributes */
 	HOOK_TIMER        = 1 << 5, /* timeouts */
 	HOOK_FD           = 1 << 6, /* sockets & fds */
+	HOOK_PRINT_AFTER  = 1 << 8, /* opt-in post-display observers */
 	HOOK_DELETED      = 1 << 7  /* marked for deletion */
 };
 
@@ -351,6 +352,7 @@ plugin_add (session *sess, char *filename, void *handle, void *init_func,
 		pl->zoitechat_emit_print_attrs = zoitechat_emit_print_attrs;
 		pl->zoitechat_event_attrs_create = zoitechat_event_attrs_create;
 		pl->zoitechat_event_attrs_free = zoitechat_event_attrs_free;
+		pl->zoitechat_hook_print_after = zoitechat_hook_print_after;
 
 		/* run zoitechat_plugin_init, if it returns 0, close the plugin */
 		if (((zoitechat_init_func *)init_func) (pl, &pl->name, &pl->desc, &pl->version, arg) == 0)
@@ -621,6 +623,13 @@ plugin_hook_run (session *sess, char *name, char *word[], char *word_eol[],
 
 		hook = list->data;
 		next = list->next;
+		if (type == HOOK_PRINT_AFTER && hook->tag)
+		{
+			list = next;
+			continue; /* no recursive invocation of this same observer */
+		}
+		if (type == HOOK_PRINT_AFTER)
+			hook->tag = 1;
 		hook->pl->context = sess;
 
 		/* run the plugin's callback function */
@@ -629,6 +638,7 @@ plugin_hook_run (session *sess, char *name, char *word[], char *word_eol[],
 		case HOOK_COMMAND:
 			ret = ((zoitechat_cmd_cb *)hook->callback) (word, word_eol, hook->userdata);
 			break;
+		case HOOK_PRINT_AFTER:
 		case HOOK_PRINT_ATTRS:
 			ret = ((zoitechat_print_attrs_cb *)hook->callback) (word, attrs, hook->userdata);
 			break;
@@ -641,6 +651,15 @@ plugin_hook_run (session *sess, char *name, char *word[], char *word_eol[],
 		default: /*case HOOK_PRINT:*/
 			ret = ((zoitechat_print_cb *)hook->callback) (word, hook->userdata);
 			break;
+		}
+
+		if (type == HOOK_PRINT_AFTER)
+		{
+			hook->tag = 0;
+			if (!is_session (sess))
+				goto xit;
+			list = next;
+			continue; /* display already happened; observers cannot eat it */
 		}
 
 		if ((ret & ZOITECHAT_EAT_ZOITECHAT) && (ret & ZOITECHAT_EAT_PLUGIN))
@@ -723,6 +742,15 @@ plugin_emit_print (session *sess, char *word[], time_t server_time)
 
 	return plugin_hook_run (sess, word[0], word, NULL, &attrs,
 							HOOK_PRINT | HOOK_PRINT_ATTRS);
+}
+
+void
+plugin_emit_print_after (session *sess, char *word[], time_t server_time)
+{
+	zoitechat_event_attrs attrs;
+	attrs.server_time_utc = server_time;
+	if (is_session (sess))
+		plugin_hook_run (sess, word[0], word, NULL, &attrs, HOOK_PRINT_AFTER);
 }
 
 int
@@ -1029,6 +1057,15 @@ zoitechat_unhook (zoitechat_plugin *ph, zoitechat_hook *hook)
 }
 
 zoitechat_hook *
+zoitechat_hook_print_after (zoitechat_plugin *ph, const char *name, int pri,
+                          int flags, zoitechat_print_attrs_cb *callback, void *userdata)
+{
+	if (flags != 0 || !name || !callback)
+		return NULL;
+	return plugin_add_hook (ph, HOOK_PRINT_AFTER, pri, name, NULL, callback, 0, userdata);
+}
+
+zoitechat_hook *
 zoitechat_hook_command (zoitechat_plugin *ph, const char *name, int pri,
 						  zoitechat_cmd_cb *callb, const char *help_text, void *userdata)
 {
@@ -1196,6 +1233,9 @@ zoitechat_get_info (zoitechat_plugin *ph, const char *id)
 		return ph->context->server->p_cmp == g_ascii_strcasecmp
 			? "ascii" : "rfc1459";
 	}
+
+	if (strcmp (id, "api_hook_print_after") == 0)
+		return "1";
 
 	hash = str_hash (id);
 	/* do the session independant ones first */
