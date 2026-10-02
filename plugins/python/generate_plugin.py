@@ -38,6 +38,7 @@ extern "Python" int _on_print_attrs_hook(char **, zoitechat_event_attrs *, void 
 extern "Python" int _on_server_hook(char **, char **, void *);
 extern "Python" int _on_server_attrs_hook(char **, char **, zoitechat_event_attrs *, void *);
 extern "Python" int _on_timer_hook(void *);
+extern "Python" int _on_fd_hook(int, int, void *);
 
 extern "Python" int _on_plugin_init(char **, char **, char **, char *, char *);
 extern "Python" int _on_plugin_deinit(void);
