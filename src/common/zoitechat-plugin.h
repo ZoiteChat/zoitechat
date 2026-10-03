@@ -193,9 +193,38 @@ struct _zoitechat_plugin
 	zoitechat_event_attrs *(*zoitechat_event_attrs_create) (zoitechat_plugin *ph);
 	void (*zoitechat_event_attrs_free) (zoitechat_plugin *ph,
 									  zoitechat_event_attrs *attrs);
+	/* Additive API slots: append only; old binary offsets are unchanged. */
+	zoitechat_hook *(*zoitechat_hook_print_after) (zoitechat_plugin *, const char *, int,
+		int, int (*)(char *[], zoitechat_event_attrs *, void *), void *);
+	zoitechat_hook *(*zoitechat_hook_server_filtered) (zoitechat_plugin *, const char *, int,
+		int, int, const char *, int (*)(char *[], char *[], zoitechat_event_attrs *, void *), void *);
+	zoitechat_hook *(*zoitechat_hook_print_filtered) (zoitechat_plugin *, const char *, int,
+		int, int, const char *, int (*)(char *[], zoitechat_event_attrs *, void *), void *);
+	zoitechat_hook *(*zoitechat_register_capability) (zoitechat_plugin *, const char *, int, int, void *);
+
 };
 #endif
 
+
+/* api_hook_print_after=1: observer returns are ignored; flags must be zero. */
+zoitechat_hook *zoitechat_hook_print_after (zoitechat_plugin *ph,
+    const char *name, int pri, int flags,
+    int (*callback) (char *word[], zoitechat_event_attrs *attrs, void *userdata),
+    void *userdata);
+
+/* api_context_filters=1: connection_id -1 is any; NULL channel is any. */
+zoitechat_hook *zoitechat_hook_server_filtered (zoitechat_plugin *ph,
+    const char *name, int pri, int flags, int connection_id, const char *channel,
+    int (*callback) (char *word[], char *word_eol[], zoitechat_event_attrs *attrs, void *userdata),
+    void *userdata);
+zoitechat_hook *zoitechat_hook_print_filtered (zoitechat_plugin *ph,
+    const char *name, int pri, int flags, int connection_id, const char *channel,
+    int (*callback) (char *word[], zoitechat_event_attrs *attrs, void *userdata),
+    void *userdata);
+
+/* api_plugin_caps=1: register before CAP LS; flags=0, connection_id=-1 for any. */
+zoitechat_hook *zoitechat_register_capability (zoitechat_plugin *ph,
+    const char *name, int flags, int connection_id, void *userdata);
 
 zoitechat_hook *
 zoitechat_hook_command (zoitechat_plugin *ph,
@@ -416,6 +445,10 @@ zoitechat_pluginpref_list (zoitechat_plugin *ph,
 #define zoitechat_hook_server ((ZOITECHAT_PLUGIN_HANDLE)->zoitechat_hook_server)
 #define zoitechat_hook_server_attrs ((ZOITECHAT_PLUGIN_HANDLE)->zoitechat_hook_server_attrs)
 #define zoitechat_hook_print ((ZOITECHAT_PLUGIN_HANDLE)->zoitechat_hook_print)
+#define zoitechat_register_capability ((ZOITECHAT_PLUGIN_HANDLE)->zoitechat_register_capability)
+#define zoitechat_hook_server_filtered ((ZOITECHAT_PLUGIN_HANDLE)->zoitechat_hook_server_filtered)
+#define zoitechat_hook_print_filtered ((ZOITECHAT_PLUGIN_HANDLE)->zoitechat_hook_print_filtered)
+#define zoitechat_hook_print_after ((ZOITECHAT_PLUGIN_HANDLE)->zoitechat_hook_print_after)
 #define zoitechat_hook_print_attrs ((ZOITECHAT_PLUGIN_HANDLE)->zoitechat_hook_print_attrs)
 #define zoitechat_hook_timer ((ZOITECHAT_PLUGIN_HANDLE)->zoitechat_hook_timer)
 #define zoitechat_hook_fd ((ZOITECHAT_PLUGIN_HANDLE)->zoitechat_hook_fd)

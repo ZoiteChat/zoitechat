@@ -2306,6 +2306,7 @@ text_emit (int index, session *sess, char *a, char *b, char *c, char *d,
 	if (!prefs.hex_away_omit_alerts || !sess->server->is_away)
 		sound_play_event (index);
 	display_event (sess, index, word, stripcolor_args, timestamp);
+	plugin_emit_print_after (sess, word, timestamp);
 }
 
 char *

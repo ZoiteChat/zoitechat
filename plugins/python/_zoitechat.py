@@ -383,3 +383,24 @@ def find_context(server=None, channel=None):
         return None
 
     return Context(ctx)
+
+
+# Optional additive APIs live in separate modules so builds can select features.
+def __load_additive_features():
+    import importlib
+    import os
+
+    for suffix in ('fd', 'events', 'async', 'names', 'contexts',
+                   'post', 'filters', 'caps'):
+        if suffix == 'async' and sys.version_info < (3, 7):
+            continue
+        name = '_zoitechat_' + suffix
+        if not os.path.isfile(os.path.join(os.path.dirname(__file__), name + '.py')):
+            continue
+        module = importlib.import_module(name)
+        for symbol in module.__all__:
+            globals()[symbol] = getattr(module, symbol)
+            __all__.append(symbol)
+
+
+__load_additive_features()
