@@ -1288,6 +1288,11 @@ process_named_msg (session *sess, char *type, char *word[], char *word_eol[],
 					char *user = net && net->user ? net->user : prefs.hex_irc_user_name;
 
 					response = challengeauth_response (user, serv->password, word[5]);
+					if (response == NULL)
+					{
+						PrintTextf (serv->server_session, _("Error building CHALLENGEAUTH for %s"), user);
+						return;
+					}
 
 					tcp_sendf (serv, "PRIVMSG %s :CHALLENGEAUTH %s %s %s\r\n",
 						CHALLENGEAUTH_NICK,

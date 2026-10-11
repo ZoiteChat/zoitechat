@@ -1453,7 +1453,7 @@ challengeauth_response (const char *username, const char *password, const char *
 	char *passhash;
 	char *key;
 	char *keyhash;
-	unsigned char *digest;
+	unsigned char digest[SHA256_DIGEST_LENGTH];
 	GString *buf = g_string_new_len (NULL, SHA256_DIGEST_LENGTH * 2);
 
 	user = rfc_strlower (username); /* convert username to lowercase as per the RFC */
@@ -1469,7 +1469,12 @@ challengeauth_response (const char *username, const char *password, const char *
 	keyhash = str_sha256hash (key);
 	g_free (key);
 
-	digest = HMAC (EVP_sha256 (), keyhash, strlen (keyhash), (unsigned char *) challenge, strlen (challenge), NULL, NULL);
+	if (HMAC (EVP_sha256 (), keyhash, strlen (keyhash), (unsigned char *) challenge, strlen (challenge), digest, NULL) == NULL)
+	{
+		g_free (keyhash);
+		g_string_free (buf, TRUE);
+		return NULL;
+	}
 	g_free (keyhash);
 
 	for (i = 0; i < SHA256_DIGEST_LENGTH; i++)
