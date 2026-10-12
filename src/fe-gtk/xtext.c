@@ -81,6 +81,7 @@ struct textentry
 	gint16 mark_end;
 	int indent;
 	gint16 left_len;
+	gint16 stamp_len;	/* bytes of str taken by the timestamp (no-indent mode) */
 	GSList *slp;
 	GArray *sublines;	/* byte offsets at the end of each screen row */
 	int subline_count;
@@ -296,6 +297,7 @@ static void gtk_xtext_get_property (GObject *object, guint prop_id,
 static void gtk_xtext_render_ents (GtkXText * xtext, textentry *, textentry *);
 static void gtk_xtext_recalc_widths (xtext_buffer *buf, int);
 static void gtk_xtext_fix_indent (xtext_buffer *buf);
+static int gtk_xtext_text_width (GtkXText *xtext, unsigned char *text, int len);
 static int gtk_xtext_find_subline (GtkXText *xtext, textentry *ent, int line);
 /* For use by gtk_xtext_strip_color() and its callers -- */
 struct offlen_s {
@@ -1322,6 +1324,36 @@ gtk_xtext_selection_clear (xtext_buffer *buf)
 	return ret;
 }
 
+/* x position that the lines after the first of 'ent' start at */
+
+static int
+gtk_xtext_cont_indent (xtext_buffer *buf, textentry *ent)
+{
+	int w, off;
+
+	if (ent->left_len != -1 || prefs.hex_text_wrap_align < 1)
+		return buf->indent;
+
+	/* 1 = under the prefix (nick), 2 = under the message */
+	off = ent->stamp_len;
+	if (prefs.hex_text_wrap_align >= 2)
+	{
+		/* the nick (or "*") is the first word after the timestamp */
+		while (off < ent->str_len && ent->str[off] != ' ')
+			off++;
+		while (off < ent->str_len && ent->str[off] == ' ')
+			off++;
+	}
+	if (off <= 0 || off >= ent->str_len)
+		return buf->indent;
+
+	w = ent->indent + gtk_xtext_text_width (buf->xtext, ent->str, off);
+	/* leave room for the text, or just wrap normally */
+	if (w > (buf->window_width - MARGIN) / 2)
+		return buf->indent;
+	return w;
+}
+
 static int
 find_x (GtkXText *xtext, textentry *ent, int x, int subline, int indent)
 {
@@ -1414,7 +1446,7 @@ gtk_xtext_find_x (GtkXText * xtext, int x, textentry * ent, int subline,
 	if (subline < 1)
 		indent = ent->indent;
 	else
-		indent = xtext->buffer->indent;
+		indent = gtk_xtext_cont_indent (xtext->buffer, ent);
 
 	if (line > gtk_adjustment_get_page_size (xtext->adj) || line < 0)
 	{
@@ -4035,7 +4067,7 @@ gtk_xtext_render_line (GtkXText * xtext, textentry * ent, int line,
 			taken--;
 		}
 
-		indent = xtext->buffer->indent;
+		indent = gtk_xtext_cont_indent (xtext->buffer, ent);
 		line++;
 		taken++;
 		str += len;
@@ -4296,7 +4328,7 @@ gtk_xtext_lines_taken (xtext_buffer *buf, textentry *ent)
 			str += len;
 			end = str - ent->str;
 			g_array_append_val (ent->sublines, end);
-			indent = buf->indent;
+			indent = gtk_xtext_cont_indent (buf, ent);
 		}
 		while (str < ent->str + ent->str_len);
 	}
@@ -5376,6 +5408,7 @@ gtk_xtext_append_indent (xtext_buffer *buf,
 	prefix_width = gtk_xtext_text_width (buf->xtext, str, left_len + 1);
 
 	ent->left_len = left_len;
+	ent->stamp_len = 0;
 	ent->str = str;
 	ent->str_len = left_len + 1 + right_len;
 	ent->indent = buf->indent - prefix_width;
@@ -5422,6 +5455,14 @@ gtk_xtext_append_indent (xtext_buffer *buf,
 void
 gtk_xtext_append (xtext_buffer *buf, unsigned char *text, int len, time_t stamp)
 {
+	gtk_xtext_append_wrap (buf, text, len, stamp, 0);
+}
+
+/* stamp_len: how many bytes at the start of text are the timestamp */
+
+void
+gtk_xtext_append_wrap (xtext_buffer *buf, unsigned char *text, int len, time_t stamp, int stamp_len)
+{
 	textentry *ent;
 
 	g_return_if_fail (buf != NULL && text != NULL);
@@ -5438,6 +5479,7 @@ gtk_xtext_append (xtext_buffer *buf, unsigned char *text, int len, time_t stamp)
 		memcpy (ent->str, text, len);
 	ent->indent = 0;
 	ent->left_len = -1;
+	ent->stamp_len = (stamp_len > 0 && stamp_len < ent->str_len) ? stamp_len : 0;
 
 	gtk_xtext_append_entry (buf, ent, stamp);
 }
@@ -5474,7 +5516,7 @@ gtk_xtext_lastlog (xtext_buffer *out, xtext_buffer *search_area)
 			}
 			else
 			{
-				gtk_xtext_append (out, ent->str, ent->str_len, 0);
+				gtk_xtext_append_wrap (out, ent->str, ent->str_len, 0, ent->stamp_len);
 			}
 
 			if (out->text_last)

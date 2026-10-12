@@ -59,6 +59,8 @@ static struct zoitechatprefs setup_prefs;
 static GtkWidget *cancel_button;
 static GtkWidget *font_dialog = NULL;
 static GtkWidget *setup_topicbar_multiline_toggle = NULL;
+static GtkWidget *setup_wrap_align_label = NULL;
+static GtkWidget *setup_wrap_align_combo = NULL;
 
 enum
 {
@@ -157,6 +159,14 @@ static const char *const langsmenu[] =
 };
 #endif
 
+static const char *const wrapalignmenu[] =
+{
+        N_("Start of line (default)"),
+        N_("Prefix (nick name)"),
+        N_("Message"),
+        NULL
+};
+
 static const setting appearance_settings[] =
 {
         {ST_HEADER,     N_("General"),0,0,0},
@@ -172,6 +182,7 @@ static const setting appearance_settings[] =
         {ST_TOGGLR, N_("Indent nick names"), P_OFFINTNL(hex_text_indent), N_("Make nick names right-justified"),0,0},
         {ST_TOGGLE, N_ ("Show marker line"), P_OFFINTNL (hex_text_show_marker), N_ ("Insert a red line after the last read text."), 0, 0},
         {ST_TOGGLE, N_("Keep search position when closing"), P_OFFINTNL(hex_text_search_keep_position), 0, 0, 0},
+        {ST_MENU,   N_("Align wrapped lines under:"), P_OFFINTNL(hex_text_wrap_align), N_("Where wrapped lines start when nick names are not indented"), wrapalignmenu, 0},
 
         {ST_HEADER,     N_("Timestamps"),0,0,0},
         {ST_TOGGLE, N_("Enable timestamps"), P_OFFINTNL(hex_stamp_text),0,0,1},
@@ -858,6 +869,20 @@ setup_topicbar_inline_toggled_cb (GtkToggleButton *but, gpointer userdata)
 }
 
 static void
+setup_text_indent_toggled_cb (GtkToggleButton *but, gpointer userdata)
+{
+        gboolean sens = !gtk_toggle_button_get_active (but);
+
+        (void) userdata;
+
+        /* wrapped line alignment only applies without nick indentation */
+        if (setup_wrap_align_label)
+                gtk_widget_set_sensitive (setup_wrap_align_label, sens);
+        if (setup_wrap_align_combo)
+                gtk_widget_set_sensitive (setup_wrap_align_combo, sens);
+}
+
+static void
 setup_create_toggleR (GtkWidget *tab, int row, const setting *set)
 {
         GtkWidget *wid;
@@ -867,6 +892,9 @@ setup_create_toggleR (GtkWidget *tab, int row, const setting *set)
                                                                                         setup_get_int (&setup_prefs, set));
         g_signal_connect (G_OBJECT (wid), "toggled",
                                                         G_CALLBACK (setup_toggle_cb), (gpointer)set);
+        if (set->offset == STRUCT_OFFSET_INT (struct zoitechatprefs, hex_text_indent))
+                g_signal_connect (G_OBJECT (wid), "toggled",
+                                                        G_CALLBACK (setup_text_indent_toggled_cb), NULL);
         if (set->tooltip)
                 gtk_widget_set_tooltip_text (wid, _(set->tooltip));
         setup_table_attach (tab, wid, 4, 5, row, row + 1, TRUE, FALSE,
@@ -1279,6 +1307,16 @@ setup_create_menu (GtkWidget *table, int row, const setting *set)
 
         setup_table_attach (table, cbox, 3, 6, row, row + 1, TRUE, FALSE,
                             SETUP_ALIGN_FILL, SETUP_ALIGN_FILL, 0, 0);
+
+        if (set->offset == STRUCT_OFFSET_INT (struct zoitechatprefs, hex_text_wrap_align))
+        {
+                setup_wrap_align_label = wid;
+                setup_wrap_align_combo = cbox;
+                g_object_add_weak_pointer (G_OBJECT (wid), (gpointer *)&setup_wrap_align_label);
+                g_object_add_weak_pointer (G_OBJECT (cbox), (gpointer *)&setup_wrap_align_combo);
+                gtk_widget_set_sensitive (wid, !setup_prefs.hex_text_indent);
+                gtk_widget_set_sensitive (cbox, !setup_prefs.hex_text_indent);
+        }
 }
 
 static void

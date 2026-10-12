@@ -92,7 +92,7 @@ PrintTextLine (xtext_buffer *xtbuf, unsigned char *text, int len, int indent, ti
 			memcpy (new_text, stamp, stamp_size);
 			g_free (stamp);
 			memcpy (new_text + stamp_size, text, len);
-			gtk_xtext_append (xtbuf, new_text, len + stamp_size, timet);
+			gtk_xtext_append_wrap (xtbuf, new_text, len + stamp_size, timet, stamp_size);
 			g_free (new_text);
 		} else
 			gtk_xtext_append (xtbuf, text, len, timet);
