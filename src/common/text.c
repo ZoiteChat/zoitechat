@@ -1808,7 +1808,7 @@ pevent_check_all_loaded (void)
 }
 
 void
-load_text_events ()
+load_text_events (void)
 {
 	memset (&pntevts_text, 0, sizeof (char *) * (NUM_XP));
 	memset (&pntevts, 0, sizeof (char *) * (NUM_XP));
@@ -2488,7 +2488,7 @@ sound_load_event (char *evt, char *file)
 }
 
 void
-sound_load ()
+sound_load (void)
 {
 	int fd;
 	char buf[512];
@@ -2521,7 +2521,7 @@ sound_load ()
 }
 
 void
-sound_save ()
+sound_save (void)
 {
 	int fd, i;
 	char buf[512];

@@ -486,7 +486,7 @@ pevent_hlist_treeview_new (GtkWidget *box)
 }
 
 void
-pevent_dialog_show ()
+pevent_dialog_show (void)
 {
 	GtkWidget *vbox, *hbox, *wid, *pane, *preview_pane;
 	XTextColor xtext_palette[XTEXT_COLS];
