@@ -27,30 +27,23 @@
                 </select>
             </label>
         </div>
-        <nav class="site-nav" aria-label="{{ _('Primary navigation') }}">
-            <a href="{{ zoite_site_url|e }}">{{ _('Home') }}</a>
-            <a href="{{ zoite_download_url|e }}">{{ _('Downloads') }}</a>
-            <a href="{{ zoite_addons_url|e }}">{{ _('Addons') }}</a>
-            <a class="selected" href="{{ pathto(docs_root)|e }}" aria-current="location">{{ _('Documentation') }}</a>
-            <a href="{{ zoite_atlas_url|e }}">{{ _('Atlas') }}</a>
-            {% if hasdoc('genindex') %}<a href="{{ pathto('genindex')|e }}">{{ _('Index') }}</a>{% endif %}
-            <details class="support-menu">
-                <summary>{{ _('IRC support') }}</summary>
-                <div class="support-links">
-                    <a href="{{ zoite_irc_url|e }}">{{ _('Zoite IRC') }}<small>#zoitechat · {{ _('Official support') }}</small></a>
-                    <a href="{{ libera_irc_url|e }}">{{ _('Libera.Chat') }}<small>#zoitechat</small></a>
-                </div>
-            </details>
-        </nav>
-        <div class="docs-location">
-            <nav aria-label="{{ _('Breadcrumbs') }}">
-                <a href="{{ pathto(docs_root)|e }}">{{ _('Documentation') }}</a>
-                {% for parent in parents %}
-                    <span aria-hidden="true">/</span> <a href="{{ parent.link|e }}">{{ parent.title }}</a>
-                {% endfor %}
-                {% if pagename != docs_root %}<span aria-hidden="true">/</span> <span>{{ title|striptags|e }}</span>{% endif %}
+        <div class="navigation">
+            <nav class="nav-links" aria-label="{{ _('Primary') }}">
+                <a href="{{ zoite_site_url|e }}">{{ _('Home') }}</a>
+                <a href="{{ zoite_download_url|e }}">{{ _('Downloads') }}</a>
+                <a href="{{ zoite_addons_url|e }}">{{ _('Addons') }}</a>
+                <a href="{{ zoite_announcements_url|e }}">{{ _('Announcements') }}</a>
+                <a href="{{ pathto(docs_root)|e }}" aria-current="page">{{ _('Documentation') }}</a>
+                <a href="{{ zoite_atlas_url|e }}">{{ _('Atlas') }}</a>
+                <a href="{{ zoite_github_url|e }}" target="_blank" rel="noopener">{{ _('GitHub') }}</a>
+                <details class="nav-menu">
+                    <summary>{{ _('IRC support') }}</summary>
+                    <div class="nav-menu-panel" aria-label="{{ _('IRC support channels') }}">
+                        <a href="{{ zoite_irc_url|e }}" target="_blank" rel="noopener"><strong>{{ _('Zoite IRC') }}</strong><span>{{ _('Official support') }} · #zoitechat</span></a>
+                        <a href="{{ libera_irc_url|e }}" target="_blank" rel="noopener"><strong>{{ _('Libera.Chat') }}</strong><span>{{ _('Secondary support') }} · #zoitechat</span></a>
+                    </div>
+                </details>
             </nav>
-            <span class="docs-version">{{ release|e }}</span>
         </div>
     </header>
 {% endblock %}
@@ -73,6 +66,17 @@
             </aside>
         {% endif %}
         <main class="docs-content" id="main-content" tabindex="-1">
+            <div class="docs-location">
+                <nav aria-label="{{ _('Breadcrumbs') }}">
+                    <a href="{{ pathto(docs_root)|e }}">{{ _('Documentation') }}</a>
+                    {% for parent in parents %}
+                        <span aria-hidden="true">/</span> <a href="{{ parent.link|e }}">{{ parent.title }}</a>
+                    {% endfor %}
+                    {% if pagename != docs_root %}<span aria-hidden="true">/</span> <span>{{ title|striptags|e }}</span>{% endif %}
+                </nav>
+                <span class="docs-version">{{ release|e }}</span>
+            </div>
+
             {% block body %}{% endblock %}
             {% if prev or next %}
                 <nav class="page-relations" aria-label="{{ _('Related pages') }}">
@@ -90,13 +94,15 @@
 
 {% block footer %}
     <footer class="site-footer">
-        <span>{{ project|e }} {{ _('documentation') }} · {{ release|e }}</span>
-        <nav aria-label="{{ _('Footer navigation') }}">
-            <a href="{{ pathto(docs_root)|e }}">{{ _('Contents') }}</a>
-            <a href="{{ zoite_atlas_url|e }}">{{ _('Atlas') }}</a>
-            {% if hasdoc('search') %}<a href="{{ pathto('search')|e }}">{{ _('Search') }}</a>{% endif %}
-            {% if hasdoc('genindex') %}<a href="{{ pathto('genindex')|e }}">{{ _('Index') }}</a>{% endif %}
-            <a href="#top">{{ _('Back to top') }}</a>
-        </nav>
+        <div class="footer-grid">
+            <p class="footer-copy">{{ project|e }} {{ _('documentation') }} · {{ release|e }}</p>
+            <nav class="footer-links" aria-label="{{ _('Footer navigation') }}">
+                <a href="{{ pathto(docs_root)|e }}">{{ _('Contents') }}</a>
+                <a href="{{ zoite_atlas_url|e }}">{{ _('Atlas') }}</a>
+                {% if hasdoc('search') %}<a href="{{ pathto('search')|e }}">{{ _('Search') }}</a>{% endif %}
+                {% if hasdoc('genindex') %}<a href="{{ pathto('genindex')|e }}">{{ _('Index') }}</a>{% endif %}
+                <a href="#top">{{ _('Back to top') }}</a>
+            </nav>
+        </div>
     </footer>
 {% endblock %}

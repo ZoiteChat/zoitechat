@@ -802,3 +802,42 @@ a.headerlink:focus-visible {
         color: #000000 !important;
     }
 }
+
+/* The shared site stylesheet owns the page shell and primary navigation. */
+:root {
+    --page: var(--bg);
+    --panel: var(--chrome);
+    --font: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+.site-header { padding: 0; }
+.appearance select { min-height: 0; border-radius: 3px; }
+.docs-layout {
+    width: min(1040px, calc(100% - 48px));
+    grid-template-columns: minmax(0, 1fr) 220px;
+    gap: 40px;
+    padding-block: 28px 20px;
+}
+.docs-content { grid-column: 1; grid-row: 1; }
+.docs-sidebar {
+    grid-column: 2;
+    grid-row: 1;
+    padding: 3px 0 0;
+    border: 0;
+}
+.site-footer { display: block; }
+.site-footer .footer-links { gap: 5px 14px; }
+.docs-location { width: 100%; margin-top: 0; margin-bottom: 20px; }
+@media (max-width: 800px) {
+    .docs-layout { grid-template-columns: minmax(0, 1fr) 185px; gap: 26px; }
+}
+@media (max-width: 760px) {
+    .docs-layout { display: block; }
+}
+@media (max-width: 600px) {
+    .docs-layout { width: calc(100% - 30px); padding-top: 23px; }
+}
+@media print {
+    .docs-layout, .docs-layout.no-sidebar { width: 100%; padding: 0; }
+}
+
+.site-footer, .footer-grid { font-size: inherit; color: inherit; }

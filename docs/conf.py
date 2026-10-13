@@ -127,6 +127,8 @@ html_context = {
     'zoite_site_url': 'https://zoitechat.org/',
     'zoite_download_url': 'https://zoitechat.org/download.php',
     'zoite_addons_url': 'https://zoitechat.org/addons.php',
+    'zoite_announcements_url': 'https://zoitechat.org/announcements.php',
+    'zoite_github_url': 'https://github.com/ZoiteChat/zoitechat',
     'zoite_atlas_url': 'https://atlas.zoitechat.org/',
     'zoite_irc_url': 'https://zoite.net/webchat/?join=%23zoitechat',
     'libera_irc_url': 'https://web.libera.chat/#zoitechat',
@@ -147,7 +149,7 @@ html_favicon = '_static/favicon.ico'
 html_static_path = ['_static']
 
 # Local, readable assets shared by hosted and offline HTML documentation.
-html_css_files = ['css/zoitechat-docs.css']
+html_css_files = ['css/zoitechat-docs.css', 'css/zoitechat-site.css']
 html_js_files = ['js/zoitechat-docs.js']
 
 # If not '', a 'Last updated on:' timestamp is inserted at every page bottom,

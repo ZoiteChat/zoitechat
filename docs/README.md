@@ -81,3 +81,5 @@ symlinks. Include `${sphinxdoc:Depends}` in the package dependencies and
 A built-in theme is still selectable with `-D html_theme=classic` if a
 packager needs a different layout. The old RST content has existing build
 diagnostics; changing the theme does not suppress or alter them.
+
+Shared website chrome is in `_static/css/zoitechat-site.css`, copied from the main site. Keep that readable stylesheet in sync when changing the shared header, navigation, typography, or colours.
