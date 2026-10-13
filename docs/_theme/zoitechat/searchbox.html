@@ -1,0 +1,10 @@
+{# SPDX-License-Identifier: GPL-2.0-or-later #}
+{% if pagename != "search" %}
+    <form class="docs-search" action="{{ pathto('search')|e }}" method="get" role="search">
+        <label for="docs-search-input">{{ _('Search documentation') }}</label>
+        <div class="search-inputs">
+            <input id="docs-search-input" type="search" name="q" placeholder="{{ _('Search documentation') }}" autocomplete="off" spellcheck="false">
+            <button type="submit">{{ _('Search') }}</button>
+        </div>
+    </form>
+{% endif %}

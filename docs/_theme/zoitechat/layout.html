@@ -1,0 +1,102 @@
+{# SPDX-License-Identifier: GPL-2.0-or-later #}
+{% extends "basic/layout.html" %}
+{% set docs_root = root_doc|default(master_doc) %}
+
+{% block extrahead %}
+    {{ super() }}
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#111416" media="(prefers-color-scheme: dark)">
+{% endblock %}
+
+{% block body_tag %}<body id="top">{% endblock %}
+
+{% block header %}
+    <a class="skip-link" href="#main-content">{{ _('Skip to content') }}</a>
+    <header class="site-header">
+        <div class="topbar">
+            <a class="brand" href="{{ pathto(docs_root)|e }}">
+                <img src="{{ logo_url|default(pathto('_static/zoitechat-logo.svg', 1), true)|e }}" alt="" width="38" height="42">
+                <strong>{{ project|e }}</strong>
+            </a>
+            <label class="appearance" for="theme-picker">
+                <span>{{ _('Appearance') }}</span>
+                <select id="theme-picker" aria-label="{{ _('Documentation appearance') }}">
+                    <option value="system" selected>{{ _('System') }}</option>
+                    <option value="light">{{ _('Light') }}</option>
+                    <option value="dark">{{ _('Dark') }}</option>
+                </select>
+            </label>
+        </div>
+        <nav class="site-nav" aria-label="{{ _('Primary navigation') }}">
+            <a href="{{ zoite_site_url|e }}">{{ _('Home') }}</a>
+            <a href="{{ zoite_download_url|e }}">{{ _('Downloads') }}</a>
+            <a href="{{ zoite_addons_url|e }}">{{ _('Addons') }}</a>
+            <a class="selected" href="{{ pathto(docs_root)|e }}" aria-current="location">{{ _('Documentation') }}</a>
+            <a href="{{ zoite_atlas_url|e }}">{{ _('Atlas') }}</a>
+            {% if hasdoc('genindex') %}<a href="{{ pathto('genindex')|e }}">{{ _('Index') }}</a>{% endif %}
+            <details class="support-menu">
+                <summary>{{ _('IRC support') }}</summary>
+                <div class="support-links">
+                    <a href="{{ zoite_irc_url|e }}">{{ _('Zoite IRC') }}<small>#zoitechat · {{ _('Official support') }}</small></a>
+                    <a href="{{ libera_irc_url|e }}">{{ _('Libera.Chat') }}<small>#zoitechat</small></a>
+                </div>
+            </details>
+        </nav>
+        <div class="docs-location">
+            <nav aria-label="{{ _('Breadcrumbs') }}">
+                <a href="{{ pathto(docs_root)|e }}">{{ _('Documentation') }}</a>
+                {% for parent in parents %}
+                    <span aria-hidden="true">/</span> <a href="{{ parent.link|e }}">{{ parent.title }}</a>
+                {% endfor %}
+                {% if pagename != docs_root %}<span aria-hidden="true">/</span> <span>{{ title|striptags|e }}</span>{% endif %}
+            </nav>
+            <span class="docs-version">{{ release|e }}</span>
+        </div>
+    </header>
+{% endblock %}
+
+{% block relbar1 %}{% endblock %}
+{% block relbar2 %}{% endblock %}
+
+{% block content %}
+    <div class="docs-layout{% if not render_sidebar %} no-sidebar{% endif %}">
+        {% if render_sidebar %}
+            <aside class="docs-sidebar" aria-label="{{ _('Documentation navigation') }}">
+                <details class="docs-navigation" id="docs-navigation" open>
+                    <summary>{{ _('Documentation') }}</summary>
+                    <div class="sidebar-content">
+                        {% for sidebartemplate in sidebars %}
+                            {% include sidebartemplate %}
+                        {% endfor %}
+                    </div>
+                </details>
+            </aside>
+        {% endif %}
+        <main class="docs-content" id="main-content" tabindex="-1">
+            {% block body %}{% endblock %}
+            {% if prev or next %}
+                <nav class="page-relations" aria-label="{{ _('Related pages') }}">
+                    <div>
+                        {% if prev %}<small>{{ _('Previous') }}</small><a href="{{ prev.link|e }}" rel="prev">{{ prev.title }}</a>{% endif %}
+                    </div>
+                    <div>
+                        {% if next %}<small>{{ _('Next') }}</small><a href="{{ next.link|e }}" rel="next">{{ next.title }}</a>{% endif %}
+                    </div>
+                </nav>
+            {% endif %}
+        </main>
+    </div>
+{% endblock %}
+
+{% block footer %}
+    <footer class="site-footer">
+        <span>{{ project|e }} {{ _('documentation') }} · {{ release|e }}</span>
+        <nav aria-label="{{ _('Footer navigation') }}">
+            <a href="{{ pathto(docs_root)|e }}">{{ _('Contents') }}</a>
+            <a href="{{ zoite_atlas_url|e }}">{{ _('Atlas') }}</a>
+            {% if hasdoc('search') %}<a href="{{ pathto('search')|e }}">{{ _('Search') }}</a>{% endif %}
+            {% if hasdoc('genindex') %}<a href="{{ pathto('genindex')|e }}">{{ _('Index') }}</a>{% endif %}
+            <a href="#top">{{ _('Back to top') }}</a>
+        </nav>
+    </footer>
+{% endblock %}
