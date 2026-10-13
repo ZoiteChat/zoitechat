@@ -99,7 +99,7 @@ trim_footnote_reference_space = True
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-html_theme = 'basicstrap'
+html_theme = 'zoitechat'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -127,13 +127,14 @@ html_context = {
     'zoite_site_url': 'https://zoitechat.org/',
     'zoite_download_url': 'https://zoitechat.org/download.php',
     'zoite_addons_url': 'https://zoitechat.org/addons.php',
+    'zoite_atlas_url': 'https://atlas.zoitechat.org/',
     'zoite_irc_url': 'https://zoite.net/webchat/?join=%23zoitechat',
     'libera_irc_url': 'https://web.libera.chat/#zoitechat',
 }
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
-html_logo = 'zoitechat-logo.svg'
+html_logo = '_static/zoitechat-logo.svg'
 
 # The name of an image file (within the static path) to use as favicon of the
 # docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
@@ -145,8 +146,9 @@ html_favicon = '_static/favicon.ico'
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
 
-# Main-site visual skin for Read the Docs/Sphinx HTML output.
+# Local, readable assets shared by hosted and offline HTML documentation.
 html_css_files = ['css/zoitechat-docs.css']
+html_js_files = ['js/zoitechat-docs.js']
 
 # If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
 # using the given strftime format.

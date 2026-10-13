@@ -33,10 +33,51 @@ Example:
         that is not visually indented
 ```
 
-## Read the Docs theme skin
+## HTML theme
 
-The HTML output keeps the existing `basicstrap` Sphinx theme, then applies the
-ZoiteChat main-site skin from `_static/css/zoitechat-docs.css`.
+The `zoitechat` theme inherits Sphinx's built-in `basic` theme. It uses the
+same compact layout, blue navigation, and system fonts as zoitechat.org.
+Appearance starts in System mode on each page. Light and Dark are available
+for the current page; no cookies or browser storage are used.
 
-Brand navigation links are set in `conf.py` through `html_context`, and the
-header logo uses `_static/zoitechat-logo.svg`.
+The theme's templates are in `_theme/zoitechat/`. Its readable CSS and
+JavaScript are in `_static/css/zoitechat-docs.css` and
+`_static/js/zoitechat-docs.js`. No minification, JavaScript package manager,
+external fonts, or CDN assets are required.
+
+Navigation URLs, including `zoite_atlas_url`, are configured through
+`html_context` in `conf.py`. The logo
+is `_static/zoitechat-logo.svg`. Standard Sphinx search, indexes, source
+links, anchors, translations, and previous/next links remain available.
+The HTML output also works as locally installed documentation; project-site
+links only access the network when clicked.
+
+Build from the repository root:
+
+```sh
+sphinx-build -b html docs docs/_build/html
+```
+
+Use a clean output directory when switching themes, so stale Basicstrap
+assets from an earlier build are not included in a package.
+
+## Debian packaging
+
+The active theme does not use the bundled Basicstrap, Bootstrap, jQuery,
+jQuery Cookie, Font Awesome, or icon fonts. Its font stack includes DejaVu
+Sans and DejaVu Sans Mono; no font files are bundled by the theme.
+
+Packagers may exclude `docs/_theme/basicstrap/` from the source package.
+The default theme continues to build without that directory. No pre-minified
+third-party assets need to be added or rebuilt for this theme.
+
+Build with the distribution's `python3-sphinx`. After installing the HTML
+into the package staging directory, use `dh_sphinxdoc` (or `dh --with
+sphinxdoc`) to replace Sphinx's standard JavaScript files with system
+symlinks. Include `${sphinxdoc:Depends}` in the package dependencies and
+`${sphinxdoc:Built-Using}` where required for generated assets. The custom
+`zoitechat-docs.js` remains a small, readable project source file.
+
+A built-in theme is still selectable with `-D html_theme=classic` if a
+packager needs a different layout. The old RST content has existing build
+diagnostics; changing the theme does not suppress or alter them.
