@@ -336,7 +336,7 @@ ignore_stats_entry (GtkWidget * box, char *label, int value)
 }
 
 void
-ignore_gui_open ()
+ignore_gui_open (void)
 {
 	GtkWidget *vbox, *box, *stat_box, *frame;
 	GtkWidget *view;

@@ -426,7 +426,7 @@ key_binding_is_builtin (struct key_binding *kb)
 }
 
 void
-key_init ()
+key_init (void)
 {
 	if (key_load_kbs () == 1)
 	{
@@ -1219,7 +1219,7 @@ key_dialog_load (GtkListStore *store)
 }
 
 void
-key_dialog_show ()
+key_dialog_show (void)
 {
 	GtkWidget *vbox, *box, *pane, *scroll;
 	GtkWidget *view, *xtext, *delete_button;
