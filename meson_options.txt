@@ -23,6 +23,10 @@ option('appindicator', type: 'feature', value: 'auto',
   description: 'Use Ayatana/AppIndicator-based tray backend for GTK frontend (non-Windows only)'
 )
 
+# macOS only; ignored by other platforms.
+option('mac-integration', type: 'feature', value: 'auto',
+  description: 'Native macOS menu bar, Dock and application lifecycle')
+
 # Install options
 option('dbus-service-use-appid', type: 'boolean', value: false,
   description: 'Rename dbus service to match app-id, required for Flatpak'

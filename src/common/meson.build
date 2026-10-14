@@ -29,6 +29,10 @@ common_sources = [
   'util.c'
 ]
 
+if host_machine.system() == 'darwin'
+  common_sources += 'macos.c'
+endif
+
 secretstore_sources = files('secretstore.c')
 
 common_sysinfo_deps = []
@@ -155,12 +159,19 @@ zoitechat_common = static_library('zoitechatcommon',
   pic: true
 )
 
+# zoitechat.h exposes OpenSSL types whenever TLS is enabled. Propagate its
+# header requirements even to standalone consumers that do not call OpenSSL.
+zoitechat_common_header_deps = [libgio_dep]
+if libssl_dep.found()
+  zoitechat_common_header_deps += libssl_dep.partial_dependency(compile_args: true, includes: true)
+endif
+
 zoitechat_common_dep = declare_dependency(
   sources: [textevents, public_suffix_data] + marshal,
   link_with: zoitechat_common,
   include_directories: common_includes,
   compile_args: common_cflags,
-  dependencies: libgio_dep,
+  dependencies: zoitechat_common_header_deps,
 )
 
 zoitechat_plugin_dep = declare_dependency(
@@ -176,7 +187,7 @@ gtk3_theme_service_tests = executable('gtk3_theme_service_tests',
     'gtk3-theme-service.c',
   ],
   include_directories: [config_h_include, include_directories('.')],
-  dependencies: [libgio_dep] + (libarchive_dep.found() ? [libarchive_dep] : []),
+  dependencies: zoitechat_common_header_deps + (libarchive_dep.found() ? [libarchive_dep] : []),
 )
 
 test('GTK3 Theme Service Tests', gtk3_theme_service_tests,
