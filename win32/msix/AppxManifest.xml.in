@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Package
+  xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+  xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:uap3="http://schemas.microsoft.com/appx/manifest/uap/windows10/3"
+  xmlns:uap10="http://schemas.microsoft.com/appx/manifest/uap/windows10/10"
+  xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+  IgnorableNamespaces="uap uap3 uap10 rescap">
+
+  <!--
+    Identity values are filled by build-msix.ps1. For Microsoft Store
+    submissions they must exactly match Product management > Product identity
+    in Partner Center.
+  -->
+  <Identity
+    Name="@IDENTITY_NAME@"
+    Publisher="@PUBLISHER@"
+    Version="@PACKAGE_VERSION@"
+    ProcessorArchitecture="x64" />
+
+  <Properties>
+    <DisplayName>ZoiteChat</DisplayName>
+    <PublisherDisplayName>@PUBLISHER_DISPLAY_NAME@</PublisherDisplayName>
+    <Description>ZoiteChat IRC client</Description>
+    <Logo>Assets\StoreLogo.png</Logo>
+  </Properties>
+
+  <Resources>
+    <Resource Language="en-us" />
+  </Resources>
+
+  <Dependencies>
+    <TargetDeviceFamily
+      Name="Windows.Desktop"
+      MinVersion="10.0.19041.0"
+      MaxVersionTested="10.0.26100.0" />
+    <PackageDependency
+      Name="Microsoft.VCLibs.140.00.UWPDesktop"
+      Publisher="CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+      MinVersion="14.0.30704.0" />
+  </Dependencies>
+
+  <Capabilities>
+    <rescap:Capability Name="runFullTrust" />
+  </Capabilities>
+
+  <Applications>
+    <Application
+      Id="ZoiteChat"
+      Executable="ZoiteChat\zoitechat.exe"
+      uap10:RuntimeBehavior="packagedClassicApp"
+      uap10:TrustLevel="mediumIL">
+
+      <uap:VisualElements
+        DisplayName="ZoiteChat"
+        Description="ZoiteChat IRC client"
+        BackgroundColor="transparent"
+        Square150x150Logo="Assets\Square150x150Logo.png"
+        Square44x44Logo="Assets\Square44x44Logo.png" />
+
+      <Extensions>
+        <uap3:Extension Category="windows.protocol">
+          <uap3:Protocol
+            Name="irc"
+            Parameters="--url=&quot;%1&quot;" />
+        </uap3:Extension>
+
+        <uap3:Extension Category="windows.fileTypeAssociation">
+          <uap3:FileTypeAssociation
+            Name="zoitechattheme"
+            Parameters="&quot;%1&quot;">
+            <uap:DisplayName>ZoiteChat Theme</uap:DisplayName>
+            <uap:SupportedFileTypes>
+              <uap:FileType>.zct</uap:FileType>
+              <uap:FileType>.hct</uap:FileType>
+            </uap:SupportedFileTypes>
+          </uap3:FileTypeAssociation>
+        </uap3:Extension>
+      </Extensions>
+    </Application>
+  </Applications>
+</Package>
