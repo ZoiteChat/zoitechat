@@ -1962,7 +1962,10 @@ menu_about (GtkWidget *wid, gpointer sess)
 	gtk_about_dialog_set_logo (dialog, pix_zoitechat);
 	gtk_about_dialog_set_copyright (dialog, "\302\251 1998-2010 Peter \305\275elezn\303\275\n\302\251 2009-2014 Berke Viktor\n\302\251 2015-2025 Patrick Griffis\n\302\251 2026 deepend");
 	gtk_about_dialog_set_comments (dialog, comment);
+	/* Preserve the About dialog's existing action-area button layout. */
+	G_GNUC_BEGIN_IGNORE_DEPRECATIONS
 	actions = gtk_dialog_get_action_area (GTK_DIALOG (dialog));
+	G_GNUC_END_IGNORE_DEPRECATIONS
 	children = gtk_container_get_children (GTK_CONTAINER (actions));
 	for (child = children; child; child = child->next)
 		gtk_widget_destroy (GTK_WIDGET (child->data));

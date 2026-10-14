@@ -298,40 +298,6 @@ mg_color_component_to_pango (double value)
 }
 
 static void
-mg_apply_font_css (GtkWidget *widget, const PangoFontDescription *desc,
-				   const char *class_name, const char *provider_key)
-{
-	GtkStyleContext *context;
-	GtkCssProvider *provider;
-	GString *css;
-
-	if (!widget || !desc)
-		return;
-
-	context = gtk_widget_get_style_context (widget);
-	if (!context)
-		return;
-
-	provider = g_object_get_data (G_OBJECT (widget), provider_key);
-	if (!provider)
-	{
-		provider = gtk_css_provider_new ();
-		g_object_set_data_full (G_OBJECT (widget), provider_key, provider, g_object_unref);
-	}
-
-	css = g_string_new (".");
-	g_string_append (css, class_name);
-	g_string_append (css, " {");
-	gtkutil_append_font_css (css, desc);
-	g_string_append (css, " }");
-	gtk_css_provider_load_from_data (provider, css->str, -1, NULL);
-	g_string_free (css, TRUE);
-
-	gtk_style_context_add_class (context, class_name);
-	theme_css_apply_widget_provider (widget, GTK_STYLE_PROVIDER (provider));
-}
-
-static void
 mg_set_label_alignment_start (GtkWidget *widget)
 {
 	gtk_widget_set_halign (widget, GTK_ALIGN_START);
