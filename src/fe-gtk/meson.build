@@ -53,6 +53,15 @@ zoitechat_gtk_deps = [
 
 gtk_dep = dependency('gtk+-3.0', version: '>= 3.22')
 
+# Standalone GTK tests also include the common application's headers.
+gtk_dep = declare_dependency(dependencies: [gtk_dep] + zoitechat_common_header_deps)
+
+# fe-gtk.h exposes GtkosxApplication to every GTK consumer when enabled.
+# Theme libraries and standalone UI tests need the same headers as the app.
+if host_machine.system() == 'darwin' and gtk_mac_dep.found()
+  gtk_dep = declare_dependency(dependencies: [gtk_dep, gtk_mac_dep])
+endif
+
 zoitechat_theme_deps = [gtk_dep, zoitechat_common_dep]
 
 if host_machine.system() != 'windows'
@@ -91,12 +100,18 @@ if host_machine.system() != 'windows'
 endif
 
 zoitechat_gtk_ldflags = []
+zoitechat_gtk_objcflags = []
 
 if host_machine.system() == 'windows'
   zoitechat_gtk_sources += 'notifications/notification-windows.c'
   zoitechat_gtk_deps += cc.find_library('dwmapi', required: true)
   zoitechat_theme_deps += cc.find_library('dwmapi', required: true)
 
+elif host_machine.system() == 'darwin'
+  add_languages('objc', required: true)
+  zoitechat_gtk_sources += 'notifications/notification-osx.m'
+  zoitechat_gtk_deps += dependency('appleframeworks', modules: ['Cocoa', 'UserNotifications'])
+  zoitechat_gtk_objcflags += '-fobjc-arc'
 else
   zoitechat_gtk_sources += 'notifications/notification-freedesktop.c'
 endif
@@ -137,6 +152,7 @@ executable('zoitechat',
   dependencies: zoitechat_gtk_deps,
   link_with: zoitechat_theme_lib,
   c_args: zoitechat_gtk_cflags,
+  objc_args: zoitechat_gtk_objcflags,
   link_args: zoitechat_gtk_ldflags,
   pie: true,
   install: true,

@@ -21,6 +21,7 @@
 #include "../../fe-gtk.h"
 
 #include "../theme-application.h"
+#include "../theme-css.h"
 #include "../theme-policy.h"
 #include "../../maingui.h"
 #include "../../../common/zoitechat.h"
@@ -43,6 +44,13 @@ fe_message (char *msg, int flags)
 	(void) msg;
 	(void) flags;
 	message_calls++;
+}
+
+/* This test isolates input styling from the application's toplevel CSS. */
+char *
+theme_css_build_toplevel_classes (void)
+{
+	return g_strdup ("");
 }
 
 void
