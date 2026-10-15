@@ -33,6 +33,9 @@ option('install-appdata', type: 'boolean',
 option('install-plugin-metainfo', type: 'boolean', value: false,
   description: 'Installs metainfo files for enabled plugins, useful when distros create split packages'
 )
+option('install-docs', type: 'boolean', value: true,
+  description: 'Build and install the local HTML documentation'
+)
 
 # Plugins
 option('with-checksum', type: 'boolean',
