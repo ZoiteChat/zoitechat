@@ -2069,7 +2069,7 @@ static struct mymenu mymenu[] = {
 	{N_("_Copy Selection"), menu_copy_selection, 0, M_MENUITEM, 0, 0, 1},
 	{N_("C_lear Text"), menu_flushbuffer, 0, M_MENUITEM, 0, 0, 1},
 	{N_("Save Text" ELLIPSIS), menu_savebuffer, 0, M_MENUITEM, 0, 0, 1},
-#define SEARCH_OFFSET (70)
+#define SEARCH_OFFSET (71)
 	{N_("Search"), 0, 0, M_MENUSUB, 0, 0, 1},
 		{N_("Search Text" ELLIPSIS), menu_search, 0, M_MENUITEM, 0, 0, 1},
 		{N_("Search Next"   ), menu_search_next, 0, M_MENUITEM, 0, 0, 1},
@@ -2106,11 +2106,11 @@ menu_get_key_action_name (int index)
 		return "fullscreen-toggle";
 	case AWAY_OFFSET:
 		return "away-toggle";
-	case 65:
-		return "reset-marker";
 	case 66:
-		return "move-marker";
+		return "reset-marker";
 	case 67:
+		return "move-marker";
+	case 68:
 		return "copy-selection";
 	case SEARCH_OFFSET + 1:
 		return "search-text";
@@ -2118,7 +2118,7 @@ menu_get_key_action_name (int index)
 		return "search-next";
 	case SEARCH_OFFSET + 3:
 		return "search-previous";
-	case 75:
+	case 77:
 		return "contents";
 	}
 
