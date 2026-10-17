@@ -12,6 +12,7 @@ import re
 import shutil
 import subprocess
 import sys
+import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[2]
 MACH_MAGIC = {bytes.fromhex(h) for h in ("feedface", "cefaedfe", "feedfacf", "cffaedfe", "cafebabe", "bebafeca", "cafebabf", "bfbafeca")}
@@ -123,6 +124,29 @@ def copy_tree(source: Path, target: Path) -> None:
         shutil.copytree(source, target, dirs_exist_ok=True, symlinks=False)
 
 
+def write_fontconfig(resources: Path, fontconfig_prefix: Path) -> None:
+    # Noto Color Emoji has fixed-size color bitmaps. Fontconfig supplies the
+    # requested-size/strike-size matrix; without it glyphs render at 109px.
+    rule = fontconfig_prefix / "share/fontconfig/conf.avail/10-scale-bitmap-fonts.conf"
+    if not rule.is_file():
+        raise RuntimeError(f"Required Fontconfig bitmap scaling rules not found: {rule}")
+    resources.mkdir(parents=True, exist_ok=True)
+    config = ET.fromstring('''<fontconfig>
+  <dir>/System/Library/Fonts</dir><dir>/Library/Fonts</dir><dir>~/Library/Fonts</dir>
+  <cachedir prefix="xdg">fontconfig</cachedir>
+  <alias><family>sans-serif</family><prefer><family>Helvetica</family></prefer></alias>
+  <alias><family>monospace</family><prefer><family>Menlo</family></prefer></alias>
+</fontconfig>
+''')
+    # Embed the standard rules so they work after relocation without depending
+    # on Homebrew or Fontconfig's host configuration search paths.
+    for element in reversed(list(ET.parse(rule).getroot())):
+        config.insert(0, element)
+    (resources / "fonts.conf").write_text(
+        '<?xml version="1.0"?>\n<!DOCTYPE fontconfig SYSTEM "urn:fontconfig:fonts.dtd">\n' +
+        ET.tostring(config, encoding="unicode") + "\n", encoding="utf-8")
+
+
 def audit(app: Path) -> dict[str, object]:
     binary = app / "Contents/MacOS/zoitechat"
     architectures = set(run("lipo", "-archs", binary).split())
@@ -180,7 +204,7 @@ def package(stage: Path, app: Path, build_number: str) -> None:
             seeds.append((source, resources / "lib/zoitechat/plugins" / source.name))
 
     prefixes = {formula: Path(run("brew", "--prefix", formula)) for formula in (
-        "gtk+3", "gdk-pixbuf", "glib", "glib-networking", "librsvg", "enchant", "adwaita-icon-theme", "hicolor-icon-theme", "gsettings-desktop-schemas", "ca-certificates", "openssl@3", "lua", "libarchive", "gtk-mac-integration")}
+        "gtk+3", "gdk-pixbuf", "glib", "glib-networking", "librsvg", "enchant", "adwaita-icon-theme", "hicolor-icon-theme", "gsettings-desktop-schemas", "ca-certificates", "openssl@3", "lua", "libarchive", "gtk-mac-integration", "fontconfig")}
     # Runtime-loaded code is not visible in the main executable's otool output.
     module_groups = [
         (prefixes["gdk-pixbuf"] / "lib/gdk-pixbuf-2.0/2.10.0/loaders", "lib/gdk-pixbuf-2.0/2.10.0/loaders"),
@@ -241,15 +265,7 @@ def package(stage: Path, app: Path, build_number: str) -> None:
             data = data.replace(str(source), "@ZOITECHAT_RESOURCES@/" + str(target.relative_to(resources)))
         (resources / cache).write_text(data + "\n")
     # The private font map loads the bundled Noto font; ordinary GTK fonts stay local.
-    (resources / "fonts.conf").write_text('''<?xml version="1.0"?>
-<!DOCTYPE fontconfig SYSTEM "urn:fontconfig:fonts.dtd">
-<fontconfig>
-  <dir>/System/Library/Fonts</dir><dir>/Library/Fonts</dir><dir>~/Library/Fonts</dir>
-  <cachedir prefix="xdg">fontconfig</cachedir>
-  <alias><family>sans-serif</family><prefer><family>Helvetica</family></prefer></alias>
-  <alias><family>monospace</family><prefer><family>Menlo</family></prefer></alias>
-</fontconfig>
-''')
+    write_fontconfig(resources, prefixes["fontconfig"])
     (resources / "zoitechat-bundle").write_text("1\n")
     licenses = resources / "licenses"
     licenses.mkdir()

@@ -1,16 +1,63 @@
 """Dependency parsing, relocation guards and release audit tests without a Mac SDK."""
 from pathlib import Path
+import os
 import shutil
+import subprocess
 import sys
 import tempfile
 import unittest
 from unittest.mock import patch
+from xml.sax.saxutils import escape
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import bundle
 
 
 class BundleTests(unittest.TestCase):
+    def test_missing_bitmap_scaling_rules_fail_packaging(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            with self.assertRaisesRegex(RuntimeError, "bitmap scaling rules not found"):
+                bundle.write_fontconfig(directory / "Resources", directory / "missing-prefix")
+
+    @unittest.skipUnless(shutil.which("fc-match"), "requires Fontconfig's matching tool")
+    def test_bundled_bitmap_scaling_survives_relocation(self):
+        prefix = Path(bundle.run("brew", "--prefix", "fontconfig")) if sys.platform == "darwin" else Path("/usr")
+        rule = prefix / "share/fontconfig/conf.avail/10-scale-bitmap-fonts.conf"
+        if not rule.is_file():
+            self.skipTest("Fontconfig bitmap scaling configuration unavailable")
+        font = bundle.ROOT / "data/fonts/NotoColorEmoji.ttf"
+        with tempfile.TemporaryDirectory(prefix="zoitechat font scaling ") as temporary:
+            directory = Path(temporary)
+            source = directory / "build-prefix/share/fontconfig/conf.avail" / rule.name
+            source.parent.mkdir(parents=True)
+            shutil.copy2(rule, source)
+            resources = directory / "Resources"
+            bundle.write_fontconfig(resources, directory / "build-prefix")
+            relocated = directory / "Relocated Resources"
+            shutil.move(resources, relocated)
+            source.unlink()
+            # Exercise the shipped configuration without consulting host font
+            # rules. Only the bundled font is visible after reset-dirs.
+            wrapper = directory / "probe.conf"
+            wrapper.write_text(
+                '<fontconfig><include>' + escape(str(relocated / "fonts.conf")) +
+                '</include><reset-dirs/><dir>' + escape(str(font.parent)) + '</dir></fontconfig>')
+            env = os.environ.copy()
+            env["FONTCONFIG_FILE"] = str(wrapper)
+            env["XDG_CACHE_HOME"] = str(directory / "cache")
+            for requested in (12, 16, 24):
+                output = subprocess.check_output(
+                    ["fc-match", "-f", "%{pixelsize}\\n%{matrix}\\n%{file}\\n",
+                     f"Noto Color Emoji:pixelsize={requested}"], env=env, cwd=directory, text=True)
+                pixels, matrix, matched = output.splitlines()
+                self.assertEqual(Path(matched).resolve(), font.resolve())
+                values = [float(value) for value in matrix.split()]
+                self.assertEqual(len(values), 4, "bitmap scaling matrix missing")
+                self.assertAlmostEqual(float(pixels) * values[0], requested, places=3)
+                self.assertAlmostEqual(float(pixels) * values[3], requested, places=3)
+                self.assertEqual(values[1:3], [0.0, 0.0])
+
     @unittest.skipUnless(sys.platform == "darwin", "requires Apple's Mach-O tools")
     def test_signed_binary_relocation_and_resigning(self):
         with tempfile.TemporaryDirectory(prefix="zoitechat relocation ") as temporary:
