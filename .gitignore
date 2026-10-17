@@ -27,3 +27,9 @@ osx/.ZoiteChat.app
 *.dmg
 *.VC.db
 *.VC.opendb
+
+# Native macOS packaging output
+/build-macos*/
+/dist/
+/packaging/macos/__pycache__/
+/packaging/macos/tests/__pycache__/

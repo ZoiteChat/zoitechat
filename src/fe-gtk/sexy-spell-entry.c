@@ -215,7 +215,22 @@ initialize_enchant (void)
 #endif
     };
 
-    for (i = 0; i < G_N_ELEMENTS(libnames); ++i)
+#ifdef __APPLE__
+    const char *bundled_enchant = g_getenv ("ZOITECHAT_ENCHANT_LIBRARY");
+    if (bundled_enchant && *bundled_enchant)
+    {
+        enchant = g_module_open (bundled_enchant, 0);
+        if (enchant)
+        {
+            void (*set_prefix) (const char *) = NULL;
+            const char *prefix = g_getenv ("ZOITECHAT_ENCHANT_PREFIX");
+            if (prefix && g_module_symbol (enchant, "enchant_set_prefix_dir", (gpointer *) &set_prefix))
+                set_prefix (prefix);
+            have_enchant = TRUE;
+        }
+    }
+#endif
+    for (i = 0; !have_enchant && i < G_N_ELEMENTS(libnames); ++i)
     {
         enchant = g_module_open(libnames[i], 0);
         if (enchant)

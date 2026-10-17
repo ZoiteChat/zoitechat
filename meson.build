@@ -13,7 +13,9 @@ gnome = import('gnome')
 cc = meson.get_compiler('c')
 
 
-libgio_dep = dependency('gio-2.0', version: '>= 2.36.0')
+# The relocatable macOS runtime sets the GIO TLS database explicitly.
+libgio_dep = dependency('gio-2.0',
+  version: host_machine.system() == 'darwin' ? '>= 2.60.0' : '>= 2.36.0')
 libgmodule_dep = dependency('gmodule-2.0')
 
 libcanberra_dep = dependency('libcanberra', version: '>= 0.22',
@@ -29,7 +31,13 @@ else
                           required: get_option('tls'))
 endif
 
+gtk_mac_dep = disabler()
+if host_machine.system() == 'darwin' and get_option('gtk-frontend')
+  gtk_mac_dep = dependency('gtk-mac-integration-gtk3', required: get_option('mac-integration'))
+endif
+
 config_h = configuration_data()
+config_h.set('HAVE_GTK_MAC', host_machine.system() == 'darwin' and gtk_mac_dep.found())
 config_h.set_quoted('PACKAGE_VERSION', meson.project_version())
 config_h.set_quoted('PACKAGE_NAME', meson.project_name())
 config_h.set_quoted('GETTEXT_PACKAGE', 'zoitechat')
@@ -99,6 +107,12 @@ global_cflags = [
   '-DGLIB_VERSION_MAX_ALLOWED=GLIB_VERSION_2_36',
   '-DGLIB_VERSION_MIN_REQUIRED=GLIB_VERSION_2_36',
 ]
+if host_machine.system() == 'darwin'
+  global_cflags = [
+    '-DGLIB_VERSION_MAX_ALLOWED=GLIB_VERSION_2_60',
+    '-DGLIB_VERSION_MIN_REQUIRED=GLIB_VERSION_2_60',
+  ]
+endif
 test_cflags = [
   '-funsigned-char',
   '-Wno-conversion',
@@ -159,6 +173,10 @@ foreach ldflag : test_ldflags
     global_ldflags += ldflag
   endif
 endforeach
+if host_machine.system() == 'darwin'
+  # Leave room for install_name_tool to rewrite packaged dependencies.
+  global_ldflags += '-Wl,-headerpad_max_install_names'
+endif
 add_project_link_arguments(global_ldflags, language: 'c')
 
 subdir('src')

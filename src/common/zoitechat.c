@@ -54,6 +54,9 @@
 #include "text.h"
 #include "url.h"
 #include "zoitechatc.h"
+#ifdef __APPLE__
+#include "macos.h"
+#endif
 
 #if ! GLIB_CHECK_VERSION (2, 36, 0)
 #include <glib-object.h>			/* for g_type_init() */
@@ -1171,6 +1174,10 @@ main (int argc, char *argv[])
 {
 	int i;
 	int ret;
+
+#ifdef __APPLE__
+	zoitechat_macos_init ();
+#endif
 
 #ifdef WIN32
 	HRESULT coinit_result;
