@@ -59,6 +59,42 @@ The smoke check copies the app to a path containing spaces, verifies its signatu
 runs `--version`, and keeps an isolated GUI process alive for ten seconds without
 connecting to IRC. It tests startup, not interaction or long-running stability.
 
+### Screenshots and a loopback IRC check without owning a Mac
+
+The ordinary ARM and Intel workflow jobs also run a separate visual check.
+After pushing this change to a pull request, open the new **macOS build** run
+and download `ZoiteChat-macos-arm64-visual-check` and
+`ZoiteChat-macos-x86_64-visual-check` from **Artifacts**. Each contains:
+
+- `zoitechat.png`: the actual running application's window on that architecture.
+- `result.json`: the checks completed, window dimensions, architecture and commit.
+- `irc.log`: the temporary loopback server's registration, channel and PING/PONG traffic.
+- `startup.log`: the application's startup diagnostics.
+
+The check copies the built app to a path containing spaces, verifies its
+signature, starts it with temporary settings, connects to a server bound only
+to `127.0.0.1`, joins `#ci-smoke`, receives sample text and verifies its PONG
+response. It captures the largest visible window owned by that app's process
+and rejects failed or nearly uniform captures. No public IRC server or account
+is used. The original application artifact is not modified.
+
+This is a supplemental check with `continue-on-error`: a green build alone
+does **not** mean the visual check passed. Inspect `result.json` for
+`"status": "passed"` and view the PNG. If the runner has no desktop or denies
+Screen Recording, the step reports failure and publishes diagnostics instead
+of claiming a screenshot. No signing secrets are needed. The check runs in
+the ordinary build job; it does not alter the release-signing job.
+
+It can also run on a Mac with a logged-in desktop:
+
+```sh
+python3 packaging/macos/visual-smoke.py dist/ZoiteChat.app --output dist/visual-check
+```
+
+Use a new output directory for each run. This verifies a narrow set of startup,
+IRC and rendering behavior; it does not test keyboard/clipboard interaction,
+TLS, notifications, Gatekeeper distribution, or long-running stability.
+
 The audit verifies the entire dependency closure, including GTK image/input
 modules, GIO TLS, Enchant providers, OpenSSL providers and ZoiteChat plugins. It
 fails on missing libraries, external symlinks/search paths, architecture mismatches
