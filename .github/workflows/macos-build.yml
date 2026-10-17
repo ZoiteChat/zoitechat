@@ -64,6 +64,20 @@ jobs:
         run: python3 packaging/macos/build.py --build-number '${{ github.run_number }}'
       - name: Verify relocated startup
         run: python3 packaging/macos/smoke.py dist/ZoiteChat.app
+      # Desktop capture can be unavailable on a runner image. Preserve the
+      # existing build gate and publish the separate visual-check outcome.
+      - name: Exercise IRC and capture the macOS application window
+        continue-on-error: true
+        timeout-minutes: 5
+        run: python3 packaging/macos/visual-smoke.py dist/ZoiteChat.app
+      - name: Upload screenshot and visual-check evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: ZoiteChat-macos-${{ matrix.arch }}-visual-check
+          path: dist/visual-check/
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Create artifact preserving the application signature
         run: ditto -c -k --keepParent dist/ZoiteChat.app dist/ZoiteChat-${{ matrix.arch }}.zip
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
