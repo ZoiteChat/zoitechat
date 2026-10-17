@@ -1,0 +1,168 @@
+name: macOS build
+
+on:
+  workflow_dispatch:
+    inputs:
+      sign_and_notarize:
+        description: 'Sign with Developer ID and notarize using release credentials'
+        type: boolean
+        default: false
+  push:
+    branches: [master]
+    tags: ['v*']
+    paths:
+      - 'src/**'
+      - 'plugins/**'
+      - 'data/**'
+      - 'tools/**'
+      - 'po/**'
+      - 'meson*'
+      - 'VERSION'
+      - 'packaging/macos/**'
+      - '.github/workflows/macos-build.yml'
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'plugins/**'
+      - 'data/**'
+      - 'tools/**'
+      - 'po/**'
+      - 'meson*'
+      - 'VERSION'
+      - 'packaging/macos/**'
+      - '.github/workflows/macos-build.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    if: >-
+      github.event_name == 'pull_request' ||
+      (github.event_name == 'push' && !startsWith(github.ref, 'refs/tags/')) ||
+      (github.event_name == 'workflow_dispatch' && !inputs.sign_and_notarize)
+    name: Native ${{ matrix.arch }} bundle
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            arch: arm64
+          - runner: macos-15-intel
+            arch: x86_64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: '1'
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Install native dependencies
+        run: brew bundle --file packaging/macos/Brewfile
+      - name: Test packaging logic
+        run: python3 -m unittest discover -s packaging/macos/tests -v
+      - name: Build and test application
+        run: python3 packaging/macos/build.py --build-number '${{ github.run_number }}'
+      - name: Verify relocated startup
+        run: python3 packaging/macos/smoke.py dist/ZoiteChat.app
+      # Desktop capture can be unavailable on a runner image. Preserve the
+      # existing build gate and publish the separate visual-check outcome.
+      - name: Exercise IRC and capture the macOS application window
+        continue-on-error: true
+        timeout-minutes: 5
+        run: python3 packaging/macos/visual-smoke.py dist/ZoiteChat.app
+      - name: Upload screenshot and visual-check evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: ZoiteChat-macos-${{ matrix.arch }}-visual-check
+          path: dist/visual-check/
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Create artifact preserving the application signature
+        run: ditto -c -k --keepParent dist/ZoiteChat.app dist/ZoiteChat-${{ matrix.arch }}.zip
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: ZoiteChat-macos-${{ matrix.arch }}
+          path: dist/ZoiteChat-${{ matrix.arch }}.zip
+          if-no-files-found: error
+      - name: Upload build logs on failure
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: ZoiteChat-macos-${{ matrix.arch }}-logs
+          path: build-macos/meson-logs/
+          if-no-files-found: ignore
+
+  release:
+    name: Signed and notarized ${{ matrix.arch }} release
+    if: >-
+      (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) ||
+      (github.event_name == 'workflow_dispatch' && inputs.sign_and_notarize && github.ref == 'refs/heads/master')
+    environment: macos-release
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            arch: arm64
+          - runner: macos-15-intel
+            arch: x86_64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 180
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: '1'
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Validate release settings before building
+        env:
+          MACOS_CERTIFICATE_P12_BASE64: ${{ secrets.MACOS_CERTIFICATE_P12_BASE64 }}
+          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+          MACOS_SIGNING_IDENTITY: ${{ vars.MACOS_SIGNING_IDENTITY || secrets.MACOS_SIGNING_IDENTITY }}
+          APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
+        run: python3 packaging/macos/release.py --check-config
+      - name: Install native dependencies
+        run: brew bundle --file packaging/macos/Brewfile
+      - name: Test packaging and release logic
+        run: python3 -m unittest discover -s packaging/macos/tests -v
+      - name: Build and test application
+        run: python3 packaging/macos/build.py --build-number '${{ github.run_number }}'
+      - name: Verify relocated startup
+        run: python3 packaging/macos/smoke.py dist/ZoiteChat.app
+      - name: Sign, notarize, staple and verify release
+        env:
+          MACOS_CERTIFICATE_P12_BASE64: ${{ secrets.MACOS_CERTIFICATE_P12_BASE64 }}
+          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+          MACOS_SIGNING_IDENTITY: ${{ vars.MACOS_SIGNING_IDENTITY || secrets.MACOS_SIGNING_IDENTITY }}
+          APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
+        run: >-
+          python3 packaging/macos/release.py
+          --app dist/ZoiteChat.app
+          --output dist/ZoiteChat-${{ matrix.arch }}-signed-notarized.zip
+          --diagnostics dist/notarization
+          --notary-timeout 60m
+      - name: Upload signed and notarized application
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: ZoiteChat-macos-${{ matrix.arch }}-signed-notarized
+          path: dist/ZoiteChat-${{ matrix.arch }}-signed-notarized.zip
+          if-no-files-found: error
+      - name: Upload notarization diagnostics
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: ZoiteChat-macos-${{ matrix.arch }}-notarization-log
+          path: dist/notarization/*.json
+          if-no-files-found: ignore
+      - name: Upload build logs on failure
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: ZoiteChat-macos-${{ matrix.arch }}-release-build-logs
+          path: build-macos/meson-logs/
+          if-no-files-found: ignore

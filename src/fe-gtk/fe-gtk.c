@@ -21,6 +21,9 @@
 #include <stdlib.h>
 
 #include "fe-gtk.h"
+#ifdef __APPLE__
+#include "../common/macos.h"
+#endif
 
 #ifdef GDK_WINDOWING_WIN32
 #include <gdk/gdkwin32.h>
@@ -372,7 +375,13 @@ fe_args (int argc, char *argv[])
 	g_free (locale_path);
 	g_free (base_path);
 #else
-	bindtextdomain (GETTEXT_PACKAGE, LOCALEDIR);
+	bindtextdomain (GETTEXT_PACKAGE,
+#ifdef __APPLE__
+		zoitechat_macos_locale_dir ()
+#else
+		LOCALEDIR
+#endif
+	);
 #endif
 	bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
 	textdomain (GETTEXT_PACKAGE);
@@ -492,6 +501,15 @@ fe_args (int argc, char *argv[])
 	gdk_set_program_class (desktop_id);
 #endif
 	gtk_init (&argc, &argv);
+
+#ifdef __APPLE__
+	if (g_getenv ("ZOITECHAT_MACOS_SHARE"))
+	{
+		char *icons = g_build_filename (g_getenv ("ZOITECHAT_MACOS_SHARE"), "icons", NULL);
+		gtk_icon_theme_prepend_search_path (gtk_icon_theme_get_default (), icons);
+		g_free (icons);
+	}
+#endif
 
 #ifdef WIN32
 	win32_configure_icon_theme ();

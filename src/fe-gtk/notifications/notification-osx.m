@@ -1,54 +1,67 @@
-/* ZoiteChat
- * Copyright (C) 2015 Patrick Griffis.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
- */
-
+/* Native macOS notifications; GPL-2.0-or-later, see COPYING. */
 #import <Cocoa/Cocoa.h>
-#include <gtkosxapplication.h>
+#import <UserNotifications/UserNotifications.h>
 
-void
-notification_backend_show (const char *title, const char *text)
+@interface ZoiteChatNotificationDelegate : NSObject <UNUserNotificationCenterDelegate>
+@end
+@implementation ZoiteChatNotificationDelegate
+- (void)userNotificationCenter:(UNUserNotificationCenter *)center
+      willPresentNotification:(UNNotification *)notification
+        withCompletionHandler:(void (^)(UNNotificationPresentationOptions))completionHandler
 {
-	NSString *str_title = [[NSString alloc] initWithUTF8String:title];
-	NSString *str_text = [[NSString alloc] initWithUTF8String:text];
+    completionHandler(UNNotificationPresentationOptionBanner | UNNotificationPresentationOptionSound);
+}
+@end
 
-	NSUserNotification *userNotification = [NSUserNotification new];
-	userNotification.title = str_title;
-	userNotification.informativeText = str_text;
+static ZoiteChatNotificationDelegate *notification_delegate;
 
-	NSUserNotificationCenter *center = [NSUserNotificationCenter defaultUserNotificationCenter];
-	[center scheduleNotification:userNotification];
-
-	[str_title release];
-	[str_text release];
+int
+notification_backend_supported (void)
+{
+    return [[NSBundle mainBundle] bundleIdentifier] != nil;
 }
 
 int
 notification_backend_init (const char **error)
 {
-	return 1;
+    if (!notification_backend_supported ())
+    {
+        *error = "macOS notifications require an application bundle";
+        return 0;
+    }
+    notification_delegate = [ZoiteChatNotificationDelegate new];
+    [UNUserNotificationCenter currentNotificationCenter].delegate = notification_delegate;
+    return 1;
+}
+
+void
+notification_backend_show (const char *title, const char *text)
+{
+    UNMutableNotificationContent *content = [UNMutableNotificationContent new];
+    content.title = [NSString stringWithUTF8String:title] ?: @"ZoiteChat";
+    content.body = [NSString stringWithUTF8String:text] ?: @"";
+    UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
+    /* Ask only when the user first needs a notification, without blocking GTK. */
+    [center requestAuthorizationWithOptions:UNAuthorizationOptionAlert | UNAuthorizationOptionSound
+        completionHandler:^(BOOL granted, NSError *error) {
+            if (granted)
+            {
+                UNNotificationRequest *request = [UNNotificationRequest
+                    requestWithIdentifier:[[NSUUID UUID] UUIDString] content:content trigger:nil];
+                [center addNotificationRequest:request withCompletionHandler:^(NSError *deliveryError) {
+                    if (deliveryError)
+                        NSLog(@"ZoiteChat notification failed: %@", deliveryError);
+                }];
+            }
+            else if (error)
+                NSLog(@"ZoiteChat notification authorization failed: %@", error);
+        }];
 }
 
 void
 notification_backend_deinit (void)
 {
-}
-
-int
-notification_backend_supported (void)
-{
-	return gtkosx_application_get_bundle_id () != NULL;
+    if (notification_delegate)
+        [UNUserNotificationCenter currentNotificationCenter].delegate = nil;
+    notification_delegate = nil;
 }
