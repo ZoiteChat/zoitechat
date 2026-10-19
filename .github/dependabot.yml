@@ -2,6 +2,7 @@
 version: 2
 
 updates:
+  # Flatpak shared modules
   - package-ecosystem: "gitsubmodule"
     directory: "/"
     schedule:
@@ -10,3 +11,27 @@ updates:
     open-pull-requests-limit: 2
     labels:
       - "dependencies"
+
+  # GitHub Actions dependencies
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+
+    commit-message:
+      prefix: "ci"
+
+    cooldown:
+      default-days: 7
+
+    groups:
+      actions-minor-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
