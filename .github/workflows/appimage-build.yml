@@ -312,7 +312,7 @@ jobs:
           subject-path: Zoitechat-*-x86_64.AppImage
 
       - name: Upload AppImage artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: zoitechat-appimage
           path: Zoitechat-*-x86_64.AppImage
