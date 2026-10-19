@@ -28,7 +28,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.14.3'
           architecture: ${{ matrix.arch }}
@@ -138,7 +138,7 @@ jobs:
             New-Item -Path $pyDir -Name "${{ matrix.platform }}" -ItemType Junction -Value $pyRoot | Out-Null
           }
 
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.8.10'
           architecture: ${{ matrix.arch }}
