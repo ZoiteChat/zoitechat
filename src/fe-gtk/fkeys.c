@@ -55,6 +55,9 @@
 #include "maingui.h"
 #include "textgui.h"
 #include "fkeys.h"
+#ifdef __APPLE__
+#include "macos-shortcuts.h"
+#endif
 
 #define ICON_FKEYS_NEW "document-new"
 #define ICON_FKEYS_DELETE "edit-delete"
@@ -569,6 +572,12 @@ key_handle_key_press (GtkWidget *wid, GdkEventKey *evt, session *sess)
 		}
 		list = g_slist_next (list);
 	}
+
+#ifdef __APPLE__
+	/* Plugins and user-defined input shortcuts above retain priority. */
+	if (macos_shortcuts_copy_chat (wid, evt, GTK_XTEXT (sess->gui->xtext)))
+		return TRUE;
+#endif
 
 	switch (evt->keyval)
 	{
@@ -1333,6 +1342,57 @@ key_save_kbs (void)
 #define KBSTATE_DT1 3
 #define KBSTATE_DT2 4
 
+#ifdef __APPLE__
+static void
+key_macos_adjust_defaults (GSList *bindings)
+{
+	GSList *item, *other;
+	struct key_binding *kb, *existing;
+	guint keyval;
+	GdkModifierType mod;
+
+	for (item = bindings; item; item = item->next)
+	{
+		kb = item->data;
+		keyval = kb->keyval;
+		mod = kb->mod;
+		if (!macos_shortcuts_remap_default (&keyval, &mod,
+		                                   key_actions[kb->action].name,
+		                                   kb->data1, kb->data2))
+			continue;
+
+		/* Never let a migrated default shadow an existing user shortcut.
+		 * In that case leave the old assignment for the user to resolve. */
+		for (other = bindings; other; other = other->next)
+		{
+			existing = other->data;
+			if (existing != kb &&
+			    gdk_keyval_to_lower (existing->keyval) == gdk_keyval_to_lower (keyval) &&
+			    existing->mod == mod)
+				break;
+		}
+		if (!other)
+		{
+			kb->keyval = keyval;
+			kb->mod = mod;
+		}
+	}
+}
+
+gboolean
+key_is_bound (guint keyval, GdkModifierType mod)
+{
+	GSList *item;
+	for (item = keybind_list; item; item = item->next)
+	{
+		struct key_binding *kb = item->data;
+		if (kb->keyval == keyval && kb->mod == mod)
+			return TRUE;
+	}
+	return FALSE;
+}
+#endif
+
 #define STRIP_WHITESPACE \
 	while (buf[0] == ' ' || buf[0] == '\t') \
 		buf++; \
@@ -1519,6 +1579,9 @@ key_load_kbs_from_buffer (char *ibuf, off_t size, GSList **out_list)
 		}
 	}
 	g_free (ibuf);
+#ifdef __APPLE__
+	key_macos_adjust_defaults (list);
+#endif
 	*out_list = list;
 	return 0;
 

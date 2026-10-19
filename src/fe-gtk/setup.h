@@ -23,5 +23,6 @@
 #include "theme/theme-manager.h"
 
 void setup_apply_real (const ThemeChangedEvent *event);
+void setup_open (void);
 
 #endif

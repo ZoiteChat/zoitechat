@@ -23,6 +23,7 @@
 #include "fe-gtk.h"
 #ifdef __APPLE__
 #include "../common/macos.h"
+#include "macos-shortcuts.h"
 #endif
 
 #ifdef GDK_WINDOWING_WIN32
@@ -503,6 +504,8 @@ fe_args (int argc, char *argv[])
 	gtk_init (&argc, &argv);
 
 #ifdef __APPLE__
+	macos_shortcuts_init (setup_open);
+
 	if (g_getenv ("ZOITECHAT_MACOS_SHARE"))
 	{
 		char *icons = g_build_filename (g_getenv ("ZOITECHAT_MACOS_SHARE"), "icons", NULL);

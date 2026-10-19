@@ -49,6 +49,52 @@ sources and build them in a controlled prefix, or maintain pinned Homebrew formu
 
 ## 2. Verify portability and behavior
 
+### Keyboard shortcuts
+
+These defaults apply only to macOS; Linux and Windows shortcuts are unchanged.
+
+| Shortcut | Action |
+| --- | --- |
+| Command+C / X / V | Copy / cut / paste in text fields, including search and preferences |
+| Command+A | Select all text in the focused field |
+| Command+Left / Right | Move to the beginning / end of the line |
+| Option+Left / Right | Move by words |
+| Command+Up / Down | Move to the beginning / end of the text |
+| Shift with the movement shortcuts above | Extend the selection |
+| Option+Delete (Backspace) | Delete back to the beginning of the word |
+| Command+Delete (Backspace) | Delete back to the beginning of the line |
+| Command+, | Open Preferences |
+| Command+M | Minimize the active window |
+| Control+Tab | Completion in the opposite direction; Tab / Shift+Tab still complete normally |
+| Command+Option+Left / Right | Move the current tab left / right |
+| Command+Shift+R | Reset the chat marker; Command+Shift+M still moves to the marker |
+
+The inherited Control+C/X/V clipboard bindings are removed on macOS only.
+Command+C/X/V in multiline editors use plain UTF-8 text directly, avoiding
+GTK3 Quartz's incomplete rich-text negotiation and pasteboard types without a
+preferred MIME name. Text, newlines, selection replacement and editability
+checks are preserved; rich clipboard formatting is not imported by this action.
+Command+C copies selected input text first; if no input text is selected, it
+copies the selected chat text. Command+X cuts editable text, never messages
+from chat history. Password protection and read-only fields retain GTK's
+existing behavior. Undo/redo is not added: GTK3's entry widget needs a separate
+editing-history implementation before Command+Z can work reliably.
+
+Exact old default assignments for Command+Tab, Option+Left/Right and Command+M
+are remapped in memory when loading defaults or an existing configuration.
+Other custom bindings are preserved. If a replacement key is already assigned,
+both existing assignments are left alone; resolve that conflict in **Settings
+→ Keyboard Shortcuts**. Saving there persists the updated assignments.
+Command+Tab is left to macOS for switching applications. Plugins and custom
+input bindings retain priority; the new native menu accelerators are omitted
+when the same key is already assigned to an input action.
+
+Before distributing a build, test the shortcuts in message input, search,
+preferences, a detached chat window and a multiline editor, including Unicode,
+selection replacement, and read-only/password fields. The Meson widget tests
+exercise the GTK actions; the screenshot smoke check does not send real keys
+through the macOS event loop.
+
 ```sh
 python3 -m unittest discover -s packaging/macos/tests -v
 python3 packaging/macos/bundle.py audit dist/ZoiteChat.app

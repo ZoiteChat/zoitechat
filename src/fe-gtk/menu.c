@@ -51,6 +51,9 @@
 #include "chanlist.h"
 #include "editlist.h"
 #include "fkeys.h"
+#ifdef __APPLE__
+#include "macos-shortcuts.h"
+#endif
 #include "gtkutil.h"
 #include "maingui.h"
 #include "notifygui.h"
@@ -1322,6 +1325,17 @@ menu_settings (GtkWidget * wid, gpointer none)
 	setup_open ();
 }
 
+#ifdef __APPLE__
+static void
+menu_macos_minimize (GtkWidget *widget, gpointer userdata)
+{
+	GtkWindow *fallback = NULL;
+	if (current_sess && current_sess->gui && current_sess->gui->window)
+		fallback = GTK_WINDOW (current_sess->gui->window);
+	macos_shortcuts_minimize_active (fallback);
+}
+#endif
+
 static void
 menu_usermenu (void)
 {
@@ -2142,6 +2156,20 @@ menu_add_keybinding_accel (GtkWidget *item, GtkAccelGroup *accel_group, const ch
 	g_object_set_data (G_OBJECT (item), "zc-key-accel-mod", GUINT_TO_POINTER (mod));
 }
 
+#ifdef __APPLE__
+static void
+menu_add_macos_accel (GtkWidget *item, GtkAccelGroup *accel_group, guint keyval)
+{
+	g_object_set_data (G_OBJECT (item), "zc-macos-default-key", GUINT_TO_POINTER (keyval));
+	if (!accel_group || key_is_bound (keyval, GDK_META_MASK))
+		return;
+	gtk_widget_add_accelerator (item, "activate", accel_group, keyval,
+	                            GDK_META_MASK, GTK_ACCEL_VISIBLE);
+	g_object_set_data (G_OBJECT (item), "zc-key-accel-key", GUINT_TO_POINTER (keyval));
+	g_object_set_data (G_OBJECT (item), "zc-key-accel-mod", GUINT_TO_POINTER (GDK_META_MASK));
+}
+#endif
+
 static void
 menu_refresh_keybinding_accels (GtkWidget *widget, gpointer data)
 {
@@ -2164,6 +2192,12 @@ menu_refresh_keybinding_accels (GtkWidget *widget, gpointer data)
 		}
 
 		name = g_object_get_data (G_OBJECT (widget), "zc-key-action");
+#ifdef __APPLE__
+		keyval = GPOINTER_TO_UINT (g_object_get_data (G_OBJECT (widget), "zc-macos-default-key"));
+		if (keyval)
+			menu_add_macos_accel (widget, accel_group, keyval);
+		else
+#endif
 		menu_add_keybinding_accel (widget, accel_group, name);
 
 		submenu = gtk_menu_item_get_submenu (GTK_MENU_ITEM (widget));
@@ -2217,7 +2251,12 @@ menu_key_action (const char *name, guint keyval, GdkModifierType state)
 		menu_close (NULL, NULL);
 	else if (!strcmp (name, "quit"))
 	{
-		if (!prefs.hex_gui_ctrlq_quit && keyval == GDK_KEY_q && (state & (GDK_SHIFT_MASK | GDK_CONTROL_MASK | GDK_MOD1_MASK)) == STATE_CTRL)
+		if (!prefs.hex_gui_ctrlq_quit && keyval == GDK_KEY_q &&
+		    (state & (GDK_SHIFT_MASK | GDK_CONTROL_MASK | GDK_MOD1_MASK
+#ifdef __APPLE__
+		              | GDK_META_MASK
+#endif
+		             )) == STATE_CTRL)
 			return FALSE;
 		menu_quit (NULL, NULL);
 	}
@@ -2841,6 +2880,16 @@ menu_create_main (void *accel_group, int bar, int away, int toplevel,
 #endif
 				gtk_menu_shell_append (GTK_MENU_SHELL (menu_bar), menu_item);
 			gtk_widget_show (menu_item);
+#ifdef __APPLE__
+			if (bar && !strcmp (mymenu[i].text, "_Window"))
+			{
+				GtkWidget *minimize = gtk_menu_item_new_with_mnemonic (_("_Minimize"));
+				menu_add_macos_accel (minimize, accel_group, GDK_KEY_m);
+				g_signal_connect (minimize, "activate", G_CALLBACK (menu_macos_minimize), NULL);
+				gtk_menu_shell_append (GTK_MENU_SHELL (menu), minimize);
+				gtk_widget_show (minimize);
+			}
+#endif
 			break;
 
 		case M_MENUPIX:
@@ -2854,6 +2903,10 @@ menu_create_main (void *accel_group, int bar, int away, int toplevel,
 		case M_MENUITEM:
 			item = gtk_menu_item_new_with_mnemonic (_(mymenu[i].text));
 normalitem:
+#ifdef __APPLE__
+			if (bar && mymenu[i].callback == menu_settings)
+				menu_add_macos_accel (item, accel_group, GDK_KEY_comma);
+#endif
 			g_object_set_data (G_OBJECT (item), "zc-key-action", (gpointer) menu_get_key_action_name (i));
 			menu_add_keybinding_accel (item, accel_group, menu_get_key_action_name (i));
 			if (mymenu[i].key != 0 && !(mymenu[i].id == MENU_ID_QUIT && !prefs.hex_gui_ctrlq_quit))

@@ -567,7 +567,11 @@ static const setting general_settings[] =
         {ST_TOGGLE,     N_("Hide join and part messages"), P_OFFINTNL(hex_irc_conf_mode), N_("Hide channel join/part messages by default."), 0, 0},
         {ST_TOGGLE,     N_("Hide nick change messages"), P_OFFINTNL(hex_irc_hide_nickchange), 0, 0, 0},
         {ST_TOGGLE,     N_("Hide hostmasks in join and part messages"), P_OFFINTNL(hex_irc_hide_join_part_hostmask), 0, 0, 0},
+#ifdef __APPLE__
+        {ST_TOGGLE,     N_("Enable Command+Q to quit"), P_OFFINTNL(hex_gui_ctrlq_quit), 0, 0, 0},
+#else
         {ST_TOGGLE,     N_("Enable Ctrl+Q to quit"), P_OFFINTNL(hex_gui_ctrlq_quit), 0, 0, 0},
+#endif
 
         {ST_END, 0, 0, 0, 0, 0}
 };
