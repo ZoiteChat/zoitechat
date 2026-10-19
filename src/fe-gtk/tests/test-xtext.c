@@ -3,6 +3,7 @@
  * adding test-only symbols to the widget's public API. Application services
  * are stubbed; GTK, Pango, Cairo and the widget itself are exercised normally. */
 #include "../xtext.c"
+#include "../macos-shortcuts.h"
 #include <glib/gstdio.h>
 
 struct zoitechatprefs prefs;
@@ -250,6 +251,470 @@ static void test_selection_and_clipboard (Fixture *f, gconstpointer data)
 	g_free (selected);
 	gtk_xtext_unselect (f->xtext);
 	g_assert_false (gtk_xtext_is_selecting (f->xtext));
+}
+
+static void assert_clipboard (GtkWidget *widget, const char *expected)
+{
+	char *text = gtk_clipboard_wait_for_text (
+		gtk_widget_get_clipboard (widget, GDK_SELECTION_CLIPBOARD));
+	g_assert_cmpstr (text, ==, expected);
+	g_free (text);
+}
+
+static GtkWidget *shortcut_window (GtkWidget *widget)
+{
+	GtkWidget *window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
+	/* Give mapped editor fixtures a stable allocation before the first draw. */
+	gtk_window_set_default_size (GTK_WINDOW (window), 640, 240);
+	gtk_container_set_border_width (GTK_CONTAINER (window), 16);
+	if (GTK_IS_ENTRY (widget))
+	{
+		gtk_widget_set_size_request (widget, 320, 40);
+		gtk_widget_set_valign (widget, GTK_ALIGN_CENTER);
+	}
+	gtk_container_add (GTK_CONTAINER (window), widget);
+	gtk_widget_show_all (window);
+	drain_events ();
+	return window;
+}
+
+static void test_macos_entry_shortcuts (gconstpointer data)
+{
+	gboolean search = GPOINTER_TO_INT (data);
+	GtkWidget *entry = g_object_ref_sink (search ? gtk_search_entry_new () : gtk_entry_new ());
+	GtkWidget *window;
+	GtkClipboard *clipboard;
+	gint64 deadline;
+
+	if (search)
+	{
+		/* Inheritance and clipboard actions do not require drawing. Quartz
+		 * SearchEntry icon rendering can emit an unrelated fatal warning.
+		 * Keep this variant attached to a screen but unmapped; the ordinary
+		 * Entry variant below still exercises a mapped, editable widget. */
+		window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
+		gtk_container_add (GTK_CONTAINER (window), entry);
+		g_assert_true (gtk_widget_has_screen (entry));
+		g_assert_false (gtk_widget_get_mapped (entry));
+	}
+	else
+	{
+		window = shortcut_window (entry);
+		g_assert_true (gtk_widget_get_mapped (entry));
+	}
+	clipboard = gtk_widget_get_clipboard (entry, GDK_SELECTION_CLIPBOARD);
+
+	gtk_entry_set_text (GTK_ENTRY (entry), "hello 猫");
+	gtk_editable_select_region (GTK_EDITABLE (entry), 6, 7);
+	g_assert_true (gtk_bindings_activate (G_OBJECT (entry), GDK_KEY_c, GDK_META_MASK));
+	assert_clipboard (entry, "猫");
+	g_assert_cmpstr (gtk_entry_get_text (GTK_ENTRY (entry)), ==, "hello 猫");
+	g_assert_true (gtk_bindings_activate (G_OBJECT (entry), GDK_KEY_x, GDK_META_MASK));
+	g_assert_cmpstr (gtk_entry_get_text (GTK_ENTRY (entry)), ==, "hello ");
+	assert_clipboard (entry, "猫");
+	g_assert_true (gtk_bindings_activate (G_OBJECT (entry), GDK_KEY_v, GDK_META_MASK));
+	deadline = g_get_monotonic_time () + G_TIME_SPAN_SECOND * 2;
+	while (strcmp (gtk_entry_get_text (GTK_ENTRY (entry)), "hello 猫") &&
+	       g_get_monotonic_time () < deadline)
+	{
+		drain_events ();
+		g_usleep (1000);
+	}
+	g_assert_cmpstr (gtk_entry_get_text (GTK_ENTRY (entry)), ==, "hello 猫");
+
+	/* The old Control actions must no longer perform clipboard editing. */
+	gtk_editable_select_region (GTK_EDITABLE (entry), 0, -1);
+	gtk_clipboard_set_text (clipboard, "sentinel", -1);
+	g_assert_false (gtk_bindings_activate (G_OBJECT (entry), GDK_KEY_c, GDK_CONTROL_MASK));
+	g_assert_false (gtk_bindings_activate (G_OBJECT (entry), GDK_KEY_x, GDK_CONTROL_MASK));
+	g_assert_false (gtk_bindings_activate (G_OBJECT (entry), GDK_KEY_v, GDK_CONTROL_MASK));
+	assert_clipboard (entry, "sentinel");
+	g_assert_cmpstr (gtk_entry_get_text (GTK_ENTRY (entry)), ==, "hello 猫");
+
+	/* Password fields are ordinary entries, not icon-bearing search fields. */
+	if (!search)
+	{
+		gtk_entry_set_visibility (GTK_ENTRY (entry), FALSE);
+		g_assert_true (gtk_bindings_activate (G_OBJECT (entry), GDK_KEY_c, GDK_META_MASK));
+		g_assert_true (gtk_bindings_activate (G_OBJECT (entry), GDK_KEY_x, GDK_META_MASK));
+		assert_clipboard (entry, "sentinel");
+		g_assert_cmpstr (gtk_entry_get_text (GTK_ENTRY (entry)), ==, "hello 猫");
+		gtk_entry_set_visibility (GTK_ENTRY (entry), TRUE);
+	}
+	gtk_editable_set_editable (GTK_EDITABLE (entry), FALSE);
+	g_assert_true (gtk_bindings_activate (G_OBJECT (entry), GDK_KEY_x, GDK_META_MASK));
+	g_assert_true (gtk_bindings_activate (G_OBJECT (entry), GDK_KEY_v, GDK_META_MASK));
+	drain_events ();
+	g_assert_cmpstr (gtk_entry_get_text (GTK_ENTRY (entry)), ==, "hello 猫");
+	gtk_widget_destroy (window);
+	g_object_unref (entry);
+}
+
+static void unexpected_textview_clipboard_action (GtkTextView *view, gpointer data)
+{
+	guint *count = data;
+	GSignalInvocationHint *hint = g_signal_get_invocation_hint (view);
+	(*count)++;
+	/* Fail on incorrect dispatch, before GTK's Quartz rich-text path runs. */
+	g_signal_stop_emission (view, hint->signal_id, hint->detail);
+}
+
+static void test_macos_textview_shortcuts (void)
+{
+	GtkWidget *view = g_object_ref_sink (gtk_text_view_new ());
+	GtkWidget *window = shortcut_window (view);
+	GtkTextBuffer *buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (view));
+	GtkTextIter start, end;
+	gint64 deadline;
+	guint default_actions = 0;
+
+	g_signal_connect (view, "copy-clipboard", G_CALLBACK (unexpected_textview_clipboard_action), &default_actions);
+	g_signal_connect (view, "cut-clipboard", G_CALLBACK (unexpected_textview_clipboard_action), &default_actions);
+	g_signal_connect (view, "paste-clipboard", G_CALLBACK (unexpected_textview_clipboard_action), &default_actions);
+
+	gtk_text_buffer_set_text (buffer, "two\nlines", -1);
+	g_test_message ("Select multiline text");
+	gtk_text_buffer_get_bounds (buffer, &start, &end);
+	gtk_text_buffer_select_range (buffer, &start, &end);
+	g_test_message ("Copy multiline text");
+	g_assert_true (gtk_bindings_activate (G_OBJECT (view), GDK_KEY_c, GDK_META_MASK));
+	g_assert_cmpuint (default_actions, ==, 0);
+	assert_clipboard (view, "two\nlines");
+	g_test_message ("Cut multiline text");
+	g_assert_true (gtk_bindings_activate (G_OBJECT (view), GDK_KEY_x, GDK_META_MASK));
+	g_assert_cmpuint (default_actions, ==, 0);
+	g_assert_cmpint (gtk_text_buffer_get_char_count (buffer), ==, 0);
+	assert_clipboard (view, "two\nlines");
+	g_test_message ("Paste multiline text");
+	g_assert_true (gtk_bindings_activate (G_OBJECT (view), GDK_KEY_v, GDK_META_MASK));
+	g_assert_cmpuint (default_actions, ==, 0);
+	deadline = g_get_monotonic_time () + G_TIME_SPAN_SECOND * 2;
+	while (gtk_text_buffer_get_char_count (buffer) == 0 &&
+	       g_get_monotonic_time () < deadline)
+	{
+		drain_events ();
+		g_usleep (1000);
+	}
+	g_assert_cmpint (gtk_text_buffer_get_char_count (buffer), ==, 9);
+	gtk_text_buffer_get_bounds (buffer, &start, &end);
+	{
+		char *text = gtk_text_buffer_get_text (buffer, &start, &end, FALSE);
+		g_assert_cmpstr (text, ==, "two\nlines");
+		g_free (text);
+	}
+	g_assert_false (gtk_bindings_activate (G_OBJECT (view), GDK_KEY_c, GDK_CONTROL_MASK));
+	g_assert_false (gtk_bindings_activate (G_OBJECT (view), GDK_KEY_x, GDK_CONTROL_MASK));
+	g_assert_false (gtk_bindings_activate (G_OBJECT (view), GDK_KEY_v, GDK_CONTROL_MASK));
+	gtk_widget_destroy (window);
+	g_object_unref (view);
+}
+
+static void test_macos_chat_copy (Fixture *f, gconstpointer data)
+{
+	GtkWidget *entry = g_object_ref_sink (gtk_entry_new ());
+	GtkWidget *window = shortcut_window (entry);
+	GdkEventKey event = {0};
+
+	append (f, "chat selection 猫");
+	select_entries (f, f->xtext->buffer->text_first, f->xtext->buffer->text_last);
+	event.keyval = GDK_KEY_C; /* Caps Lock must not disable chat copying. */
+	event.state = GDK_META_MASK | GDK_LOCK_MASK | GDK_MOD2_MASK;
+	g_assert_true (macos_shortcuts_copy_chat (entry, &event, f->xtext));
+	assert_clipboard (entry, "chat selection 猫");
+
+	/* Selected input takes priority over an older selection in scrollback. */
+	gtk_entry_set_text (GTK_ENTRY (entry), "input");
+	gtk_editable_select_region (GTK_EDITABLE (entry), 0, -1);
+	g_assert_false (macos_shortcuts_copy_chat (entry, &event, f->xtext));
+	g_assert_true (gtk_bindings_activate (G_OBJECT (entry), GDK_KEY_c, GDK_META_MASK));
+	assert_clipboard (entry, "input");
+	gtk_editable_select_region (GTK_EDITABLE (entry), 0, 0);
+	event.state = GDK_META_MASK | GDK_SHIFT_MASK;
+	g_assert_false (macos_shortcuts_copy_chat (entry, &event, f->xtext));
+	event.state = GDK_CONTROL_MASK;
+	g_assert_false (macos_shortcuts_copy_chat (entry, &event, f->xtext));
+	event.state = GDK_META_MASK;
+	event.keyval = GDK_KEY_x;
+	g_assert_false (macos_shortcuts_copy_chat (entry, &event, f->xtext));
+	assert_clipboard (entry, "input");
+	gtk_widget_destroy (window);
+	g_object_unref (entry);
+}
+
+static void assert_entry_selection (GtkWidget *entry, gint start, gint end)
+{
+	gint actual_start, actual_end;
+	g_assert_true (gtk_editable_get_selection_bounds (GTK_EDITABLE (entry),
+	                                                &actual_start, &actual_end));
+	g_assert_cmpint (actual_start, ==, start);
+	g_assert_cmpint (actual_end, ==, end);
+}
+
+static void test_macos_key_theme_fallback (void)
+{
+	GtkWidget *entry = gtk_entry_new ();
+	GtkWidget *window = shortcut_window (entry);
+	gint start, end;
+
+	/* A key-theme reload must keep our overrides first and retain the
+	 * Mac theme's Emacs-style Control+A/E navigation for other keys. */
+	g_object_notify (G_OBJECT (gtk_settings_get_default ()), "gtk-key-theme-name");
+	g_object_notify (G_OBJECT (gtk_settings_get_default ()), "gtk-theme-name");
+	gtk_entry_set_text (GTK_ENTRY (entry), "one two");
+	gtk_editable_set_position (GTK_EDITABLE (entry), -1);
+	g_assert_true (gtk_bindings_activate (G_OBJECT (entry), GDK_KEY_a, GDK_CONTROL_MASK));
+	g_assert_cmpint (gtk_editable_get_position (GTK_EDITABLE (entry)), ==, 0);
+	g_assert_false (gtk_editable_get_selection_bounds (GTK_EDITABLE (entry), &start, &end));
+	g_assert_true (gtk_bindings_activate (G_OBJECT (entry), GDK_KEY_e, GDK_CONTROL_MASK));
+	g_assert_cmpint (gtk_editable_get_position (GTK_EDITABLE (entry)), ==, 7);
+	g_assert_true (gtk_bindings_activate (G_OBJECT (entry), GDK_KEY_a, GDK_META_MASK));
+	assert_entry_selection (entry, 0, 7);
+	g_assert_false (gtk_bindings_activate (G_OBJECT (entry), GDK_KEY_v, GDK_CONTROL_MASK));
+	gtk_widget_destroy (window);
+}
+
+static void test_macos_entry_editing (void)
+{
+	GtkWidget *entry = gtk_entry_new ();
+	GtkWidget *window = shortcut_window (entry);
+
+	gtk_entry_set_text (GTK_ENTRY (entry), "one two three");
+	gtk_editable_set_position (GTK_EDITABLE (entry), 5);
+	g_assert_true (gtk_bindings_activate (G_OBJECT (entry), GDK_KEY_a, GDK_META_MASK));
+	assert_entry_selection (entry, 0, 13);
+	gtk_editable_set_position (GTK_EDITABLE (entry), 5);
+	g_assert_true (gtk_bindings_activate (G_OBJECT (entry), GDK_KEY_Left, GDK_META_MASK));
+	g_assert_cmpint (gtk_editable_get_position (GTK_EDITABLE (entry)), ==, 0);
+	g_assert_true (gtk_bindings_activate (G_OBJECT (entry), GDK_KEY_Right, GDK_META_MASK));
+	g_assert_cmpint (gtk_editable_get_position (GTK_EDITABLE (entry)), ==, 13);
+	g_assert_true (gtk_bindings_activate (G_OBJECT (entry), GDK_KEY_Left, GDK_META_MASK | GDK_SHIFT_MASK));
+	assert_entry_selection (entry, 0, 13);
+	gtk_editable_set_position (GTK_EDITABLE (entry), 13);
+	g_assert_true (gtk_bindings_activate (G_OBJECT (entry), GDK_KEY_Left, GDK_MOD1_MASK));
+	g_assert_cmpint (gtk_editable_get_position (GTK_EDITABLE (entry)), ==, 8);
+	g_assert_true (gtk_bindings_activate (G_OBJECT (entry), GDK_KEY_Left, GDK_MOD1_MASK | GDK_SHIFT_MASK));
+	assert_entry_selection (entry, 4, 8);
+	gtk_editable_set_position (GTK_EDITABLE (entry), 0);
+	g_assert_true (gtk_bindings_activate (G_OBJECT (entry), GDK_KEY_Right, GDK_MOD1_MASK));
+	g_assert_cmpint (gtk_editable_get_position (GTK_EDITABLE (entry)), ==, 3);
+	g_assert_true (gtk_bindings_activate (G_OBJECT (entry), GDK_KEY_Right, GDK_MOD1_MASK | GDK_SHIFT_MASK));
+	assert_entry_selection (entry, 3, 7);
+	gtk_editable_set_position (GTK_EDITABLE (entry), 13);
+	g_assert_true (gtk_bindings_activate (G_OBJECT (entry), GDK_KEY_BackSpace, GDK_MOD1_MASK));
+	g_assert_cmpstr (gtk_entry_get_text (GTK_ENTRY (entry)), ==, "one two ");
+	gtk_entry_set_text (GTK_ENTRY (entry), "猫 abc def");
+	gtk_editable_set_position (GTK_EDITABLE (entry), 6);
+	g_assert_true (gtk_bindings_activate (G_OBJECT (entry), GDK_KEY_BackSpace, GDK_META_MASK));
+	g_assert_cmpstr (gtk_entry_get_text (GTK_ENTRY (entry)), ==, "def");
+	gtk_editable_select_region (GTK_EDITABLE (entry), 0, 2);
+	g_assert_true (gtk_bindings_activate (G_OBJECT (entry), GDK_KEY_BackSpace, GDK_META_MASK));
+	g_assert_cmpstr (gtk_entry_get_text (GTK_ENTRY (entry)), ==, "f");
+	gtk_editable_set_editable (GTK_EDITABLE (entry), FALSE);
+	gtk_editable_set_position (GTK_EDITABLE (entry), -1);
+	g_assert_true (gtk_bindings_activate (G_OBJECT (entry), GDK_KEY_BackSpace, GDK_MOD1_MASK));
+	g_assert_true (gtk_bindings_activate (G_OBJECT (entry), GDK_KEY_BackSpace, GDK_META_MASK));
+	g_assert_cmpstr (gtk_entry_get_text (GTK_ENTRY (entry)), ==, "f");
+	gtk_widget_destroy (window);
+}
+
+static void assert_buffer_text (GtkTextBuffer *buffer, const char *expected)
+{
+	GtkTextIter start, end;
+	char *text;
+	gtk_text_buffer_get_bounds (buffer, &start, &end);
+	text = gtk_text_buffer_get_text (buffer, &start, &end, FALSE);
+	g_assert_cmpstr (text, ==, expected);
+	g_free (text);
+}
+
+static void paste_completed (GtkTextBuffer *buffer, GtkClipboard *clipboard, guint *count)
+{
+	(*count)++;
+}
+
+static void wait_for_paste (guint *count, guint expected)
+{
+	gint64 deadline = g_get_monotonic_time () + 2 * G_TIME_SPAN_SECOND;
+	while (*count < expected && g_get_monotonic_time () < deadline)
+	{
+		drain_events ();
+		g_usleep (1000);
+	}
+	g_assert_cmpuint (*count, ==, expected);
+}
+
+static void text_with_native_type (GtkClipboard *clipboard, GtkSelectionData *selection,
+                                   guint info, gpointer data)
+{
+	if (info == 0)
+		gtk_selection_data_set_text (selection, data, -1);
+}
+
+static void test_macos_multiline_paste (void)
+{
+	GtkWidget *view = gtk_text_view_new ();
+	GtkWidget *window = shortcut_window (view);
+	GtkTextBuffer *buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (view));
+	GtkClipboard *clipboard = gtk_widget_get_clipboard (view, GDK_SELECTION_CLIPBOARD);
+	GtkTextIter start, end;
+	guint pasted = 0;
+	GtkTargetEntry targets[] = {
+		{(gchar *) "UTF8_STRING", 0, 0},
+		/* This base UTI has no preferred MIME name on Quartz. A text paste
+		 * must not enumerate/convert it through GTK's rich-text fallback. */
+		{(gchar *) "public.item", 0, 1}
+	};
+
+	g_signal_connect (buffer, "paste-done", G_CALLBACK (paste_completed), &pasted);
+	gtk_text_buffer_set_text (buffer, "before after", -1);
+	gtk_text_buffer_get_iter_at_offset (buffer, &start, 7);
+	gtk_text_buffer_get_end_iter (buffer, &end);
+	gtk_text_buffer_select_range (buffer, &start, &end);
+	g_assert_true (gtk_clipboard_set_with_data (clipboard, targets, G_N_ELEMENTS (targets),
+	                                           text_with_native_type, NULL, (gpointer) "猫\npasted"));
+	g_assert_true (gtk_bindings_activate (G_OBJECT (view), GDK_KEY_v, GDK_META_MASK));
+	wait_for_paste (&pasted, 1);
+	assert_buffer_text (buffer, "before 猫\npasted");
+
+	gtk_text_view_set_editable (GTK_TEXT_VIEW (view), FALSE);
+	gtk_text_buffer_get_bounds (buffer, &start, &end);
+	gtk_text_buffer_select_range (buffer, &start, &end);
+	gtk_clipboard_set_text (clipboard, "blocked", -1);
+	g_assert_true (gtk_bindings_activate (G_OBJECT (view), GDK_KEY_v, GDK_META_MASK));
+	wait_for_paste (&pasted, 2);
+	assert_buffer_text (buffer, "before 猫\npasted");
+	g_assert_false (gtk_text_view_get_editable (GTK_TEXT_VIEW (view)));
+	g_assert_true (gtk_bindings_activate (G_OBJECT (view), GDK_KEY_x, GDK_META_MASK));
+	assert_buffer_text (buffer, "before 猫\npasted");
+	assert_clipboard (view, "before 猫\npasted");
+	gtk_clipboard_clear (clipboard);
+	gtk_widget_destroy (window);
+}
+
+static void test_macos_multiline_editing (void)
+{
+	GtkWidget *view = gtk_text_view_new ();
+	GtkWidget *window = shortcut_window (view);
+	GtkTextBuffer *buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (view));
+	GtkTextIter start, end;
+
+	gtk_text_buffer_set_text (buffer, "first\nsecond", -1);
+	gtk_text_buffer_get_iter_at_offset (buffer, &start, 9);
+	gtk_text_buffer_place_cursor (buffer, &start);
+	g_assert_true (gtk_bindings_activate (G_OBJECT (view), GDK_KEY_Left, GDK_META_MASK));
+	gtk_text_buffer_get_iter_at_mark (buffer, &start, gtk_text_buffer_get_insert (buffer));
+	g_assert_cmpint (gtk_text_iter_get_offset (&start), ==, 6);
+	g_assert_true (gtk_bindings_activate (G_OBJECT (view), GDK_KEY_Right, GDK_META_MASK | GDK_SHIFT_MASK));
+	g_assert_true (gtk_text_buffer_get_selection_bounds (buffer, &start, &end));
+	g_assert_cmpint (gtk_text_iter_get_offset (&start), ==, 6);
+	g_assert_cmpint (gtk_text_iter_get_offset (&end), ==, 12);
+	g_assert_true (gtk_bindings_activate (G_OBJECT (view), GDK_KEY_a, GDK_META_MASK));
+	g_assert_true (gtk_text_buffer_get_selection_bounds (buffer, &start, &end));
+	g_assert_cmpint (gtk_text_iter_get_offset (&start), ==, 0);
+	g_assert_cmpint (gtk_text_iter_get_offset (&end), ==, 12);
+	gtk_text_buffer_get_iter_at_offset (buffer, &start, 9);
+	gtk_text_buffer_place_cursor (buffer, &start);
+	g_assert_true (gtk_bindings_activate (G_OBJECT (view), GDK_KEY_BackSpace, GDK_META_MASK));
+	assert_buffer_text (buffer, "first\nond");
+	g_assert_true (gtk_bindings_activate (G_OBJECT (view), GDK_KEY_Down, GDK_META_MASK));
+	gtk_text_buffer_get_iter_at_mark (buffer, &start, gtk_text_buffer_get_insert (buffer));
+	g_assert_cmpint (gtk_text_iter_get_offset (&start), ==, 9);
+	g_assert_true (gtk_bindings_activate (G_OBJECT (view), GDK_KEY_Up, GDK_META_MASK | GDK_SHIFT_MASK));
+	g_assert_true (gtk_text_buffer_get_selection_bounds (buffer, &start, &end));
+	g_assert_cmpint (gtk_text_iter_get_offset (&start), ==, 0);
+	g_assert_cmpint (gtk_text_iter_get_offset (&end), ==, 9);
+	/* An existing selection is deleted without removing the rest of its line. */
+	gtk_text_buffer_get_iter_at_offset (buffer, &start, 7);
+	gtk_text_buffer_get_iter_at_offset (buffer, &end, 8);
+	gtk_text_buffer_select_range (buffer, &start, &end);
+	g_assert_true (gtk_bindings_activate (G_OBJECT (view), GDK_KEY_BackSpace, GDK_META_MASK));
+	assert_buffer_text (buffer, "first\nod");
+	gtk_text_view_set_editable (GTK_TEXT_VIEW (view), FALSE);
+	gtk_text_buffer_get_end_iter (buffer, &end);
+	gtk_text_buffer_place_cursor (buffer, &end);
+	g_assert_true (gtk_bindings_activate (G_OBJECT (view), GDK_KEY_BackSpace, GDK_META_MASK));
+	assert_buffer_text (buffer, "first\nod");
+	gtk_text_view_set_editable (GTK_TEXT_VIEW (view), TRUE);
+	{
+		GtkTextTag *protected = gtk_text_buffer_create_tag (buffer, "protected", "editable", FALSE, NULL);
+		gtk_text_buffer_get_iter_at_offset (buffer, &start, 6);
+		gtk_text_buffer_get_iter_at_offset (buffer, &end, 7);
+		gtk_text_buffer_apply_tag (buffer, protected, &start, &end);
+		gtk_text_buffer_get_end_iter (buffer, &end);
+		gtk_text_buffer_place_cursor (buffer, &end);
+		g_assert_true (gtk_bindings_activate (G_OBJECT (view), GDK_KEY_BackSpace, GDK_META_MASK));
+		assert_buffer_text (buffer, "first\no");
+	}
+	gtk_text_buffer_set_text (buffer, "one two\nthree four", -1);
+	gtk_text_buffer_get_end_iter (buffer, &end);
+	gtk_text_buffer_place_cursor (buffer, &end);
+	g_assert_true (gtk_bindings_activate (G_OBJECT (view), GDK_KEY_BackSpace, GDK_MOD1_MASK));
+	assert_buffer_text (buffer, "one two\nthree ");
+	gtk_text_buffer_get_iter_at_offset (buffer, &start, 4);
+	gtk_text_buffer_get_iter_at_offset (buffer, &end, 7);
+	gtk_text_buffer_select_range (buffer, &start, &end);
+	g_assert_true (gtk_bindings_activate (G_OBJECT (view), GDK_KEY_BackSpace, GDK_MOD1_MASK));
+	assert_buffer_text (buffer, "one \nthree ");
+	gtk_widget_destroy (window);
+}
+
+static guint preferences_opened;
+
+static void test_open_preferences (void)
+{
+	preferences_opened++;
+}
+
+static void count_minimize (GtkWindow *window, guint *count)
+{
+	(*count)++;
+	/* Check action routing without requiring an X11 window manager. */
+	g_signal_stop_emission_by_name (window, "zoitechat-macos-minimize");
+}
+
+static void test_macos_window_shortcuts (void)
+{
+	GtkWidget *window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
+	guint minimized = 0;
+	preferences_opened = 0;
+	g_signal_connect (window, "zoitechat-macos-minimize", G_CALLBACK (count_minimize), &minimized);
+	g_assert_true (gtk_bindings_activate (G_OBJECT (window), GDK_KEY_comma, GDK_META_MASK));
+	g_assert_cmpuint (preferences_opened, ==, 1);
+	g_assert_true (gtk_bindings_activate (G_OBJECT (window), GDK_KEY_m, GDK_META_MASK));
+	g_assert_cmpuint (minimized, ==, 1);
+	gtk_widget_destroy (window);
+}
+
+static void test_macos_legacy_defaults (void)
+{
+	const struct {
+		guint key, new_key;
+		GdkModifierType mod, new_mod;
+		const char *action, *data1, *data2;
+		gboolean remapped;
+	} cases[] = {
+		{GDK_KEY_Tab, GDK_KEY_Tab, GDK_META_MASK, GDK_CONTROL_MASK, "Complete nick/command", "Up", NULL, TRUE},
+		{GDK_KEY_Left, GDK_KEY_Left, GDK_MOD1_MASK, GDK_META_MASK | GDK_MOD1_MASK, "Move front tab left", NULL, NULL, TRUE},
+		{GDK_KEY_Right, GDK_KEY_Right, GDK_MOD1_MASK, GDK_META_MASK | GDK_MOD1_MASK, "Move front tab right", "", "", TRUE},
+		{GDK_KEY_m, GDK_KEY_R, GDK_META_MASK, GDK_META_MASK | GDK_SHIFT_MASK, "Menu Shortcut", "reset-marker", NULL, TRUE},
+		{GDK_KEY_m, GDK_KEY_m, GDK_META_MASK, GDK_META_MASK, "Menu Shortcut", "search-text", NULL, FALSE},
+		{GDK_KEY_m, GDK_KEY_m, GDK_CONTROL_MASK, GDK_CONTROL_MASK, "Menu Shortcut", "reset-marker", NULL, FALSE},
+		{GDK_KEY_Left, GDK_KEY_Left, GDK_MOD1_MASK, GDK_MOD1_MASK, "Move front tab left", "custom", NULL, FALSE},
+		{GDK_KEY_Tab, GDK_KEY_Tab, GDK_META_MASK, GDK_META_MASK, "Complete nick/command", "Up", "custom", FALSE},
+	};
+	guint i;
+	for (i = 0; i < G_N_ELEMENTS (cases); i++)
+	{
+		guint key = cases[i].key;
+		GdkModifierType mod = cases[i].mod;
+		g_assert_cmpint (macos_shortcuts_remap_default (&key, &mod, cases[i].action,
+		                                               cases[i].data1, cases[i].data2), ==, cases[i].remapped);
+		g_assert_cmpuint (key, ==, cases[i].new_key);
+		g_assert_cmpuint (mod, ==, cases[i].new_mod);
+		/* Saved migrated shortcuts must be stable on subsequent launches. */
+		g_assert_false (macos_shortcuts_remap_default (&key, &mod, cases[i].action,
+		                                             cases[i].data1, cases[i].data2));
+	}
 }
 
 static void test_search (Fixture *f, gconstpointer data)
@@ -567,7 +1032,44 @@ int main (int argc, char **argv)
 		g_test_message ("GTK display unavailable; run under Xvfb for widget coverage");
 		return 77;
 	}
+	g_object_set (gtk_settings_get_default (), "gtk-enable-animations", FALSE, NULL);
+	/* Quartz installs this CSS key theme automatically. Exercise its higher
+	 * priority bindings on Linux too, rather than only testing GTK classes. */
+	g_object_set (gtk_settings_get_default (), "gtk-key-theme-name", "Mac", NULL);
+	if (!gtk_binding_set_find ("gtk-mac-cmd-c"))
+	{
+		/* Some Linux packages omit GTK's Mac theme. Reproduce the upstream
+		 * CSS clipboard bindings so this regression is still tested there. */
+		GtkCssProvider *keys = gtk_css_provider_new ();
+		g_test_message ("Using portable Mac key-theme fixture");
+		gtk_css_provider_load_from_data (keys,
+			"@binding-set zoitechat-test-mac-clipboard {"
+			" bind '<meta>c' { 'copy-clipboard' () };"
+			" bind '<meta>x' { 'cut-clipboard' () };"
+			" bind '<meta>v' { 'paste-clipboard' () };"
+			" bind '<ctrl>a' { 'move-cursor' (paragraph-ends, -1, 0) };"
+			" bind '<ctrl>e' { 'move-cursor' (paragraph-ends, 1, 0) }; }"
+			"entry, textview { -gtk-key-bindings: zoitechat-test-mac-clipboard; }",
+			-1, NULL);
+		gtk_style_context_add_provider_for_screen (gdk_screen_get_default (),
+			GTK_STYLE_PROVIDER (keys), GTK_STYLE_PROVIDER_PRIORITY_SETTINGS);
+		g_object_unref (keys);
+	}
+	else
+		g_test_message ("Using GTK's installed Mac key theme");
 	prefs.hex_gui_mouse_scroll_speed = 10;
+	/* Exercise the macOS implementation with real GTK widgets on every OS.
+	 * Production only installs these bindings on macOS. */
+	macos_shortcuts_init (test_open_preferences);
+	g_test_add_data_func ("/macos-shortcuts/entry", GINT_TO_POINTER (FALSE), test_macos_entry_shortcuts);
+	g_test_add_data_func ("/macos-shortcuts/search-entry", GINT_TO_POINTER (TRUE), test_macos_entry_shortcuts);
+	g_test_add_func ("/macos-shortcuts/textview", test_macos_textview_shortcuts);
+	g_test_add_func ("/macos-shortcuts/key-theme-fallback", test_macos_key_theme_fallback);
+	g_test_add_func ("/macos-shortcuts/entry-editing", test_macos_entry_editing);
+	g_test_add_func ("/macos-shortcuts/multiline-editing", test_macos_multiline_editing);
+	g_test_add_func ("/macos-shortcuts/multiline-paste", test_macos_multiline_paste);
+	g_test_add_func ("/macos-shortcuts/window", test_macos_window_shortcuts);
+	g_test_add_func ("/macos-shortcuts/legacy-defaults", test_macos_legacy_defaults);
 #define ADD(name, function) g_test_add ("/xtext/" name, Fixture, NULL, fixture_setup, function, fixture_teardown)
 	ADD ("append/empty-bounded", test_empty_and_bounded_append);
 	ADD ("append/utf8-limits", test_utf8_limits);
@@ -577,6 +1079,7 @@ int main (int argc, char **argv)
 	ADD ("layout/wide-metrics", test_wide_metrics);
 	ADD ("render/formatting-timestamps", test_formatting);
 	ADD ("selection/clipboard", test_selection_and_clipboard);
+	ADD ("selection/macos-command-copy", test_macos_chat_copy);
 	ADD ("search/navigation-regex-clear", test_search);
 	ADD ("search/follow", test_follow_search);
 	ADD ("search/unicode-offsets", test_search_unicode_offsets);

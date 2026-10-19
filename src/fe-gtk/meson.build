@@ -109,6 +109,7 @@ if host_machine.system() == 'windows'
 
 elif host_machine.system() == 'darwin'
   add_languages('objc', required: true)
+  zoitechat_gtk_sources += 'macos-shortcuts.c'
   zoitechat_gtk_sources += 'notifications/notification-osx.m'
   zoitechat_gtk_deps += dependency('appleframeworks', modules: ['Cocoa', 'UserNotifications'])
   zoitechat_gtk_objcflags += '-fobjc-arc'
@@ -296,7 +297,7 @@ test('Emoji Font Tests', emoji_font_tests,
 )
 
 xtext_tests = executable('xtext_tests',
-  ['tests/test-xtext.c', '../common/hexcolor.c'],
+  ['tests/test-xtext.c', 'macos-shortcuts.c', '../common/hexcolor.c'],
   include_directories: [config_h_include],
   dependencies: [gtk_dep],
 )
