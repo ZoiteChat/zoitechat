@@ -2713,7 +2713,7 @@ gtk_xtext_selection_get_text (GtkXText *xtext, int *len_ret)
 			first = FALSE;
 			if (ent->mark_end > ent->mark_start)
 			{
-				if (ent->mark_start == 0 && xtext->mark_stamp)
+				if (ent->mark_start == 0 && xtext->mark_stamp && ent->stamp_len == 0)
 				{
 					char *stamp;
 					int len = xtext_get_stamp_str (ent->stamp, &stamp);
@@ -4038,7 +4038,11 @@ gtk_xtext_render_line (GtkXText * xtext, textentry * ent, int line,
 					xtext_draw_bg (xtext, bg_x, y - xtext->font->ascent, bg_w, xtext->fontsize);
 			}
 
-			if (entline == 1 && xtext->auto_indent && xtext->buffer->time_stamp &&
+			/* Preserve margin stamps across indent changes, including plain
+			 * entries with no inline timestamp. Never draw a second stamp
+			 * for entries that already contain an inline timestamp. */
+			if (entline == 1 && (xtext->auto_indent || ent->left_len != -1) &&
+				 ent->stamp_len == 0 && xtext->buffer->time_stamp &&
 				 (!xtext->skip_stamp || xtext->mark_stamp || xtext->force_stamp))
 			{
 				char *time_str;

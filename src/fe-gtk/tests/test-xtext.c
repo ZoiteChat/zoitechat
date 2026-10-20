@@ -211,6 +211,70 @@ static void test_formatting (Fixture *f, gconstpointer data)
 		"nick a\002bold\002 \035italic\035 \00304,02red\017 \037u\037 \036s\036 \026r\026");
 }
 
+static void
+assert_same_xtext_pixels (cairo_surface_t *a, cairo_surface_t *b)
+{
+	g_assert_cmpint (cairo_image_surface_get_width (a), ==, cairo_image_surface_get_width (b));
+	g_assert_cmpint (cairo_image_surface_get_height (a), ==, cairo_image_surface_get_height (b));
+	g_assert_cmpint (cairo_image_surface_get_stride (a), ==, cairo_image_surface_get_stride (b));
+	g_assert_cmpint (memcmp (cairo_image_surface_get_data (a), cairo_image_surface_get_data (b),
+		cairo_image_surface_get_stride (a) * cairo_image_surface_get_height (a)), ==, 0);
+}
+
+static void
+test_timestamp_indent_toggle (Fixture *f, gconstpointer data)
+{
+	xtext_buffer *buf = f->xtext->buffer;
+	cairo_surface_t *before, *after, *hidden;
+	char *selection;
+	int length;
+
+	/* Previously indented entries must retain their margin timestamps. */
+	gtk_xtext_set_indent (f->xtext, TRUE);
+	gtk_xtext_set_time_stamp (buf, TRUE);
+	buf->indent = 130;
+	gtk_xtext_append_indent (buf, (guchar *)"nick", -1, (guchar *)"hello", -1, 1234);
+	gtk_xtext_recalc_widths (buf, FALSE);
+	before = snapshot (f, FALSE);
+	gtk_xtext_set_indent (f->xtext, FALSE);
+	after = snapshot (f, FALSE);
+	assert_same_xtext_pixels (before, after);
+
+	/* Check that a visible stamp, not just an unchanged blank margin,
+	 * was preserved. */
+	gtk_xtext_set_time_stamp (buf, FALSE);
+	hidden = snapshot (f, FALSE);
+	g_assert_cmpint (memcmp (cairo_image_surface_get_data (after),
+		cairo_image_surface_get_data (hidden),
+		cairo_image_surface_get_stride (after) * cairo_image_surface_get_height (after)), !=, 0);
+	cairo_surface_destroy (hidden);
+	cairo_surface_destroy (after);
+	cairo_surface_destroy (before);
+
+	/* Entries already containing an inline stamp must not gain a second
+	 * margin stamp after enabling indentation. */
+	gtk_xtext_clear (buf, 0);
+	gtk_xtext_set_time_stamp (buf, TRUE);
+	gtk_xtext_append_wrap (buf, (guchar *)"[12:34] nick hello", -1, 1234, 8);
+	before = snapshot (f, FALSE);
+	gtk_xtext_set_indent (f->xtext, TRUE);
+	after = snapshot (f, FALSE);
+	assert_same_xtext_pixels (before, after);
+	cairo_surface_destroy (after);
+	cairo_surface_destroy (before);
+
+	/* The same inline stamp must not be duplicated when copied. */
+	buf->text_last->mark_start = 0;
+	buf->text_last->mark_end = buf->text_last->str_len;
+	buf->last_ent_start = buf->text_last;
+	buf->last_ent_end = buf->text_last;
+	f->xtext->selection_buffer = buf;
+	f->xtext->mark_stamp = TRUE;
+	selection = gtk_xtext_selection_get_text (f->xtext, &length);
+	g_assert_cmpstr (selection, ==, "[12:34] nick hello");
+	g_free (selection);
+}
+
 static void select_entries (Fixture *f, textentry *start, textentry *end)
 {
 	textentry *ent;
@@ -1078,6 +1142,7 @@ int main (int argc, char **argv)
 	ADD ("layout/font-isolation", test_font_isolation);
 	ADD ("layout/wide-metrics", test_wide_metrics);
 	ADD ("render/formatting-timestamps", test_formatting);
+	ADD ("render/timestamps-after-indent-toggle", test_timestamp_indent_toggle);
 	ADD ("selection/clipboard", test_selection_and_clipboard);
 	ADD ("selection/macos-command-copy", test_macos_chat_copy);
 	ADD ("search/navigation-regex-clear", test_search);
