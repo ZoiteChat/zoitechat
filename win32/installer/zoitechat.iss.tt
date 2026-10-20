@@ -4,6 +4,18 @@
 ;#define APPARCH "x64"
 ;#define PROJECTDIR "C:\...\zoitechat\win32\installer\"
 
+; CI generates these from the runtimes actually used to build the plugins.
+#if FileExists(PROJECTDIR + "runtimes.generated.iss")
+  #include PROJECTDIR + "runtimes.generated.iss"
+#else
+  ; Manual builds without the preparation script retain the original Perl bundle.
+  #define PythonRuntimeVersion "3.14.8"
+  #define PythonRuntimeURL "https://www.python.org/ftp/python/3.14.8/python-3.14.8-amd64.exe"
+  #define PerlRuntimeVersion "5.42.0.1"
+  #define PerlRuntimeURL "https://github.com/StrawberryPerl/Perl-Dist-Strawberry/releases/download/SP_54201_64bit/strawberry-perl-5.42.0.1-64bit.msi"
+  #define PerlRuntimeDLL "perl542.dll"
+#endif
+
 [Setup]
 AppName=ZoiteChat
 AppVersion={#APPVER}
@@ -58,8 +70,8 @@ Name: "plugins\sysinfo"; Description: "SysInfo"; Types: custom; Flags: disableno
 Name: "plugins\upd"; Description: "Update Checker"; Types: normal custom; Flags: disablenouninstallwarning
 Name: "langs"; Description: "Language Interfaces"; Types: custom; Flags: disablenouninstallwarning
 Name: "langs\lua"; Description: "Lua (LuaJIT 2.1)"; Types: normal custom; Flags: disablenouninstallwarning
-Name: "langs\perl"; Description: "Perl (Strawberry Perl 5.42.0.1)"; Types: custom; Flags: disablenouninstallwarning
-Name: "langs\python"; Description: "Python (Python 3.14.3, or 3.8.10 before Windows 10)"; Types: custom; Flags: disablenouninstallwarning
+Name: "langs\perl"; Description: "Perl (Strawberry Perl {#PerlRuntimeVersion})"; Types: custom; Flags: disablenouninstallwarning
+Name: "langs\python"; Description: "Python (Python {#PythonRuntimeVersion}, or 3.8.10 before Windows 10)"; Types: custom; Flags: disablenouninstallwarning
 Name: "themes"; Description: "GTK3 Themes"; Types: normal minimal custom; Flags: disablenouninstallwarning
 Name: "themes\windows10"; Description: "Windows 10"; Types: normal minimal custom; Flags: disablenouninstallwarning
 Name: "themes\windows10dark"; Description: "Windows 10 Dark"; Types: normal minimal custom; Flags: disablenouninstallwarning
@@ -349,7 +361,7 @@ begin
 	if NeedsLegacyPython() then
 		Result := 'https://www.python.org/ftp/python/3.8.10/python-3.8.10-amd64.exe'
 	else
-		Result := 'https://www.python.org/ftp/python/3.14.3/python-3.14.3-amd64.exe';
+		Result := '{#PythonRuntimeURL}';
 end;
 
 function PythonDLL(): String;
@@ -387,7 +399,7 @@ begin
 	begin
 
 		REDIST := 'https://aka.ms/vs/17/release/vc_redist.x64.exe';
-		PERL := 'https://github.com/StrawberryPerl/Perl-Dist-Strawberry/releases/download/SP_54201_64bit/strawberry-perl-5.42.0.1-64bit.msi';
+		PERL := '{#PerlRuntimeURL}';
 		PY3 := PythonURL();
 		SPELL := 'https://github.com/hexchat/gvsbuild/releases/download/hexchat-2.16.2/HexChat.Spelling.Dictionaries.r2.exe';
 
@@ -399,7 +411,7 @@ begin
 
 		if not WizardSilent() then
 		begin
-			if WizardIsComponentSelected('langs\perl') and not CheckDLL('perl542.dll') then
+			if WizardIsComponentSelected('langs\perl') and not CheckDLL('{#PerlRuntimeDLL}') then
 			begin
 				idpAddFile(PERL, ExpandConstant('{tmp}\perl.msi'))
 			end;

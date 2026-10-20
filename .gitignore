@@ -5,6 +5,10 @@ html/
 *.patch
 tags
 # Win32 generated files
+win32/runtimes.generated.props
+win32/installer/runtimes.generated.iss
+/tools/__pycache__/
+/tools/tests/__pycache__/
 plugins/wmpa/wmpa_h.h
 plugins/wmpa/wmpa_i.c
 src/htm/obj/*

@@ -53,6 +53,37 @@ Python path if your install is elsewhere::
     cmd /c mklink /J C:\gtk-build\python-3.14\x64 C:\Python314
     C:\gtk-build\python-3.14\x64\python.exe -m pip install --upgrade pip cffi
 
+Windows runtime updates
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Both Windows workflows select the latest stable Python **3.14.x** using
+``actions/setup-python`` with ``check-latest: true``. Python 3.15 and prereleases
+are excluded. The separate Python 3.8.10 build for older Windows is retained.
+
+``tools/prepare-windows-runtimes.py`` selects the highest stable x64 Strawberry
+Perl version from its official release feed, verifies the portable ZIP against
+the published SHA-256, and checks the extracted interpreter's version and
+architecture before building. Development versions (odd Perl minor numbers)
+are excluded. The generated MSBuild properties select its headers and DLL;
+the generated Inno include selects the matching MSI, Python installer URL and
+component descriptions. Build logs record the exact selected versions.
+
+For a manual build, first install the latest Python 3.14 point release (at least
+3.14.8), prepare its junction and CFFI as above, then run from the checkout::
+
+    C:\gtk-build\python-3.14\x64\python.exe tools\prepare-windows-runtimes.py
+
+The script downloads the complete Strawberry portable distribution under
+``C:\gtk-build``. Generated configuration files are ignored by Git. Running
+it again refreshes that dependency; builds without generated files retain the
+original manually configured Perl bundle.
+
+Updates happen when a new ZoiteChat build runs. An existing installation keeps
+using its installed compatible Python or Perl; installing/updating ZoiteChat
+does not force an upgrade of an already detected system runtime. MSI/MSIX
+continue to package the scripting plugins; the Inno installer offers runtime
+downloads when the corresponding runtime DLL is missing.
+
 If you use different locations, set these environment variables before building
 instead of editing ``win32\zoitechat.props``:
 

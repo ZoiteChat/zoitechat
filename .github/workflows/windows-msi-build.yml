@@ -31,8 +31,12 @@ jobs:
 
       - uses: actions/setup-python@v7
         with:
-          python-version: '3.14.3'
+          python-version: '3.14'
+          check-latest: true
           architecture: ${{ matrix.arch }}
+
+      - name: Test Windows runtime selection
+        run: python -m unittest discover -s tools/tests -p test_windows_runtimes.py
 
       - name: Install Dependencies
         shell: pwsh
@@ -133,13 +137,13 @@ jobs:
           Download-WithRetry -Url https://github.com/ZoiteChat/gvsbuild/releases/download/zoitechat-2.18.0-pre4/WinSparkle-20260315.7z -OutFile deps\WinSparkle.7z
           & 7z.exe x deps\WinSparkle.7z -oC:\gtk-build\WinSparkle
 
-          Download-WithRetry -Url https://github.com/ZoiteChat/gvsbuild/releases/download/zoitechat-2.18.0-pre4/perl-5.42.0.1-${{ matrix.arch }}.7z -OutFile deps\perl-${{ matrix.arch }}.7z
-          & 7z.exe x deps\perl-${{ matrix.arch }}.7z -oC:\gtk-build\perl-5.42.0.1\${{ matrix.platform }}
+          python tools/prepare-windows-runtimes.py
+          if ($LASTEXITCODE -ne 0) { throw 'Could not prepare Windows scripting runtimes' }
 
           $pyRoot = $env:pythonLocation
           if (-not $pyRoot) { $pyRoot = & python -c "import sys; print(sys.prefix)" }
 
-          foreach ($pyDir in @("C:\gtk-build\python-3.14.3", "C:\gtk-build\python-3.14")) {
+          foreach ($pyDir in @("C:\gtk-build\python-3.14")) {
             New-Item -Path $pyDir -ItemType Directory -Force | Out-Null
             $target = Join-Path $pyDir "${{ matrix.platform }}"
             if (Test-Path $target) { Remove-Item $target -Recurse -Force }
@@ -172,7 +176,7 @@ jobs:
         run: |
           call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat"
 
-          set "PYTHON_DIR=C:\gtk-build\python-3.14.3\${{ matrix.platform }}"
+          set "PYTHON_DIR=C:\gtk-build\python-3.14\${{ matrix.platform }}"
           if not exist "%PYTHON_DIR%\libs\python314.lib" (
             echo Missing %PYTHON_DIR%\libs\python314.lib
             dir "%PYTHON_DIR%\libs"
@@ -197,6 +201,13 @@ jobs:
 
           msbuild win32\zoitechat.sln /m /verbosity:minimal /p:Configuration=Release /p:Platform=${{ matrix.platform }}
           if errorlevel 1 exit /b 1
+
+          for %%P in (hcpython3 hcperl) do (
+            if not exist "..\zoitechat-build\${{ matrix.platform }}\rel\plugins\%%P.dll" (
+              echo Required scripting plugin %%P.dll was not built
+              exit /b 1
+            )
+          )
 
           if not exist "..\zoitechat-build\${{ matrix.platform }}\rel\plugins\hcpython38.dll" (
             echo hcpython38.dll was not built
