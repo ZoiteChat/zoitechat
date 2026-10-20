@@ -71,6 +71,12 @@ Packagers may exclude `docs/_theme/basicstrap/` from the source package.
 The default theme continues to build without that directory. No pre-minified
 third-party assets need to be added or rebuilt for this theme.
 
+The Meson option `-Dinstall-docs` defaults to `false`, so platforms that
+do not ship offline documentation do not need Sphinx just to build ZoiteChat.
+Pass `-Dinstall-docs=true` when packaging local HTML documentation. Fedora
+and AppImage enable it explicitly; the Debian documentation package can do
+the same.
+
 Build with the distribution's `python3-sphinx`. After installing the HTML
 into the package staging directory, use `dh_sphinxdoc` (or `dh --with
 sphinxdoc`) to replace Sphinx's standard JavaScript files with system

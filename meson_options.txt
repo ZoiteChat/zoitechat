@@ -37,7 +37,10 @@ option('install-appdata', type: 'boolean',
 option('install-plugin-metainfo', type: 'boolean', value: false,
   description: 'Installs metainfo files for enabled plugins, useful when distros create split packages'
 )
-option('install-docs', type: 'boolean', value: true,
+option('install-emoji-font', type: 'boolean', value: true,
+  description: 'Install the bundled Noto Color Emoji font instead of using system emoji fonts'
+)
+option('install-docs', type: 'boolean', value: false,
   description: 'Build and install the local HTML documentation'
 )
 

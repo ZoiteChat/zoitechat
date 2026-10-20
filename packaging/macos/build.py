@@ -48,6 +48,7 @@ def main() -> None:
         "--prefix=/", "--libdir=lib", "--buildtype=release", "-Dgtk-frontend=true",
         "-Dtext-frontend=false", "-Dmac-integration=enabled", "-Ddbus=disabled",
         "-Dlibcanberra=disabled", "-Dappindicator=disabled", "-Dinstall-appdata=false",
+        "-Dinstall-docs=false",
         "-Dwith-sysinfo=false", "-Dwith-python=false", "-Dwith-perl=false",
         "-Dwith-lua=lua", "-Dwith-fishlim=true", "-Dwith-checksum=true",
         "-Dplugin=" + ("false" if args.store_experimental else "true"),

@@ -45,6 +45,7 @@ jobs:
           rm -rf build
           meson setup build \
             --prefix=/usr \
+            -Dinstall-docs=true \
             -Dtext-frontend=true \
             -Dwith-perl=perl \
             -Dwith-python=python3 \

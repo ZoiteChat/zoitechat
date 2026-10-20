@@ -53,6 +53,7 @@ systems.
 
 %build
 %meson \
+  -Dinstall-docs=true \
   -Dtext-frontend=false \
   -Dwith-checksum=true \
   -Dwith-fishlim=true \
