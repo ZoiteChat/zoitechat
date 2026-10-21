@@ -25,6 +25,7 @@ zoitechat_gtk_sources = [
   'gtkutil.c',
   'icon-resolver.c',
   'ignoregui.c',
+  'idle.c',
   'inline-image.c',
   'joind.c',
   'menu.c',
@@ -45,6 +46,7 @@ zoitechat_gtk_sources = [
 ]
 
 zoitechat_gtk_cflags = []
+idle_deps = []
 
 zoitechat_gtk_deps = [
   zoitechat_common_dep,
@@ -93,9 +95,17 @@ if host_machine.system() != 'windows'
     zoitechat_gtk_deps += gdk_x11_dep
   endif
 
+  xss_dep = dependency('xscrnsaver', required: false)
+  if gdk_x11_dep.found() and xss_dep.found()
+    zoitechat_gtk_deps += xss_dep
+    idle_deps += [gdk_x11_dep, xss_dep]
+    zoitechat_gtk_cflags += '-DHAVE_XSS'
+  endif
+
   x11_dep = dependency('x11', required: false)
   if x11_dep.found()
     zoitechat_gtk_deps += x11_dep
+    idle_deps += x11_dep
   endif
 endif
 
@@ -105,13 +115,16 @@ zoitechat_gtk_objcflags = []
 if host_machine.system() == 'windows'
   zoitechat_gtk_sources += 'notifications/notification-windows.c'
   zoitechat_gtk_deps += cc.find_library('dwmapi', required: true)
+  idle_deps += cc.find_library('user32', required: true)
+  zoitechat_gtk_deps += idle_deps
   zoitechat_theme_deps += cc.find_library('dwmapi', required: true)
 
 elif host_machine.system() == 'darwin'
   add_languages('objc', required: true)
   zoitechat_gtk_sources += 'macos-shortcuts.c'
   zoitechat_gtk_sources += 'notifications/notification-osx.m'
-  zoitechat_gtk_deps += dependency('appleframeworks', modules: ['Cocoa', 'UserNotifications'])
+  zoitechat_gtk_deps += dependency('appleframeworks', modules: ['Cocoa', 'UserNotifications', 'CoreGraphics'])
+  idle_deps += dependency('appleframeworks', modules: ['CoreGraphics'])
   zoitechat_gtk_objcflags += '-fobjc-arc'
 else
   zoitechat_gtk_sources += 'notifications/notification-freedesktop.c'
@@ -302,3 +315,11 @@ xtext_tests = executable('xtext_tests',
   dependencies: [gtk_dep],
 )
 test('XText Tests', xtext_tests, protocol: 'tap', timeout: 120)
+
+idle_tests = executable('idle_tests',
+  'tests/test-idle.c',
+  include_directories: [config_h_include],
+  dependencies: [gtk_dep] + idle_deps,
+  c_args: zoitechat_gtk_cflags,
+)
+test('Idle Backend Tests', idle_tests, protocol: 'tap', timeout: 30)

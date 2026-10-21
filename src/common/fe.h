@@ -142,6 +142,7 @@ void fe_lastlog (session *sess, session *lastlog_sess, char *sstr, gtk_xtext_sea
 void fe_set_lag (server *serv, long lag);
 void fe_set_throttle (server *serv);
 void fe_set_away (server *serv);
+gint64 fe_get_idle_time (void);
 void fe_serverlist_open (session *sess);
 void fe_get_bool (char *title, char *prompt, void *callback, void *userdata);
 void fe_get_str (char *prompt, char *def, void *callback, void *ud);

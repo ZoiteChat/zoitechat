@@ -48,6 +48,12 @@
 #endif
 
 
+gint64
+fe_get_idle_time (void)
+{
+	return -1;
+}
+
 static int done = FALSE;
 
 

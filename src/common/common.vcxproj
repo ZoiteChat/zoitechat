@@ -11,6 +11,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="autoaway.h" />
     <ClInclude Include="cfgfiles.h" />
     <ClInclude Include="chanopt.h" />
     <ClInclude Include="ctcp.h" />
@@ -52,6 +53,7 @@
     <ClInclude Include="gtk3-theme-service.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="autoaway.c" />
     <ClCompile Include="cfgfiles.c" />
     <ClCompile Include="chanopt.c" />
     <ClCompile Include="ctcp.c" />

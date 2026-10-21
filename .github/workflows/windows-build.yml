@@ -198,7 +198,7 @@ jobs:
           )
         shell: cmd
 
-      - name: Test emoji catalog, font coverage and picker
+      - name: Test autoaway, emoji catalog, font coverage and picker
         shell: cmd
         run: |
           call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat"
@@ -213,6 +213,10 @@ jobs:
             ..\zoitechat-build\x64\tests\emoji-%%T-tests.exe --tap
             if errorlevel 1 exit /b 1
           )
+          msbuild win32\autoaway-tests.vcxproj /m /verbosity:minimal /p:Configuration=Release /p:Platform=x64
+          if errorlevel 1 exit /b 1
+          ..\zoitechat-build\x64\tests\autoaway-tests.exe --tap
+          if errorlevel 1 exit /b 1
 
       - name: Preparing Artifacts
         run: |

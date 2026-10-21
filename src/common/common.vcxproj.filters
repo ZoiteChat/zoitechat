@@ -17,6 +17,9 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="autoaway.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="cfgfiles.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -136,6 +139,9 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="autoaway.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="cfgfiles.c">
       <Filter>Source Files</Filter>
     </ClCompile>

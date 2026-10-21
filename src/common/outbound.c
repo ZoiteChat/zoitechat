@@ -54,6 +54,7 @@
 #include "server.h"
 #include "tree.h"
 #include "outbound.h"
+#include "autoaway.h"
 #include "chanopt.h"
 
 #define TBUFSIZE 4096
@@ -360,6 +361,10 @@ cmd_away (struct session *sess, char *tbuf, char *word[], char *word_eol[])
 {
 	char *reason = word_eol[2];
 
+	/* Restoring a manual away after reconnect is not new user input. */
+	if (!sess->server->reconnect_away)
+		autoaway_manual (sess->server);
+
 	if (!(*reason))
 	{
 		if (sess->server->is_away)
@@ -396,7 +401,10 @@ cmd_away (struct session *sess, char *tbuf, char *word[], char *word_eol[])
 static int
 cmd_back (struct session *sess, char *tbuf, char *word[], char *word_eol[])
 {
-	if (sess->server->is_away)
+	gboolean was_autoaway = sess->server->autoaway_owned;
+
+	autoaway_manual (sess->server);
+	if (sess->server->is_away || was_autoaway)
 	{
 		sess->server->p_set_back (sess->server);
 	}
@@ -5050,6 +5058,9 @@ handle_user_input (session *sess, char *text, int history, int nocommand)
 
 	if (*text == '\0')
 		return 1;
+
+	if (history)
+		autoaway_activity ();
 
 	if (history)
 		history_add (&sess->history, text);
