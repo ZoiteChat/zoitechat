@@ -30,6 +30,7 @@
 
 #include "zoitechat.h"
 #include "proto-irc.h"
+#include "autoaway.h"
 #include "ctcp.h"
 #include "fe.h"
 #include "ignore.h"
@@ -438,6 +439,12 @@ irc_raw (server *serv, char *raw)
 {
 	int len;
 	char tbuf[8704];
+
+	/* /QUOTE AWAY and scripts sending raw AWAY also take manual ownership. */
+	if (!g_ascii_strncasecmp (raw, "AWAY", 4) &&
+	    (raw[4] == 0 || raw[4] == ' '))
+		autoaway_manual (serv);
+
 	if (*raw)
 	{
 		len = strlen (raw);

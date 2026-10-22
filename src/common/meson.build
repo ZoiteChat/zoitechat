@@ -1,4 +1,5 @@
 common_sources = [
+  'autoaway.c',
   'cfgfiles.c',
   'chanopt.c',
   'ctcp.c',
@@ -224,3 +225,10 @@ test('Hex Color Tests', hexcolor_tests,
   protocol: 'tap',
   timeout: 120,
 )
+
+autoaway_tests = executable('autoaway_tests',
+  ['tests/test-autoaway.c', 'autoaway.c'],
+  include_directories: [config_h_include, include_directories('.')],
+  dependencies: zoitechat_common_header_deps,
+)
+test('Autoaway Tests', autoaway_tests, protocol: 'tap', timeout: 30)

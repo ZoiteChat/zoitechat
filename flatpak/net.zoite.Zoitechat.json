@@ -55,7 +55,7 @@
       "run-tests": true,
       "test-rule": "",
       "test-commands": [
-        "meson test --print-errorlogs 'Emoji Data Tests' 'Emoji Font Tests'"
+        "meson test --print-errorlogs 'Autoaway Tests' 'Idle Backend Tests' 'Emoji Data Tests' 'Emoji Font Tests'"
       ],
       "config-opts": [
         "-Ddbus-service-use-appid=true",

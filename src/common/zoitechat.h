@@ -105,6 +105,7 @@ struct zoitechatprefs
 	/* these are the rebranded, consistent, sorted zoitechat variables */
 
 	/* BOOLEANS */
+	unsigned int hex_away_auto_system;
 	unsigned int hex_away_auto_unmark;
 	unsigned int hex_away_omit_alerts;
 	unsigned int hex_away_show_once;
@@ -233,6 +234,7 @@ struct zoitechatprefs
 	unsigned int hex_url_logging;
 
 	/* NUMBERS */
+	int hex_away_auto_timeout;
 	int hex_away_size_max;
 	int hex_away_timeout;
 	int hex_completion_amount;
@@ -311,6 +313,7 @@ struct zoitechatprefs
 	int hex_url_grabber_limit;
 
 	/* STRINGS */
+	char hex_away_auto_reason[256];
 	char hex_away_reason[256];
 	char hex_completion_suffix[4];		/* Only ever holds a one-character string. */
 	char hex_dcc_completed_dir[PATHLEN + 1];
@@ -597,6 +600,7 @@ typedef struct server
 	/*time_t connect_time;*/				/* when did it connect? */
 	unsigned long lag_sent;   /* we are still waiting for this ping response*/
 	time_t ping_recv;					/* when we last got a ping reply */
+	gint64 autoaway_sent_at;
 	time_t away_time;					/* when we were marked away */
 
 	char *encoding;
@@ -616,6 +620,7 @@ typedef struct server
 	unsigned int end_of_motd:1;		/* end of motd reached (logged in) */
 	unsigned int sent_quit:1;			/* sent a QUIT already? */
 	unsigned int use_listargs:1;		/* undernet and dalnet need /list >0,<10000 */
+	unsigned int autoaway_owned:1;
 	unsigned int is_away:1;
 	unsigned int reconnect_away:1;	/* whether to reconnect in is_away state */
 	unsigned int dont_use_proxy:1;	/* to proxy or not to proxy */

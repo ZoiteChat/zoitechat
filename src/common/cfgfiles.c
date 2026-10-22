@@ -29,6 +29,7 @@
 #include "fe.h"
 #include "text.h"
 #include "zoitechatc.h"
+#include "autoaway.h"
 #include "typedef.h"
 
 #ifdef WIN32
@@ -359,6 +360,9 @@ default_file (void)
 
 const struct prefs vars[] =
 {
+	{"away_auto_reason", P_OFFSET (hex_away_auto_reason), TYPE_STR},
+	{"away_auto_system", P_OFFINT (hex_away_auto_system), TYPE_BOOL, autoaway_reinit},
+	{"away_auto_timeout", P_OFFINT (hex_away_auto_timeout), TYPE_INT, autoaway_reinit},
 	{"away_auto_unmark", P_OFFINT (hex_away_auto_unmark), TYPE_BOOL},
 	{"away_omit_alerts", P_OFFINT (hex_away_omit_alerts), TYPE_BOOL},
 	{"away_reason", P_OFFSET (hex_away_reason), TYPE_STR},
@@ -767,6 +771,7 @@ load_default_config(void)
 	/* put in default values, anything left out is automatically zero */
 
 	/* BOOLEANS */
+	prefs.hex_away_auto_system = 1;
 	prefs.hex_away_show_once = 1;
 	prefs.hex_away_track = 1;
 	prefs.hex_dcc_auto_resume = 1;
@@ -887,6 +892,7 @@ load_default_config(void)
 	prefs.hex_url_grabber_limit = 100; 		/* 0 means unlimited */
 
 	/* STRINGS */
+	strcpy (prefs.hex_away_auto_reason, _("Idle"));
 	strcpy (prefs.hex_away_reason, _("I'm busy"));
 	strcpy (prefs.hex_completion_suffix, ",");
 #ifdef WIN32
