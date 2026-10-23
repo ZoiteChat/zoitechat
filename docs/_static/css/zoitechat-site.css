@@ -16,7 +16,7 @@
     --success: #236741;
     --code: #f2f4f6;
     --shadow: none;
-    --mono: Consolas,"Liberation Mono",monospace;
+    --mono: Consolas,"DejaVu Sans Mono","Liberation Mono",monospace;
 }
 
 html[data-theme=dark] {
@@ -45,7 +45,7 @@ body {
     margin: 0;
     background: var(--bg);
     color: var(--text);
-    font: 15px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif;
+    font: 15px/1.6 system-ui,-apple-system,"Segoe UI","DejaVu Sans",sans-serif;
 }
 
 a {
