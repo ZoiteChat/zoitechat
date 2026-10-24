@@ -38,6 +38,7 @@ endif
 
 config_h = configuration_data()
 config_h.set('HAVE_GTK_MAC', host_machine.system() == 'darwin' and gtk_mac_dep.found())
+config_h.set10('ZOITECHAT_INSTALL_EMOJI_FONT', get_option('install-emoji-font'))
 config_h.set_quoted('PACKAGE_VERSION', meson.project_version())
 config_h.set_quoted('PACKAGE_NAME', meson.project_name())
 config_h.set_quoted('GETTEXT_PACKAGE', 'zoitechat')

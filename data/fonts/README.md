@@ -5,10 +5,14 @@ Unicode Emoji 17.0. It is vendored from Debian's
 `fonts-noto-color-emoji` 2.051 package, built from the corresponding
 Google Noto Emoji release.
 
-Every GTK build installs this exact file: Windows (installer and portable
-build files), AppImage, Flatpak and native Meson/RPM builds. It is loaded
-into a private Pango/FreeType font map as `ZoiteChat Emoji`; an older system
-Noto font cannot replace it. No font is installed globally on Windows.
+By default, GTK builds install this exact file, including Windows
+(installer and portable builds), AppImage, Flatpak, and native Meson/RPM.
+Meson packagers can set `-Dinstall-emoji-font=false` to omit the bundled
+font and its installed notices and use system emoji fonts instead. An
+explicit `ZOITECHAT_EMOJI_FONT` path still enables the private font map
+in such builds. With the bundled font, it is registered privately as
+`ZoiteChat Emoji`; an older system Noto font cannot replace it. No font
+is installed globally on Windows.
 
 Chat windows and the emoji picker share this map. Fontconfig still loads
 system fonts and configuration for ordinary text, and the configured text
@@ -29,7 +33,9 @@ directory; Windows resolves it relative to the executable. AppImage sets
 ZOITECHAT_EMOJI_FONT="$PWD/data/fonts/NotoColorEmoji.ttf" build/src/fe-gtk/zoitechat
 ```
 
-A missing/unloadable file logs a warning and retains system-font fallback.
+An unexpectedly missing or unloadable bundled font logs a warning and retains
+system-font fallback. When installation is disabled deliberately, fallback is
+quiet unless an explicit `ZOITECHAT_EMOJI_FONT` override is invalid.
 CI verifies the installed copy and tests catalog/font coverage; AppImage and
 Windows also run the interactive picker regression tests. Native themes,
 DPI and different Pango/Cairo versions can still affect pixel-level output.

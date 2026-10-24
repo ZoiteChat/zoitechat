@@ -52,6 +52,16 @@ emoji_font_get_map (void)
 		return map;
 	attempted = TRUE;
 
+#if defined(ZOITECHAT_INSTALL_EMOJI_FONT) && !ZOITECHAT_INSTALL_EMOJI_FONT
+	/* A distribution package can deliberately omit our private font. Keep
+	 * its native/system emoji rendering unless an explicit font is given. */
+	{
+		const char *override = g_getenv ("ZOITECHAT_EMOJI_FONT");
+		if (!override || !*override)
+			return NULL;
+	}
+#endif
+
 	path = emoji_font_path ();
 	if (!path || !g_file_test (path, G_FILE_TEST_IS_REGULAR))
 	{
