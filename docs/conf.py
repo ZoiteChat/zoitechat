@@ -138,10 +138,8 @@ html_context = {
 # of the sidebar.
 html_logo = '_static/zoitechat-logo.svg'
 
-# The name of an image file (within the static path) to use as favicon of the
-# docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
-# pixels large.
-html_favicon = '_static/favicon.ico'
+# Use the ZoiteChat logo instead of the old HexChat favicon.
+html_favicon = '_static/zoitechat-logo.svg'
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
