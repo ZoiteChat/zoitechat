@@ -807,7 +807,7 @@ a.headerlink:focus-visible {
 :root {
     --page: var(--bg);
     --panel: var(--chrome);
-    --font: system-ui, -apple-system, "Segoe UI", sans-serif;
+    --font: system-ui, -apple-system, "Segoe UI", "DejaVu Sans", sans-serif;
 }
 .site-header { padding: 0; }
 .appearance select { min-height: 0; border-radius: 3px; }

@@ -58,18 +58,23 @@ Build from the repository root:
 sphinx-build -b html docs docs/_build/html
 ```
 
-Use a clean output directory when switching themes, so stale Basicstrap
-assets from an earlier build are not included in a package.
+Use a clean output directory when switching themes so stale assets from
+earlier builds are not included in a package.
 
 ## Debian packaging
 
-The active theme does not use the bundled Basicstrap, Bootstrap, jQuery,
-jQuery Cookie, Font Awesome, or icon fonts. Its font stack includes DejaVu
-Sans and DejaVu Sans Mono; no font files are bundled by the theme.
+The `zoitechat` theme uses Sphinx's built-in `basic` theme. It does not
+bundle Bootstrap, jQuery, jQuery Cookie, Font Awesome, or icon fonts.
+Its font stack includes DejaVu Sans and DejaVu Sans Mono; no font files
+are bundled by the theme.
 
-Packagers may exclude `docs/_theme/basicstrap/` from the source package.
-The default theme continues to build without that directory. No pre-minified
-third-party assets need to be added or rebuilt for this theme.
+No pre-minified third-party theme assets need to be added or rebuilt.
+
+The Meson option `-Dinstall-docs` defaults to `false`, so platforms that
+do not ship offline documentation do not need Sphinx just to build ZoiteChat.
+Pass `-Dinstall-docs=true` when packaging local HTML documentation. Fedora
+and AppImage enable it explicitly; the Debian documentation package can do
+the same.
 
 Build with the distribution's `python3-sphinx`. After installing the HTML
 into the package staging directory, use `dh_sphinxdoc` (or `dh --with
