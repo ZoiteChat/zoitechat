@@ -46,6 +46,7 @@
 #include "plugin.h"
 #include "plugin-identd.h"
 #include "plugin-timer.h"
+#include "autoaway.h"
 #include "notify.h"
 #include "server.h"
 #include "servlist.h"
@@ -498,6 +499,8 @@ zoitechat_reinit_timers (void)
 	static int lag_check_update_tag = 0;
 	static int lag_check_tag = 0;
 	static int away_tag = 0;
+
+	autoaway_reinit ();
 
 	if (prefs.hex_notify_timeout && notify_tag == 0)
 	{

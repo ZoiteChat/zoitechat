@@ -54,6 +54,7 @@
 #include "proto-irc.h"
 #include "servlist.h"
 #include "server.h"
+#include "autoaway.h"
 #include "sts.h"
 
 #ifdef USE_OPENSSL
@@ -1873,6 +1874,7 @@ is_server (server *serv)
 void
 server_set_defaults (server *serv)
 {
+	autoaway_reset (serv);
 	g_free (serv->chantypes);
 	g_clear_pointer (&serv->clienttagdeny, g_free);
 	g_free (serv->chanmodes);

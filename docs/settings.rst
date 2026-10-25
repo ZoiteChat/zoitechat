@@ -628,3 +628,38 @@ List of Settings
 +------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | **url\_logging**                   | Toggle logging URLs to *<config>/url.log*.                                                                                                                                                                                                                        |
 +------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+Autoaway
+--------
+
+In **Preferences > Chatting > General > Away**, set **Autoaway after** to a
+number of minutes. The default is 0 (disabled). The separate **Autoaway
+message** defaults to "Idle". No plugin or scripting language is required.
+The same options are available immediately through ``/SET``::
+
+    /SET away_auto_timeout 10
+    /SET away_auto_reason Idle
+    /SET away_auto_system ON
+
+With desktop activity enabled, Windows uses the current login session's last
+input time, macOS uses CoreGraphics input time, and native X11 uses the
+XScreenSaver extension if its development library was available at build time.
+Debian/Ubuntu builders can install ``libxss-dev``; Fedora builders can install
+``libXScrnSaver-devel``. Meson detects this optional dependency automatically.
+
+On native Wayland, XWayland, unsupported desktops, and builds without XScreenSaver,
+autoaway falls back to keyboard, mouse, scroll and touch activity **inside
+ZoiteChat**. Activity in other applications does not reset that fallback timer.
+Set ``away_auto_system OFF`` to always use ZoiteChat activity on every platform.
+The text frontend uses submitted user input. Network traffic, redraws and window
+focus changes do not count as user activity.
+
+Autoaway checks every five seconds, after IRC login finishes, independently on
+each connected network. Returning clears only away states set by autoaway.
+Manual ``/AWAY`` (including ``/AWAY`` while already automatically away) takes
+ownership, so activity does not clear it. ``/BACK`` resets the inactivity timer.
+The existing **Automatically unmark away** setting keeps its separate behaviour
+when sending messages. Do not run another autoaway script at the same time.
+Disabling autoaway clears its own away states. Reconnecting re-evaluates current
+inactivity instead of restoring an outdated automatic away state; manual away
+restoration is unchanged.

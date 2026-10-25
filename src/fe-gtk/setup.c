@@ -558,6 +558,10 @@ static const setting general_settings[] =
         {ST_ENTRY,      N_("Away:"), P_OFFSETNL(hex_away_reason), 0, 0, sizeof prefs.hex_away_reason},
 
         {ST_HEADER,     N_("Away"),0,0,0},
+        {ST_NUMBER,     N_("Autoaway after:"), P_OFFINTNL(hex_away_auto_timeout), N_("Set to 0 to disable automatic away."), (const char **)N_("minutes (0 = off)."), 1440},
+        {ST_ENTRY,      N_("Autoaway message:"), P_OFFSETNL(hex_away_auto_reason), 0, 0, sizeof prefs.hex_away_auto_reason},
+        {ST_TOGGLE,     N_("Use desktop activity when available"), P_OFFINTNL(hex_away_auto_system), N_("Use desktop input on Windows, macOS and X11. Otherwise, use keyboard and mouse activity in ZoiteChat."), 0, 0},
+        {ST_LABEL,      N_("On Wayland, autoaway uses activity in ZoiteChat.\nOnly automatically set away states are cleared when activity resumes.")},
         {ST_TOGGLE,     N_("Show away once"), P_OFFINTNL(hex_away_show_once), N_("Show identical away messages only once."), 0, 0},
         {ST_TOGGLE,     N_("Automatically unmark away"), P_OFFINTNL(hex_away_auto_unmark), N_("Unmark yourself as away before sending messages."), 0, 0},
 

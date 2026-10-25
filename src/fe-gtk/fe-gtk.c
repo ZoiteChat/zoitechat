@@ -59,6 +59,7 @@
 #include "notifygui.h"
 #include "textgui.h"
 #include "fkeys.h"
+#include "idle.h"
 #include "plugin-tray.h"
 #include "urlgrab.h"
 #include "setup.h"
@@ -638,6 +639,7 @@ fe_init (void)
 {
 	theme_manager_init ();
 	key_init ();
+	idle_init ();
 	pixmaps_init ();
 
 #ifdef HAVE_GTK_MAC

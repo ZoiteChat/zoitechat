@@ -26,6 +26,7 @@ BuildRequires:  pkgconfig(gmodule-2.0)
 BuildRequires:  pkgconfig(gtk+-3.0) >= 3.22
 BuildRequires:  pkgconfig(fontconfig) >= 2.13
 BuildRequires:  pkgconfig(pangoft2) >= 1.44
+BuildRequires:  pkgconfig(xscrnsaver)
 BuildRequires:  pkgconfig(iso-codes)
 BuildRequires:  pkgconfig(libarchive)
 BuildRequires:  pkgconfig(libcanberra) >= 0.22
