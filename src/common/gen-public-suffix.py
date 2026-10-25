@@ -38,16 +38,16 @@ def main():
     if len(sys.argv) not in (2, 3):
         raise SystemExit("usage: gen-public-suffix.py <output> [source]")
     output = Path(sys.argv[1])
-    sources = []
     if len(sys.argv) == 3:
-        sources.append(Path(sys.argv[2]))
-    sources.extend(
-        [
-            Path(__file__).with_name("public_suffix_list.dat"),
-            Path("/usr/share/publicsuffix/public_suffix_list.dat"),
-            Path("/app/share/publicsuffix/public_suffix_list.dat"),
-        ]
-    )
+        # An explicit source is authoritative, don't go online behind its back.
+        rules = parse_rules(Path(sys.argv[2]).read_text(encoding="utf-8"))
+        emit_header(str(output), rules)
+        return
+    sources = [
+        Path(__file__).with_name("public_suffix_list.dat"),
+        Path("/usr/share/publicsuffix/public_suffix_list.dat"),
+        Path("/app/share/publicsuffix/public_suffix_list.dat"),
+    ]
     data = None
     for url in URLS:
         try:
