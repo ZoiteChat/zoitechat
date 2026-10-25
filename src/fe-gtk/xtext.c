@@ -264,6 +264,8 @@ typedef struct
 {
 	PangoAttrList *attr_lists[4];
 	int fontwidths[4][128];
+	/* True only for a real drag into the separate timestamp column. */
+	gboolean stamp_column_dragged;
 } GtkXTextPrivate;
 
 static GQuark xtext_private_quark;
@@ -2119,8 +2121,27 @@ static gboolean
 gtk_xtext_check_mark_stamp (GtkXText *xtext, GdkModifierType mask)
 {
 	gboolean redraw = FALSE;
+	gboolean selecting_stamp = FALSE;
 
-	if ((mask & STATE_SHIFT || prefs.hex_text_autocopy_stamp)
+	/* A drag into the timestamp column deliberately includes the stamp.
+	   Ordinary message selection does not.  Only indented views have a
+	   separate timestamp column; inline stamps are part of the text. */
+	if (xtext->button_down && xtext->buffer->time_stamp && xtext->auto_indent)
+	{
+		selecting_stamp =
+			(xtext->select_start_x >= 0 && xtext->select_start_x < xtext->stamp_width) ||
+			(xtext->select_end_x >= 0 && xtext->select_end_x < xtext->stamp_width);
+	}
+
+	/* A zero-byte message selection is not necessarily a selected stamp.
+	   Remember an actual gutter drag rather than inferring it from offsets. */
+	if (xtext->button_down)
+		gtk_xtext_get_private (xtext)->stamp_column_dragged =
+			selecting_stamp &&
+			(xtext->select_start_x != xtext->select_end_x ||
+			 xtext->select_start_y != xtext->select_end_y);
+
+	if ((mask & STATE_SHIFT || prefs.hex_text_autocopy_stamp || selecting_stamp)
 	    && (!prefs.hex_stamp_text || prefs.hex_text_indent))
 	{
 		if (!xtext->mark_stamp)
@@ -2254,13 +2275,15 @@ gtk_xtext_motion_notify (GtkWidget * widget, GdkEventMotion * event)
 
 	if (xtext->button_down)
 	{
+		/* Update the pointer position before deciding whether this drag
+		   explicitly includes the timestamp column. */
+		xtext->select_end_x = x;
+		xtext->select_end_y = y;
 		redraw = gtk_xtext_check_mark_stamp (xtext, mask);
 		gtk_grab_add (widget);
-			xtext->select_end_x = x;
-		xtext->select_end_y = y;
 		gtk_xtext_selection_update (xtext, event, y, !redraw);
 
-		/* user has pressed or released SHIFT, must redraw entire selection */
+		/* SHIFT or timestamp inclusion changed: redraw the full selection. */
 		if (redraw)
 		{
 			xtext->force_stamp = TRUE;
@@ -2431,6 +2454,7 @@ gtk_xtext_unselect (GtkXText *xtext)
 	gtk_xtext_selection_clear (xtext->buffer);
 	xtext->buffer->last_ent_start = NULL;
 	xtext->buffer->last_ent_end = NULL;
+	gtk_xtext_get_private (xtext)->stamp_column_dragged = FALSE;
 	gtk_widget_queue_draw (GTK_WIDGET (xtext));
 }
 
@@ -2638,6 +2662,7 @@ gtk_xtext_button_press (GtkWidget * widget, GdkEventButton * event)
 		}
 	}
 
+	gtk_xtext_get_private (xtext)->stamp_column_dragged = FALSE;
 	xtext->button_down = TRUE;
 	xtext->select_start_x = x;
 	xtext->select_start_y = y;
@@ -2681,7 +2706,10 @@ gtk_xtext_is_selecting (GtkXText *xtext)
 
 	for (ent = buf->last_ent_start; ent; ent = ent->next)
 	{
-		if (ent->mark_start != -1 && ent->mark_end - ent->mark_start > 0)
+		if (ent->mark_start != -1 &&
+			(ent->mark_end > ent->mark_start ||
+			 (ent->mark_start == 0 && xtext->mark_stamp &&
+			  gtk_xtext_get_private (xtext)->stamp_column_dragged)))
 			return TRUE;
 
 		if (ent == buf->last_ent_end)
@@ -2711,18 +2739,20 @@ gtk_xtext_selection_get_text (GtkXText *xtext, int *len_ret)
 			if (!first)
 				g_string_append_c (text, '\n');
 			first = FALSE;
-			if (ent->mark_end > ent->mark_start)
+			/* Preserve empty selected lines.  Only a real timestamp-column
+			   drag should copy a stamp with no message bytes selected. */
+			if (ent->mark_start == 0 && xtext->mark_stamp && ent->stamp_len == 0 &&
+				(ent->mark_end > ent->mark_start ||
+				 gtk_xtext_get_private (xtext)->stamp_column_dragged))
 			{
-				if (ent->mark_start == 0 && xtext->mark_stamp && ent->stamp_len == 0)
-				{
-					char *stamp;
-					int len = xtext_get_stamp_str (ent->stamp, &stamp);
-					g_string_append_len (text, stamp, len);
-					g_free (stamp);
-				}
+				char *stamp;
+				int len = xtext_get_stamp_str (ent->stamp, &stamp);
+				g_string_append_len (text, stamp, len);
+				g_free (stamp);
+			}
+			if (ent->mark_end > ent->mark_start)
 				g_string_append_len (text, (char *)ent->str + ent->mark_start,
 					ent->mark_end - ent->mark_start);
-			}
 		}
 		if (ent == buf->last_ent_end)
 			break;
@@ -3973,6 +4003,12 @@ gtk_xtext_render_stamp (GtkXText * xtext, textentry * ent,
 			ent->mark_start = -1;
 			ent->mark_end = -1;
 		}
+	}
+	else
+	{
+		/* Message selection offsets must not select unrelated stamp bytes. */
+		ent->mark_start = -1;
+		ent->mark_end = -1;
 	}
 
 	y = (xtext->fontsize * line) + xtext->font->ascent - xtext->pixel_offset;
