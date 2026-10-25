@@ -1223,9 +1223,27 @@ theme_gtk3_init (void)
 gboolean
 theme_gtk3_apply_current (GError **error)
 {
+	if (!strcmp (prefs.hex_gui_gtk3_theme, THEME_GTK3_BUILTIN_LIGHT) || !strcmp (prefs.hex_gui_gtk3_theme, THEME_GTK3_BUILTIN_DARK))
+	{
+		/* GTK ships Adwaita on every supported platform. Explicit Light/Dark
+		 * choices must not depend on the desktop theme providing both variants. */
+		GtkSettings *settings = gtk_settings_get_default ();
+		theme_gtk3_disable ();
+		if (settings)
+			settings_apply_property (settings, "gtk-theme-name", "Adwaita");
+		settings_apply_for_variant (!strcmp (prefs.hex_gui_gtk3_theme, THEME_GTK3_BUILTIN_DARK) ?
+			THEME_GTK3_VARIANT_PREFER_DARK : THEME_GTK3_VARIANT_PREFER_LIGHT);
+		return TRUE;
+	}
+
 	if (!prefs.hex_gui_gtk3_theme[0])
 	{
 		theme_gtk3_disable ();
+		/* Restoring a previous theme's settings must not undo an explicit
+		 * appearance choice, including when a settings notification re-enters. */
+		settings_apply_for_variant (prefs.hex_gui_dark_mode == ZOITECHAT_DARK_MODE_AUTO ?
+			THEME_GTK3_VARIANT_FOLLOW_SYSTEM : prefs.hex_gui_dark_mode == ZOITECHAT_DARK_MODE_DARK ?
+			THEME_GTK3_VARIANT_PREFER_DARK : THEME_GTK3_VARIANT_PREFER_LIGHT);
 		return TRUE;
 	}
 

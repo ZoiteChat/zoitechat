@@ -70,7 +70,7 @@ static GtkWidget *entry_nick1;
 static GtkWidget *entry_nick2;
 static GtkWidget *entry_nick3;
 static GtkWidget *entry_guser;
-/* static GtkWidget *entry_greal; */
+static GtkWidget *entry_greal;
 
 enum {
 		SERVER_TREE,
@@ -1650,7 +1650,7 @@ servlist_savegui (void)
 	sp = strchr (prefs.hex_irc_user_name, ' ');
 	if (sp)
 		sp[0] = 0;	/* spaces will break the login */
-	/* strcpy (prefs.hex_irc_real_name, gtk_entry_get_text (GTK_ENTRY (entry_greal))); */
+	safe_strcpy (prefs.hex_irc_real_name, gtk_entry_get_text (GTK_ENTRY (entry_greal)), sizeof(prefs.hex_irc_real_name));
 	servlist_save ();
 	if (!save_config ())
 		fe_message (_("Could not save zoitechat.conf."), FE_MSG_WARN);
@@ -2809,12 +2809,12 @@ servlist_open_networks (void)
 	GtkWidget *label4;
 	GtkWidget *label5;
 	GtkWidget *label6;
-	/* GtkWidget *label7; */
+	GtkWidget *label7;
 	GtkWidget *entry1;
 	GtkWidget *entry2;
 	GtkWidget *entry3;
 	GtkWidget *entry4;
-	/* GtkWidget *entry5; */
+	GtkWidget *entry5;
 	GtkWidget *vbox2;
 	GtkWidget *label1;
 	GtkWidget *table4;
@@ -2900,12 +2900,12 @@ servlist_open_networks (void)
 	gtk_widget_set_halign (label6, GTK_ALIGN_START);
 	gtk_widget_set_valign (label6, GTK_ALIGN_CENTER);
 
-	/* label7 = gtk_label_new_with_mnemonic (_("Rea_l name:"));
+	label7 = gtk_label_new_with_mnemonic (_("Rea_l name:"));
 	gtk_widget_show (label7);
-	gtk_table_attach (GTK_TABLE (table1), label7, 0, 1, 4, 5,
-							(GtkAttachOptions) (GTK_FILL),
-							(GtkAttachOptions) (0), 0, 0);
-	*/
+	servlist_table_attach (table1, label7, 0, 1, 4, 5,
+						   FALSE, FALSE,
+						   SERVLIST_ALIGN_START, SERVLIST_ALIGN_CENTER,
+						   0, 0);
 
 	entry_nick1 = entry1 = gtk_entry_new ();
 	gtk_entry_set_text (GTK_ENTRY (entry1), prefs.hex_irc_nick1);
@@ -2939,12 +2939,14 @@ servlist_open_networks (void)
 						   SERVLIST_ALIGN_FILL, SERVLIST_ALIGN_CENTER,
 						   0, 0);
 
-	/* entry_greal = entry5 = gtk_entry_new ();
+	entry_greal = entry5 = gtk_entry_new ();
+	gtk_entry_set_max_length (GTK_ENTRY (entry5), sizeof prefs.hex_irc_real_name - 1);
 	gtk_entry_set_text (GTK_ENTRY (entry5), prefs.hex_irc_real_name);
 	gtk_widget_show (entry5);
-	gtk_table_attach (GTK_TABLE (table1), entry5, 1, 2, 4, 5,
-							(GtkAttachOptions) (GTK_EXPAND | GTK_FILL),
-							(GtkAttachOptions) (0), 0, 0); */
+	servlist_table_attach (table1, entry5, 1, 2, 4, 5,
+						   TRUE, FALSE,
+						   SERVLIST_ALIGN_FILL, SERVLIST_ALIGN_CENTER,
+						   0, 0);
 
 	vbox2 = gtkutil_box_new (GTK_ORIENTATION_VERTICAL, FALSE, 0);
 	gtk_widget_show (vbox2);
@@ -3098,7 +3100,7 @@ button_connect = gtkutil_button (hbuttonbox1, ICON_SERVLIST_CONNECT, NULL,
 
 	gtk_label_set_mnemonic_widget (GTK_LABEL (label3), entry1);
 	gtk_label_set_mnemonic_widget (GTK_LABEL (label6), entry4);
-	/* gtk_label_set_mnemonic_widget (GTK_LABEL (label7), entry5); */
+	gtk_label_set_mnemonic_widget (GTK_LABEL (label7), entry5);
 
 	gtk_widget_grab_focus (networks_tree);
 	gtk_widget_grab_default (button_close);

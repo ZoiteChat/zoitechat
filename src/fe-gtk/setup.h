@@ -24,5 +24,9 @@
 
 void setup_apply_real (const ThemeChangedEvent *event);
 void setup_open (void);
+/* Stable, untranslated page IDs allow existing menu entries to deep-link. */
+void setup_open_page (const char *id);
+/* Reveal an existing editor, including any nested menu selector, on errors. */
+void setup_reveal_widget (GtkWidget *widget);
 
 #endif

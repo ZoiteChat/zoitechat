@@ -37,5 +37,8 @@ void theme_preferences_stage_begin (void);
 void theme_preferences_stage_apply (void);
 void theme_preferences_stage_commit (void);
 void theme_preferences_stage_discard (void);
+void theme_preferences_stage_revert_runtime (void);
+GtkWidget *theme_preferences_create_color_editor (GtkWindow *parent, gboolean *color_change_flag);
+gboolean theme_preferences_color_editor_stage (GtkWidget *editor, GError **error);
 
 #endif

@@ -38,6 +38,8 @@
 #include "theme/theme-access.h"
 #include "theme/theme-manager.h"
 #include "textgui.h"
+#include "setup.h"
+#include "preferences-persistence.h"
 
 #define ICON_TEXTEVENT_SAVE_AS "document-save-as"
 #define ICON_TEXTEVENT_OPEN "document-open"
@@ -49,6 +51,10 @@ extern char *pntevts[];
 
 static GtkWidget *pevent_dialog = NULL, *pevent_dialog_twid,
 	*pevent_dialog_list, *pevent_dialog_hlist;
+
+static char *pevent_staged[NUM_XP];
+static char *pevent_original[NUM_XP];
+static gboolean pevent_pending;
 
 #define PEVENT_THEME_LISTENER_ID_KEY "textgui.theme-listener-id"
 
@@ -148,10 +154,17 @@ PrintTextRaw (void *xtbuf, unsigned char *text, int indent, time_t stamp)
 }
 
 static void
-pevent_dialog_close (GtkWidget *wid, gpointer arg)
+pevent_preferences_destroy (GtkWidget *widget, gpointer data)
 {
-	pevent_dialog = NULL;
-	pevent_save (NULL);
+	int i;
+	(void)widget; (void)data;
+	pevent_dialog = pevent_dialog_list = pevent_dialog_hlist = pevent_dialog_twid = NULL;
+	for (i = 0; i < NUM_XP; i++)
+	{
+		g_clear_pointer (&pevent_staged[i], g_free);
+		g_clear_pointer (&pevent_original[i], g_free);
+	}
+	pevent_pending = FALSE;
 }
 
 static void
@@ -211,9 +224,14 @@ pevent_edited (GtkCellRendererText *render, gchar *pathstr, gchar *new_text, gpo
 	char *out;
 	int sig;
 
-	if (!gtkutil_treeview_get_selected (GTK_TREE_VIEW (pevent_dialog_list),
-											&iter, ROW_COLUMN, &sig, -1))
+	path = gtk_tree_path_new_from_string (pathstr);
+	if (!gtk_tree_model_get_iter (model, &iter, path))
+	{
+		gtk_tree_path_free (path);
 		return;
+	}
+	gtk_tree_path_free (path);
+	gtk_tree_model_get (model, &iter, ROW_COLUMN, &sig, -1);
 
 	text = new_text;
 	len = strlen (new_text);
@@ -234,16 +252,11 @@ pevent_edited (GtkCellRendererText *render, gchar *pathstr, gchar *new_text, gpo
 		return;
 	}
 
-	path = gtk_tree_path_new_from_string (pathstr);
-	gtk_tree_model_get_iter (model, &iter, path);
 	gtk_list_store_set (GTK_LIST_STORE (model), &iter, TEXT_COLUMN, new_text, -1);
-	gtk_tree_path_free (path);
 
-	g_free (pntevts_text[sig]);
-	g_free (pntevts[sig]);
-
-	pntevts_text[sig] = g_strdup (text);
-	pntevts[sig] = out;
+	g_free (pevent_staged[sig]);
+	pevent_staged[sig] = g_strdup (text);
+	g_free (out);
 
 	out = g_malloc (len + 2);
 	memcpy (out, text, len + 1);
@@ -257,8 +270,7 @@ pevent_edited (GtkCellRendererText *render, gchar *pathstr, gchar *new_text, gpo
 	/* Scroll to bottom */
 	gtk_adjustment_set_value (xtext->adj, gtk_adjustment_get_upper (xtext->adj));
 
-	/* save this when we exit */
-	prefs.save_pevents = 1;
+	/* The Preferences Save action commits this staged template. */
 }
 
 static void
@@ -316,53 +328,222 @@ pevent_dialog_fill (GtkWidget *list)
 		i--;
 		gtk_list_store_insert_with_values (store, &iter, 0,
 													  EVENT_COLUMN, te[i].name,
-													  TEXT_COLUMN, pntevts_text[i],
+													  TEXT_COLUMN, pevent_staged[i],
 													  ROW_COLUMN, i, -1);
 	}
 	while (i != 0);
 }
 
-static void
-pevent_save_req_cb (void *arg1, char *file)
+static char *
+pevent_preferences_serialize (void)
 {
-	if (file)
-		pevent_save (file);
+	GString *text = g_string_new ("");
+	int i;
+	for (i = 0; i < NUM_XP; i++)
+		g_string_append_printf (text, "event_name=%s\nevent_text=%s\n\n", te[i].name, pevent_staged[i]);
+	return g_string_free (text, FALSE);
 }
 
-static void
-pevent_save_cb (GtkWidget * wid, void *data)
+static gboolean
+pevent_preferences_validate (const char *text, int event, GError **error)
 {
-	if (data)
+	char *compiled = NULL;
+	int maximum;
+	if (strpbrk (text, "\r\n") || pevt_build_string (text, &compiled, &maximum) != 0)
 	{
-		gtkutil_file_req (NULL, _("Print Texts File"), pevent_save_req_cb, NULL,
-								NULL, NULL, FRF_WRITE);
-		return;
+		g_free (compiled);
+		g_set_error (error, G_FILE_ERROR, G_FILE_ERROR_INVAL, _("Invalid message format for %s."), te[event].name);
+		return FALSE;
 	}
-	pevent_save (NULL);
-}
-
-static void
-pevent_load_req_cb (void *arg1, char *file)
-{
-	if (file)
+	g_free (compiled);
+	if (maximum > (te[event].num_args & 0x7f))
 	{
-		pevent_load (file);
-		pevent_make_pntevts ();
-		pevent_dialog_fill (pevent_dialog_list);
-		prefs.save_pevents = 1;
+		g_set_error (error, G_FILE_ERROR, G_FILE_ERROR_INVAL, _("%s only supports %d arguments."), te[event].name, te[event].num_args & 0x7f);
+		return FALSE;
 	}
+	return TRUE;
+}
+
+gboolean
+pevent_preferences_import_text (const char *contents, GError **error)
+{
+	char **lines;
+	char *values[NUM_XP] = {0};
+	int i, event = -1, matched = 0;
+	gboolean success = FALSE;
+	if (!pevent_dialog_list)
+	{
+		g_set_error_literal (error, G_FILE_ERROR, G_FILE_ERROR_INVAL, _("Open message formatting before importing templates."));
+		return FALSE;
+	}
+	lines = g_strsplit (contents, "\n", -1);
+	for (i = 0; lines[i]; i++)
+	{
+		char *line = lines[i];
+		gsize length = strlen (line);
+		int n;
+		if (length && line[length - 1] == '\r') line[length - 1] = 0;
+		if (g_str_has_prefix (line, "event_name="))
+		{
+			event = -1;
+			for (n = 0; n < NUM_XP; n++)
+				if (!strcmp (te[n].name, line + 11)) { event = n; break; }
+		}
+		else if (event >= 0 && g_str_has_prefix (line, "event_text="))
+		{
+			if (!pevent_preferences_validate (line + 11, event, error)) goto done;
+			g_free (values[event]);
+			values[event] = g_strdup (line + 11);
+			matched++;
+		}
+	}
+	if (!matched)
+	{
+		g_set_error_literal (error, G_FILE_ERROR, G_FILE_ERROR_INVAL, _("No recognized text events were found in this file."));
+		goto done;
+	}
+	for (i = 0; i < NUM_XP; i++)
+                if (values[i])
+                {
+                        g_free (pevent_staged[i]);
+                        pevent_staged[i] = values[i];
+                        values[i] = NULL;
+                }
+	pevent_dialog_fill (pevent_dialog_list);
+	success = TRUE;
+ done:
+	for (i = 0; i < NUM_XP; i++) g_free (values[i]);
+	g_strfreev (lines);
+	return success;
+}
+
+static gboolean
+pevent_preferences_import (const char *file, GError **error)
+{
+	char *contents;
+	if (!g_file_get_contents (file, &contents, NULL, error)) return FALSE;
+	gboolean result = pevent_preferences_import_text (contents, error);
+	g_free (contents);
+	return result;
+}
+
+typedef struct
+{
+	GWeakRef page;
+	gboolean exporting;
+} PeEventFileRequest;
+
+static void
+pevent_file_request_free (gpointer data)
+{
+	PeEventFileRequest *request = data;
+	g_weak_ref_clear (&request->page);
+	g_free (request);
 }
 
 static void
-pevent_load_cb (GtkWidget * wid, void *data)
+pevent_file_response (GtkNativeDialog *dialog, gint response, PeEventFileRequest *request)
 {
-	gtkutil_file_req (NULL, _("Print Texts File"), pevent_load_req_cb, NULL, NULL, NULL, 0);
+	GtkWidget *page = g_weak_ref_get (&request->page);
+	if (page && page == pevent_dialog && response == GTK_RESPONSE_ACCEPT)
+	{
+		char *file = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (dialog));
+		GError *error = NULL;
+		if (file)
+		{
+			if (request->exporting)
+			{
+				char *contents = pevent_preferences_serialize ();
+				g_file_set_contents (file, contents, -1, &error);
+				g_free (contents);
+			}
+			else pevent_preferences_import (file, &error);
+			if (error) { fe_message (error->message, FE_MSG_ERROR); g_clear_error (&error); }
+			g_free (file);
+		}
+	}
+	if (page) g_object_unref (page);
+	g_object_unref (dialog);
 }
 
 static void
-pevent_ok_cb (GtkWidget * wid, void *data)
+pevent_file_open (GtkWidget *button, gpointer exporting)
 {
-	gtk_widget_destroy (pevent_dialog);
+	GtkFileChooserNative *dialog;
+	PeEventFileRequest *request = g_new0 (PeEventFileRequest, 1);
+	(void)button;
+	request->exporting = GPOINTER_TO_INT (exporting);
+	g_weak_ref_init (&request->page, pevent_dialog);
+	dialog = gtk_file_chooser_native_new (_("Text events file"),
+		GTK_WINDOW (gtk_widget_get_toplevel (pevent_dialog)),
+		request->exporting ? GTK_FILE_CHOOSER_ACTION_SAVE : GTK_FILE_CHOOSER_ACTION_OPEN,
+		request->exporting ? _("_Export") : _("_Import"), _("_Cancel"));
+	gtk_native_dialog_set_modal (GTK_NATIVE_DIALOG (dialog), TRUE);
+	g_object_set_data_full (G_OBJECT (dialog), "request", request, pevent_file_request_free);
+	g_signal_connect (dialog, "response", G_CALLBACK (pevent_file_response), request);
+	gtk_native_dialog_show (GTK_NATIVE_DIALOG (dialog));
+}
+
+gboolean
+pevent_preferences_stage (GError **error)
+{
+	int i;
+	char *contents;
+	pevent_pending = FALSE;
+	if (!pevent_dialog) return TRUE;
+	for (i = 0; i < NUM_XP; i++)
+	{
+		if (!pevent_preferences_validate (pevent_staged[i], i, error))
+		{
+			GtkTreeModel *model = gtk_tree_view_get_model (GTK_TREE_VIEW (pevent_dialog_list));
+			GtkTreeIter iter;
+			gboolean valid = gtk_tree_model_get_iter_first (model, &iter);
+			setup_reveal_widget (pevent_dialog_list);
+			while (valid)
+			{
+				int event;
+				gtk_tree_model_get (model, &iter, ROW_COLUMN, &event, -1);
+				if (event == i)
+				{
+					GtkTreePath *path = gtk_tree_model_get_path (model, &iter);
+					gtk_widget_grab_focus (pevent_dialog_list);
+					gtk_tree_view_set_cursor (GTK_TREE_VIEW (pevent_dialog_list), path, NULL, FALSE);
+					gtk_tree_view_scroll_to_cell (GTK_TREE_VIEW (pevent_dialog_list), path, NULL, FALSE, 0, 0);
+					gtk_tree_path_free (path);
+					break;
+				}
+				valid = gtk_tree_model_iter_next (model, &iter);
+			}
+			return FALSE;
+		}
+		if (g_strcmp0 (pevent_staged[i], pevent_original[i]) != 0) pevent_pending = TRUE;
+	}
+	if (!pevent_pending) return TRUE;
+	for (i = 0; i < NUM_XP; i++)
+		if (g_strcmp0 (pntevts_text[i], pevent_original[i]) != 0)
+		{
+			setup_reveal_widget (pevent_dialog_list);
+			g_set_error_literal (error, G_FILE_ERROR, G_FILE_ERROR_AGAIN, _("Text events changed outside Preferences. Reopen Preferences before editing them."));
+			return FALSE;
+		}
+	contents = pevent_preferences_serialize ();
+	preferences_persistence_stage_file ("pevents.conf", contents);
+	g_free (contents);
+	return TRUE;
+}
+
+void
+pevent_preferences_commit (void)
+{
+	int i;
+	if (!pevent_pending) return;
+	for (i = 0; i < NUM_XP; i++)
+	{
+		g_free (pntevts_text[i]);
+		pntevts_text[i] = g_strdup (pevent_staged[i]);
+	}
+	pevent_make_pntevts ();
+	prefs.save_pevents = 1;
 }
 
 static void
@@ -373,7 +554,7 @@ pevent_test_cb (GtkWidget * wid, GtkWidget * twid)
 
 	for (n = 0; n < NUM_XP; n++)
 	{
-		text = _(pntevts_text[n]);
+		text = pevent_staged[n];
 		len = strlen (text);
 
 		out = g_malloc (len + 2);
@@ -485,22 +666,27 @@ pevent_hlist_treeview_new (GtkWidget *box)
 	return view;
 }
 
-void
-pevent_dialog_show (void)
+static void
+pevent_preferences_preview_realize (GtkWidget *widget, gpointer data)
+{
+	gtk_xtext_set_font (GTK_XTEXT (widget), prefs.hex_text_font);
+}
+
+GtkWidget *
+pevent_preferences_create (void)
 {
 	GtkWidget *vbox, *hbox, *wid, *pane, *preview_pane;
 	XTextColor xtext_palette[XTEXT_COLS];
 
-	if (pevent_dialog)
+	int i;
+	vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 10);
+	pevent_dialog = vbox;
+	for (i = 0; i < NUM_XP; i++)
 	{
-		mg_bring_tofront (pevent_dialog);
-		return;
+		pevent_original[i] = g_strdup (pntevts_text[i]);
+		pevent_staged[i] = g_strdup (pntevts_text[i]);
 	}
-
-	pevent_dialog =
-			  mg_create_generic_tab ("edit events", _("Edit Events"),
-											 TRUE, FALSE, pevent_dialog_close, NULL,
-											 600, 455, &vbox, 0);
+	g_signal_connect (vbox, "destroy", G_CALLBACK (pevent_preferences_destroy), NULL);
 
 	preview_pane = gtk_paned_new (GTK_ORIENTATION_VERTICAL);
 	gtk_box_pack_start (GTK_BOX (vbox), preview_pane, TRUE, TRUE, 0);
@@ -523,7 +709,7 @@ pevent_dialog_show (void)
 	pevent_dialog_twid = gtk_xtext_new (xtext_palette, 0);
 	gtk_widget_set_sensitive (pevent_dialog_twid, FALSE);
 	gtk_container_add (GTK_CONTAINER (wid), pevent_dialog_twid);
-	gtk_xtext_set_font (GTK_XTEXT (pevent_dialog_twid), prefs.hex_text_font);
+	g_signal_connect (pevent_dialog_twid, "realize", G_CALLBACK (pevent_preferences_preview_realize), NULL);
 	g_object_set_data (G_OBJECT (pevent_dialog), "xtext", pevent_dialog_twid);
 	g_object_set_data (G_OBJECT (pevent_dialog), PEVENT_THEME_LISTENER_ID_KEY,
 				   GUINT_TO_POINTER (theme_listener_register ("textgui.events", pevent_dialog_theme_changed, pevent_dialog)));
@@ -532,15 +718,20 @@ pevent_dialog_show (void)
 	hbox = gtk_button_box_new (GTK_ORIENTATION_HORIZONTAL);
 	gtk_button_box_set_layout (GTK_BUTTON_BOX (hbox), GTK_BUTTONBOX_SPREAD);
 	gtk_box_pack_start (GTK_BOX (vbox), hbox, FALSE, FALSE, 4);
-	gtkutil_button (hbox, ICON_TEXTEVENT_SAVE_AS, NULL, pevent_save_cb,
-						 (void *) 1, _("Save As..."));
-	gtkutil_button (hbox, ICON_TEXTEVENT_OPEN, NULL, pevent_load_cb,
-						 NULL, _("Load From..."));
+	gtkutil_button (hbox, ICON_TEXTEVENT_SAVE_AS, NULL, pevent_file_open,
+						 (void *) 1, _("Export..."));
+	gtkutil_button (hbox, ICON_TEXTEVENT_OPEN, NULL, pevent_file_open,
+						 NULL, _("Import..."));
 	gtkutil_button (hbox, NULL, NULL, pevent_test_cb,
 						pevent_dialog_twid, _("Test All"));
-	gtkutil_button (hbox, ICON_TEXTEVENT_OK, NULL, pevent_ok_cb,
-						NULL, _("OK"));
 
 	gtk_widget_show_all (pevent_dialog);
 	pevent_dialog_theme_apply (pevent_dialog);
+	return vbox;
+}
+
+void
+pevent_dialog_show (void)
+{
+	setup_open_page ("events");
 }

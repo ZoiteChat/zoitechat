@@ -21,6 +21,7 @@
 #define ZOITECHAT_PLUGINGUI_H
 
 void plugingui_open (void);
+GtkWidget *plugingui_preferences_create (void);
 void plugingui_load (void);
 
 #endif

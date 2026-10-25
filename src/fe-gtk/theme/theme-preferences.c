@@ -20,6 +20,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
 
 #include "../../common/zoitechat.h"
 #include "../../common/zoitechatc.h"
@@ -35,7 +36,9 @@
 #include "theme-gtk3.h"
 #include "theme-manager.h"
 #include "theme-preferences.h"
+#include "../setup.h"
 #include "theme-runtime.h"
+#include "../textgui.h"
 
 extern void load_text_events (void);
 extern char **text_color_event_names (int color, int *count);
@@ -45,6 +48,11 @@ typedef struct
         GtkWindow *parent;
         GtkWidget *gtk3_combo;
         GtkWidget *gtk3_remove;
+        GtkWidget *theme_cards;
+        GtkWidget *theme_search;
+        GtkWidget *style_buttons[3];
+        GtkWidget *color_editor;
+        GtkWidget *theme_expander;
         gboolean gtk3_populating;
         struct zoitechatprefs *setup_prefs;
 } theme_preferences_ui;
@@ -63,6 +71,9 @@ typedef struct
         GtkWidget *button;
         GtkWidget *entry;
         GtkWidget *preview;
+        GtkWidget *status;
+        GtkWidget *reset;
+        GtkWidget *expander;
         ThemeSemanticToken token;
         char *search_text;
         gboolean *color_change_flag;
@@ -75,11 +86,24 @@ typedef struct
         theme_color_manager_row *row;
         GdkRGBA original;
         gboolean has_original;
+        gboolean original_custom;
 } theme_manager_live_picker_data;
 
 typedef struct
 {
         GPtrArray *rows;
+        GPtrArray *preview_parts;
+        GtkWidget *root;
+        GtkWidget *source;
+        GtkWidget *advanced;
+        GtkWidget *contrast;
+        GtkWidget *contrast_fix;
+        GtkWidget *scheme_buttons[4];
+        GtkWidget *scheme_status;
+        GtkWidget *match_swatches[4];
+        guint listener;
+        guint refresh_idle;
+        gboolean syncing;
         GtkWidget *search_entry;
         gboolean *color_change_flag;
         GtkWidget *preview_window;
@@ -104,6 +128,10 @@ typedef struct
         /* Only explicitly edited tokens are written back to the runtime
          * palette; untouched tokens keep following the GTK3 theme. */
         gboolean staged_dirty[THEME_TOKEN_COUNT];
+        gboolean snapshot_custom[THEME_TOKEN_COUNT];
+        gboolean staged_custom[THEME_TOKEN_COUNT];
+        GtkWidget *source;
+        int dark_mode_snapshot;
         GdkRGBA snapshot[THEME_TOKEN_COUNT];
         GdkRGBA staged[THEME_TOKEN_COUNT];
         /* the GTK3 theme selection is previewed live from the combo, so
@@ -123,11 +151,14 @@ theme_preferences_staged_get_color (ThemeSemanticToken token, GdkRGBA *rgba)
 
         if (theme_preferences_stage.active && theme_preferences_stage.staged_valid[token])
         {
-                *rgba = theme_preferences_stage.staged[token];
+                if (theme_preferences_stage.staged_custom[token])
+                        *rgba = theme_preferences_stage.staged[token];
+                else
+                        return theme_get_default_color_for_widget (theme_preferences_stage.source, token, rgba);
                 return TRUE;
         }
-
-        return theme_get_color (token, rgba);
+        if (theme_runtime_get_user_color (token, rgba)) return TRUE;
+        return theme_get_default_color_for_widget (theme_preferences_stage.source, token, rgba);
 }
 
 static void
@@ -140,7 +171,9 @@ theme_preferences_stage_recompute_changed (void)
         {
                 if (!theme_preferences_stage.snapshot_valid[token] || !theme_preferences_stage.staged_valid[token])
                         continue;
-                if (!gdk_rgba_equal (&theme_preferences_stage.snapshot[token], &theme_preferences_stage.staged[token]))
+                if (theme_preferences_stage.snapshot_custom[token] != theme_preferences_stage.staged_custom[token] ||
+                    (theme_preferences_stage.staged_custom[token] &&
+                     !gdk_rgba_equal (&theme_preferences_stage.snapshot[token], &theme_preferences_stage.staged[token])))
                 {
                         theme_preferences_stage.changed = TRUE;
                         return;
@@ -157,9 +190,15 @@ theme_preferences_stage_sync_runtime_to_snapshot (void)
         {
                 if (theme_preferences_stage.snapshot_valid[token] &&
                     theme_preferences_stage.staged_dirty[token])
-                        theme_manager_set_token_color (ZOITECHAT_DARK_MODE_LIGHT, token,
-                                                       &theme_preferences_stage.snapshot[token], NULL);
+                {
+                        if (theme_preferences_stage.snapshot_custom[token])
+                                theme_manager_set_token_color (ZOITECHAT_DARK_MODE_LIGHT, token,
+                                                               &theme_preferences_stage.snapshot[token], NULL);
+                        else theme_runtime_reset_user_color (token);
+                }
         }
+        theme_manager_apply_and_dispatch (prefs.hex_gui_dark_mode,
+                THEME_CHANGED_REASON_PALETTE | THEME_CHANGED_REASON_WIDGET_STYLE | THEME_CHANGED_REASON_USERLIST, NULL);
 }
 
 static void
@@ -171,9 +210,15 @@ theme_preferences_stage_sync_runtime_to_staged (void)
         {
                 if (theme_preferences_stage.staged_valid[token] &&
                     theme_preferences_stage.staged_dirty[token])
-                        theme_manager_set_token_color (ZOITECHAT_DARK_MODE_LIGHT, token,
-                                                       &theme_preferences_stage.staged[token], NULL);
+                {
+                        if (theme_preferences_stage.staged_custom[token])
+                                theme_manager_set_token_color (ZOITECHAT_DARK_MODE_LIGHT, token,
+                                                               &theme_preferences_stage.staged[token], NULL);
+                        else theme_runtime_reset_user_color (token);
+                }
         }
+        theme_manager_apply_and_dispatch (prefs.hex_gui_dark_mode,
+                THEME_CHANGED_REASON_PALETTE | THEME_CHANGED_REASON_WIDGET_STYLE | THEME_CHANGED_REASON_USERLIST, NULL);
 }
 
 static void
@@ -190,6 +235,7 @@ theme_preferences_staged_set_color (ThemeSemanticToken token, const GdkRGBA *rgb
                 theme_preferences_stage.staged[token] = *rgba;
                 theme_preferences_stage.staged_valid[token] = TRUE;
                 theme_preferences_stage.staged_dirty[token] = TRUE;
+                theme_preferences_stage.staged_custom[token] = TRUE;
                 theme_preferences_stage_recompute_changed ();
                 if (color_change_flag)
                         *color_change_flag = theme_preferences_stage.changed;
@@ -213,6 +259,7 @@ theme_preferences_stage_begin (void)
                    prefs.hex_gui_gtk3_theme,
                    sizeof (theme_preferences_stage.gtk3_theme_snapshot));
         theme_preferences_stage.gtk3_variant_snapshot = prefs.hex_gui_gtk3_variant;
+        theme_preferences_stage.dark_mode_snapshot = prefs.hex_gui_dark_mode;
 
         for (token = THEME_TOKEN_MIRC_0; token < THEME_TOKEN_COUNT; token++)
         {
@@ -221,6 +268,8 @@ theme_preferences_stage_begin (void)
                 if (!theme_preferences_staged_get_color (token, &rgba))
                         continue;
 
+                theme_preferences_stage.snapshot_custom[token] = theme_runtime_get_user_color (token, &rgba);
+                theme_preferences_stage.staged_custom[token] = theme_preferences_stage.snapshot_custom[token];
                 theme_preferences_stage.snapshot[token] = rgba;
                 theme_preferences_stage.staged[token] = rgba;
                 theme_preferences_stage.snapshot_valid[token] = TRUE;
@@ -253,20 +302,30 @@ static void
 theme_preferences_stage_restore_gtk3 (void)
 {
         if (g_strcmp0 (prefs.hex_gui_gtk3_theme, theme_preferences_stage.gtk3_theme_snapshot) == 0 &&
-            prefs.hex_gui_gtk3_variant == theme_preferences_stage.gtk3_variant_snapshot)
+            prefs.hex_gui_gtk3_variant == theme_preferences_stage.gtk3_variant_snapshot &&
+            prefs.hex_gui_dark_mode == theme_preferences_stage.dark_mode_snapshot)
                 return;
 
         g_strlcpy (prefs.hex_gui_gtk3_theme,
                    theme_preferences_stage.gtk3_theme_snapshot,
                    sizeof (prefs.hex_gui_gtk3_theme));
         prefs.hex_gui_gtk3_variant = theme_preferences_stage.gtk3_variant_snapshot;
-
+        prefs.hex_gui_dark_mode = theme_preferences_stage.dark_mode_snapshot;
         theme_gtk3_apply_current (NULL);
+        theme_manager_apply_mode (prefs.hex_gui_dark_mode, NULL);
         theme_manager_dispatch_changed (THEME_CHANGED_REASON_THEME_PACK |
                                         THEME_CHANGED_REASON_PALETTE |
                                         THEME_CHANGED_REASON_WIDGET_STYLE |
                                         THEME_CHANGED_REASON_USERLIST |
                                         THEME_CHANGED_REASON_MODE);
+}
+
+void
+theme_preferences_stage_revert_runtime (void)
+{
+        if (!theme_preferences_stage.active) return;
+        theme_preferences_stage_restore_gtk3 ();
+        theme_preferences_stage_sync_runtime_to_snapshot ();
 }
 
 void
@@ -307,166 +366,140 @@ theme_preferences_manager_ui_free (gpointer data)
         if (!ui)
                 return;
 
-        if (ui->rows)
-                g_ptr_array_unref (ui->rows);
+        if (ui->listener) theme_listener_unregister (ui->listener);
+        if (ui->refresh_idle) g_source_remove (ui->refresh_idle);
+        if (theme_preferences_stage.source == ui->source) theme_preferences_stage.source = NULL;
+        if (ui->preview_parts) g_ptr_array_unref (ui->preview_parts);
+        if (ui->rows) g_ptr_array_unref (ui->rows);
         g_free (ui);
+}
+
+static void theme_preferences_manager_focus_color (theme_color_manager_ui *ui, ThemeSemanticToken token);
+static void theme_preferences_manager_sync_schemes (theme_color_manager_ui *ui);
+static void theme_preferences_manager_refresh_rows (theme_color_manager_ui *ui);
+
+static double
+theme_preferences_luminance (const GdkRGBA *color)
+{
+        double values[] = { color->red, color->green, color->blue };
+        for (guint i = 0; i < 3; i++)
+                values[i] = values[i] <= 0.04045 ? values[i] / 12.92 : pow ((values[i] + 0.055) / 1.055, 2.4);
+        return values[0] * 0.2126 + values[1] * 0.7152 + values[2] * 0.0722;
+}
+
+static double
+theme_preferences_contrast_ratio (const GdkRGBA *foreground, const GdkRGBA *background)
+{
+        GdkRGBA visible = *foreground;
+        visible.red = foreground->red * foreground->alpha + background->red * (1 - foreground->alpha);
+        visible.green = foreground->green * foreground->alpha + background->green * (1 - foreground->alpha);
+        visible.blue = foreground->blue * foreground->alpha + background->blue * (1 - foreground->alpha);
+        double first = theme_preferences_luminance (&visible), second = theme_preferences_luminance (background);
+        return (MAX (first, second) + 0.05) / (MIN (first, second) + 0.05);
 }
 
 static void
 theme_preferences_manager_update_preview (theme_color_manager_ui *ui)
 {
-        GdkRGBA text_fg;
-        GdkRGBA text_bg;
-        GdkRGBA sel_fg;
-        GdkRGBA sel_bg;
-        GdkRGBA marker;
-        GdkRGBA tab_new_data;
-        GdkRGBA tab_new_message;
-        GdkRGBA tab_highlight;
-        GdkRGBA tab_away;
-        GdkRGBA spell;
-        GtkWidget *label;
+        GdkRGBA fg, bg, selected_fg, selected_bg;
+        if (!ui || !ui->preview_parts) return;
+        theme_preferences_staged_get_color (THEME_TOKEN_TEXT_FOREGROUND, &fg);
+        theme_preferences_staged_get_color (THEME_TOKEN_TEXT_BACKGROUND, &bg);
+        theme_preferences_staged_get_color (THEME_TOKEN_SELECTION_FOREGROUND, &selected_fg);
+        theme_preferences_staged_get_color (THEME_TOKEN_SELECTION_BACKGROUND, &selected_bg);
+        gtkutil_apply_palette (ui->preview_window, &bg, &fg, NULL);
+        for (guint i = 0; i < ui->preview_parts->len; i++)
+        {
+                GtkWidget *part = g_ptr_array_index (ui->preview_parts, i);
+                GdkRGBA part_fg, part_bg;
+                ThemeSemanticToken foreground = GPOINTER_TO_INT (g_object_get_data (G_OBJECT (part), "preview-foreground"));
+                ThemeSemanticToken background = GPOINTER_TO_INT (g_object_get_data (G_OBJECT (part), "preview-background"));
+                theme_preferences_staged_get_color (foreground, &part_fg);
+                theme_preferences_staged_get_color (background, &part_bg);
+                gtkutil_apply_palette (part, &part_bg, &part_fg, NULL);
+                gtkutil_apply_palette (gtk_bin_get_child (GTK_BIN (part)), NULL, &part_fg, NULL);
+        }
+        if (ui->contrast)
+        {
+                double normal = theme_preferences_contrast_ratio (&fg, &bg);
+                double selected = theme_preferences_contrast_ratio (&selected_fg, &selected_bg);
+                gboolean warning = normal < 4.5 || selected < 4.5;
+                char *message = warning ? g_strdup_printf (_("Some text may be difficult to read (%.1f:1). Aim for at least 4.5:1. Your choice is still allowed."), MIN (normal, selected)) :
+                        g_strdup ("");
+                gtk_label_set_text (GTK_LABEL (ui->contrast), message);
+                gtk_widget_set_visible (ui->contrast, warning);
+                gtk_widget_set_visible (ui->contrast_fix, warning);
+                g_free (message);
+        }
+        const ThemeSemanticToken swatches[] = { THEME_TOKEN_TEXT_BACKGROUND, THEME_TOKEN_TEXT_FOREGROUND, THEME_TOKEN_TAB_HIGHLIGHT, THEME_TOKEN_TAB_NEW_MESSAGE };
+        for (guint i = 0; i < G_N_ELEMENTS (swatches); i++)
+                if (ui->match_swatches[i])
+                {
+                        GdkRGBA color;
+                        theme_get_default_color_for_widget (theme_preferences_stage.source, swatches[i], &color);
+                        gtkutil_apply_palette (ui->match_swatches[i], &color, NULL, NULL);
+                }
+        theme_preferences_manager_sync_schemes (ui);
+}
 
-        if (!ui)
-                return;
-
-        if (!theme_preferences_staged_get_color (THEME_TOKEN_TEXT_FOREGROUND, &text_fg)
-            || !theme_preferences_staged_get_color (THEME_TOKEN_TEXT_BACKGROUND, &text_bg)
-            || !theme_preferences_staged_get_color (THEME_TOKEN_SELECTION_FOREGROUND, &sel_fg)
-            || !theme_preferences_staged_get_color (THEME_TOKEN_SELECTION_BACKGROUND, &sel_bg)
-            || !theme_preferences_staged_get_color (THEME_TOKEN_MARKER, &marker)
-            || !theme_preferences_staged_get_color (THEME_TOKEN_TAB_NEW_DATA, &tab_new_data)
-            || !theme_preferences_staged_get_color (THEME_TOKEN_TAB_NEW_MESSAGE, &tab_new_message)
-            || !theme_preferences_staged_get_color (THEME_TOKEN_TAB_HIGHLIGHT, &tab_highlight)
-            || !theme_preferences_staged_get_color (THEME_TOKEN_TAB_AWAY, &tab_away)
-            || !theme_preferences_staged_get_color (THEME_TOKEN_SPELL, &spell))
-                return;
-
-        gtkutil_apply_palette (ui->preview_window, &text_bg, &text_fg, NULL);
-        gtkutil_apply_palette (ui->preview_chat, &text_bg, &text_fg, NULL);
-        label = g_object_get_data (G_OBJECT (ui->preview_chat), "zoitechat-preview-label");
-        if (GTK_IS_WIDGET (label))
-                gtkutil_apply_palette (label, NULL, &text_fg, NULL);
-
-        gtkutil_apply_palette (ui->preview_selected, &sel_bg, &sel_fg, NULL);
-        label = g_object_get_data (G_OBJECT (ui->preview_selected), "zoitechat-preview-label");
-        if (GTK_IS_WIDGET (label))
-                gtkutil_apply_palette (label, NULL, &sel_fg, NULL);
-
-        gtkutil_apply_palette (ui->preview_marker, &marker, &text_fg, NULL);
-        label = g_object_get_data (G_OBJECT (ui->preview_marker), "zoitechat-preview-label");
-        if (GTK_IS_WIDGET (label))
-                gtkutil_apply_palette (label, NULL, &text_fg, NULL);
-
-        gtkutil_apply_palette (ui->preview_tab_new_data, &tab_new_data, &text_fg, NULL);
-        label = g_object_get_data (G_OBJECT (ui->preview_tab_new_data), "zoitechat-preview-label");
-        if (GTK_IS_WIDGET (label))
-                gtkutil_apply_palette (label, NULL, &text_fg, NULL);
-
-        gtkutil_apply_palette (ui->preview_tab_new_message, &tab_new_message, &text_fg, NULL);
-        label = g_object_get_data (G_OBJECT (ui->preview_tab_new_message), "zoitechat-preview-label");
-        if (GTK_IS_WIDGET (label))
-                gtkutil_apply_palette (label, NULL, &text_fg, NULL);
-
-        gtkutil_apply_palette (ui->preview_tab_highlight, &tab_highlight, &text_fg, NULL);
-        label = g_object_get_data (G_OBJECT (ui->preview_tab_highlight), "zoitechat-preview-label");
-        if (GTK_IS_WIDGET (label))
-                gtkutil_apply_palette (label, NULL, &text_fg, NULL);
-
-        gtkutil_apply_palette (ui->preview_tab_away, &tab_away, &text_fg, NULL);
-        label = g_object_get_data (G_OBJECT (ui->preview_tab_away), "zoitechat-preview-label");
-        if (GTK_IS_WIDGET (label))
-                gtkutil_apply_palette (label, NULL, &text_fg, NULL);
-
-        gtkutil_apply_palette (ui->preview_spell, &text_bg, &spell, NULL);
-        label = g_object_get_data (G_OBJECT (ui->preview_spell), "zoitechat-preview-label");
-        if (GTK_IS_WIDGET (label))
-                gtkutil_apply_palette (label, NULL, &spell, NULL);
+static void
+theme_preferences_preview_clicked (GtkButton *button, gpointer data)
+{
+        ThemeSemanticToken token = GPOINTER_TO_INT (g_object_get_data (G_OBJECT (button), "edit-token"));
+        theme_preferences_manager_focus_color (data, token);
 }
 
 static GtkWidget *
-theme_preferences_manager_preview_item_new (const char *text)
+theme_preferences_preview_part (theme_color_manager_ui *ui, const char *text,
+                                ThemeSemanticToken foreground, ThemeSemanticToken background, ThemeSemanticToken edit)
 {
-        GtkWidget *box;
-        GtkWidget *label;
-
-        box = gtk_event_box_new ();
-        gtk_event_box_set_visible_window (GTK_EVENT_BOX (box), TRUE);
-        gtk_container_set_border_width (GTK_CONTAINER (box), 3);
-
-        label = gtk_label_new (text);
-        gtk_widget_set_halign (label, GTK_ALIGN_START);
-        gtk_container_add (GTK_CONTAINER (box), label);
-        g_object_set_data (G_OBJECT (box), "zoitechat-preview-label", label);
-
-        return box;
+        GtkWidget *button = gtk_button_new_with_label (text);
+        gtk_button_set_relief (GTK_BUTTON (button), GTK_RELIEF_NONE);
+        gtk_widget_set_halign (button, GTK_ALIGN_FILL);
+        gtk_label_set_xalign (GTK_LABEL (gtk_bin_get_child (GTK_BIN (button))), 0);
+        gtk_label_set_line_wrap (GTK_LABEL (gtk_bin_get_child (GTK_BIN (button))), TRUE);
+        gtk_label_set_max_width_chars (GTK_LABEL (gtk_bin_get_child (GTK_BIN (button))), 25);
+        g_object_set_data (G_OBJECT (button), "preview-foreground", GINT_TO_POINTER (foreground));
+        g_object_set_data (G_OBJECT (button), "preview-background", GINT_TO_POINTER (background));
+        g_object_set_data (G_OBJECT (button), "edit-token", GINT_TO_POINTER (edit));
+        g_signal_connect (button, "clicked", G_CALLBACK (theme_preferences_preview_clicked), ui);
+        gtk_widget_set_tooltip_text (button, _("Select to edit this colour. The same setting is available below the preview."));
+        g_ptr_array_add (ui->preview_parts, button);
+        return button;
 }
 
 static GtkWidget *
 theme_preferences_manager_create_preview (theme_color_manager_ui *ui)
 {
-        GtkWidget *frame;
-        GtkWidget *vbox;
-        GtkWidget *header;
-        GtkWidget *chat_box;
-        GtkWidget *tabs_box;
-        GtkWidget *label;
-
-        frame = gtk_frame_new (_("Live preview"));
-        vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 6);
-        gtk_container_set_border_width (GTK_CONTAINER (vbox), 8);
-        gtk_container_add (GTK_CONTAINER (frame), vbox);
-
+        GtkWidget *frame = gtk_frame_new (_("Preview"));
+        GtkWidget *inside = gtk_box_new (GTK_ORIENTATION_VERTICAL, 2);
+        GtkWidget *body = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 12);
+        GtkWidget *channels = gtk_box_new (GTK_ORIENTATION_VERTICAL, 2);
+        GtkWidget *chat = gtk_box_new (GTK_ORIENTATION_VERTICAL, 2);
+        GtkWidget *line = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
+        gtk_widget_set_tooltip_text (frame, _("Select part of the preview to edit its colour."));
+        ui->preview_parts = g_ptr_array_new ();
         ui->preview_window = gtk_event_box_new ();
-        gtk_event_box_set_visible_window (GTK_EVENT_BOX (ui->preview_window), TRUE);
         gtk_container_set_border_width (GTK_CONTAINER (ui->preview_window), 8);
-        gtk_box_pack_start (GTK_BOX (vbox), ui->preview_window, TRUE, TRUE, 0);
-
-        chat_box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 6);
-        gtk_container_add (GTK_CONTAINER (ui->preview_window), chat_box);
-
-        header = gtk_label_new (_("#zoitechat-preview"));
-        gtk_widget_set_halign (header, GTK_ALIGN_START);
-        gtk_box_pack_start (GTK_BOX (chat_box), header, FALSE, FALSE, 0);
-
-        ui->preview_chat = theme_preferences_manager_preview_item_new (_("<alice> Example chat message"));
-        gtk_box_pack_start (GTK_BOX (chat_box), ui->preview_chat, FALSE, FALSE, 0);
-
-        ui->preview_selected = theme_preferences_manager_preview_item_new (_("Selected text example"));
-        gtk_box_pack_start (GTK_BOX (chat_box), ui->preview_selected, FALSE, FALSE, 0);
-
-        ui->preview_marker = theme_preferences_manager_preview_item_new (_("Marker line"));
-        gtk_widget_set_hexpand (ui->preview_marker, TRUE);
-        gtk_box_pack_start (GTK_BOX (chat_box), ui->preview_marker, FALSE, FALSE, 0);
-
-        ui->preview_spell = theme_preferences_manager_preview_item_new (_("mispelled wrd"));
-        gtk_box_pack_start (GTK_BOX (chat_box), ui->preview_spell, FALSE, FALSE, 0);
-
-        label = gtk_label_new (_("Tab states"));
-        gtk_widget_set_halign (label, GTK_ALIGN_START);
-        gtk_box_pack_start (GTK_BOX (vbox), label, FALSE, FALSE, 0);
-
-        tabs_box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 4);
-        gtk_box_pack_start (GTK_BOX (vbox), tabs_box, FALSE, FALSE, 0);
-
-        ui->preview_tab_new_data = theme_preferences_manager_preview_item_new (_("New data"));
-        gtk_widget_set_hexpand (ui->preview_tab_new_data, TRUE);
-        gtk_box_pack_start (GTK_BOX (tabs_box), ui->preview_tab_new_data, TRUE, TRUE, 0);
-
-        ui->preview_tab_new_message = theme_preferences_manager_preview_item_new (_("New message"));
-        gtk_widget_set_hexpand (ui->preview_tab_new_message, TRUE);
-        gtk_box_pack_start (GTK_BOX (tabs_box), ui->preview_tab_new_message, TRUE, TRUE, 0);
-
-        ui->preview_tab_highlight = theme_preferences_manager_preview_item_new (_("Highlight"));
-        gtk_widget_set_hexpand (ui->preview_tab_highlight, TRUE);
-        gtk_box_pack_start (GTK_BOX (tabs_box), ui->preview_tab_highlight, TRUE, TRUE, 0);
-
-        ui->preview_tab_away = theme_preferences_manager_preview_item_new (_("Away"));
-        gtk_widget_set_hexpand (ui->preview_tab_away, TRUE);
-        gtk_box_pack_start (GTK_BOX (tabs_box), ui->preview_tab_away, TRUE, TRUE, 0);
-
-        theme_preferences_manager_update_preview (ui);
-
+        gtk_container_add (GTK_CONTAINER (frame), ui->preview_window);
+        gtk_container_add (GTK_CONTAINER (ui->preview_window), inside);
+        gtk_box_pack_start (GTK_BOX (inside), theme_preferences_preview_part (ui, _("#zoitechat · Chat background"), THEME_TOKEN_TEXT_FOREGROUND, THEME_TOKEN_TEXT_BACKGROUND, THEME_TOKEN_TEXT_BACKGROUND), FALSE, FALSE, 0);
+        gtk_box_pack_start (GTK_BOX (inside), body, TRUE, TRUE, 0);
+        gtk_box_pack_start (GTK_BOX (body), channels, FALSE, FALSE, 0);
+        gtk_box_pack_start (GTK_BOX (body), gtk_separator_new (GTK_ORIENTATION_VERTICAL), FALSE, FALSE, 0);
+        gtk_box_pack_start (GTK_BOX (body), chat, TRUE, TRUE, 0);
+        gtk_box_pack_start (GTK_BOX (channels), theme_preferences_preview_part (ui, _("#new messages"), THEME_TOKEN_TAB_NEW_MESSAGE, THEME_TOKEN_TEXT_BACKGROUND, THEME_TOKEN_TAB_NEW_MESSAGE), FALSE, FALSE, 0);
+        gtk_box_pack_start (GTK_BOX (channels), theme_preferences_preview_part (ui, _("#mentions"), THEME_TOKEN_TAB_HIGHLIGHT, THEME_TOKEN_TEXT_BACKGROUND, THEME_TOKEN_TAB_HIGHLIGHT), FALSE, FALSE, 0);
+        gtk_box_pack_start (GTK_BOX (channels), theme_preferences_preview_part (ui, _("#activity"), THEME_TOKEN_TAB_NEW_DATA, THEME_TOKEN_TEXT_BACKGROUND, THEME_TOKEN_TAB_NEW_DATA), FALSE, FALSE, 0);
+        gtk_box_pack_start (GTK_BOX (channels), theme_preferences_preview_part (ui, _("alice (away)"), THEME_TOKEN_TAB_AWAY, THEME_TOKEN_TEXT_BACKGROUND, THEME_TOKEN_TAB_AWAY), FALSE, FALSE, 0);
+        gtk_box_pack_start (GTK_BOX (chat), line, FALSE, FALSE, 0);
+        gtk_box_pack_start (GTK_BOX (line), theme_preferences_preview_part (ui, "12:34 <alice>", THEME_TOKEN_MIRC_12, THEME_TOKEN_TEXT_BACKGROUND, THEME_TOKEN_MIRC_12), FALSE, FALSE, 0);
+        gtk_box_pack_start (GTK_BOX (line), theme_preferences_preview_part (ui, _("Hello! Welcome to ZoiteChat."), THEME_TOKEN_TEXT_FOREGROUND, THEME_TOKEN_TEXT_BACKGROUND, THEME_TOKEN_TEXT_FOREGROUND), TRUE, TRUE, 0);
+        gtk_box_pack_start (GTK_BOX (chat), theme_preferences_preview_part (ui, _("This is how your messages will look."), THEME_TOKEN_TEXT_FOREGROUND, THEME_TOKEN_TEXT_BACKGROUND, THEME_TOKEN_TEXT_FOREGROUND), FALSE, FALSE, 0);
+        gtk_box_pack_start (GTK_BOX (chat), theme_preferences_preview_part (ui, _("Selected text · edit text colour"), THEME_TOKEN_SELECTION_FOREGROUND, THEME_TOKEN_SELECTION_BACKGROUND, THEME_TOKEN_SELECTION_FOREGROUND), FALSE, FALSE, 0);
+        gtk_box_pack_start (GTK_BOX (chat), theme_preferences_preview_part (ui, _("Selection background"), THEME_TOKEN_SELECTION_FOREGROUND, THEME_TOKEN_SELECTION_BACKGROUND, THEME_TOKEN_SELECTION_BACKGROUND), FALSE, FALSE, 0);
+        gtk_box_pack_start (GTK_BOX (inside), theme_preferences_preview_part (ui, _("Unread marker line"), THEME_TOKEN_MARKER, THEME_TOKEN_TEXT_BACKGROUND, THEME_TOKEN_MARKER), FALSE, FALSE, 0);
+        gtk_box_pack_start (GTK_BOX (inside), theme_preferences_preview_part (ui, _("Spelling warning"), THEME_TOKEN_SPELL, THEME_TOKEN_TEXT_BACKGROUND, THEME_TOKEN_SPELL), FALSE, FALSE, 0);
         return frame;
 }
 
@@ -572,33 +605,33 @@ static char *
 theme_preferences_token_display_name (ThemeSemanticToken token)
 {
         if (token >= THEME_TOKEN_MIRC_0 && token <= THEME_TOKEN_MIRC_15)
-                return g_strdup_printf (_("mIRC color %d"), token - THEME_TOKEN_MIRC_0);
+                return g_strdup_printf (_("IRC colour %d"), token - THEME_TOKEN_MIRC_0);
 
         if (token >= THEME_TOKEN_MIRC_16 && token <= THEME_TOKEN_MIRC_31)
-                return g_strdup_printf (_("Local color %d"), token - THEME_TOKEN_MIRC_0);
+                return g_strdup_printf (_("Nickname / local colour %d"), token - THEME_TOKEN_MIRC_0);
 
         switch (token)
         {
         case THEME_TOKEN_SELECTION_FOREGROUND:
-                return g_strdup (_("Selected text foreground"));
+                return g_strdup (_("Selected text"));
         case THEME_TOKEN_SELECTION_BACKGROUND:
                 return g_strdup (_("Selected text background"));
         case THEME_TOKEN_TEXT_FOREGROUND:
-                return g_strdup (_("Text foreground"));
+                return g_strdup (_("Message text"));
         case THEME_TOKEN_TEXT_BACKGROUND:
-                return g_strdup (_("Text background"));
+                return g_strdup (_("Chat background"));
         case THEME_TOKEN_MARKER:
                 return g_strdup (_("Marker line"));
         case THEME_TOKEN_TAB_NEW_DATA:
-                return g_strdup (_("Tab: new data"));
+                return g_strdup (_("Channel activity"));
         case THEME_TOKEN_TAB_HIGHLIGHT:
-                return g_strdup (_("Tab: highlight"));
+                return g_strdup (_("Mentions"));
         case THEME_TOKEN_TAB_NEW_MESSAGE:
-                return g_strdup (_("Tab: new message"));
+                return g_strdup (_("Unread messages"));
         case THEME_TOKEN_TAB_AWAY:
-                return g_strdup (_("Tab: away"));
+                return g_strdup (_("Away users"));
         case THEME_TOKEN_SPELL:
-                return g_strdup (_("Spell checker"));
+                return g_strdup (_("Spelling warnings"));
         default:
                 return g_strdup (_("Unknown color"));
         }
@@ -711,17 +744,25 @@ theme_preferences_color_set_tooltip (GtkWidget *widget, ThemeSemanticToken token
         g_free (markup);
 }
 
+static gboolean theme_preferences_is_custom (ThemeSemanticToken token);
+
 static void
 theme_preferences_manager_row_apply (theme_color_manager_row *row, const GdkRGBA *rgba)
 {
         char *hex;
 
+        gtk_entry_set_icon_from_icon_name (GTK_ENTRY (row->entry), GTK_ENTRY_ICON_SECONDARY, NULL);
         theme_preferences_color_button_apply (row->button, rgba);
-        gtkutil_apply_palette (row->preview, rgba, NULL, NULL);
+        GdkRGBA black, white;
+        gdk_rgba_parse (&black, "#000000"); gdk_rgba_parse (&white, "#ffffff");
+        const GdkRGBA *ink = theme_preferences_contrast_ratio (&black, rgba) > theme_preferences_contrast_ratio (&white, rgba) ? &black : &white;
+        gtkutil_apply_palette (row->preview, rgba, ink, NULL);
         hex = theme_preferences_format_hex (rgba);
         gtk_entry_set_text (GTK_ENTRY (row->entry), hex);
-        g_free (hex);
+        g_object_set_data_full (G_OBJECT (row->entry), "applied-color", hex, g_free);
         theme_preferences_color_set_tooltip (row->row, row->token);
+        if (row->status) gtk_label_set_text (GTK_LABEL (row->status), theme_preferences_is_custom (row->token) ? _("Custom") : _("Theme"));
+        if (row->reset) gtk_widget_set_sensitive (row->reset, theme_preferences_is_custom (row->token));
 }
 
 static void
@@ -738,14 +779,48 @@ theme_preferences_manager_entry_commit (theme_color_manager_row *row)
         GdkRGBA rgba;
         const char *text = gtk_entry_get_text (GTK_ENTRY (row->entry));
 
+        if (g_strcmp0 (text, g_object_get_data (G_OBJECT (row->entry), "applied-color")) == 0)
+                return;
+
         if (!gdk_rgba_parse (&rgba, text))
         {
-                if (theme_preferences_staged_get_color (row->token, &rgba))
-                        theme_preferences_manager_row_apply (row, &rgba);
+                gtk_entry_set_icon_from_icon_name (GTK_ENTRY (row->entry), GTK_ENTRY_ICON_SECONDARY, "dialog-warning-symbolic");
+                gtk_entry_set_icon_tooltip_text (GTK_ENTRY (row->entry), GTK_ENTRY_ICON_SECONDARY, _("Enter a colour such as #336699, or choose one using the colour button."));
                 return;
         }
 
         theme_preferences_manager_row_commit (row, &rgba);
+}
+
+gboolean
+theme_preferences_color_editor_stage (GtkWidget *editor, GError **error)
+{
+        theme_color_manager_ui *ui = g_object_get_data (G_OBJECT (editor), "zoitechat-theme-color-manager");
+        guint i;
+        if (!ui)
+        {
+                GtkWidget *child = g_object_get_data (G_OBJECT (editor), "appearance-color-editor");
+                if (child) return theme_preferences_color_editor_stage (child, error);
+        }
+        for (i = 0; ui && i < ui->rows->len; i++)
+        {
+                theme_color_manager_row *row = g_ptr_array_index (ui->rows, i);
+                const char *text = gtk_entry_get_text (GTK_ENTRY (row->entry));
+                GdkRGBA rgba;
+                if (g_strcmp0 (text, g_object_get_data (G_OBJECT (row->entry), "applied-color")) == 0)
+                        continue;
+                if (!gdk_rgba_parse (&rgba, text))
+                {
+                        g_set_error_literal (error, G_FILE_ERROR, G_FILE_ERROR_INVAL,
+                                _("Enter a valid color value before saving."));
+                        theme_preferences_manager_focus_color (ui, row->token);
+                        setup_reveal_widget (row->entry);
+                        gtk_widget_grab_focus (row->entry);
+                        return FALSE;
+                }
+                theme_preferences_manager_row_commit (row, &rgba);
+        }
+        return TRUE;
 }
 
 static void
@@ -778,16 +853,34 @@ theme_preferences_manager_picker_notify_rgba_cb (GObject *object, GParamSpec *ps
         theme_preferences_manager_row_commit (data->row, &rgba);
 }
 
+static void theme_preferences_use_theme_color (ThemeSemanticToken token);
+
 static void
 theme_preferences_manager_picker_response_cb (GtkDialog *dialog, gint response_id, gpointer user_data)
 {
         theme_manager_live_picker_data *data = user_data;
 
         if (data && data->row && data->has_original && response_id != GTK_RESPONSE_OK)
-                theme_preferences_manager_row_commit (data->row, &data->original);
+        {
+                if (data->original_custom) theme_preferences_manager_row_commit (data->row, &data->original);
+                else
+                {
+                        theme_preferences_use_theme_color (data->row->token);
+                        if (data->row->color_change_flag) *data->row->color_change_flag = theme_preferences_stage.changed;
+                        theme_manager_apply_and_dispatch (prefs.hex_gui_dark_mode, THEME_CHANGED_REASON_PALETTE | THEME_CHANGED_REASON_WIDGET_STYLE | THEME_CHANGED_REASON_USERLIST, NULL);
+                        theme_preferences_manager_refresh_rows (data->row->manager_ui);
+                }
+        }
 
         gtk_widget_destroy (GTK_WIDGET (dialog));
-        g_free (data);
+}
+
+static void
+theme_preferences_manager_picker_owner_destroyed (GtkWidget *dialog)
+{
+        theme_manager_live_picker_data *data = g_object_get_data (G_OBJECT (dialog), "picker-data");
+        data->row = NULL;
+        gtk_widget_destroy (dialog);
 }
 
 static void
@@ -805,11 +898,17 @@ theme_preferences_manager_pick_cb (GtkWidget *button, gpointer user_data)
         theme_manager_attach_window (dialog);
         gtk_color_chooser_set_rgba (GTK_COLOR_CHOOSER (dialog), &rgba);
         gtk_window_set_modal (GTK_WINDOW (dialog), TRUE);
+        gtk_window_set_destroy_with_parent (GTK_WINDOW (dialog), TRUE);
 
         data = g_new0 (theme_manager_live_picker_data, 1);
         data->row = row;
         data->original = rgba;
         data->has_original = TRUE;
+        data->original_custom = theme_preferences_is_custom (row->token);
+        g_object_set_data_full (G_OBJECT (dialog), "picker-data", data, g_free);
+        g_signal_connect_object (row->row, "destroy",
+                                  G_CALLBACK (theme_preferences_manager_picker_owner_destroyed),
+                                  dialog, G_CONNECT_SWAPPED);
 
         g_signal_connect (G_OBJECT (dialog), "notify::rgba",
                           G_CALLBACK (theme_preferences_manager_picker_notify_rgba_cb), data);
@@ -839,7 +938,10 @@ theme_preferences_manager_search_changed_cb (GtkEditable *editable, gpointer use
         for (i = 0; i < ui->rows->len; i++)
         {
                 theme_color_manager_row *row = g_ptr_array_index (ui->rows, i);
-                gtk_widget_set_visible (row->row, theme_preferences_manager_row_matches (row, needle_lower));
+                gboolean matches = theme_preferences_manager_row_matches (row, needle_lower);
+                gtk_widget_set_visible (row->row, matches);
+                if (matches && needle_lower[0] && row->expander)
+                        gtk_expander_set_expanded (GTK_EXPANDER (row->expander), TRUE);
         }
         g_free (needle_lower);
 }
@@ -857,6 +959,8 @@ theme_preferences_manager_refresh_rows (theme_color_manager_ui *ui)
                 theme_color_manager_row *row = g_ptr_array_index (ui->rows, i);
                 GdkRGBA rgba;
 
+                const char *applied = g_object_get_data (G_OBJECT (row->entry), "applied-color");
+                if (applied && g_strcmp0 (applied, gtk_entry_get_text (GTK_ENTRY (row->entry)))) continue;
                 if (theme_preferences_staged_get_color (row->token, &rgba))
                         theme_preferences_manager_row_apply (row, &rgba);
         }
@@ -864,219 +968,415 @@ theme_preferences_manager_refresh_rows (theme_color_manager_ui *ui)
         theme_preferences_manager_update_preview (ui);
 }
 
-static void
-theme_preferences_manager_dialog_response_cb (GtkDialog *dialog, gint response_id, gpointer user_data)
+static gboolean
+theme_preferences_is_custom (ThemeSemanticToken token)
 {
-        theme_color_manager_ui *ui = user_data;
+        GdkRGBA color;
+        return theme_preferences_stage.active ? theme_preferences_stage.staged_custom[token] :
+                theme_runtime_get_user_color (token, &color);
+}
 
-        if (response_id != COLOR_MANAGER_RESPONSE_RESET)
-                return;
-
+static void
+theme_preferences_use_theme_color (ThemeSemanticToken token)
+{
+        if (theme_preferences_stage.active)
         {
-                gboolean changed = FALSE;
-
-                theme_manager_reset_mode_colors (ZOITECHAT_DARK_MODE_LIGHT, &changed);
-                if (theme_preferences_stage.active)
-                {
-                        ThemeSemanticToken token;
-                        ThemeWidgetStyleValues style_values;
-
-                        /* The runtime palette was just reset; drop any
-                         * pending edits so the reset is not re-pinned. */
-                        memset (theme_preferences_stage.staged_dirty, 0,
-                                sizeof (theme_preferences_stage.staged_dirty));
-                        for (token = THEME_TOKEN_MIRC_0; token < THEME_TOKEN_COUNT; token++)
-                        {
-                                GdkRGBA rgba;
-
-                                if (!theme_get_color (token, &rgba))
-                                        continue;
-                                theme_preferences_stage.staged[token] = rgba;
-                                theme_preferences_stage.staged_valid[token] = TRUE;
-                        }
-                        theme_get_widget_style_values_for_widget (GTK_WIDGET (dialog), &style_values);
-                        theme_preferences_stage.staged[THEME_TOKEN_TEXT_FOREGROUND] = style_values.foreground;
-                        theme_preferences_stage.staged_valid[THEME_TOKEN_TEXT_FOREGROUND] = TRUE;
-                        theme_preferences_stage.staged[THEME_TOKEN_TEXT_BACKGROUND] = style_values.background;
-                        theme_preferences_stage.staged_valid[THEME_TOKEN_TEXT_BACKGROUND] = TRUE;
-                        theme_preferences_stage_recompute_changed ();
-                        if (ui->color_change_flag)
-                                *ui->color_change_flag = theme_preferences_stage.changed;
-                }
-                else if (ui->color_change_flag)
-                        *ui->color_change_flag = *ui->color_change_flag || changed;
+                theme_preferences_stage.staged_custom[token] = FALSE;
+                theme_preferences_stage.staged_dirty[token] = TRUE;
+                theme_preferences_stage_recompute_changed ();
         }
+        theme_runtime_reset_user_color (token);
+}
 
+static void
+theme_preferences_manager_row_reset (GtkButton *button, gpointer data)
+{
+        theme_color_manager_row *row = data;
+        GdkRGBA color;
+        (void)button;
+        theme_preferences_use_theme_color (row->token);
+        theme_manager_apply_and_dispatch (prefs.hex_gui_dark_mode,
+                THEME_CHANGED_REASON_PALETTE | THEME_CHANGED_REASON_WIDGET_STYLE | THEME_CHANGED_REASON_USERLIST, NULL);
+        if (row->color_change_flag) *row->color_change_flag = theme_preferences_stage.changed;
+        theme_preferences_staged_get_color (row->token, &color);
+        theme_preferences_manager_row_apply (row, &color);
+        theme_preferences_manager_update_preview (row->manager_ui);
+}
+
+static void
+theme_preferences_manager_focus_color (theme_color_manager_ui *ui, ThemeSemanticToken token)
+{
+        gtk_entry_set_text (GTK_ENTRY (ui->search_entry), "");
+        for (guint i = 0; i < ui->rows->len; i++)
+        {
+                theme_color_manager_row *row = g_ptr_array_index (ui->rows, i);
+                if (row->token != token) continue;
+                if (row->expander) gtk_expander_set_expanded (GTK_EXPANDER (row->expander), TRUE);
+                gtk_widget_grab_focus (row->button);
+                return;
+        }
+}
+
+/* Schemes are editable templates. Their identity is derived from the palette,
+ * so existing colours.conf files require no new configuration format. */
+static gboolean
+theme_preferences_scheme_color (int scheme, ThemeSemanticToken token, GdkRGBA *color)
+{
+        static const char *soft[] = {
+                "#e6edf3", "#17212b", "#ffffff", "#315c82", "#79c0ff",
+                "#a5d6ff", "#ffa657", "#7ee787", "#a6adb4", "#ff7b72"
+        };
+        static const char *contrast[] = {
+                "#ffffff", "#000000", "#000000", "#ffff00", "#ffffff",
+                "#00ffff", "#ffff00", "#00ff00", "#c0c0c0", "#ff8080"
+        };
+        static const ThemeSemanticToken targets[] = {
+                THEME_TOKEN_TEXT_FOREGROUND, THEME_TOKEN_TEXT_BACKGROUND,
+                THEME_TOKEN_SELECTION_FOREGROUND, THEME_TOKEN_SELECTION_BACKGROUND,
+                THEME_TOKEN_MARKER, THEME_TOKEN_TAB_NEW_DATA, THEME_TOKEN_TAB_HIGHLIGHT,
+                THEME_TOKEN_TAB_NEW_MESSAGE, THEME_TOKEN_TAB_AWAY, THEME_TOKEN_SPELL
+        };
+        if (!scheme) return FALSE;
+        theme_runtime_get_default_color (token, NULL, color);
+        if (scheme == 1) return TRUE;
+        for (guint i = 0; i < G_N_ELEMENTS (targets); i++)
+                if (token == targets[i]) return gdk_rgba_parse (color, scheme == 2 ? soft[i] : contrast[i]);
+        /* Keep the IRC colour identities while making their dark-theme
+         * variants readable. Users can still edit every entry individually. */
+        color->red = 0.58 + color->red * 0.42;
+        color->green = 0.58 + color->green * 0.42;
+        color->blue = 0.58 + color->blue * 0.42;
+        return TRUE;
+}
+
+static void
+theme_preferences_choice_selected (GtkWidget *button, gboolean selected)
+{
+        GtkWidget *title = g_object_get_data (G_OBJECT (button), "choice-title");
+        const char *name = g_object_get_data (G_OBJECT (button), "choice-name");
+        gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (button), selected);
+        if (title && name)
+        {
+                gtk_label_set_text (GTK_LABEL (title), name);
+        }
+}
+
+static void
+theme_preferences_manager_sync_schemes (theme_color_manager_ui *ui)
+{
+        if (!ui->scheme_buttons[0]) return;
+        int matched = -1;
+        gboolean custom = FALSE;
+        for (int token = 0; token < THEME_TOKEN_COUNT; token++) custom |= theme_preferences_is_custom (token);
+        if (!custom) matched = 0;
+        for (int scheme = 1; matched < 0 && scheme < 4; scheme++)
+        {
+                gboolean same = TRUE;
+                for (int token = 0; same && token < THEME_TOKEN_COUNT; token++)
+                {
+                        GdkRGBA actual, expected;
+                        theme_preferences_staged_get_color (token, &actual);
+                        theme_preferences_scheme_color (scheme, token, &expected);
+                        same = fabs (actual.red - expected.red) < 0.005 && fabs (actual.green - expected.green) < 0.005 &&
+                               fabs (actual.blue - expected.blue) < 0.005;
+                }
+                if (same) matched = scheme;
+        }
+        ui->syncing = TRUE;
+        for (int i = 0; i < 4; i++) theme_preferences_choice_selected (ui->scheme_buttons[i], i == matched);
+        ui->syncing = FALSE;
+        gtk_label_set_text (GTK_LABEL (ui->scheme_status), matched < 0 ? _("Custom colours") :
+                matched == 0 ? _("Follows application theme") : "");
+}
+
+static void
+theme_preferences_manager_scheme_clicked (GtkButton *button, gpointer data)
+{
+        theme_color_manager_ui *ui = data;
+        if (ui->syncing) return;
+        int scheme = GPOINTER_TO_INT (g_object_get_data (G_OBJECT (button), "scheme"));
+        for (int token = 0; token < THEME_TOKEN_COUNT; token++)
+        {
+                GdkRGBA color;
+                if (!scheme) theme_preferences_use_theme_color (token);
+                else
+                {
+                        theme_preferences_scheme_color (scheme, token, &color);
+                        theme_preferences_staged_set_color (token, &color, ui->color_change_flag, FALSE);
+                        theme_runtime_user_set_color (token, &color);
+                }
+        }
+        theme_manager_apply_and_dispatch (prefs.hex_gui_dark_mode,
+                THEME_CHANGED_REASON_PALETTE | THEME_CHANGED_REASON_WIDGET_STYLE | THEME_CHANGED_REASON_USERLIST, NULL);
+        if (ui->color_change_flag) *ui->color_change_flag = theme_preferences_stage.changed;
+        for (guint i = 0; i < ui->rows->len; i++)
+        {
+                theme_color_manager_row *row = g_ptr_array_index (ui->rows, i);
+                GdkRGBA color;
+                theme_preferences_staged_get_color (row->token, &color);
+                theme_preferences_manager_row_apply (row, &color);
+        }
+        theme_preferences_manager_update_preview (ui);
+}
+
+static void
+theme_preferences_manager_reset (GtkWidget *button, gpointer data)
+{
+        /* Reset is the same inheritance operation as Match application. */
+        theme_color_manager_ui *ui = data;
+        (void)button;
+        theme_preferences_manager_scheme_clicked (GTK_BUTTON (ui->scheme_buttons[0]), ui);
+}
+
+static void
+theme_preferences_contrast_fix (GtkButton *button, gpointer data)
+{
+        theme_color_manager_ui *ui = data;
+        const ThemeSemanticToken texts[] = { THEME_TOKEN_TEXT_FOREGROUND, THEME_TOKEN_SELECTION_FOREGROUND };
+        const ThemeSemanticToken backgrounds[] = { THEME_TOKEN_TEXT_BACKGROUND, THEME_TOKEN_SELECTION_BACKGROUND };
+        (void)button;
+        for (guint n = 0; n < G_N_ELEMENTS (texts); n++)
+        {
+                GdkRGBA text, bg, black, white;
+                theme_preferences_staged_get_color (texts[n], &text);
+                theme_preferences_staged_get_color (backgrounds[n], &bg);
+                if (theme_preferences_contrast_ratio (&text, &bg) >= 4.5) continue;
+                gdk_rgba_parse (&black, "#000000"); gdk_rgba_parse (&white, "#ffffff");
+                for (guint i = 0; i < ui->rows->len; i++)
+                {
+                        theme_color_manager_row *row = g_ptr_array_index (ui->rows, i);
+                        if (row->token == texts[n])
+                                theme_preferences_manager_row_commit (row, theme_preferences_contrast_ratio (&black, &bg) >
+                                        theme_preferences_contrast_ratio (&white, &bg) ? &black : &white);
+                }
+        }
+}
+
+static gboolean
+theme_preferences_manager_refresh_idle (gpointer data)
+{
+        theme_color_manager_ui *ui = data;
+        ui->refresh_idle = 0;
         theme_preferences_manager_refresh_rows (ui);
-        g_signal_stop_emission_by_name (dialog, "response");
+        return G_SOURCE_REMOVE;
+}
+
+static void
+theme_preferences_manager_theme_changed (const ThemeChangedEvent *event, gpointer data)
+{
+        theme_color_manager_ui *ui = data;
+        (void)event;
+        if (!ui->refresh_idle) ui->refresh_idle = g_idle_add (theme_preferences_manager_refresh_idle, ui);
 }
 
 static GtkWidget *
-theme_preferences_create_color_manager_dialog (GtkWindow *parent, gboolean *color_change_flag)
+theme_preferences_note (const char *text)
 {
-        GtkWidget *dialog;
-        GtkWidget *content;
-        GtkWidget *vbox;
-        GtkWidget *content_hbox;
-        GtkWidget *left_box;
-        GtkWidget *search;
-        GtkWidget *scroller;
-        GtkWidget *list;
-        GtkWidget *preview_frame;
-        theme_color_manager_ui *ui;
-        ThemeSemanticToken token;
+        GtkWidget *label = gtk_label_new (text);
+        gtk_label_set_xalign (GTK_LABEL (label), 0);
+        gtk_label_set_line_wrap (GTK_LABEL (label), TRUE);
+        gtk_label_set_max_width_chars (GTK_LABEL (label), 62);
+        gtk_style_context_add_class (gtk_widget_get_style_context (label), "dim-label");
+        return label;
+}
 
-        dialog = gtk_dialog_new_with_buttons (_("Manage client colors"),
-                                              parent,
-                                              GTK_DIALOG_MODAL,
-                                              _("_Reset to GTK3 defaults"),
-                                              COLOR_MANAGER_RESPONSE_RESET,
-                                              _("_Close"),
-                                              GTK_RESPONSE_CLOSE,
-                                              NULL);
-        theme_manager_attach_window (dialog);
-        gtk_window_set_default_size (GTK_WINDOW (dialog), 760, 560);
+static void
+theme_preferences_flow_activate (GtkFlowBox *box, GtkFlowBoxChild *child, gpointer data)
+{
+        GtkWidget *button = gtk_bin_get_child (GTK_BIN (child));
+        (void)box; (void)data;
+        if (GTK_IS_BUTTON (button)) gtk_button_clicked (GTK_BUTTON (button));
+}
 
-        ui = g_new0 (theme_color_manager_ui, 1);
+static GtkWidget *
+theme_preferences_heading (const char *text)
+{
+        GtkWidget *heading = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 10);
+        GtkWidget *label = gtk_label_new (NULL);
+        GtkWidget *line = gtk_separator_new (GTK_ORIENTATION_HORIZONTAL);
+        char *markup = g_markup_printf_escaped ("<b>%s</b>", text);
+        gtk_label_set_markup (GTK_LABEL (label), markup);
+        gtk_label_set_xalign (GTK_LABEL (label), 0);
+        g_free (markup);
+        gtk_box_pack_start (GTK_BOX (heading), label, FALSE, FALSE, 0);
+        gtk_widget_set_valign (line, GTK_ALIGN_CENTER);
+        gtk_box_pack_start (GTK_BOX (heading), line, TRUE, TRUE, 0);
+        return heading;
+}
+
+GtkWidget *
+theme_preferences_create_color_editor (GtkWindow *parent, gboolean *color_change_flag)
+{
+        theme_color_manager_ui *ui = g_new0 (theme_color_manager_ui, 1);
+        GtkWidget *box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 8);
+        GtkWidget *schemes = gtk_flow_box_new ();
+        GtkWidget *common = gtk_list_box_new (), *advanced = gtk_list_box_new ();
+        const char *scheme_names[] = { N_("Match application"), N_("Classic IRC"), N_("Soft dark"), N_("High contrast") };
+        const char *scheme_notes[] = { N_("Follow the window theme"), N_("Traditional IRC palette"), N_("Gentle colours on dark blue"), N_("Bright text on black") };
         ui->rows = g_ptr_array_new_with_free_func (theme_preferences_manager_row_free);
-        ui->color_change_flag = color_change_flag;
-        g_object_set_data_full (G_OBJECT (dialog), "zoitechat-theme-color-manager", ui, theme_preferences_manager_ui_free);
-        g_signal_connect (G_OBJECT (dialog), "response", G_CALLBACK (theme_preferences_manager_dialog_response_cb), ui);
-
-        content = gtk_dialog_get_content_area (GTK_DIALOG (dialog));
-        vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 8);
-        gtk_container_set_border_width (GTK_CONTAINER (vbox), 8);
-        gtk_widget_set_hexpand (vbox, TRUE);
-        gtk_widget_set_vexpand (vbox, TRUE);
-        gtk_box_pack_start (GTK_BOX (content), vbox, TRUE, TRUE, 0);
-
-        content_hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 8);
-        gtk_widget_set_hexpand (content_hbox, TRUE);
-        gtk_widget_set_vexpand (content_hbox, TRUE);
-        gtk_box_pack_start (GTK_BOX (vbox), content_hbox, TRUE, TRUE, 0);
-
-        left_box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 8);
-        gtk_widget_set_hexpand (left_box, TRUE);
-        gtk_widget_set_vexpand (left_box, TRUE);
-        gtk_box_pack_start (GTK_BOX (content_hbox), left_box, TRUE, TRUE, 0);
-
-        search = gtk_search_entry_new ();
-        gtk_entry_set_placeholder_text (GTK_ENTRY (search), _("Search colors by name"));
-        gtk_box_pack_start (GTK_BOX (left_box), search, FALSE, FALSE, 0);
-        ui->search_entry = search;
-
-        scroller = gtk_scrolled_window_new (NULL, NULL);
-        gtk_widget_set_hexpand (scroller, TRUE);
-        gtk_widget_set_vexpand (scroller, TRUE);
-        gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scroller), GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
-        gtk_box_pack_start (GTK_BOX (left_box), scroller, TRUE, TRUE, 0);
-
-        list = gtk_list_box_new ();
-        gtk_widget_set_hexpand (list, TRUE);
-        gtk_widget_set_vexpand (list, TRUE);
-        gtk_list_box_set_selection_mode (GTK_LIST_BOX (list), GTK_SELECTION_NONE);
-        gtk_container_add (GTK_CONTAINER (scroller), list);
-
-        preview_frame = theme_preferences_manager_create_preview (ui);
-        gtk_widget_set_size_request (preview_frame, 300, -1);
-        gtk_widget_set_hexpand (preview_frame, FALSE);
-        gtk_widget_set_vexpand (preview_frame, TRUE);
-        gtk_box_pack_start (GTK_BOX (content_hbox), preview_frame, FALSE, TRUE, 0);
-
-        for (token = THEME_TOKEN_MIRC_0; token < THEME_TOKEN_COUNT; token++)
+        ui->root = box; ui->color_change_flag = color_change_flag;
+        ui->source = parent ? GTK_WIDGET (parent) : box;
+        theme_preferences_stage.source = ui->source;
+        g_object_set_data_full (G_OBJECT (box), "zoitechat-theme-color-manager", ui, theme_preferences_manager_ui_free);
+        gtk_flow_box_set_selection_mode (GTK_FLOW_BOX (schemes), GTK_SELECTION_NONE);
+        gtk_flow_box_set_activate_on_single_click (GTK_FLOW_BOX (schemes), FALSE);
+        g_signal_connect (schemes, "child-activated", G_CALLBACK (theme_preferences_flow_activate), NULL);
+        gtk_flow_box_set_min_children_per_line (GTK_FLOW_BOX (schemes), 2);
+        gtk_flow_box_set_max_children_per_line (GTK_FLOW_BOX (schemes), 4);
+        gtk_flow_box_set_column_spacing (GTK_FLOW_BOX (schemes), 8);
+        gtk_flow_box_set_row_spacing (GTK_FLOW_BOX (schemes), 8);
+        for (int i = 0; i < 4; i++)
         {
-                theme_color_manager_row *row;
-                GtkWidget *list_row;
-                GtkWidget *hbox;
-                GtkWidget *name;
-                GtkWidget *preview;
-                GtkWidget *button;
-                GtkWidget *entry;
-                GdkRGBA rgba;
-                char *display;
-                char *search_text;
-                char *token_code;
-
-                list_row = gtk_list_box_row_new ();
-                hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 8);
-                gtk_container_set_border_width (GTK_CONTAINER (hbox), 4);
-                gtk_container_add (GTK_CONTAINER (list_row), hbox);
-
-                display = theme_preferences_token_display_name (token);
-                name = gtk_label_new (display);
-                gtk_widget_set_halign (name, GTK_ALIGN_START);
-                gtk_widget_set_hexpand (name, TRUE);
-                gtk_box_pack_start (GTK_BOX (hbox), name, TRUE, TRUE, 0);
-
-                preview = gtk_label_new (_("Preview"));
-                gtk_widget_set_size_request (preview, 90, -1);
-                gtk_widget_set_halign (preview, GTK_ALIGN_CENTER);
-                gtk_box_pack_start (GTK_BOX (hbox), preview, FALSE, FALSE, 0);
-
-                button = gtk_button_new_with_label (_("Choose…"));
-                gtk_box_pack_start (GTK_BOX (hbox), button, FALSE, FALSE, 0);
-
-                entry = gtk_entry_new ();
-                gtk_entry_set_width_chars (GTK_ENTRY (entry), 9);
-                gtk_entry_set_max_length (GTK_ENTRY (entry), 9);
-                gtk_box_pack_start (GTK_BOX (hbox), entry, FALSE, FALSE, 0);
-
-                row = g_new0 (theme_color_manager_row, 1);
-                row->row = list_row;
-                row->button = button;
-                row->entry = entry;
-                row->preview = preview;
-                row->token = token;
-                row->color_change_flag = color_change_flag;
-                row->parent = GTK_WINDOW (dialog);
-                row->manager_ui = ui;
-
-                token_code = g_strdup_printf ("token_%d", token);
-                search_text = g_strconcat (display, " ", token_code, NULL);
+                GtkWidget *content = gtk_box_new (GTK_ORIENTATION_VERTICAL, 4);
+                GtkWidget *button = gtk_toggle_button_new ();
+                GtkWidget *title = gtk_label_new (_(scheme_names[i]));
+                gtk_label_set_line_wrap (GTK_LABEL (title), TRUE);
+                gtk_label_set_max_width_chars (GTK_LABEL (title), 14);
+                GtkWidget *swatches = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
+                gtk_container_set_border_width (GTK_CONTAINER (content), 4);
+                gtk_box_pack_start (GTK_BOX (content), title, FALSE, FALSE, 0);
+                for (int swatch = 0; swatch < 4; swatch++)
+                {
+                        GdkRGBA color;
+                        const ThemeSemanticToken tokens[] = { THEME_TOKEN_TEXT_BACKGROUND, THEME_TOKEN_TEXT_FOREGROUND, THEME_TOKEN_TAB_HIGHLIGHT, THEME_TOKEN_TAB_NEW_MESSAGE };
+                        if (i) theme_preferences_scheme_color (i, tokens[swatch], &color);
+                        else theme_get_default_color_for_widget (GTK_WIDGET (parent), tokens[swatch], &color);
+                        GtkWidget *sample = gtk_event_box_new ();
+                        if (!i) ui->match_swatches[swatch] = sample;
+                        gtk_widget_set_size_request (sample, 26, 12);
+                        gtkutil_apply_palette (sample, &color, NULL, NULL);
+                        gtk_box_pack_start (GTK_BOX (swatches), sample, TRUE, TRUE, 0);
+                }
+                gtk_box_pack_start (GTK_BOX (content), swatches, FALSE, FALSE, 2);
+                gtk_container_add (GTK_CONTAINER (button), content);
+                g_object_set_data (G_OBJECT (button), "choice-title", title);
+                g_object_set_data (G_OBJECT (button), "choice-name", (gpointer)_(scheme_names[i]));
+                gtk_widget_set_tooltip_text (button, _(scheme_notes[i]));
+                atk_object_set_name (gtk_widget_get_accessible (button), _(scheme_names[i]));
+                g_object_set_data (G_OBJECT (button), "scheme", GINT_TO_POINTER (i));
+                g_signal_connect (button, "clicked", G_CALLBACK (theme_preferences_manager_scheme_clicked), ui);
+                gtk_flow_box_insert (GTK_FLOW_BOX (schemes), button, -1);
+                ui->scheme_buttons[i] = button;
+        }
+        gtk_box_pack_start (GTK_BOX (box), schemes, FALSE, FALSE, 0);
+        ui->scheme_status = theme_preferences_note ("");
+        gtk_box_pack_start (GTK_BOX (box), ui->scheme_status, FALSE, FALSE, 0);
+        gtk_box_pack_start (GTK_BOX (box), theme_preferences_manager_create_preview (ui), FALSE, FALSE, 0);
+        GtkWidget *feedback = gtk_box_new (GTK_ORIENTATION_VERTICAL, 4);
+        ui->contrast = theme_preferences_note ("");
+        gtk_widget_set_no_show_all (ui->contrast, TRUE);
+        ui->contrast_fix = gtk_button_new_with_label (_("Improve text contrast"));
+        gtk_widget_set_halign (ui->contrast_fix, GTK_ALIGN_START);
+        gtk_widget_set_no_show_all (ui->contrast_fix, TRUE);
+        gtk_box_pack_start (GTK_BOX (feedback), ui->contrast, FALSE, FALSE, 0);
+        gtk_box_pack_start (GTK_BOX (feedback), ui->contrast_fix, FALSE, FALSE, 0);
+        g_signal_connect (ui->contrast_fix, "clicked", G_CALLBACK (theme_preferences_contrast_fix), ui);
+        gtk_box_pack_start (GTK_BOX (box), feedback, FALSE, FALSE, 0);
+        ui->search_entry = gtk_search_entry_new ();
+        gtk_entry_set_placeholder_text (GTK_ENTRY (ui->search_entry), _("Find a colour to adjust…"));
+        atk_object_set_name (gtk_widget_get_accessible (ui->search_entry), _("Find a colour to adjust"));
+        gtk_box_pack_start (GTK_BOX (box), ui->search_entry, FALSE, FALSE, 0);
+        gtk_widget_set_tooltip_text (common, _("Theme uses the application appearance. Set a colour to override it."));
+        gtk_list_box_set_selection_mode (GTK_LIST_BOX (common), GTK_SELECTION_NONE);
+        gtk_list_box_set_selection_mode (GTK_LIST_BOX (advanced), GTK_SELECTION_NONE);
+        gtk_box_pack_start (GTK_BOX (box), common, FALSE, FALSE, 0);
+        ui->advanced = gtk_expander_new (_("More colours"));
+        gtk_container_add (GTK_CONTAINER (ui->advanced), advanced);
+        gtk_box_pack_start (GTK_BOX (box), ui->advanced, FALSE, FALSE, 0);
+        for (ThemeSemanticToken token = 0; token < THEME_TOKEN_COUNT; token++)
+        {
+                theme_color_manager_row *row = g_new0 (theme_color_manager_row, 1);
+                GtkWidget *line = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 8);
+                GtkWidget *names = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
+                char *display = theme_preferences_token_display_name (token);
+                GtkWidget *name = gtk_label_new (display);
+                gtk_label_set_xalign (GTK_LABEL (name), 0);
+                gtk_label_set_line_wrap (GTK_LABEL (name), TRUE);
+                gtk_label_set_max_width_chars (GTK_LABEL (name), 22);
+                gtk_container_set_border_width (GTK_CONTAINER (line), 6);
+                row->row = gtk_list_box_row_new ();
+                gtk_container_add (GTK_CONTAINER (row->row), line);
+                row->status = theme_preferences_note ("");
+                gtk_box_pack_start (GTK_BOX (names), name, FALSE, FALSE, 0);
+                gtk_box_pack_start (GTK_BOX (names), row->status, FALSE, FALSE, 0);
+                gtk_box_pack_start (GTK_BOX (line), names, TRUE, TRUE, 0);
+                row->button = gtk_button_new ();
+                row->preview = gtk_event_box_new ();
+                GtkWidget *swatch = gtk_label_new (" ");
+                gtk_widget_set_size_request (swatch, 42, 20);
+                gtk_container_add (GTK_CONTAINER (row->preview), swatch);
+                gtk_container_add (GTK_CONTAINER (row->button), row->preview);
+                g_object_set_data (G_OBJECT (row->button), "zoitechat-color-box", row->preview);
+                char *choose_name = g_strdup_printf (_("Choose colour for %s"), display);
+                atk_object_set_name (gtk_widget_get_accessible (row->button), choose_name);
+                gtk_widget_set_tooltip_text (row->button, choose_name);
+                g_free (choose_name);
+                row->entry = gtk_entry_new ();
+                gtk_entry_set_width_chars (GTK_ENTRY (row->entry), 9);
+                gtk_entry_set_max_width_chars (GTK_ENTRY (row->entry), 9);
+                gtk_entry_set_max_length (GTK_ENTRY (row->entry), 32);
+                char *entry_name = g_strdup_printf (_("%s colour value"), display);
+                atk_object_set_name (gtk_widget_get_accessible (row->entry), entry_name);
+                g_free (entry_name);
+                gtk_widget_set_tooltip_text (row->entry, _("Optional: enter a colour name or a value such as #336699."));
+                row->reset = gtk_button_new_from_icon_name ("edit-undo-symbolic", GTK_ICON_SIZE_BUTTON);
+                char *reset_name = g_strdup_printf (_("Use theme colour for %s"), display);
+                gtk_widget_set_tooltip_text (row->reset, reset_name);
+                atk_object_set_name (gtk_widget_get_accessible (row->reset), reset_name);
+                g_free (reset_name);
+                gtk_box_pack_start (GTK_BOX (line), row->button, FALSE, FALSE, 0);
+                gtk_box_pack_start (GTK_BOX (line), row->entry, FALSE, FALSE, 0);
+                gtk_box_pack_start (GTK_BOX (line), row->reset, FALSE, FALSE, 0);
+                row->token = token; row->color_change_flag = color_change_flag;
+                row->manager_ui = ui; row->parent = parent;
+                char *search_text = g_strdup_printf ("%s token_%d %s", display, token,
+                        token < 32 ? "mIRC IRC palette nickname" : token == THEME_TOKEN_TEXT_FOREGROUND ? "foreground text" :
+                        token == THEME_TOKEN_SELECTION_FOREGROUND ? "foreground selection" : "background tab channel interface");
                 row->search_text = g_utf8_strdown (search_text, -1);
-                g_free (token_code);
                 g_free (search_text);
-
-                if (theme_preferences_staged_get_color (token, &rgba))
-                        theme_preferences_manager_row_apply (row, &rgba);
-
-                theme_preferences_color_set_tooltip (list_row, token);
-
-                g_signal_connect (G_OBJECT (button), "clicked",
-                                  G_CALLBACK (theme_preferences_manager_pick_cb), row);
-                g_object_set_data (G_OBJECT (button), "zoitechat-theme-color-manager-ui", ui);
-                g_signal_connect (G_OBJECT (entry), "activate",
-                                  G_CALLBACK (theme_preferences_manager_entry_activate_cb), row);
-                g_signal_connect (G_OBJECT (entry), "focus-out-event",
-                                  G_CALLBACK (theme_preferences_manager_entry_focus_out_cb), row);
-
-                gtk_container_add (GTK_CONTAINER (list), list_row);
+                gboolean extra = token < THEME_TOKEN_SELECTION_FOREGROUND || token == THEME_TOKEN_MARKER || token == THEME_TOKEN_SPELL;
+                row->expander = extra ? ui->advanced : NULL;
+                gtk_container_add (GTK_CONTAINER (extra ? advanced : common), row->row);
                 g_ptr_array_add (ui->rows, row);
+                GdkRGBA color;
+                theme_preferences_staged_get_color (token, &color);
+                theme_preferences_manager_row_apply (row, &color);
+                g_signal_connect (row->button, "clicked", G_CALLBACK (theme_preferences_manager_pick_cb), row);
+                g_signal_connect (row->reset, "clicked", G_CALLBACK (theme_preferences_manager_row_reset), row);
+                g_signal_connect (row->entry, "activate", G_CALLBACK (theme_preferences_manager_entry_activate_cb), row);
+                g_signal_connect (row->entry, "focus-out-event", G_CALLBACK (theme_preferences_manager_entry_focus_out_cb), row);
                 g_free (display);
         }
-
-        g_signal_connect (G_OBJECT (search), "changed",
-                          G_CALLBACK (theme_preferences_manager_search_changed_cb), ui);
-
+        const ThemeSemanticToken common_order[] = {
+                THEME_TOKEN_TEXT_BACKGROUND, THEME_TOKEN_TEXT_FOREGROUND,
+                THEME_TOKEN_SELECTION_BACKGROUND, THEME_TOKEN_SELECTION_FOREGROUND,
+                THEME_TOKEN_TAB_HIGHLIGHT, THEME_TOKEN_TAB_NEW_MESSAGE, THEME_TOKEN_TAB_NEW_DATA, THEME_TOKEN_TAB_AWAY
+        };
+        for (guint i = 0; i < G_N_ELEMENTS (common_order); i++)
+        {
+                theme_color_manager_row *row = g_ptr_array_index (ui->rows, common_order[i]);
+                g_object_ref (row->row);
+                gtk_container_remove (GTK_CONTAINER (common), row->row);
+                gtk_list_box_insert (GTK_LIST_BOX (common), row->row, -1);
+                g_object_unref (row->row);
+        }
+        GtkWidget *reset = gtk_button_new_with_label (_("Reset chat colours"));
+        gtk_widget_set_halign (reset, GTK_ALIGN_START);
+        gtk_widget_set_tooltip_text (reset, _("Remove all custom chat colours and follow the application again. Cancel restores your previous choices."));
+        g_signal_connect (reset, "clicked", G_CALLBACK (theme_preferences_manager_reset), ui);
+        gtk_box_pack_start (GTK_BOX (box), reset, FALSE, FALSE, 0);
+        g_object_set_data (G_OBJECT (box), "reset-button", reset);
+        g_signal_connect (ui->search_entry, "changed", G_CALLBACK (theme_preferences_manager_search_changed_cb), ui);
+        ui->listener = theme_listener_register ("preferences.appearance", theme_preferences_manager_theme_changed, ui);
         theme_preferences_manager_update_preview (ui);
-
-        gtk_widget_show_all (dialog);
-        return dialog;
+        return box;
 }
 
 static void
 theme_preferences_manage_colors_cb (GtkWidget *button, gpointer user_data)
 {
-        gboolean *color_change_flag = user_data;
-        GtkWidget *dialog;
-
-        dialog = theme_preferences_create_color_manager_dialog (GTK_WINDOW (gtk_widget_get_toplevel (button)),
-                                                                color_change_flag);
-        gtk_dialog_run (GTK_DIALOG (dialog));
-        gtk_widget_destroy (dialog);
-
-        if (color_change_flag)
-                *color_change_flag = theme_preferences_stage.active ? theme_preferences_stage.changed : *color_change_flag;
+        (void)button; (void)user_data;
+        setup_open_page ("colors");
 }
 
 static void
@@ -1211,112 +1511,92 @@ theme_preferences_read_import_color (const char *cfg,
         return TRUE;
 }
 
+static gboolean
+theme_preferences_import_scheme_path (const char *path, gboolean include_formatting,
+                                      gboolean *color_change_flag, gboolean *formatting_imported, GError **error)
+{
+        char *cfg = NULL, *pevents = NULL, *lower = g_ascii_strdown (path, -1);
+        GdkRGBA colors[THEME_TOKEN_COUNT];
+        gboolean present[THEME_TOKEN_COUNT] = { FALSE }, any = FALSE, success = FALSE;
+        gboolean archive = g_str_has_suffix (lower, ".hct");
+        if (formatting_imported) *formatting_imported = FALSE;
+        if (archive)
+        {
+                if (!zoitechat_gtk3_theme_service_read_archive_text_file (path, "colors.conf", &cfg, error)) goto done;
+        }
+        else if (!g_file_get_contents (path, &cfg, NULL, error)) goto done;
+        for (ThemeSemanticToken token = 0; token < THEME_TOKEN_COUNT; token++)
+        {
+                present[token] = theme_preferences_read_import_color (cfg, token, &colors[token]);
+                any |= present[token];
+        }
+        if (!any)
+        {
+                g_set_error_literal (error, G_FILE_ERROR, G_FILE_ERROR_INVAL, _("No recognised colours were found in this scheme."));
+                goto done;
+        }
+        if (archive && include_formatting)
+        {
+                GError *optional_error = NULL;
+                zoitechat_gtk3_theme_service_read_archive_text_file (path, "pevents.conf", &pevents, &optional_error);
+                g_clear_error (&optional_error);
+        }
+        if (pevents)
+        {
+                /* Import into the same staged model as Message formatting.
+                 * Invalid templates leave both models untouched. */
+                setup_open_page ("events");
+                gboolean imported = pevent_preferences_import_text (pevents, error);
+                setup_open_page ("appearance");
+                if (!imported) goto done;
+                if (formatting_imported) *formatting_imported = TRUE;
+        }
+        for (ThemeSemanticToken token = 0; token < THEME_TOKEN_COUNT; token++)
+                if (present[token])
+                {
+                        theme_preferences_staged_set_color (token, &colors[token], color_change_flag, FALSE);
+                        theme_runtime_user_set_color (token, &colors[token]);
+                }
+        theme_manager_apply_and_dispatch (prefs.hex_gui_dark_mode,
+                THEME_CHANGED_REASON_PALETTE | THEME_CHANGED_REASON_WIDGET_STYLE | THEME_CHANGED_REASON_USERLIST, NULL);
+        success = TRUE;
+ done:
+        g_free (pevents); g_free (cfg); g_free (lower);
+        return success;
+}
+
 static void
 theme_preferences_import_colors_conf_cb (GtkWidget *button, gpointer user_data)
 {
         gboolean *color_change_flag = user_data;
-        GtkFileChooserNative *dialog;
-        char *path;
-        char *lower_path;
-        char *cfg;
-        char *pevents_cfg = NULL;
-        GError *error = NULL;
-        gboolean any_imported = FALSE;
-        gboolean imported_from_hct = FALSE;
-        gboolean imported_pevents = FALSE;
-        ThemeSemanticToken token;
-        GtkFileFilter *filter;
-
-        dialog = gtk_file_chooser_native_new (_("Import colors.conf colors"),
-                                              GTK_WINDOW (gtk_widget_get_toplevel (button)),
-                                              GTK_FILE_CHOOSER_ACTION_OPEN,
-                                              _("_Import"),
-                                              _("_Cancel"));
-        gtk_file_chooser_set_select_multiple (GTK_FILE_CHOOSER (dialog), FALSE);
-        filter = gtk_file_filter_new ();
-        gtk_file_filter_set_name (filter, _("Theme colors (*.conf, *.hct)"));
+        GtkFileChooserNative *dialog = gtk_file_chooser_native_new (_("Import colour scheme"),
+                GTK_WINDOW (gtk_widget_get_toplevel (button)), GTK_FILE_CHOOSER_ACTION_OPEN, _("_Import"), _("_Cancel"));
+        GtkFileFilter *filter = gtk_file_filter_new ();
+        gtk_file_filter_set_name (filter, _("Colour schemes (*.conf, *.hct)"));
         gtk_file_filter_add_pattern (filter, "*.conf");
         gtk_file_filter_add_pattern (filter, "*.hct");
         gtk_file_filter_add_pattern (filter, "*.HCT");
         gtk_file_chooser_add_filter (GTK_FILE_CHOOSER (dialog), filter);
-
+        gtk_file_chooser_set_select_multiple (GTK_FILE_CHOOSER (dialog), FALSE);
         if (gtk_native_dialog_run (GTK_NATIVE_DIALOG (dialog)) != GTK_RESPONSE_ACCEPT)
         {
                 g_object_unref (dialog);
                 return;
         }
-
-        path = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (dialog));
+        char *path = gtk_file_chooser_get_filename (GTK_FILE_CHOOSER (dialog));
         g_object_unref (dialog);
-        if (!path)
-                return;
-
-        lower_path = g_ascii_strdown (path, -1);
-        if (g_str_has_suffix (lower_path, ".hct"))
-        {
-                imported_from_hct = TRUE;
-                if (!zoitechat_gtk3_theme_service_read_archive_text_file (path, "colors.conf", &cfg, &error))
-                {
-                        theme_preferences_show_import_error (button, _("Failed to read colors.conf from .hct file."));
-                        g_clear_error (&error);
-                        g_free (lower_path);
-                        g_free (path);
-                        return;
-                }
-                if (zoitechat_gtk3_theme_service_read_archive_text_file (path, "pevents.conf", &pevents_cfg, &error))
-                {
-                        char *pevents_path = g_build_filename (get_xdir (), "pevents.conf", NULL);
-                        if (g_file_set_contents (pevents_path, pevents_cfg, -1, &error))
-                        {
-                                load_text_events ();
-                                imported_pevents = TRUE;
-                        }
-                        g_free (pevents_path);
-                        g_clear_error (&error);
-                }
-                else
-                        g_clear_error (&error);
-        }
-        else if (!g_file_get_contents (path, &cfg, NULL, &error))
-        {
-                theme_preferences_show_import_error (button, _("Failed to read colors.conf file."));
-                g_clear_error (&error);
-                g_free (lower_path);
-                g_free (path);
-                return;
-        }
-        g_free (lower_path);
-
-        for (token = THEME_TOKEN_MIRC_0; token < THEME_TOKEN_COUNT; token++)
-        {
-                GdkRGBA rgba;
-
-                if (!theme_preferences_read_import_color (cfg, token, &rgba))
-                        continue;
-
-                theme_preferences_staged_set_color (token, &rgba, color_change_flag, TRUE);
-                any_imported = TRUE;
-        }
-
-        if (!any_imported)
-                theme_preferences_show_import_error (button, _("No importable colors were found in that colors.conf file."));
-        else if (imported_from_hct)
-        {
-                char *message = g_strdup_printf (imported_pevents ?
-                                                 _("Imported colors.conf and pevents.conf from %s.") :
-                                                 _("Imported colors.conf from %s."),
-                                                 path);
-                theme_preferences_show_import_info (button, message);
-                g_free (message);
-        }
-        else if (color_change_flag)
-                *color_change_flag = theme_preferences_stage.active ? theme_preferences_stage.changed : *color_change_flag;
-
-        if (any_imported && color_change_flag)
-                *color_change_flag = theme_preferences_stage.active ? theme_preferences_stage.changed : *color_change_flag;
-
-        g_free (pevents_cfg);
-        g_free (cfg);
+        if (!path) return;
+        GtkWidget *include = g_object_get_data (G_OBJECT (button), "include-message-formatting");
+        gboolean formatting = FALSE;
+        GError *error = NULL;
+        if (!theme_preferences_import_scheme_path (path, !include || gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (include)),
+                                                   color_change_flag, &formatting, &error))
+                theme_preferences_show_import_error (button, error ? error->message : _("Could not import this colour scheme."));
+        else
+                theme_preferences_show_import_info (button, formatting ?
+                        _("Colours and message formatting are ready to preview. Save keeps them; Cancel discards them.") :
+                        _("Colours are ready to preview. Save keeps them; Cancel discards them."));
+        g_clear_error (&error);
         g_free (path);
 }
 
@@ -1577,52 +1857,6 @@ theme_preferences_gtk3_sync_remove_state (theme_preferences_ui *ui)
         gtk_widget_set_sensitive (ui->gtk3_remove, source == ZOITECHAT_GTK3_THEME_SOURCE_USER);
 }
 
-static void
-theme_preferences_stage_rebase_color (ThemeSemanticToken token, const GdkRGBA *rgba)
-{
-	if (token < 0 || token >= THEME_TOKEN_COUNT || !rgba)
-		return;
-	if (!theme_preferences_stage.active)
-		return;
-
-	/* The theme changed underneath the dialog: shift the baseline so the
-	 * new theme-provided value is neither treated as a user edit nor
-	 * pinned into the runtime palette. */
-	theme_preferences_stage.snapshot[token] = *rgba;
-	theme_preferences_stage.staged[token] = *rgba;
-	theme_preferences_stage.snapshot_valid[token] = TRUE;
-	theme_preferences_stage.staged_valid[token] = TRUE;
-	theme_preferences_stage.staged_dirty[token] = FALSE;
-	theme_preferences_stage_recompute_changed ();
-}
-
-static void
-theme_preferences_gtk3_sync_runtime_palette (theme_preferences_ui *ui)
-{
-	ThemeWidgetStyleValues style_values;
-	GtkWidget *style_source = NULL;
-
-	if (ui && ui->parent)
-		style_source = GTK_WIDGET (ui->parent);
-	else if (ui && ui->gtk3_combo)
-		style_source = ui->gtk3_combo;
-
-	theme_runtime_clear_gtk_mapped_custom_tokens ();
-
-	theme_get_widget_style_values_for_widget (style_source, &style_values);
-
-	/* Leave the mapped tokens unpinned so the user list, channel tree and
-	 * input box keep resolving their colors from whatever GTK3 theme is
-	 * active (system or in-app selected), and only refresh what the
-	 * dialog shows.  Pinning theme-derived values here freezes them into
-	 * the runtime palette (and colors.conf), which left those widgets
-	 * with stale colors until the next restart. */
-	theme_preferences_stage_rebase_color (THEME_TOKEN_TEXT_FOREGROUND, &style_values.foreground);
-	theme_preferences_stage_rebase_color (THEME_TOKEN_TEXT_BACKGROUND, &style_values.background);
-	theme_preferences_stage_rebase_color (THEME_TOKEN_SELECTION_FOREGROUND, &style_values.selection_foreground);
-	theme_preferences_stage_rebase_color (THEME_TOKEN_SELECTION_BACKGROUND, &style_values.selection_background);
-}
-
 static gboolean
 theme_preferences_gtk3_apply_and_refresh (theme_preferences_ui *ui, GError **error)
 {
@@ -1632,7 +1866,7 @@ theme_preferences_gtk3_apply_and_refresh (theme_preferences_ui *ui, GError **err
 	if (ui && ui->parent)
 		theme_manager_apply_to_window (GTK_WIDGET (ui->parent));
 
-	theme_preferences_gtk3_sync_runtime_palette (ui);
+	theme_manager_apply_mode (prefs.hex_gui_dark_mode, NULL);
 
 	theme_manager_dispatch_changed (THEME_CHANGED_REASON_THEME_PACK |
 	                                THEME_CHANGED_REASON_PALETTE |
@@ -1641,6 +1875,8 @@ theme_preferences_gtk3_apply_and_refresh (theme_preferences_ui *ui, GError **err
 	                                THEME_CHANGED_REASON_MODE);
 	return TRUE;
 }
+
+static void theme_preferences_sync_cards (theme_preferences_ui *ui);
 
 static void
 theme_preferences_gtk3_changed_cb (GtkComboBox *combo, gpointer user_data)
@@ -1664,6 +1900,9 @@ theme_preferences_gtk3_changed_cb (GtkComboBox *combo, gpointer user_data)
                 variant = THEME_GTK3_VARIANT_FOLLOW_SYSTEM;
         else
                 variant = theme_gtk3_variant_for_theme (id);
+        char previous_id[sizeof prefs.hex_gui_gtk3_theme];
+        g_strlcpy (previous_id, prefs.hex_gui_gtk3_theme, sizeof previous_id);
+        int previous_variant = prefs.hex_gui_gtk3_variant;
         selection_changed = g_strcmp0 (prefs.hex_gui_gtk3_theme, id) != 0
                             || prefs.hex_gui_gtk3_variant != variant;
         g_strlcpy (prefs.hex_gui_gtk3_theme, id, sizeof (prefs.hex_gui_gtk3_theme));
@@ -1677,13 +1916,39 @@ theme_preferences_gtk3_changed_cb (GtkComboBox *combo, gpointer user_data)
 
         if (selection_changed && !theme_preferences_gtk3_apply_and_refresh (ui, &error))
         {
+                g_strlcpy (prefs.hex_gui_gtk3_theme, previous_id, sizeof prefs.hex_gui_gtk3_theme);
+                prefs.hex_gui_gtk3_variant = previous_variant;
+                if (ui->setup_prefs)
+                {
+                        g_strlcpy (ui->setup_prefs->hex_gui_gtk3_theme, previous_id, sizeof ui->setup_prefs->hex_gui_gtk3_theme);
+                        ui->setup_prefs->hex_gui_gtk3_variant = previous_variant;
+                }
+                GtkTreeModel *model = gtk_combo_box_get_model (combo);
+                GtkTreeIter iter;
+                gboolean valid = gtk_tree_model_get_iter_first (model, &iter);
+                ui->gtk3_populating = TRUE;
+                while (valid)
+                {
+                        char *candidate;
+                        gtk_tree_model_get (model, &iter, GTK3_THEME_COL_ID, &candidate, -1);
+                        gboolean match = !g_strcmp0 (candidate, previous_id);
+                        g_free (candidate);
+                        if (match) { gtk_combo_box_set_active_iter (combo, &iter); break; }
+                        valid = gtk_tree_model_iter_next (model, &iter);
+                }
+                ui->gtk3_populating = FALSE;
+                theme_preferences_gtk3_sync_remove_state (ui);
                 theme_preferences_show_message (ui, GTK_MESSAGE_ERROR,
                                                 error ? error->message : _("Failed to apply GTK3 theme."));
                 g_clear_error (&error);
         }
 
+        theme_preferences_sync_cards (ui);
         g_free (id);
 }
+
+static void theme_preferences_rebuild_cards (theme_preferences_ui *ui);
+static void theme_preferences_sync_cards (theme_preferences_ui *ui);
 
 static void
 theme_preferences_populate_gtk3 (theme_preferences_ui *ui)
@@ -1694,7 +1959,8 @@ theme_preferences_populate_gtk3 (theme_preferences_ui *ui)
         GtkTreeIter iter;
         int active = -1;
         gboolean removed_selected_theme = FALSE;
-        gboolean using_system_default = prefs.hex_gui_gtk3_theme[0] == '\0';
+        gboolean using_system_default = prefs.hex_gui_gtk3_theme[0] == '\0' ||
+                !strcmp (prefs.hex_gui_gtk3_theme, THEME_GTK3_BUILTIN_LIGHT) || !strcmp (prefs.hex_gui_gtk3_theme, THEME_GTK3_BUILTIN_DARK);
         gboolean should_apply = FALSE;
         char *final_id;
         ThemeGtk3Variant final_variant = THEME_GTK3_VARIANT_PREFER_LIGHT;
@@ -1706,7 +1972,7 @@ theme_preferences_populate_gtk3 (theme_preferences_ui *ui)
         gtk_tree_store_append (store, &iter, NULL);
         gtk_tree_store_set (store, &iter,
                             GTK3_THEME_COL_ID, "",
-                            GTK3_THEME_COL_LABEL, _("None"),
+                            GTK3_THEME_COL_LABEL, _("Follow system"),
                             GTK3_THEME_COL_SOURCE, ZOITECHAT_GTK3_THEME_SOURCE_SYSTEM,
                             -1);
         themes = zoitechat_gtk3_theme_service_discover ();
@@ -1772,6 +2038,7 @@ theme_preferences_populate_gtk3 (theme_preferences_ui *ui)
         }
 
         g_ptr_array_unref (themes);
+        theme_preferences_rebuild_cards (ui);
 }
 
 static void
@@ -1779,14 +2046,30 @@ theme_preferences_gtk3_import_path (theme_preferences_ui *ui, char *path)
 {
         char *id = NULL;
         GError *error = NULL;
-
-        if (!zoitechat_gtk3_theme_service_import (path, &id, &error))
+        gboolean imported = zoitechat_gtk3_theme_service_import (path, &id, &error);
+        if (!imported)
                 theme_preferences_show_message (ui, GTK_MESSAGE_ERROR,
-                                                error ? error->message : _("Failed to import GTK3 theme."));
+                                                error ? error->message : _("Failed to install theme."));
         g_clear_error (&error);
-        g_free (id);
         g_free (path);
         theme_preferences_populate_gtk3 (ui);
+        if (imported && id)
+        {
+                GtkTreeModel *model = gtk_combo_box_get_model (GTK_COMBO_BOX (ui->gtk3_combo));
+                GtkTreeIter iter;
+                gboolean valid = gtk_tree_model_get_iter_first (model, &iter);
+                while (valid)
+                {
+                        char *candidate;
+                        gtk_tree_model_get (model, &iter, GTK3_THEME_COL_ID, &candidate, -1);
+                        gboolean match = !g_strcmp0 (candidate, id);
+                        g_free (candidate);
+                        if (match) { gtk_combo_box_set_active_iter (GTK_COMBO_BOX (ui->gtk3_combo), &iter); break; }
+                        valid = gtk_tree_model_iter_next (model, &iter);
+                }
+                gtk_expander_set_expanded (GTK_EXPANDER (ui->theme_expander), TRUE);
+        }
+        g_free (id);
 }
 
 static void
@@ -1847,94 +2130,231 @@ theme_preferences_gtk3_remove_cb (GtkWidget *button, gpointer user_data)
         theme_preferences_populate_gtk3 (ui);
 }
 
-GtkWidget *
-theme_preferences_create_page (GtkWindow *parent,
-                               struct zoitechatprefs *setup_prefs,
-                               gboolean *color_change_flag)
+static void
+theme_preferences_sync_cards (theme_preferences_ui *ui)
 {
-        theme_preferences_ui *ui;
-        GtkWidget *box;
-        GtkWidget *label;
-        GtkWidget *colors_frame;
-        GtkWidget *colors_box;
-        GtkWidget *manage_colors_button;
-        GtkWidget *import_colors_button;
-        GtkWidget *gtk3_frame;
-        GtkWidget *gtk3_grid;
-        GtkWidget *gtk3_button;
-        GtkTreeStore *gtk3_store;
-        GtkCellRenderer *renderer;
+        if (!ui->theme_cards) return;
+        gboolean populating = ui->gtk3_populating;
+        ui->gtk3_populating = TRUE;
+        for (int i = 0; i < 3; i++)
+        {
+                int mode = i == 0 ? ZOITECHAT_DARK_MODE_AUTO : i == 1 ? ZOITECHAT_DARK_MODE_LIGHT : ZOITECHAT_DARK_MODE_DARK;
+                theme_preferences_choice_selected (ui->style_buttons[i],
+                        (!prefs.hex_gui_gtk3_theme[0] || g_str_has_prefix (prefs.hex_gui_gtk3_theme, "builtin:")) && prefs.hex_gui_dark_mode == mode);
+        }
+        GList *children = gtk_container_get_children (GTK_CONTAINER (ui->theme_cards));
+        for (GList *i = children; i; i = i->next)
+        {
+                GtkWidget *button = gtk_bin_get_child (GTK_BIN (i->data));
+                const char *id = g_object_get_data (G_OBJECT (button), "theme-id");
+                theme_preferences_choice_selected (button, !g_strcmp0 (id, prefs.hex_gui_gtk3_theme));
+        }
+        g_list_free (children);
+        ui->gtk3_populating = populating;
+}
 
-        ui = g_new0 (theme_preferences_ui, 1);
-        ui->parent = parent;
-        ui->setup_prefs = setup_prefs;
+static void
+theme_preferences_style_clicked (GtkButton *button, gpointer data)
+{
+        theme_preferences_ui *ui = data;
+        if (ui->gtk3_populating) return;
+        int mode = GPOINTER_TO_INT (g_object_get_data (G_OBJECT (button), "appearance-mode"));
+        prefs.hex_gui_dark_mode = mode;
+        if (ui->setup_prefs) ui->setup_prefs->hex_gui_dark_mode = mode;
+        ui->gtk3_populating = TRUE;
+        gtk_combo_box_set_active (GTK_COMBO_BOX (ui->gtk3_combo), 0);
+        ui->gtk3_populating = FALSE;
+        const char *id = mode == ZOITECHAT_DARK_MODE_AUTO ? "" : mode == ZOITECHAT_DARK_MODE_DARK ? THEME_GTK3_BUILTIN_DARK : THEME_GTK3_BUILTIN_LIGHT;
+        ThemeGtk3Variant variant = mode == ZOITECHAT_DARK_MODE_AUTO ? THEME_GTK3_VARIANT_FOLLOW_SYSTEM :
+                mode == ZOITECHAT_DARK_MODE_DARK ? THEME_GTK3_VARIANT_PREFER_DARK : THEME_GTK3_VARIANT_PREFER_LIGHT;
+        g_strlcpy (prefs.hex_gui_gtk3_theme, id, sizeof prefs.hex_gui_gtk3_theme);
+        prefs.hex_gui_gtk3_variant = variant;
+        if (ui->setup_prefs)
+        {
+                g_strlcpy (ui->setup_prefs->hex_gui_gtk3_theme, id, sizeof ui->setup_prefs->hex_gui_gtk3_theme);
+                ui->setup_prefs->hex_gui_gtk3_variant = variant;
+        }
+        theme_preferences_gtk3_apply_and_refresh (ui, NULL);
+        theme_preferences_sync_cards (ui);
+}
 
-        box = gtkutil_box_new (GTK_ORIENTATION_VERTICAL, FALSE, 6);
-        gtk_container_set_border_width (GTK_CONTAINER (box), 6);
+static void
+theme_preferences_theme_card_clicked (GtkButton *button, gpointer data)
+{
+        theme_preferences_ui *ui = data;
+        if (ui->gtk3_populating) return;
+        const char *id = g_object_get_data (G_OBJECT (button), "theme-id");
+        GtkTreeModel *model = gtk_combo_box_get_model (GTK_COMBO_BOX (ui->gtk3_combo));
+        GtkTreeIter iter;
+        gboolean valid = gtk_tree_model_get_iter_first (model, &iter);
+        while (valid)
+        {
+                char *candidate;
+                gtk_tree_model_get (model, &iter, GTK3_THEME_COL_ID, &candidate, -1);
+                gboolean match = !g_strcmp0 (candidate, id);
+                g_free (candidate);
+                if (match) { gtk_combo_box_set_active_iter (GTK_COMBO_BOX (ui->gtk3_combo), &iter); break; }
+                valid = gtk_tree_model_iter_next (model, &iter);
+        }
+        theme_preferences_sync_cards (ui);
+}
 
-        colors_frame = gtk_frame_new (_("Colors"));
-        gtk_box_pack_start (GTK_BOX (box), colors_frame, FALSE, FALSE, 0);
-        colors_box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 6);
-        gtk_container_set_border_width (GTK_CONTAINER (colors_box), 6);
-        gtk_container_add (GTK_CONTAINER (colors_frame), colors_box);
+static gboolean
+theme_preferences_theme_card_filter (GtkFlowBoxChild *child, gpointer data)
+{
+        theme_preferences_ui *ui = data;
+        GtkWidget *button = gtk_bin_get_child (GTK_BIN (child));
+        char *needle = g_utf8_casefold (gtk_entry_get_text (GTK_ENTRY (ui->theme_search)), -1);
+        const char *name = g_object_get_data (G_OBJECT (button), "theme-search");
+        gboolean visible = !needle[0] || (name && strstr (name, needle));
+        g_free (needle);
+        return visible;
+}
 
-        label = gtk_label_new (_("GTK3 theme colors are used by default. Open the color manager to set custom colors."));
-        gtk_widget_set_halign (label, GTK_ALIGN_START);
-        gtk_label_set_xalign (GTK_LABEL (label), 0.0f);
-        gtk_box_pack_start (GTK_BOX (colors_box), label, FALSE, FALSE, 0);
+static void
+theme_preferences_theme_search_changed (GtkEditable *entry, gpointer data)
+{
+        theme_preferences_ui *ui = data;
+        (void)entry;
+        gtk_flow_box_invalidate_filter (GTK_FLOW_BOX (ui->theme_cards));
+}
 
-        manage_colors_button = gtk_button_new_with_label (_("Manage all client colors…"));
-        gtk_widget_set_halign (manage_colors_button, GTK_ALIGN_START);
-        gtk_box_pack_start (GTK_BOX (colors_box), manage_colors_button, FALSE, FALSE, 0);
-        g_signal_connect (G_OBJECT (manage_colors_button), "clicked",
-                          G_CALLBACK (theme_preferences_manage_colors_cb), color_change_flag);
+static void
+theme_preferences_rebuild_cards (theme_preferences_ui *ui)
+{
+        if (!ui->theme_cards) return;
+        GList *children = gtk_container_get_children (GTK_CONTAINER (ui->theme_cards));
+        for (GList *i = children; i; i = i->next) gtk_widget_destroy (i->data);
+        g_list_free (children);
+        GPtrArray *themes = zoitechat_gtk3_theme_service_discover ();
+        for (guint i = 0; i < themes->len; i++)
+        {
+                ZoitechatGtk3Theme *theme = g_ptr_array_index (themes, i);
+                GtkWidget *button = gtk_toggle_button_new ();
+                GtkWidget *content = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 8);
+                GtkWidget *picture = NULL;
+                if (theme->thumbnail_path)
+                {
+                        GdkPixbuf *image = gdk_pixbuf_new_from_file_at_scale (theme->thumbnail_path, 48, 28, TRUE, NULL);
+                        if (image) { picture = gtk_image_new_from_pixbuf (image); g_object_unref (image); }
+                }
+                if (!picture) picture = gtk_image_new_from_icon_name ("preferences-desktop-theme", GTK_ICON_SIZE_MENU);
+                gtk_container_set_border_width (GTK_CONTAINER (content), 4);
+                gtk_box_pack_start (GTK_BOX (content), picture, FALSE, FALSE, 0);
+                GtkWidget *label = gtk_label_new (theme->display_name);
+                gtk_label_set_line_wrap (GTK_LABEL (label), TRUE);
+                gtk_label_set_max_width_chars (GTK_LABEL (label), 24);
+                gtk_box_pack_start (GTK_BOX (content), label, FALSE, FALSE, 0);
+                g_object_set_data (G_OBJECT (button), "choice-title", label);
+                g_object_set_data_full (G_OBJECT (button), "choice-name", g_strdup (theme->display_name), g_free);
+                gtk_widget_set_tooltip_text (button, theme->source == ZOITECHAT_GTK3_THEME_SOURCE_USER ? _("Installed by you") : _("Available on this computer"));
+                gtk_container_add (GTK_CONTAINER (button), content);
+                atk_object_set_name (gtk_widget_get_accessible (button), theme->display_name);
+                g_object_set_data_full (G_OBJECT (button), "theme-id", g_strdup (theme->id), g_free);
+                g_object_set_data_full (G_OBJECT (button), "theme-search", g_utf8_casefold (theme->display_name, -1), g_free);
+                g_signal_connect (button, "clicked", G_CALLBACK (theme_preferences_theme_card_clicked), ui);
+                gtk_flow_box_insert (GTK_FLOW_BOX (ui->theme_cards), button, -1);
+        }
+        g_ptr_array_unref (themes);
+        gtk_widget_show_all (ui->theme_cards);
+        theme_preferences_sync_cards (ui);
+}
 
-        import_colors_button = gtk_button_new_with_label (_("Import colors.conf colors…"));
-        gtk_widget_set_halign (import_colors_button, GTK_ALIGN_START);
-        gtk_box_pack_start (GTK_BOX (colors_box), import_colors_button, FALSE, FALSE, 0);
-        g_signal_connect (G_OBJECT (import_colors_button), "clicked",
-                          G_CALLBACK (theme_preferences_import_colors_conf_cb), color_change_flag);
-
-        gtk3_frame = gtk_frame_new (_("GTK3 Theme"));
-        gtk_box_pack_start (GTK_BOX (box), gtk3_frame, FALSE, FALSE, 0);
-        gtk3_grid = gtk_grid_new ();
-        gtk_container_set_border_width (GTK_CONTAINER (gtk3_grid), 6);
-        gtk_grid_set_row_spacing (GTK_GRID (gtk3_grid), 6);
-        gtk_grid_set_column_spacing (GTK_GRID (gtk3_grid), 6);
-        gtk_container_add (GTK_CONTAINER (gtk3_frame), gtk3_grid);
-
-        label = gtk_label_new (_("GTK3 theme:"));
-        gtk_widget_set_halign (label, GTK_ALIGN_START);
-        gtk_grid_attach (GTK_GRID (gtk3_grid), label, 0, 0, 1, 1);
-        gtk3_store = gtk_tree_store_new (GTK3_THEME_COL_COUNT,
-                                         G_TYPE_STRING,
-                                         G_TYPE_STRING,
-                                         G_TYPE_INT);
-        ui->gtk3_combo = gtk_combo_box_new_with_model (GTK_TREE_MODEL (gtk3_store));
-        gtk_widget_set_hexpand (ui->gtk3_combo, TRUE);
-        g_object_unref (gtk3_store);
-        renderer = gtk_cell_renderer_text_new ();
-        gtk_cell_layout_pack_start (GTK_CELL_LAYOUT (ui->gtk3_combo), renderer, TRUE);
-        gtk_cell_layout_add_attribute (GTK_CELL_LAYOUT (ui->gtk3_combo), renderer, "text", GTK3_THEME_COL_LABEL);
-        gtk_grid_attach (GTK_GRID (gtk3_grid), ui->gtk3_combo, 1, 0, 3, 1);
-        g_signal_connect (G_OBJECT (ui->gtk3_combo), "changed", G_CALLBACK (theme_preferences_gtk3_changed_cb), ui);
-
-        gtk3_button = gtk_button_new_with_mnemonic (_("Import"));
-        gtk_grid_attach (GTK_GRID (gtk3_grid), gtk3_button, 0, 1, 1, 1);
-        g_signal_connect (G_OBJECT (gtk3_button), "clicked", G_CALLBACK (theme_preferences_gtk3_import_cb), ui);
-
-        ui->gtk3_remove = gtk_button_new_with_mnemonic (_("Remove"));
-        gtk_grid_attach (GTK_GRID (gtk3_grid), ui->gtk3_remove, 1, 1, 1, 1);
-        g_signal_connect (G_OBJECT (ui->gtk3_remove), "clicked", G_CALLBACK (theme_preferences_gtk3_remove_cb), ui);
-
-        gtk3_button = gtk_button_new_with_mnemonic (_("Open theme folder"));
-        gtk_grid_attach (GTK_GRID (gtk3_grid), gtk3_button, 2, 1, 2, 1);
-        g_signal_connect (G_OBJECT (gtk3_button), "clicked", G_CALLBACK (theme_preferences_open_gtk3_folder_cb), ui);
-
-        theme_preferences_populate_gtk3 (ui);
-
+GtkWidget *
+theme_preferences_create_page (GtkWindow *parent, struct zoitechatprefs *setup_prefs, gboolean *color_change_flag)
+{
+        theme_preferences_ui *ui = g_new0 (theme_preferences_ui, 1);
+        GtkWidget *box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 12);
+        ui->parent = parent; ui->setup_prefs = setup_prefs;
         g_object_set_data_full (G_OBJECT (box), "theme-preferences-ui", ui, g_free);
-
+        GtkWidget *modes = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
+        const char *names[] = { N_("Follow system"), N_("Light"), N_("Dark") };
+        gtk_box_pack_start (GTK_BOX (box), theme_preferences_heading (_("Application theme")), FALSE, FALSE, 0);
+        gtk_box_pack_start (GTK_BOX (box), modes, FALSE, FALSE, 0);
+        gtk_widget_set_tooltip_text (modes, _("Follow system uses your desktop theme. Light and Dark use the built-in appearance."));
+        gtk_style_context_add_class (gtk_widget_get_style_context (modes), "linked");
+        for (int i = 0; i < 3; i++)
+        {
+                GtkWidget *button = gtk_toggle_button_new_with_label (_(names[i]));
+                atk_object_set_name (gtk_widget_get_accessible (button), _(names[i]));
+                int mode = i == 0 ? ZOITECHAT_DARK_MODE_AUTO : i == 1 ? ZOITECHAT_DARK_MODE_LIGHT : ZOITECHAT_DARK_MODE_DARK;
+                g_object_set_data (G_OBJECT (button), "appearance-mode", GINT_TO_POINTER (mode));
+                g_signal_connect (button, "clicked", G_CALLBACK (theme_preferences_style_clicked), ui);
+                gtk_box_pack_start (GTK_BOX (modes), button, TRUE, TRUE, 0);
+                ui->style_buttons[i] = button;
+        }
+        ui->theme_expander = gtk_expander_new (_("Installed themes"));
+        GtkWidget *installed = gtk_box_new (GTK_ORIENTATION_VERTICAL, 8);
+        gtk_container_add (GTK_CONTAINER (ui->theme_expander), installed);
+        gtk_expander_set_expanded (GTK_EXPANDER (ui->theme_expander), prefs.hex_gui_gtk3_theme[0] != '\0');
+        ui->theme_search = gtk_search_entry_new ();
+        gtk_entry_set_placeholder_text (GTK_ENTRY (ui->theme_search), _("Find an installed theme…"));
+        gtk_box_pack_start (GTK_BOX (installed), ui->theme_search, FALSE, FALSE, 0);
+        GtkWidget *scroller = gtk_scrolled_window_new (NULL, NULL);
+        gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scroller), GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
+        gtk_scrolled_window_set_min_content_height (GTK_SCROLLED_WINDOW (scroller), 96);
+        gtk_scrolled_window_set_max_content_height (GTK_SCROLLED_WINDOW (scroller), 180);
+        gtk_scrolled_window_set_propagate_natural_height (GTK_SCROLLED_WINDOW (scroller), TRUE);
+        ui->theme_cards = gtk_flow_box_new ();
+        gtk_flow_box_set_selection_mode (GTK_FLOW_BOX (ui->theme_cards), GTK_SELECTION_NONE);
+        gtk_flow_box_set_activate_on_single_click (GTK_FLOW_BOX (ui->theme_cards), FALSE);
+        g_signal_connect (ui->theme_cards, "child-activated", G_CALLBACK (theme_preferences_flow_activate), NULL);
+        gtk_flow_box_set_min_children_per_line (GTK_FLOW_BOX (ui->theme_cards), 1);
+        gtk_flow_box_set_max_children_per_line (GTK_FLOW_BOX (ui->theme_cards), 1);
+        gtk_flow_box_set_column_spacing (GTK_FLOW_BOX (ui->theme_cards), 8);
+        gtk_flow_box_set_row_spacing (GTK_FLOW_BOX (ui->theme_cards), 8);
+        gtk_flow_box_set_filter_func (GTK_FLOW_BOX (ui->theme_cards), theme_preferences_theme_card_filter, ui, NULL);
+        gtk_container_add (GTK_CONTAINER (scroller), ui->theme_cards);
+        gtk_box_pack_start (GTK_BOX (installed), scroller, FALSE, FALSE, 0);
+        g_signal_connect (ui->theme_search, "changed", G_CALLBACK (theme_preferences_theme_search_changed), ui);
+        GtkWidget *tools = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 8);
+        GtkWidget *import = gtk_button_new_with_label (_("Install theme…"));
+        ui->gtk3_remove = gtk_button_new_with_label (_("Remove selected theme"));
+        GtkWidget *folder = gtk_button_new_with_label (_("Open theme folder"));
+        gtk_box_pack_start (GTK_BOX (tools), import, FALSE, FALSE, 0);
+        gtk_box_pack_start (GTK_BOX (tools), ui->gtk3_remove, FALSE, FALSE, 0);
+        gtk_box_pack_start (GTK_BOX (tools), folder, FALSE, FALSE, 0);
+        g_signal_connect (import, "clicked", G_CALLBACK (theme_preferences_gtk3_import_cb), ui);
+        g_signal_connect (ui->gtk3_remove, "clicked", G_CALLBACK (theme_preferences_gtk3_remove_cb), ui);
+        g_signal_connect (folder, "clicked", G_CALLBACK (theme_preferences_open_gtk3_folder_cb), ui);
+        gtk_box_pack_start (GTK_BOX (installed), tools, FALSE, FALSE, 0);
+        gtk_box_pack_start (GTK_BOX (installed), theme_preferences_note (_("Installing and removing theme files takes effect immediately.")), FALSE, FALSE, 0);
+        gtk_box_pack_start (GTK_BOX (box), ui->theme_expander, FALSE, FALSE, 0);
+        GtkTreeStore *store = gtk_tree_store_new (GTK3_THEME_COL_COUNT, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_INT);
+        /* Keep one selection model shared by import/remove and the visual cards. */
+        ui->gtk3_combo = gtk_combo_box_new_with_model (GTK_TREE_MODEL (store));
+        g_object_unref (store);
+        g_object_ref_sink (ui->gtk3_combo);
+        g_object_set_data_full (G_OBJECT (box), "theme-selection-model", ui->gtk3_combo, g_object_unref);
+        g_signal_connect (ui->gtk3_combo, "changed", G_CALLBACK (theme_preferences_gtk3_changed_cb), ui);
+        theme_preferences_populate_gtk3 (ui);
+        theme_preferences_rebuild_cards (ui);
+        gtk_box_pack_start (GTK_BOX (box), gtk_separator_new (GTK_ORIENTATION_HORIZONTAL), FALSE, FALSE, 0);
+        gtk_box_pack_start (GTK_BOX (box), theme_preferences_heading (_("Chat colours")), FALSE, FALSE, 0);
+        ui->color_editor = theme_preferences_create_color_editor (parent, color_change_flag);
+        gtk_box_pack_start (GTK_BOX (box), ui->color_editor, FALSE, FALSE, 0);
+        g_object_set_data (G_OBJECT (box), "appearance-color-editor", ui->color_editor);
+        GtkWidget *files = gtk_expander_new (_("Import colours and message formatting"));
+        GtkWidget *file_tools = gtk_box_new (GTK_ORIENTATION_VERTICAL, 8);
+        gtk_container_add (GTK_CONTAINER (files), file_tools);
+        import = gtk_button_new_with_label (_("Import colour scheme…"));
+        gtk_widget_set_halign (import, GTK_ALIGN_START);
+        GtkWidget *formatting = gtk_check_button_new_with_label (_("Include message formatting when the theme file provides it"));
+        gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (formatting), TRUE);
+        g_object_set_data (G_OBJECT (import), "include-message-formatting", formatting);
+        g_signal_connect (import, "clicked", G_CALLBACK (theme_preferences_import_colors_conf_cb), color_change_flag);
+        gtk_box_pack_start (GTK_BOX (file_tools), import, FALSE, FALSE, 0);
+        gtk_box_pack_start (GTK_BOX (file_tools), formatting, FALSE, FALSE, 0);
+        gtk_widget_set_tooltip_text (import, _("Import colours.conf / colors.conf or HexChat themes (.hct). Changes apply when you save Preferences."));
+        gtk_box_pack_start (GTK_BOX (box), files, FALSE, FALSE, 0);
+        GtkWidget *stripping = gtk_expander_new (_("Ignore colours sent by other people"));
+        GtkWidget *strip_grid = gtk_grid_new ();
+        gtk_grid_set_row_spacing (GTK_GRID (strip_grid), 6);
+        theme_preferences_create_strip_toggle (strip_grid, 0, _("Messages"), &setup_prefs->hex_text_stripcolor_msg);
+        theme_preferences_create_strip_toggle (strip_grid, 1, _("Scrollback"), &setup_prefs->hex_text_stripcolor_replay);
+        theme_preferences_create_strip_toggle (strip_grid, 2, _("Topic"), &setup_prefs->hex_text_stripcolor_topic);
+        gtk_container_add (GTK_CONTAINER (stripping), strip_grid);
+        gtk_box_pack_start (GTK_BOX (box), stripping, FALSE, FALSE, 0);
         return box;
 }
 

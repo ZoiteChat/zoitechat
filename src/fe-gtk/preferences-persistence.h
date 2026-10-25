@@ -34,5 +34,9 @@ typedef struct
 } PreferencesPersistenceResult;
 
 PreferencesPersistenceResult preferences_persistence_save_all (void);
+/* Editors queue serialized settings; runtime state is committed only after
+ * every queued file and the main preferences have been saved successfully. */
+void preferences_persistence_stage_file (const char *name, const char *contents);
+void preferences_persistence_clear_staged_files (void);
 
 #endif

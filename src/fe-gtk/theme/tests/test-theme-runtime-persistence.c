@@ -430,6 +430,36 @@ test_save_writes_only_custom_token_keys (void)
 	g_free (cfg);
 }
 
+static void
+test_reset_one_colour_restores_inheritance_after_reload (void)
+{
+	GdkRGBA color;
+	char *cfg;
+	setup_temp_home ();
+	theme_runtime_load ();
+	gdk_rgba_parse (&color, "#456789");
+	theme_runtime_user_set_color (THEME_TOKEN_TEXT_FOREGROUND, &color);
+	theme_runtime_user_set_color (THEME_TOKEN_TEXT_BACKGROUND, &color);
+	theme_runtime_reset_user_color (THEME_TOKEN_TEXT_BACKGROUND);
+	theme_runtime_apply_mode (ZOITECHAT_DARK_MODE_LIGHT, NULL);
+	g_assert_true (theme_runtime_save ());
+	cfg = read_colors_conf ();
+	g_assert_nonnull (strstr (cfg, "theme.mode.light.token.text_foreground"));
+	g_assert_null (strstr (cfg, "theme.mode.light.token.text_background"));
+	g_free (cfg);
+	theme_runtime_load ();
+	g_assert_false (theme_runtime_get_user_color (THEME_TOKEN_TEXT_BACKGROUND, &color));
+	g_assert_true (theme_runtime_get_user_color (THEME_TOKEN_TEXT_FOREGROUND, &color));
+	g_assert_cmpfloat_with_epsilon (color.red, 0x45 / 255.0, 0.0001);
+	ThemeGtkPaletteMap map = { .enabled = TRUE };
+	gdk_rgba_parse (&map.text_background, "#111111");
+	theme_runtime_get_default_color (THEME_TOKEN_TEXT_BACKGROUND, &map, &color);
+	g_assert_cmpfloat_with_epsilon (color.red, 0x11 / 255.0, 0.0001);
+	gdk_rgba_parse (&map.text_background, "#eeeeee");
+	theme_runtime_get_default_color (THEME_TOKEN_TEXT_BACKGROUND, &map, &color);
+	g_assert_cmpfloat_with_epsilon (color.red, 0xee / 255.0, 0.0001);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -450,5 +480,6 @@ main (int argc, char **argv)
 			 test_save_discard_unlinks_temp_file);
 	g_test_add_func ("/theme/runtime/save_writes_only_custom_token_keys",
 			 test_save_writes_only_custom_token_keys);
+	g_test_add_func ("/theme/runtime/reset_colour_persists_inheritance", test_reset_one_colour_restores_inheritance_after_reload);
 	return g_test_run ();
 }

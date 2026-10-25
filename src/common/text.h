@@ -47,6 +47,11 @@ void PrintTextf (session *sess, const char *format, ...) G_GNUC_PRINTF (2, 3);
 void PrintTextTimeStampf (session *sess, time_t timestamp, const char *format, ...) G_GNUC_PRINTF (3, 4);
 void log_close (session *sess);
 void log_open_or_close (session *sess);
+/* Resolve a log filename without creating directories or changing preferences.
+ * The caller owns the UTF-8 result; NULL means the format could not be expanded. */
+char *log_build_pathname (const char *mask, const char *config_dir,
+                         const char *servname, const char *channame,
+                         const char *netname, time_t now);
 void load_text_events (void);
 void pevent_save (char *fn);
 int pevt_build_string (const char *input, char **output, int *max_arg);

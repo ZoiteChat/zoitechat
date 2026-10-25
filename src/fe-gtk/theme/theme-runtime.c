@@ -367,6 +367,37 @@ theme_runtime_get_xtext_colors_mapped (const ThemeGtkPaletteMap *gtk_map, XTextC
 	theme_palette_to_xtext_colors (&mapped_palette, palette, palette_len);
 }
 
+gboolean
+theme_runtime_get_user_color (ThemeSemanticToken token, GdkRGBA *color)
+{
+	if (token < 0 || token >= THEME_TOKEN_COUNT || !light_custom_tokens[token])
+		return FALSE;
+	return theme_palette_get_color (&light_palette, token, color);
+}
+
+gboolean
+theme_runtime_get_default_color (ThemeSemanticToken token, const ThemeGtkPaletteMap *map, GdkRGBA *color)
+{
+	ThemePalette defaults;
+	gboolean custom[THEME_TOKEN_COUNT] = { FALSE };
+	theme_palette_from_legacy_colors (&defaults, legacy_light_defaults, G_N_ELEMENTS (legacy_light_defaults));
+	theme_runtime_apply_gtk_map (&defaults, map, custom);
+	return theme_palette_get_color (&defaults, token, color);
+}
+
+void
+theme_runtime_reset_user_color (ThemeSemanticToken token)
+{
+	GdkRGBA color;
+	if (!theme_runtime_get_default_color (token, NULL, &color))
+		return;
+	if (!user_colors_valid)
+		light_palette = active_palette;
+	theme_palette_set_color (&light_palette, token, &color);
+	light_custom_tokens[token] = FALSE;
+	user_colors_valid = TRUE;
+}
+
 void
 theme_runtime_user_set_color (ThemeSemanticToken token, const GdkRGBA *col)
 {

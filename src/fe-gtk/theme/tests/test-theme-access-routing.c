@@ -113,6 +113,14 @@ theme_runtime_mode_has_user_colors (gboolean dark_mode)
 }
 
 gboolean
+theme_runtime_get_default_color (ThemeSemanticToken token, const ThemeGtkPaletteMap *map, GdkRGBA *color)
+{
+	(void)map;
+	*color = stub_light_colors[token];
+	return TRUE;
+}
+
+gboolean
 theme_runtime_get_color (ThemeSemanticToken token, GdkRGBA *out_rgba)
 {
 	g_assert_nonnull (out_rgba);

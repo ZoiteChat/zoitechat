@@ -63,6 +63,7 @@ powershell "Get-Content -Encoding UTF8 '$(ZoiteChatLib)zoitechat.rc.utf8' | Out-
     <ClInclude Include="joind.h" />
     <ClInclude Include="maingui.h" />
     <ClInclude Include="preferences-persistence.h" />
+    <ClInclude Include="preferences-pages.h" />
     <ClInclude Include="menu.h" />
     <ClInclude Include="notifications\notification-backend.h" />
     <ClInclude Include="notifygui.h" />
@@ -113,6 +114,7 @@ powershell "Get-Content -Encoding UTF8 '$(ZoiteChatLib)zoitechat.rc.utf8' | Out-
     <ClCompile Include="notifygui.c" />
     <ClCompile Include="pixmaps.c" />
     <ClCompile Include="preferences-persistence.c" />
+    <ClCompile Include="preferences-pages.c" />
     <ClCompile Include="plugin-notification.c" />
     <ClCompile Include="plugin-tray.c" />
     <ClCompile Include="plugingui.c" />

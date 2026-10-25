@@ -24,6 +24,9 @@
 #include <glib.h>
 #include <gdk/gdk.h>
 
+#define THEME_GTK3_BUILTIN_LIGHT "builtin:light"
+#define THEME_GTK3_BUILTIN_DARK "builtin:dark"
+
 typedef enum
 {
 	THEME_GTK3_VARIANT_FOLLOW_SYSTEM = 0,

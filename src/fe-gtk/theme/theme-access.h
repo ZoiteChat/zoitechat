@@ -28,6 +28,7 @@
 #include "theme-palette.h"
 #include "../xtext-color.h"
 
+gboolean theme_get_default_color_for_widget (GtkWidget *widget, ThemeSemanticToken token, GdkRGBA *color);
 gboolean theme_get_color (ThemeSemanticToken token, GdkRGBA *out_rgba);
 gboolean theme_get_mirc_color (unsigned int mirc_index, GdkRGBA *out_rgba);
 gboolean theme_get_color_rgb16 (ThemeSemanticToken token, guint16 *red, guint16 *green, guint16 *blue);

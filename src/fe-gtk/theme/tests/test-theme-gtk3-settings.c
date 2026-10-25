@@ -571,6 +571,31 @@ test_stale_theme_symlink_is_replaced (void)
 	theme_gtk3_disable ();
 }
 
+static void
+test_builtin_appearances_restore_desktop_theme (void)
+{
+	if (!gtk_available) return;
+	GtkSettings *settings = gtk_settings_get_default ();
+	char *original, *name;
+	gboolean dark;
+	theme_gtk3_disable ();
+	g_object_get (settings, "gtk-theme-name", &original, NULL);
+	g_strlcpy (prefs.hex_gui_gtk3_theme, THEME_GTK3_BUILTIN_DARK, sizeof prefs.hex_gui_gtk3_theme);
+	prefs.hex_gui_dark_mode = ZOITECHAT_DARK_MODE_DARK;
+	g_assert_true (theme_gtk3_apply_current (NULL));
+	g_object_get (settings, "gtk-theme-name", &name, "gtk-application-prefer-dark-theme", &dark, NULL);
+	g_assert_cmpstr (name, ==, "Adwaita"); g_assert_true (dark); g_free (name);
+	g_strlcpy (prefs.hex_gui_gtk3_theme, THEME_GTK3_BUILTIN_LIGHT, sizeof prefs.hex_gui_gtk3_theme);
+	prefs.hex_gui_dark_mode = ZOITECHAT_DARK_MODE_LIGHT;
+	g_assert_true (theme_gtk3_apply_current (NULL));
+	g_object_get (settings, "gtk-application-prefer-dark-theme", &dark, NULL);
+	g_assert_false (dark);
+	prefs.hex_gui_gtk3_theme[0] = '\0'; prefs.hex_gui_dark_mode = ZOITECHAT_DARK_MODE_AUTO;
+	g_assert_true (theme_gtk3_apply_current (NULL));
+	g_object_get (settings, "gtk-theme-name", &name, NULL);
+	g_assert_cmpstr (name, ==, original); g_free (name); g_free (original);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -596,6 +621,7 @@ main (int argc, char **argv)
 	if (!gtk_available)
 		g_test_message ("Skipping GTK3 settings tests because GTK initialization failed");
 
+	g_test_add_func ("/theme/gtk3/builtin_appearances_restore_desktop", test_builtin_appearances_restore_desktop_theme);
 	rc = g_test_run ();
 	theme_gtk3_disable ();
 	teardown_themes ();
