@@ -167,11 +167,7 @@ if not (host_machine.system() == 'windows' and get_option('debug'))
  test_ldflags += '-Wl,--dynamicbase'
 endif
 foreach ldflag : test_ldflags
-  if meson.version().version_compare('>= 0.55.0')
-    has_arg = cc.has_link_argument(ldflag)
-  else
-    has_arg = cc.has_argument(ldflag)
-  endif
+  has_arg = cc.has_link_argument(ldflag)
 
   if has_arg and cc.links('int main (void) { return 0; }', args: ldflag)
     global_ldflags += ldflag
@@ -229,29 +225,27 @@ if cc.get_id() != 'msvc'
   meson.add_install_script('meson_post_install.py')
 endif
 
-if meson.version().version_compare('>= 0.55.0')
-  summary({
-    'prefix': get_option('prefix'),
-    'bindir': get_option('bindir'),
-    'libdir': get_option('libdir'),
-    'datadir': get_option('datadir'),
-  }, section: 'Directories')
+summary({
+  'prefix': get_option('prefix'),
+  'bindir': get_option('bindir'),
+  'libdir': get_option('libdir'),
+  'datadir': get_option('datadir'),
+}, section: 'Directories')
 
-  summary({
-    'GTK Frontend': get_option('gtk-frontend') ? 'enabled (GTK+ 3.22+)' : 'disabled',
-    'TLS (openssl)': libssl_dep.found(),
-    'Plugin Support': get_option('plugin'),
-    'DBus Support': dbus_dep.found(),
-    'libcanberra': libcanberra_dep.found(),
-  }, section: 'Features')
+summary({
+  'GTK Frontend': get_option('gtk-frontend') ? 'enabled (GTK+ 3.22+)' : 'disabled',
+  'TLS (openssl)': libssl_dep.found(),
+  'Plugin Support': get_option('plugin'),
+  'DBus Support': dbus_dep.found(),
+  'libcanberra': libcanberra_dep.found(),
+}, section: 'Features')
 
-  summary({
-    'Lua': get_option('with-lua'),
-    'Python': get_option('with-python'),
-    'Perl': get_option('with-perl'),
-    'Perl Legacy API': get_option('with-perl-legacy-api'),
-    'FiSH': get_option('with-fishlim'),
-    'Sysinfo': get_option('with-sysinfo'),
-    'DCC Checksum': get_option('with-checksum'),
-  }, section: 'Plugins')
-endif
+summary({
+  'Lua': get_option('with-lua'),
+  'Python': get_option('with-python'),
+  'Perl': get_option('with-perl'),
+  'Perl Legacy API': get_option('with-perl-legacy-api'),
+  'FiSH': get_option('with-fishlim'),
+  'Sysinfo': get_option('with-sysinfo'),
+  'DCC Checksum': get_option('with-checksum'),
+}, section: 'Plugins')
