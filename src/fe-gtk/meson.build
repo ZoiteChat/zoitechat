@@ -167,7 +167,7 @@ emoji_ui_tests = executable('emoji_ui_tests',
   dependencies: emoji_font_deps,
 )
 test('Emoji UI Tests', emoji_ui_tests,
-  env: ['ZOITECHAT_EMOJI_FONT=' + join_paths(meson.source_root(), 'data/fonts/NotoColorEmoji.ttf')],
+  env: ['ZOITECHAT_EMOJI_FONT=' + join_paths(meson.project_source_root(), 'data/fonts/NotoColorEmoji.ttf')],
   protocol: 'tap',
   timeout: 120,
 )
@@ -291,7 +291,7 @@ emoji_font_tests = executable('emoji_font_tests',
   dependencies: emoji_font_deps,
 )
 test('Emoji Font Tests', emoji_font_tests,
-  env: ['ZOITECHAT_EMOJI_FONT=' + join_paths(meson.source_root(), 'data/fonts/NotoColorEmoji.ttf')],
+  env: ['ZOITECHAT_EMOJI_FONT=' + join_paths(meson.project_source_root(), 'data/fonts/NotoColorEmoji.ttf')],
   protocol: 'tap',
   timeout: 120,
 )
