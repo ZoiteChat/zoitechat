@@ -110,9 +110,15 @@ make_te = find_program('make-te.py')
 
 python3 = find_program('python3', required: true)
 
+public_suffix_cmd = [python3, files('gen-public-suffix.py'), '@OUTPUT@']
+public_suffix_list = get_option('public-suffix-list')
+if public_suffix_list != ''
+  public_suffix_cmd += public_suffix_list
+endif
+
 public_suffix_data = custom_target('public_suffix_data_h',
   output: 'public_suffix_data.h',
-  command: [python3, files('gen-public-suffix.py'), '@OUTPUT@']
+  command: public_suffix_cmd
 )
 
 emoji_data_table = custom_target('emoji_data_table_h',

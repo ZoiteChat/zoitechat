@@ -75,3 +75,8 @@ option('with-upd', type: 'boolean',
 option('with-perl-legacy-api', type: 'boolean', value: false,
   description: 'Enables the legacy IRC perl module for compatibility with old scripts'
 )
+
+# Build inputs
+option('public-suffix-list', type: 'string', value: '',
+  description: 'Path to a local public_suffix_list.dat to generate the URL detection rules from instead of downloading it'
+)
