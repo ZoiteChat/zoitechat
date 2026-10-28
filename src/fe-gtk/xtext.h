@@ -26,6 +26,7 @@
 
 typedef struct _GtkXText GtkXText;
 typedef struct _GtkXTextClass GtkXTextClass;
+struct reply_item;
 
 #define GTK_TYPE_XTEXT              (gtk_xtext_get_type ())
 #define GTK_XTEXT(object)           (G_TYPE_CHECK_INSTANCE_CAST ((object), GTK_TYPE_XTEXT, GtkXText))
@@ -286,6 +287,11 @@ void gtk_xtext_append_indent (xtext_buffer *buf,
 										unsigned char *left_text, int left_len,
 										unsigned char *right_text, int right_len,
 										time_t stamp);
+void gtk_xtext_append_wrap_with_message (xtext_buffer *buf, unsigned char *text,
+		int len, time_t stamp, int stamp_len, const struct reply_item *message);
+void gtk_xtext_append_indent_with_message (xtext_buffer *buf,
+		unsigned char *left_text, int left_len, unsigned char *right_text, int right_len,
+		time_t stamp, const struct reply_item *message);
 int gtk_xtext_set_font (GtkXText *xtext, char *name);
 void gtk_xtext_set_background (GtkXText * xtext, cairo_surface_t *surface);
 void gtk_xtext_set_palette (GtkXText * xtext, const XTextColor *palette);
@@ -318,6 +324,7 @@ xtext_buffer *gtk_xtext_buffer_new (GtkXText *xtext);
 void gtk_xtext_buffer_free (xtext_buffer *buf);
 void gtk_xtext_buffer_show (GtkXText *xtext, xtext_buffer *buf, int render);
 void gtk_xtext_copy_selection (GtkXText *xtext);
+const struct reply_item *gtk_xtext_entry_get_message (GtkXText *xtext, textentry *ent);
 
 /* inline image support.  A textentry can have one image attached, which is
  * rendered below its text.  Loading is asynchronous: begin() registers the

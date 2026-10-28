@@ -69,7 +69,8 @@ xtext_get_stamp_str (time_t tim, char **ret)
 }
 
 static void
-PrintTextLine (xtext_buffer *xtbuf, unsigned char *text, int len, int indent, time_t timet)
+PrintTextLine (xtext_buffer *xtbuf, unsigned char *text, int len, int indent, time_t timet,
+					const reply_item *message)
 {
 	unsigned char *tab, *new_text;
 	int leftlen;
@@ -92,10 +93,11 @@ PrintTextLine (xtext_buffer *xtbuf, unsigned char *text, int len, int indent, ti
 			memcpy (new_text, stamp, stamp_size);
 			g_free (stamp);
 			memcpy (new_text + stamp_size, text, len);
-			gtk_xtext_append_wrap (xtbuf, new_text, len + stamp_size, timet, stamp_size);
+			gtk_xtext_append_wrap_with_message (xtbuf, new_text, len + stamp_size,
+													  timet, stamp_size, message);
 			g_free (new_text);
 		} else
-			gtk_xtext_append (xtbuf, text, len, timet);
+			gtk_xtext_append_wrap_with_message (xtbuf, text, len, timet, 0, message);
 		return;
 	}
 
@@ -103,14 +105,21 @@ PrintTextLine (xtext_buffer *xtbuf, unsigned char *text, int len, int indent, ti
 	if (tab && tab < (text + len))
 	{
 		leftlen = tab - text;
-		gtk_xtext_append_indent (xtbuf,
-										 text, leftlen, tab + 1, len - (leftlen + 1), timet);
+		gtk_xtext_append_indent_with_message (xtbuf, text, leftlen,
+													 tab + 1, len - (leftlen + 1), timet, message);
 	} else
-		gtk_xtext_append_indent (xtbuf, 0, 0, text, len, timet);
+		gtk_xtext_append_indent_with_message (xtbuf, 0, 0, text, len, timet, message);
 }
 
 void
 PrintTextRaw (void *xtbuf, unsigned char *text, int indent, time_t stamp)
+{
+	PrintTextRawWithMessage (xtbuf, text, indent, stamp, NULL);
+}
+
+void
+PrintTextRawWithMessage (void *xtbuf, unsigned char *text, int indent, time_t stamp,
+								 const reply_item *message)
 {
 	char *last_text = text;
 	int len = 0;
@@ -122,10 +131,10 @@ PrintTextRaw (void *xtbuf, unsigned char *text, int indent, time_t stamp)
 		switch (*text)
 		{
 		case 0:
-			PrintTextLine (xtbuf, last_text, len, indent, stamp);
+			PrintTextLine (xtbuf, last_text, len, indent, stamp, message);
 			return;
 		case '\n':
-			PrintTextLine (xtbuf, last_text, len, indent, stamp);
+			PrintTextLine (xtbuf, last_text, len, indent, stamp, message);
 			text++;
 			if (*text == 0)
 				return;

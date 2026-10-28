@@ -56,6 +56,8 @@ int text_color_of (char *name);
 char **text_color_event_names (int color, int *count);
 void text_emit (int index, session *sess, char *a, char *b, char *c, char *d,
 		time_t timestamp);
+void text_emit_with_message (int index, session *sess, char *a, char *b, char *c, char *d,
+		time_t timestamp, const reply_item *message);
 int text_emit_by_name (char *name, session *sess, time_t timestamp,
 					   char *a, char *b, char *c, char *d);
 gchar *text_convert_invalid (const gchar* text, gssize len, GIConv converter, const gchar *fallback, gsize *len_out);

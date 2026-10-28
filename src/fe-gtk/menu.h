@@ -29,6 +29,8 @@ void menu_chanmenu (session *sess, GdkEventButton * event, char *chan);
 void menu_addfavoritemenu (server *serv, GtkWidget *menu, char *channel, gboolean istree);
 void menu_addconnectmenu (server *serv, GtkWidget *menu);
 void menu_nickmenu (session *sess, GdkEventButton * event, char *nick, int num_sel);
+void menu_nickmenu_with_message (session *sess, GdkEventButton *event, char *nick,
+										  int num_sel, const reply_item *message);
 void menu_middlemenu (session *sess, GdkEventButton *event);
 void userlist_button_cb (GtkWidget * button, char *cmd);
 void nick_command_parse (session *sess, char *cmd, char *nick, char *allnick);

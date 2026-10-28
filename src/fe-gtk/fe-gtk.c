@@ -995,12 +995,19 @@ void
 fe_print_text (struct session *sess, char *text, time_t stamp,
 			   gboolean no_activity)
 {
+	fe_print_text_with_message (sess, text, stamp, no_activity, NULL);
+}
+
+void
+fe_print_text_with_message (struct session *sess, char *text, time_t stamp,
+									gboolean no_activity, const reply_item *message)
+{
 	/* image links become a "[view image]" placeholder with a hidden URL */
 	char *filtered = inline_image_filter_text (text);
 
-	PrintTextRaw (sess->res->buffer,
+	PrintTextRawWithMessage (sess->res->buffer,
 					  (unsigned char *)(filtered ? filtered : text),
-					  prefs.hex_text_indent, stamp);
+					  prefs.hex_text_indent, stamp, message);
 	g_free (filtered);
 
 	if (no_activity || !sess->gui->is_tab)

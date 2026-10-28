@@ -3865,10 +3865,25 @@ mg_update_topicbar_layout (session_gui *gui)
 
 /* check if a word is clickable */
 
+static session *
+mg_xtext_session (GtkWidget *widget)
+{
+        GSList *list;
+
+        for (list = sess_list; list; list = list->next)
+        {
+                session *sess = list->data;
+
+                if (sess->res && sess->res->buffer == GTK_XTEXT (widget)->buffer)
+                        return sess;
+        }
+        return current_sess;
+}
+
 static int
 mg_word_check (GtkWidget * xtext, char *word)
 {
-        session *sess = current_sess;
+        session *sess = mg_xtext_session (xtext);
         int ret;
 
         ret = url_check_word (word);
@@ -3883,7 +3898,7 @@ mg_word_check (GtkWidget * xtext, char *word)
 static void
 mg_word_clicked (GtkWidget *xtext, char *word, GdkEventButton *even)
 {
-        session *sess = current_sess;
+        session *sess = mg_xtext_session (xtext);
         int word_type = 0, start, end;
         char *tmp;
 
@@ -3963,7 +3978,9 @@ mg_word_clicked (GtkWidget *xtext, char *word, GdkEventButton *even)
         case WORD_NICK:
                 word[end] = 0;
                 word += start;
-                menu_nickmenu (sess, even, word, FALSE);
+                menu_nickmenu_with_message (sess, even, word, FALSE,
+                    gtk_xtext_entry_get_message (GTK_XTEXT (xtext),
+                        gtk_xtext_get_clicked_entry (GTK_XTEXT (xtext))));
                 break;
         case WORD_CHANNEL:
                 word[end] = 0;
@@ -3978,7 +3995,9 @@ mg_word_clicked (GtkWidget *xtext, char *word, GdkEventButton *even)
                 g_free (tmp);
                 break;
         case WORD_DIALOG:
-                menu_nickmenu (sess, even, sess->channel, FALSE);
+                menu_nickmenu_with_message (sess, even, sess->channel, FALSE,
+                    gtk_xtext_entry_get_message (GTK_XTEXT (xtext),
+                        gtk_xtext_get_clicked_entry (GTK_XTEXT (xtext))));
                 break;
         }
 }
