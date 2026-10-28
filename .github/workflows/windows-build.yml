@@ -229,7 +229,7 @@ jobs:
 
       - name: Attest Installer (Artifact Attestation)
         if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
-        uses: actions/attest-build-provenance@v3
+        uses: actions/attest-build-provenance@v4
         with:
           subject-name: Installer ${{ matrix.arch }}
           subject-digest: sha256:${{ steps.upload_installer.outputs.artifact-digest }}
@@ -243,7 +243,7 @@ jobs:
 
       - name: Attest Build Files (Artifact Attestation)
         if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
-        uses: actions/attest-build-provenance@v3
+        uses: actions/attest-build-provenance@v4
         with:
           subject-name: Build Files ${{ matrix.arch }}
           subject-digest: sha256:${{ steps.upload_buildfiles.outputs.artifact-digest }}
