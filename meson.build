@@ -184,7 +184,7 @@ endif
 add_project_link_arguments(global_ldflags, language: 'c')
 
 if get_option('install-docs')
-  docs_python = find_program('python3', 'python')
+  docs_python = find_program(get_option('docs-python'), 'python')
   docs_sphinx = run_command(docs_python, '-c', 'import sphinx', check: false)
   if docs_sphinx.returncode() != 0
     error('Sphinx is required to build the local HTML documentation. Install Sphinx or configure with -Dinstall-docs=false.')

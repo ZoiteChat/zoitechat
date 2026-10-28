@@ -1,0 +1,89 @@
+#!/bin/sh
+set -eu
+
+APPDIR="${APPDIR:-$(dirname "$(readlink -f "$0")")}"
+
+export PATH="$APPDIR/usr/bin:${PATH:-/usr/bin:/bin}"
+export LD_LIBRARY_PATH="$APPDIR/usr/lib:$APPDIR/usr/lib/x86_64-linux-gnu${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+export XDG_DATA_DIRS="$APPDIR/usr/share:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
+export GTK_EXE_PREFIX="$APPDIR/usr"
+export GTK_DATA_PREFIX="$APPDIR/usr"
+gtk_path_entries=""
+if [ -d "$APPDIR/usr/lib/x86_64-linux-gnu/gtk-3.0" ]; then
+  gtk_path_entries="$APPDIR/usr/lib/x86_64-linux-gnu/gtk-3.0"
+fi
+if [ -d "$APPDIR/usr/lib/gtk-3.0" ]; then
+  gtk_path_entries="${gtk_path_entries:+$gtk_path_entries:}$APPDIR/usr/lib/gtk-3.0"
+fi
+if [ -n "$gtk_path_entries" ]; then
+  export GTK_PATH="$gtk_path_entries${GTK_PATH:+:$GTK_PATH}"
+fi
+
+if [ -d "$APPDIR/usr/lib/x86_64-linux-gnu/zoitechat/plugins" ]; then
+  export ZOITECHAT_LIBDIR="$APPDIR/usr/lib/x86_64-linux-gnu/zoitechat/plugins"
+elif [ -d "$APPDIR/usr/lib/zoitechat/plugins" ]; then
+  export ZOITECHAT_LIBDIR="$APPDIR/usr/lib/zoitechat/plugins"
+fi
+
+if [ -d "$APPDIR/usr/share/glib-2.0/schemas" ]; then
+  export GSETTINGS_SCHEMA_DIR="$APPDIR/usr/share/glib-2.0/schemas"
+fi
+
+if [ -d "$APPDIR/usr/lib/x86_64-linux-gnu/gio/modules" ]; then
+  gio_module_dir="$APPDIR/usr/lib/x86_64-linux-gnu/gio/modules"
+elif [ -d "$APPDIR/usr/lib/gio/modules" ]; then
+  gio_module_dir="$APPDIR/usr/lib/gio/modules"
+else
+  gio_module_dir=""
+fi
+
+if [ -n "$gio_module_dir" ]; then
+  export GIO_MODULE_DIR="$gio_module_dir"
+  export GIO_EXTRA_MODULES="$gio_module_dir"
+fi
+
+unset GTK_MODULES
+
+perl5lib_entries=""
+for dir in \
+  "$APPDIR/usr/lib/x86_64-linux-gnu/perl-base" \
+  "$APPDIR/usr/lib/x86_64-linux-gnu/perl"/* \
+  "$APPDIR/usr/lib/x86_64-linux-gnu/perl5"/* \
+  "$APPDIR/usr/share/perl"/* \
+  "$APPDIR/usr/share/perl5"
+do
+  if [ -d "$dir" ]; then
+    perl5lib_entries="${perl5lib_entries:+$perl5lib_entries:}$dir"
+  fi
+done
+
+if [ -n "$perl5lib_entries" ]; then
+  export PERL5LIB="$perl5lib_entries${PERL5LIB:+:$PERL5LIB}"
+fi
+
+export PYTHONHOME="$APPDIR/usr"
+# CPython finds the private versioned site-packages directory itself.
+export TCL_LIBRARY="${TCL_LIBRARY:-$APPDIR/usr/share/tcltk/tcl8.6}"
+export TK_LIBRARY="${TK_LIBRARY:-$APPDIR/usr/share/tcltk/tk8.6}"
+
+# Register the private font without hiding the host's normal fonts.
+export ZOITECHAT_EMOJI_FONT="${ZOITECHAT_EMOJI_FONT:-$APPDIR/usr/share/fonts/zoitechat/NotoColorEmoji.ttf}"
+
+# OpenSSL trust store override
+export SSL_CERT_FILE="${SSL_CERT_FILE:-$APPDIR/etc/ssl/certs/ca-certificates.crt}"
+export SSL_CERT_DIR="${SSL_CERT_DIR:-$APPDIR/etc/ssl/certs}"
+export CURL_CA_BUNDLE="${CURL_CA_BUNDLE:-$SSL_CERT_FILE}"
+
+# Prefer Wayland if the session provides it, but keep X11 fallback.
+# Don't override if the user already set GDK_BACKEND explicitly.
+if [ -z "${GDK_BACKEND:-}" ]; then
+  if [ -n "${WAYLAND_DISPLAY:-}" ] || [ "${XDG_SESSION_TYPE:-}" = "wayland" ]; then
+    export GDK_BACKEND="wayland,x11"
+  else
+    export GDK_BACKEND="x11"
+  fi
+fi
+
+# linuxdeploy's outer AppRun has already sourced its generated hooks.
+
+exec "$APPDIR/usr/bin/zoitechat" "$@"
