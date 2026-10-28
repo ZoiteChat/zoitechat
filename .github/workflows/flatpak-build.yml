@@ -46,6 +46,6 @@ jobs:
 
       - name: Attest Flatpak Bundle (Build Provenance)
         if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
-        uses: actions/attest-build-provenance@v3
+        uses: actions/attest-build-provenance@v4
         with:
           subject-path: zoitechat.flatpak

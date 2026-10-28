@@ -407,7 +407,7 @@ jobs:
 
       - name: Attest MSI Installer (Artifact Attestation)
         if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
-        uses: actions/attest-build-provenance@v3
+        uses: actions/attest-build-provenance@v4
         with:
           subject-name: MSI Installer ${{ matrix.arch }}
           subject-digest: sha256:${{ steps.upload_msi.outputs.artifact-digest }}
@@ -422,7 +422,7 @@ jobs:
 
       - name: Attest MSIX Package (Artifact Attestation)
         if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
-        uses: actions/attest-build-provenance@v3
+        uses: actions/attest-build-provenance@v4
         with:
           subject-name: ${{ steps.build_msix.outputs.artifact_name }}
           subject-digest: sha256:${{ steps.upload_msix.outputs.artifact-digest }}
