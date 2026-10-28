@@ -28,7 +28,7 @@ endif
 
 perl = find_program(get_option('with-perl'))
 
-ret = run_command([perl, '-MExtUtils::Embed', '-e', 'ccopts'])
+ret = run_command([perl, '-MExtUtils::Embed', '-e', 'ccopts'], check: false)
 if ret.returncode() != 0
   error('perl: Failed to get cflags')
 endif
@@ -38,7 +38,7 @@ foreach flag : ret.stdout().strip().split(' ')
   endif
 endforeach
 
-ret = run_command([perl, '-MExtUtils::Embed', '-e', 'ldopts'])
+ret = run_command([perl, '-MExtUtils::Embed', '-e', 'ldopts'], check: false)
 if ret.returncode() != 0
   error('perl: Failed to get ldflags')
 endif
@@ -79,7 +79,7 @@ perl_cflags += ['-Wno-strict-prototypes']
 perl_cflags += [
   # Perl has its own 'config.h' that we must override
   # TODO: Just rename ours to something more unique.
-  '-include', meson.build_root() + '/config.h'
+  '-include', meson.project_build_root() + '/config.h'
 ]
 
 if not cc.links('''
