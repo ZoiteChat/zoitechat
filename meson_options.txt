@@ -43,6 +43,9 @@ option('install-emoji-font', type: 'boolean', value: true,
 option('install-docs', type: 'boolean', value: false,
   description: 'Build and install the local HTML documentation'
 )
+option('docs-python', type: 'string', value: 'python3',
+  description: 'Python interpreter with Sphinx for building documentation'
+)
 
 # Plugins
 option('with-checksum', type: 'boolean',
