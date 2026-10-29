@@ -834,8 +834,9 @@ G_GNUC_END_IGNORE_DEPRECATIONS
 #endif
 }
 
-void
-PrintTextTimeStamp (session *sess, char *text, time_t timestamp)
+static void
+PrintTextTimeStampWithMessage (session *sess, char *text, time_t timestamp,
+									  const reply_item *message)
 {
 	if (!sess)
 	{
@@ -856,8 +857,14 @@ PrintTextTimeStamp (session *sess, char *text, time_t timestamp)
 
 	log_write (sess, text, timestamp);
 	scrollback_save (sess, text, timestamp);
-	fe_print_text (sess, text, timestamp, FALSE);
+	fe_print_text_with_message (sess, text, timestamp, FALSE, message);
 	g_free (text);
+}
+
+void
+PrintTextTimeStamp (session *sess, char *text, time_t timestamp)
+{
+	PrintTextTimeStampWithMessage (sess, text, timestamp, NULL);
 }
 
 void
@@ -1962,7 +1969,7 @@ display_event_string (session *sess, int event, char **args, char *format,
 
 static void
 display_event (session *sess, int event, char **args, 
-					unsigned int stripcolor_args, time_t timestamp)
+					unsigned int stripcolor_args, time_t timestamp, const reply_item *message)
 {
 	char o[4096];
 	char *format;
@@ -1992,7 +1999,7 @@ display_event (session *sess, int event, char **args,
 	}
 
 	if (o[0])
-		PrintTextTimeStamp (sess, o, timestamp);
+		PrintTextTimeStampWithMessage (sess, o, timestamp, message);
 }
 
 int
@@ -2211,6 +2218,13 @@ void
 text_emit (int index, session *sess, char *a, char *b, char *c, char *d,
 			  time_t timestamp)
 {
+	text_emit_with_message (index, sess, a, b, c, d, timestamp, NULL);
+}
+
+void
+text_emit_with_message (int index, session *sess, char *a, char *b, char *c, char *d,
+							  time_t timestamp, const reply_item *message)
+{
 	char *word[PDIWORDS];
 	int i;
 	tab_state_flags current_state = sess->tab_state;
@@ -2305,7 +2319,7 @@ text_emit (int index, session *sess, char *a, char *b, char *c, char *d,
 
 	if (!prefs.hex_away_omit_alerts || !sess->server->is_away)
 		sound_play_event (index);
-	display_event (sess, index, word, stripcolor_args, timestamp);
+	display_event (sess, index, word, stripcolor_args, timestamp, message);
 }
 
 char *

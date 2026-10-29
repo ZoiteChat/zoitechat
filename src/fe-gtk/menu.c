@@ -790,26 +790,73 @@ fe_userlist_update (session *sess, struct User *user)
 }
 
 
-static void
-menu_reply_to_latest_cb (GtkWidget *wid, gpointer data)
+typedef struct
 {
-	reply_item *item;
+	session *sess;
+	char *target;
+	char *msgid;
+	char *nick;
+	char *text;
+	gboolean latest;
+} reply_menu_data;
 
-	item = reply_cache_latest_from (current_sess, str_copy);
-	if (!item)
+static void
+menu_reply_data_free (gpointer data)
+{
+	reply_menu_data *reply = data;
+	g_free (reply->target);
+	g_free (reply->msgid);
+	g_free (reply->nick);
+	g_free (reply->text);
+	g_free (reply);
+}
+
+static void
+menu_reply_cb (GtkWidget *wid, gpointer data)
+{
+	reply_menu_data *reply = data;
+	session *sess = reply->sess;
+	reply_item selected = {reply->msgid, reply->nick, reply->text, 0};
+	const reply_item *item = &selected;
+	GtkWidget *menu = g_object_ref (gtk_widget_get_parent (wid));
+
+	/* The menu may outlive a closed or retargeted tab. Never reply in whatever
+	 * session happens to be current when the menu item is activated. */
+	if (!is_session (sess) ||
+		 sess->server->p_cmp (sess->channel, reply->target))
+		goto done;
+	if (sess != current_sess)
 	{
-		PrintText (current_sess, _("No recent message to reply to.\n"));
-		return;
+		fe_ctrl_gui (sess, FE_GUI_FOCUS, 0);
+		if (!is_session (sess) || sess != current_sess ||
+			 sess->server->p_cmp (sess->channel, reply->target))
+			goto done;
+	}
+	if (reply->latest)
+		item = reply_cache_latest_from (sess, reply->nick);
+	if (!item || !item->msgid)
+	{
+		PrintText (sess, _("No recent message to reply to.\n"));
+		goto done;
 	}
 
-	reply_state_set (current_sess, item->msgid, current_sess->channel, item->nick, item->text);
-	mg_reply_update (current_sess);
-	if (current_sess->gui && current_sess->gui->input_box)
-		gtk_widget_grab_focus (current_sess->gui->input_box);
+	reply_state_set (sess, item->msgid, reply->target, item->nick, item->text);
+	mg_reply_update (sess);
+	if (sess->gui && sess->gui->input_box)
+		gtk_widget_grab_focus (sess->gui->input_box);
+done:
+	g_object_unref (menu);
 }
 
 void
 menu_nickmenu (session *sess, GdkEventButton *event, char *nick, int num_sel)
+{
+	menu_nickmenu_with_message (sess, event, nick, num_sel, NULL);
+}
+
+void
+menu_nickmenu_with_message (session *sess, GdkEventButton *event, char *nick,
+									  int num_sel, const reply_item *message)
 {
 	char buf[512];
 	struct User *user;
@@ -853,7 +900,24 @@ menu_nickmenu (session *sess, GdkEventButton *event, char *nick, int num_sel)
 
 	if (num_sel <= 1)
 	{
-		menu_quick_item_with_callback (menu_reply_to_latest_cb, _("Reply"), menu, 0);
+		/* A transcript click must identify that exact message. A user-list
+		 * click has no message row and retains the reply-to-latest behaviour.
+		 * Copy row data now: messages may arrive or be trimmed while open. */
+		reply_menu_data *reply = g_new0 (reply_menu_data, 1);
+
+		reply->sess = sess;
+		reply->target = g_strdup (sess->channel);
+		reply->latest = num_sel != 0;
+		if (reply->latest)
+			reply->nick = g_strdup (nick);
+		else if (message)
+		{
+			reply->msgid = g_strdup (message->msgid);
+			reply->nick = g_strdup (message->nick);
+			reply->text = g_strdup (message->text);
+		}
+		g_object_set_data_full (G_OBJECT (menu), "reply-message", reply, menu_reply_data_free);
+		menu_quick_item_with_callback (menu_reply_cb, _("Reply"), menu, reply);
 		menu_quick_item (0, 0, menu, XCMENU_SHADED, 0, 0);
 	}
 

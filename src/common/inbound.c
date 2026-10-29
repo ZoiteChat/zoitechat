@@ -313,6 +313,20 @@ inbound_make_idtext (server *serv, char *idtext, int max, int id)
 	}
 }
 
+/* Pass message identity alongside the formatted event, outside plugin output.
+ * Private messages displayed in another channel have no reply destination here. */
+static void
+inbound_emit_message (int event, session *sess, char *from, char *text,
+                      char *c, char *d, const message_tags_data *tags_data)
+{
+	reply_item message = {tags_data->msgid, from, text, tags_data->timestamp};
+	gboolean can_reply = reply_msgid_valid (message.msgid) &&
+		event != XP_TE_PRIVMSG && event != XP_TE_PRIVACTION;
+
+	text_emit_with_message (event, sess, from, text, c, d, tags_data->timestamp,
+								 can_reply ? &message : NULL);
+}
+
 void
 inbound_privmsg (server *serv, char *from, char *ip, char *text, int id,
 					  const message_tags_data *tags_data)
@@ -362,11 +376,9 @@ inbound_privmsg (server *serv, char *from, char *ip, char *text, int id,
 	inbound_make_idtext (serv, idtext, sizeof (idtext), id);
 
 	if (sess->type == SESS_DIALOG && !nodiag)
-		EMIT_SIGNAL_TIMESTAMP (XP_TE_DPRIVMSG, sess, from, text, idtext, NULL, 0,
-									  tags_data->timestamp);
+		inbound_emit_message (XP_TE_DPRIVMSG, sess, from, text, idtext, NULL, tags_data);
 	else
-		EMIT_SIGNAL_TIMESTAMP (XP_TE_PRIVMSG, sess, from, text, idtext, NULL, 0, 
-									  tags_data->timestamp);
+		inbound_emit_message (XP_TE_PRIVMSG, sess, from, text, idtext, NULL, tags_data);
 }
 
 /* used for Alerts section. Masks can be separated by commas and spaces. */
@@ -608,24 +620,21 @@ inbound_action (session *sess, char *chan, char *from, char *ip, char *text,
 	{
 		if (is_hilight (from, text, sess, serv))
 		{
-			EMIT_SIGNAL_TIMESTAMP (XP_TE_HCHANACTION, sess, from, text, nickchar,
-										  idtext, 0, tags_data->timestamp);
+			inbound_emit_message (XP_TE_HCHANACTION, sess, from, text, nickchar,
+										  idtext, tags_data);
 			return;
 		}
 	}
 
 	if (fromme)
-		EMIT_SIGNAL_TIMESTAMP (XP_TE_UACTION, sess, from, text, nickchar, idtext,
-									  0, tags_data->timestamp);
+		inbound_emit_message (XP_TE_UACTION, sess, from, text, nickchar, idtext, tags_data);
 	else if (!privaction)
-		EMIT_SIGNAL_TIMESTAMP (XP_TE_CHANACTION, sess, from, text, nickchar,
-									  idtext, 0, tags_data->timestamp);
+		inbound_emit_message (XP_TE_CHANACTION, sess, from, text, nickchar,
+									  idtext, tags_data);
 	else if (sess->type == SESS_DIALOG)
-		EMIT_SIGNAL_TIMESTAMP (XP_TE_DPRIVACTION, sess, from, text, idtext, NULL,
-									  0, tags_data->timestamp);
+		inbound_emit_message (XP_TE_DPRIVACTION, sess, from, text, idtext, NULL, tags_data);
 	else
-		EMIT_SIGNAL_TIMESTAMP (XP_TE_PRIVACTION, sess, from, text, idtext, NULL, 0,
-									  tags_data->timestamp);
+		inbound_emit_message (XP_TE_PRIVACTION, sess, from, text, idtext, NULL, tags_data);
 }
 
 void
@@ -679,8 +688,7 @@ inbound_chanmsg (server *serv, session *sess, char *chan, char *from,
 			 (!tags_data->timestamp || serv->have_echo_message))
 			sess->server->p_set_back (sess->server);
 		reply_context_print (sess, tags_data);
-		EMIT_SIGNAL_TIMESTAMP (XP_TE_UCHANMSG, sess, from, text, nickchar, NULL,
-									  0, tags_data->timestamp);
+		inbound_emit_message (XP_TE_UCHANMSG, sess, from, text, nickchar, NULL, tags_data);
 		reply_cache_add (sess, tags_data->msgid, from, text, tags_data->timestamp);
 		return;
 	}
@@ -693,14 +701,11 @@ inbound_chanmsg (server *serv, session *sess, char *chan, char *from,
 	reply_context_print (sess, tags_data);
 
 	if (sess->type == SESS_DIALOG)
-		EMIT_SIGNAL_TIMESTAMP (XP_TE_DPRIVMSG, sess, from, text, idtext, NULL, 0,
-									  tags_data->timestamp);
+		inbound_emit_message (XP_TE_DPRIVMSG, sess, from, text, idtext, NULL, tags_data);
 	else if (hilight)
-		EMIT_SIGNAL_TIMESTAMP (XP_TE_HCHANMSG, sess, from, text, nickchar, idtext,
-									  0, tags_data->timestamp);
+		inbound_emit_message (XP_TE_HCHANMSG, sess, from, text, nickchar, idtext, tags_data);
 	else
-		EMIT_SIGNAL_TIMESTAMP (XP_TE_CHANMSG, sess, from, text, nickchar, idtext,
-									  0, tags_data->timestamp);
+		inbound_emit_message (XP_TE_CHANMSG, sess, from, text, nickchar, idtext, tags_data);
 
 	reply_cache_add (sess, tags_data->msgid, from, text, tags_data->timestamp);
 }

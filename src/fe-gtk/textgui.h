@@ -20,7 +20,11 @@
 #ifndef ZOITECHAT_TEXTGUI_H
 #define ZOITECHAT_TEXTGUI_H
 
+struct reply_item;
+
 void PrintTextRaw (void *xtbuf, unsigned char *text, int indent, time_t stamp);
+void PrintTextRawWithMessage (void *xtbuf, unsigned char *text, int indent, time_t stamp,
+									  const struct reply_item *message);
 void pevent_dialog_show (void);
 
 #endif

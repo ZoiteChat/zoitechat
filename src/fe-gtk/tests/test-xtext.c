@@ -137,6 +137,49 @@ static void test_null_empty_prefix (Fixture *f, gconstpointer data)
 	cairo_surface_destroy (snapshot (f, FALSE));
 }
 
+static void test_message_identity (Fixture *f, gconstpointer data)
+{
+	xtext_buffer *buf = f->xtext->buffer;
+	xtext_buffer *other;
+	textentry *first, *second;
+	char msgid[] = "message-one";
+	char nick[] = "same-nick";
+	char text[] = "identical text";
+	reply_item message = {msgid, nick, text, 1234};
+	const reply_item *saved;
+
+	/* ZNC playback can repeat the same sender, text and server timestamp. */
+	gtk_xtext_append_wrap_with_message (buf, (guchar *)text, -1, 1234, 0, &message);
+	first = buf->text_last;
+	message.msgid = "message-two";
+	gtk_xtext_append_indent_with_message (buf, (guchar *)nick, -1,
+													(guchar *)text, -1, 1234, &message);
+	second = buf->text_last;
+	msgid[0] = nick[0] = text[0] = 'X';
+	saved = gtk_xtext_entry_get_message (f->xtext, first);
+	g_assert_cmpstr (saved->msgid, ==, "message-one");
+	g_assert_cmpstr (saved->nick, ==, "same-nick");
+	g_assert_cmpstr (saved->text, ==, "identical text");
+	g_assert_cmpint (saved->timestamp, ==, 1234);
+	g_assert_cmpstr (gtk_xtext_entry_get_message (f->xtext, second)->msgid, ==, "message-two");
+
+	/* Other output must not inherit a message ID, including after reflow. */
+	append (f, "a plugin or status message");
+	g_assert_null (gtk_xtext_entry_get_message (f->xtext, buf->text_last));
+	g_assert_true (gtk_xtext_set_font (f->xtext, "monospace 18"));
+	g_assert_cmpstr (gtk_xtext_entry_get_message (f->xtext, first)->msgid, ==, "message-one");
+	g_assert_null (gtk_xtext_entry_get_message (f->xtext, NULL));
+
+	/* Entries from another tab, and removed entries, are never dereferenced. */
+	other = gtk_xtext_buffer_new (f->xtext);
+	gtk_xtext_buffer_show (f->xtext, other, TRUE);
+	g_assert_null (gtk_xtext_entry_get_message (f->xtext, first));
+	gtk_xtext_buffer_show (f->xtext, buf, TRUE);
+	gtk_xtext_buffer_free (other);
+	gtk_xtext_clear (buf, 0);
+	g_assert_null (gtk_xtext_entry_get_message (f->xtext, first));
+}
+
 static void test_wrapping (Fixture *f, gconstpointer data)
 {
 	xtext_buffer *buf = f->xtext->buffer;
@@ -1138,6 +1181,7 @@ int main (int argc, char **argv)
 	ADD ("append/empty-bounded", test_empty_and_bounded_append);
 	ADD ("append/utf8-limits", test_utf8_limits);
 	ADD ("append/null-empty-prefix", test_null_empty_prefix);
+	ADD ("reply/message-identity", test_message_identity);
 	ADD ("layout/wrapping", test_wrapping);
 	ADD ("layout/font-isolation", test_font_isolation);
 	ADD ("layout/wide-metrics", test_wide_metrics);

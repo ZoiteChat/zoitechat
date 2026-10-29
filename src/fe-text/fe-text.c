@@ -407,6 +407,13 @@ fe_print_text (struct session *sess, char *text, time_t stamp,
 #endif
 
 void
+fe_print_text_with_message (struct session *sess, char *text, time_t stamp,
+									gboolean no_activity, const reply_item *message)
+{
+	fe_print_text (sess, text, stamp, no_activity);
+}
+
+void
 fe_timeout_remove (int tag)
 {
 	g_source_remove (tag);

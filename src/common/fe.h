@@ -23,6 +23,8 @@
 #ifndef ZOITECHAT_FE_H
 #define ZOITECHAT_FE_H
 
+struct reply_item;
+
 /* for storage of /menu entries */
 typedef struct
 {
@@ -110,6 +112,8 @@ void fe_progressbar_start (struct session *sess);
 void fe_progressbar_end (struct server *serv);
 void fe_print_text (struct session *sess, char *text, time_t stamp,
 					gboolean no_activity);
+void fe_print_text_with_message (struct session *sess, char *text, time_t stamp,
+					gboolean no_activity, const struct reply_item *message);
 void fe_userlist_insert (struct session *sess, struct User *newuser, gboolean sel);
 int fe_userlist_remove (struct session *sess, struct User *user);
 void fe_userlist_rehash (struct session *sess, struct User *user);

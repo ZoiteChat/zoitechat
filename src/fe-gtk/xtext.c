@@ -90,6 +90,7 @@ struct textentry
 	GdkPixbuf *image;	/* inline image shown below the text, or NULL */
 	GdkPixbuf *image_full;	/* larger version for the image viewer */
 	char *image_url;	/* the URL the image was loaded from */
+	reply_item *message;	/* original IRC message, independent of the reply cache */
 };
 
 /* inline image display */
@@ -287,6 +288,7 @@ static char *gtk_xtext_selection_get_text (GtkXText *xtext, int *len_ret);
 static void gtk_xtext_clipboard_get (GtkClipboard *, GtkSelectionData *, guint, gpointer);
 static void gtk_xtext_clipboard_clear (GtkClipboard *, gpointer);
 static textentry *gtk_xtext_nth (GtkXText *xtext, int line, int *subline);
+static void gtk_xtext_entry_set_message (textentry *ent, const reply_item *message);
 static void gtk_xtext_adjustment_changed (GtkAdjustment * adj,
 												GtkXText * xtext);
 static void gtk_xtext_scroll_adjustments (GtkXText *xtext, GtkAdjustment *hadj,
@@ -362,6 +364,13 @@ gtk_xtext_entry_free (GtkXText *xtext, textentry *ent)
 	g_clear_pointer (&ent->sublines, g_array_unref);
 	g_list_free (ent->marks);
 	gtk_xtext_ent_free_image (ent);
+	if (ent->message)
+	{
+		g_free (ent->message->msgid);
+		g_free (ent->message->nick);
+		g_free (ent->message->text);
+		g_free (ent->message);
+	}
 	g_free (ent);
 }
 
@@ -5414,6 +5423,15 @@ gtk_xtext_append_indent (xtext_buffer *buf,
 								 unsigned char *right_text, int right_len,
 								 time_t stamp)
 {
+	gtk_xtext_append_indent_with_message (buf, left_text, left_len,
+												 right_text, right_len, stamp, NULL);
+}
+
+void
+gtk_xtext_append_indent_with_message (xtext_buffer *buf,
+		unsigned char *left_text, int left_len, unsigned char *right_text, int right_len,
+		time_t stamp, const reply_item *message)
+{
 	textentry *ent;
 	unsigned char *str;
 	int space;
@@ -5489,6 +5507,7 @@ gtk_xtext_append_indent (xtext_buffer *buf,
 		}
 	}
 
+	gtk_xtext_entry_set_message (ent, message);
 	gtk_xtext_append_entry (buf, ent, stamp);
 }
 
@@ -5502,6 +5521,13 @@ gtk_xtext_append (xtext_buffer *buf, unsigned char *text, int len, time_t stamp)
 
 void
 gtk_xtext_append_wrap (xtext_buffer *buf, unsigned char *text, int len, time_t stamp, int stamp_len)
+{
+	gtk_xtext_append_wrap_with_message (buf, text, len, stamp, stamp_len, NULL);
+}
+
+void
+gtk_xtext_append_wrap_with_message (xtext_buffer *buf, unsigned char *text,
+		int len, time_t stamp, int stamp_len, const reply_item *message)
 {
 	textentry *ent;
 
@@ -5521,6 +5547,7 @@ gtk_xtext_append_wrap (xtext_buffer *buf, unsigned char *text, int len, time_t s
 	ent->left_len = -1;
 	ent->stamp_len = (stamp_len > 0 && stamp_len < ent->str_len) ? stamp_len : 0;
 
+	gtk_xtext_entry_set_message (ent, message);
 	gtk_xtext_append_entry (buf, ent, stamp);
 }
 
@@ -5853,6 +5880,28 @@ gtk_xtext_buffer_free (xtext_buffer *buf)
 /* ========================================= */
 /* ========== INLINE IMAGE API ============= */
 /* ========================================= */
+
+/* Each rendered line owns its message identity, including continuation lines.
+ * Do not infer identity from nick, text or timestamp: ZNC playback and repeated
+ * messages can have identical values for all three. */
+static void
+gtk_xtext_entry_set_message (textentry *ent, const reply_item *message)
+{
+	if (!message || !message->msgid || !*message->msgid)
+		return;
+
+	ent->message = g_new0 (reply_item, 1);
+	ent->message->msgid = g_strdup (message->msgid);
+	ent->message->nick = g_strdup (message->nick);
+	ent->message->text = g_strdup (message->text);
+	ent->message->timestamp = message->timestamp;
+}
+
+const reply_item *
+gtk_xtext_entry_get_message (GtkXText *xtext, textentry *ent)
+{
+	return gtk_xtext_buffer_contains (xtext, ent) ? ent->message : NULL;
+}
 
 /* the entry the last word_click signal was emitted for; only valid while
    handling that signal */
