@@ -31,6 +31,9 @@
 
 void key_init (void);
 void key_dialog_show (void);
+GtkWidget *key_preferences_create (void);
+gboolean key_preferences_stage (GError **error);
+void key_preferences_commit (void);
 int key_handle_key_press (GtkWidget * wid, GdkEventKey * evt, session *sess);
 int key_action_insert (GtkWidget * wid, GdkEventKey * evt, char *d1, char *d2,
 						 session *sess);

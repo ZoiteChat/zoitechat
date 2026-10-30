@@ -928,6 +928,10 @@ sexy_spell_entry_init(SexySpellEntry *entry)
 	entry->priv = g_new0(SexySpellEntryPriv, 1);
 
 	entry->priv->dict_hash = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
+	entry->priv->attr_list = pango_attr_list_new();
+	/* An untouched input still needs an empty word list. Loading the first
+	 * working dictionary on Save can recheck it before any changed signal. */
+	entry->priv->words = g_new0(gchar *, 1);
 
 	if (have_enchant)
 	{
@@ -938,8 +942,6 @@ sexy_spell_entry_init(SexySpellEntry *entry)
 #endif
 		sexy_spell_entry_activate_default_languages(entry);
 	}
-
-	entry->priv->attr_list = pango_attr_list_new();
 
 	entry->priv->checked = TRUE;
 	entry->priv->parseattr = TRUE;

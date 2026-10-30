@@ -58,6 +58,9 @@
 #ifdef __APPLE__
 #include "macos-shortcuts.h"
 #endif
+#include "setup.h"
+#include "preferences-persistence.h"
+#include "preferences-pages.h"
 
 #define ICON_FKEYS_NEW "document-new"
 #define ICON_FKEYS_DELETE "edit-delete"
@@ -110,7 +113,7 @@ struct gcomp_data
 
 static int key_load_kbs (void);
 static int key_load_kbs_from_buffer (char *ibuf, off_t size, GSList **out_list);
-static int key_save_kbs (void);
+
 static void key_dialog_load (GtkListStore *store);
 static void key_dialog_reset (GtkWidget *wid, gpointer userdata);
 static int key_action_handle_command (GtkWidget * wid, GdkEventKey * evt,
@@ -158,53 +161,6 @@ static int key_action_reopen_closed_tab (GtkWidget * wid, GdkEventKey * evt,
 
 
 static GSList *keybind_list = NULL;
-
-#define KEY_DIALOG_THEME_LISTENER_ID_KEY "fkeys.theme-listener-id"
-
-static void
-key_dialog_theme_apply (GtkWidget *window)
-{
-	GtkWidget *xtext;
-	XTextColor xtext_palette[XTEXT_COLS];
-
-	if (!window)
-		return;
-
-	xtext = g_object_get_data (G_OBJECT (window), "xtext");
-	if (!xtext)
-		return;
-
-	theme_get_xtext_colors (xtext_palette, XTEXT_COLS);
-	gtk_xtext_set_palette (GTK_XTEXT (xtext), xtext_palette);
-}
-
-static void
-key_dialog_theme_changed (const ThemeChangedEvent *event, gpointer userdata)
-{
-	GtkWidget *window = userdata;
-
-	if (!theme_changed_event_has_reason (event, THEME_CHANGED_REASON_PALETTE) &&
-	    !theme_changed_event_has_reason (event, THEME_CHANGED_REASON_THEME_PACK) &&
-	    !theme_changed_event_has_reason (event, THEME_CHANGED_REASON_MODE))
-		return;
-
-	key_dialog_theme_apply (window);
-}
-
-static void
-key_dialog_theme_destroy_cb (GtkWidget *widget, gpointer userdata)
-{
-	guint listener_id;
-
-	(void) userdata;
-
-	listener_id = GPOINTER_TO_UINT (g_object_get_data (G_OBJECT (widget), KEY_DIALOG_THEME_LISTENER_ID_KEY));
-	if (listener_id)
-	{
-		theme_listener_unregister (listener_id);
-		g_object_set_data (G_OBJECT (widget), KEY_DIALOG_THEME_LISTENER_ID_KEY, NULL);
-	}
-}
 
 static gsize
 key_action_decode_escapes (const char *input, char *output)
@@ -364,69 +320,6 @@ static const struct key_action key_actions[KEY_MAX_ACTIONS + 1] = {
 	"ACCEL=<Primary><Shift>G\nMenu Shortcut\nD1:search-previous\nD2!\n\n"\
 	"ACCEL=F1\nMenu Shortcut\nD1:contents\nD2!\n\n"\
 	"ACCEL=<Primary><Shift>T\nReopen Closed Tab\nD1!\nD2!\n\n"
-
-static gboolean
-key_builtin_data_match (char *line, char *data)
-{
-	if (line[2] == '!')
-		return data == NULL || data[0] == 0;
-
-	if (line[2] == ':')
-		return !strcmp (&line[3], data ? data : "");
-
-	return FALSE;
-}
-
-static gboolean
-key_binding_is_builtin (struct key_binding *kb)
-{
-	char *buf, *ibuf;
-	char *action;
-	int pnt = 0;
-	int state = 0;
-	gboolean match = FALSE;
-	gboolean d1_match = FALSE;
-	off_t size;
-
-	if (kb->action < 0 || kb->action > KEY_MAX_ACTIONS)
-		return FALSE;
-
-	action = key_actions[kb->action].name;
-	ibuf = g_strdup (default_kb_cfg);
-	size = strlen (default_kb_cfg);
-
-	while (buf_get_line (ibuf, &buf, &pnt, size))
-	{
-		if (strlen (buf) == 0)
-			continue;
-
-		switch (state)
-		{
-		case 0:
-			state = 1;
-			break;
-		case 1:
-			match = !strcmp (buf, action);
-			state = 2;
-			break;
-		case 2:
-			d1_match = match && key_builtin_data_match (buf, kb->data1);
-			state = 3;
-			break;
-		case 3:
-			if (d1_match && key_builtin_data_match (buf, kb->data2))
-			{
-				g_free (ibuf);
-				return TRUE;
-			}
-			state = 0;
-			break;
-		}
-	}
-
-	g_free (ibuf);
-	return FALSE;
-}
 
 void
 key_init (void)
@@ -619,13 +512,13 @@ key_get_menu_accel (const char *name, guint *keyval, GdkModifierType *mod)
 
 enum
 {
-	KEY_COLUMN,
-	ACCEL_COLUMN,
-	ACTION_COLUMN,
-	D1_COLUMN,
-	D2_COLUMN,
-	CUSTOM_COLUMN,
-	N_COLUMNS
+        KEY_COLUMN = PREFERENCES_SHORTCUT_LABEL,
+        ACCEL_COLUMN = PREFERENCES_SHORTCUT_ACCEL,
+        ACTION_COLUMN = PREFERENCES_SHORTCUT_ACTION,
+        D1_COLUMN = PREFERENCES_SHORTCUT_DATA1,
+        D2_COLUMN = PREFERENCES_SHORTCUT_DATA2,
+        CUSTOM_COLUMN = PREFERENCES_SHORTCUT_CUSTOM,
+        N_COLUMNS = PREFERENCES_SHORTCUT_N_COLUMNS
 };
 
 static GtkWidget *key_dialog = NULL;
@@ -633,280 +526,15 @@ static GtkWidget *key_dialog = NULL;
 static inline GtkTreeModel *
 get_store (void)
 {
-	return gtk_tree_view_get_model (g_object_get_data (G_OBJECT (key_dialog), "view"));
-}
-
-static void
-key_dialog_print_text (GtkXText *xtext, char *text)
-{
-	unsigned int old = prefs.hex_stamp_text;
-	prefs.hex_stamp_text = 0;	/* temporarily disable stamps */
-	gtk_xtext_clear (GTK_XTEXT (xtext)->buffer, 0);
-	PrintTextRaw (GTK_XTEXT (xtext)->buffer, text, 0, 0);
-	prefs.hex_stamp_text = old;
-}
-
-static void
-key_dialog_set_key (GtkCellRendererAccel *accel, gchar *pathstr, guint accel_key, 
-					GdkModifierType accel_mods, guint hardware_keycode, gpointer userdata)
-{
-	GtkTreeModel *model = get_store ();
-	GtkTreePath *path = gtk_tree_path_new_from_string (pathstr);
-	GtkTreeIter iter;
-	gchar *label_name, *accel_name;
-
-	/* Shift tab requires an exception, hopefully that list ends here.. */
-	if (accel_key == GDK_KEY_Tab && accel_mods & GDK_SHIFT_MASK)
-		accel_key = GDK_KEY_ISO_Left_Tab;
-
-	label_name = gtk_accelerator_get_label (accel_key, key_modifier_get_valid (accel_mods));
-	accel_name = gtk_accelerator_name (accel_key, key_modifier_get_valid (accel_mods));
-
-	gtk_tree_model_get_iter (model, &iter, path);
-	gtk_list_store_set (GTK_LIST_STORE (model), &iter, KEY_COLUMN, label_name,
-						ACCEL_COLUMN, accel_name, -1);
-
-	gtk_tree_path_free (path);
-	g_free (label_name);
-	g_free (accel_name);
-}
-
-static void
-key_dialog_combo_changed (GtkCellRendererCombo *combo, gchar *pathstr,
-						GtkTreeIter *new_iter, gpointer data)
-{
-	GtkTreeModel *model;
-	GtkXText *xtext;
-	gchar *actiontext = NULL;
-	gint action;
-
-	xtext = GTK_XTEXT (g_object_get_data (G_OBJECT (key_dialog), "xtext"));
-	model = GTK_TREE_MODEL (data);
-
-	gtk_tree_model_get (model, new_iter, 0, &actiontext, -1);
-
-	if (actiontext)
-	{
-#ifdef WIN32
-		/* We need to manually update the store */
-		GtkTreePath *path;
-		GtkTreeIter iter;
-
-		path = gtk_tree_path_new_from_string (pathstr);
-		model = get_store ();
-
-		gtk_tree_model_get_iter (model, &iter, path);
-		gtk_list_store_set (GTK_LIST_STORE (model), &iter, ACTION_COLUMN, actiontext, -1);
-
-		gtk_tree_path_free (path);
-#endif
-
-		action = key_get_action_from_string (actiontext);
-		key_dialog_print_text (xtext, key_actions[action].help);
-
-		g_free (actiontext);
-	}
-}
-
-static void
-key_dialog_entry_edited (GtkCellRendererText *render, gchar *pathstr, gchar *new_text, gpointer data)
-{
-	GtkTreeModel *model = get_store ();
-	GtkTreePath *path = gtk_tree_path_new_from_string (pathstr);
-	GtkTreeIter iter;
-	gint column = GPOINTER_TO_INT (data);
-
-	gtk_tree_model_get_iter (model, &iter, path);
-	gtk_list_store_set (GTK_LIST_STORE (model), &iter, column, new_text, -1);
-
-	gtk_tree_path_free (path);
-}
-
-static gboolean
-key_dialog_keypress (GtkWidget *wid, GdkEventKey *evt, gpointer userdata)
-{
-	GtkTreeView *view = g_object_get_data (G_OBJECT (key_dialog), "view");
-	GtkTreeModel *store;
-	GtkTreeIter iter1, iter2;
-	GtkTreeSelection *sel;
-	GtkTreePath *path;
-	gboolean handled = FALSE;
-	int delta;
-
-	if (evt->state & GDK_SHIFT_MASK)
-	{
-		if (evt->keyval == GDK_KEY_Up)
-		{
-			handled = TRUE;
-			delta = -1;
-		}
-		else if (evt->keyval == GDK_KEY_Down)
-		{
-			handled = TRUE;
-			delta = 1;
-		}
-	}
-
-	if (handled)
-	{
-		gboolean custom1, custom2;
-
-		sel = gtk_tree_view_get_selection (view);
-		if (!gtk_tree_selection_get_selected (sel, &store, &iter1))
-			return FALSE;
-
-		path = gtk_tree_model_get_path (store, &iter1);
-		if (delta == 1)
-			gtk_tree_path_next (path);
-		else if (!gtk_tree_path_prev (path))
-		{
-			gtk_tree_path_free (path);
-			return FALSE;
-		}
-
-		if (!gtk_tree_model_get_iter (store, &iter2, path))
-		{
-			gtk_tree_path_free (path);
-			return FALSE;
-		}
-
-		gtk_tree_path_free (path);
-		gtk_tree_model_get (store, &iter1, CUSTOM_COLUMN, &custom1, -1);
-		gtk_tree_model_get (store, &iter2, CUSTOM_COLUMN, &custom2, -1);
-		if (custom1 && custom2)
-			gtk_list_store_swap (GTK_LIST_STORE (store), &iter1, &iter2);
-	}
-
-	return handled;
-}
-
-static void
-key_dialog_selection_changed (GtkTreeSelection *sel, gpointer userdata)
-{
-	GtkTreeModel *model;
-	GtkTreeIter iter;
-	GtkXText *xtext;
-	GtkWidget *delete_button;
-	char *actiontext;
-	gboolean custom;
-	int action;
-
-	delete_button = g_object_get_data (G_OBJECT (key_dialog), "delete_button");
-	if (!gtk_tree_selection_get_selected (sel, &model, &iter) || model == NULL)
-	{
-		if (delete_button)
-			gtk_widget_set_sensitive (delete_button, FALSE);
-		return;
-	}
-
-	xtext = GTK_XTEXT (g_object_get_data (G_OBJECT (key_dialog), "xtext"));
-	gtk_tree_model_get (model, &iter, ACTION_COLUMN, &actiontext, CUSTOM_COLUMN, &custom, -1);
-	if (delete_button)
-		gtk_widget_set_sensitive (delete_button, custom);
-
-	if (actiontext)
-	{
-		action = key_get_action_from_string (actiontext);
-		key_dialog_print_text (xtext, key_actions[action].help);
-		g_free (actiontext);
-	}
-	else
-		key_dialog_print_text (xtext, _("Select a row to get help information on its Action."));
-}
-
-static void
-key_dialog_close (GtkWidget *wid, gpointer userdata)
-{
-	gtk_widget_destroy (key_dialog);
-	key_dialog = NULL;
-}
-
-static void
-key_dialog_save (GtkWidget *wid, gpointer userdata)
-{
-	GtkTreeModel *store = get_store ();
-	GtkTreeIter iter;
-	struct key_binding *kb;
-	char *data1, *data2, *accel, *actiontext;
-	guint keyval;
-	GdkModifierType mod;
-
-	if (keybind_list)
-	{
-		g_slist_free_full (keybind_list, key_free);
-		keybind_list = NULL;
-	}
-
-	if (gtk_tree_model_get_iter_first (GTK_TREE_MODEL (store), &iter))
-	{
-		do
-		{
-			kb = g_new0 (struct key_binding, 1);
-
-			gtk_tree_model_get (GTK_TREE_MODEL (store), &iter, ACCEL_COLUMN, &accel,
-															ACTION_COLUMN, &actiontext,
-															D1_COLUMN, &data1,
-															D2_COLUMN, &data2,
-															-1);
-			kb->data1 = data1;
-			kb->data2 = data2;
-
-			if (accel)
-			{
-				gtk_accelerator_parse (accel, &keyval, &mod);
-
-				kb->keyval = keyval;
-				kb->mod = key_modifier_get_valid (mod);
-
-				g_free (accel);
-			}
-
-			if (actiontext)
-			{
-				kb->action = key_get_action_from_string (actiontext);
-				g_free (actiontext);
-			}
-
-			if (!accel || !actiontext)
-				key_free (kb);
-			else
-				keybind_list = g_slist_append (keybind_list, kb);
-
-		}
-		while (gtk_tree_model_iter_next (GTK_TREE_MODEL (store), &iter));
-	}
-
-	if (key_save_kbs () == 0)
-	{
-		menu_update_quit_accel ();
-		key_dialog_close (wid, NULL);
-	}
-}
-
-static void
-key_dialog_add (GtkWidget *wid, gpointer userdata)
-{
-	GtkTreeView *view = g_object_get_data (G_OBJECT (key_dialog), "view");
-	GtkTreeViewColumn *col;
-	GtkListStore *store = GTK_LIST_STORE (get_store ());
-	GtkTreeIter iter;
-	GtkTreePath *path;
-
-	gtk_list_store_append (store, &iter);
-	gtk_list_store_set (store, &iter, CUSTOM_COLUMN, TRUE, -1);
-
-	/* make sure the new row is visible and selected */
-	path = gtk_tree_model_get_path (GTK_TREE_MODEL (store), &iter);
-	col = gtk_tree_view_get_column (view, ACTION_COLUMN);
-	gtk_tree_view_scroll_to_cell (view, path, NULL, FALSE, 0.0, 0.0);
-	gtk_tree_view_set_cursor (view, path, col, TRUE);
-	gtk_tree_path_free (path);
+        return g_object_get_data (G_OBJECT (key_dialog), "bindings-store");
 }
 
 static char *
 key_binding_signature (const char *action, const char *data1, const char *data2)
 {
-	return g_strdup_printf ("%s\\n%s\\n%s", action ? action : "", data1 ? data1 : "", data2 ? data2 : "");
+        const char *a = action ? action : "", *b = data1 ? data1 : "", *c = data2 ? data2 : "";
+        return g_strdup_printf ("%" G_GSIZE_FORMAT ":%s%" G_GSIZE_FORMAT ":%s%" G_GSIZE_FORMAT ":%s",
+                strlen (a), a, strlen (b), b, strlen (c), c);
 }
 
 static int
@@ -1032,308 +660,151 @@ key_dialog_reset (GtkWidget *wid, gpointer userdata)
 }
 
 static void
-key_dialog_delete (GtkWidget *wid, gpointer userdata)
-{
-	GtkTreeView *view = g_object_get_data (G_OBJECT (key_dialog), "view");
-	GtkListStore *store = GTK_LIST_STORE (gtk_tree_view_get_model (view));
-	GtkTreeIter iter;
-	GtkTreePath *path;
-	gboolean custom;
-
-	if (gtkutil_treeview_get_selected (view, &iter, -1))
-	{
-		gtk_tree_model_get (GTK_TREE_MODEL (store), &iter, CUSTOM_COLUMN, &custom, -1);
-		if (!custom)
-			return;
-
-		/* delete this row, select next one */
-		if (gtk_list_store_remove (store, &iter))
-		{
-			path = gtk_tree_model_get_path (GTK_TREE_MODEL (store), &iter);
-			gtk_tree_view_scroll_to_cell (view, path, NULL, TRUE, 1.0, 0.0);
-			gtk_tree_view_set_cursor (view, path, NULL, FALSE);
-			gtk_tree_path_free (path);
-		}
-	}
-}
-
-static GtkWidget *
-key_dialog_treeview_new (GtkWidget *box)
-{
-	GtkWidget *scroll;
-	GtkListStore *store, *combostore;
-	GtkTreeViewColumn *col;
-	GtkWidget *view;
-	GtkCellRenderer *render;
-	int i;
-
-	scroll = gtk_scrolled_window_new (NULL, NULL);
-	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scroll), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
-	gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scroll), GTK_SHADOW_IN);
-
-	store = gtk_list_store_new (N_COLUMNS, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING,
-								G_TYPE_STRING, G_TYPE_STRING, G_TYPE_BOOLEAN);
-	g_return_val_if_fail (store != NULL, NULL);
-
-	view = gtk_tree_view_new_with_model (GTK_TREE_MODEL (store));
-	gtk_tree_view_set_fixed_height_mode (GTK_TREE_VIEW (view), TRUE);
-	gtk_tree_view_set_enable_search (GTK_TREE_VIEW (view), FALSE);
-	gtk_tree_view_set_reorderable (GTK_TREE_VIEW (view), FALSE);
-
-	g_signal_connect (G_OBJECT (view), "key-press-event",
-					G_CALLBACK (key_dialog_keypress), NULL);
-	g_signal_connect (G_OBJECT (gtk_tree_view_get_selection (GTK_TREE_VIEW(view))),
-					"changed", G_CALLBACK (key_dialog_selection_changed), NULL);
-
-	gtk_widget_set_name (view, "fkeys-treeview");
-	if (!theme_gtk3_is_active ())
-	{
-		GtkCssProvider *provider = gtk_css_provider_new ();
-
-		gtk_css_provider_load_from_data (
-			provider,
-			"treeview#fkeys-treeview row:nth-child(odd) {"
-			" background-color: @theme_base_color;"
-			"}"
-			"treeview#fkeys-treeview row:nth-child(even) {"
-			" background-color: shade(@theme_base_color, 0.96);"
-			"}",
-			-1,
-			NULL);
-		theme_css_apply_widget_provider (view, GTK_STYLE_PROVIDER (provider));
-		g_object_unref (provider);
-	}
-
-	render = gtk_cell_renderer_accel_new ();
-	g_object_set (render, "editable", TRUE,
-#ifndef WIN32
-					"accel-mode", GTK_CELL_RENDERER_ACCEL_MODE_OTHER,
-#endif
-					NULL);
-	g_signal_connect (G_OBJECT (render), "accel-edited",
-					G_CALLBACK (key_dialog_set_key), NULL);
-	gtk_tree_view_insert_column_with_attributes (GTK_TREE_VIEW (view), KEY_COLUMN,
-												"Key", render,
-												"text", KEY_COLUMN,
-												NULL);
-
-	render = gtk_cell_renderer_text_new ();
-	gtk_tree_view_insert_column_with_attributes (
-							GTK_TREE_VIEW (view), ACCEL_COLUMN,
-							"Accel", render,
-							"text", ACCEL_COLUMN,
-							NULL);
-
-	combostore = gtk_list_store_new (1, G_TYPE_STRING);
-	for (i = 0; i <= KEY_MAX_ACTIONS; i++)
-	{
-		GtkTreeIter iter;
-
-		if (key_actions[i].name[0])
-		{
-			gtk_list_store_append (combostore, &iter);
-			gtk_list_store_set (combostore, &iter, 0, key_actions[i].name, -1);
-		}
-	}
-
-	render = gtk_cell_renderer_combo_new ();
-	g_object_set (G_OBJECT (render), "model", combostore,
-									"has-entry", FALSE,
-									"editable", TRUE, 
-									"text-column", 0,
-									NULL);
-	g_signal_connect (G_OBJECT (render), "edited",
-					G_CALLBACK (key_dialog_entry_edited), GINT_TO_POINTER (ACTION_COLUMN));
-	g_signal_connect (G_OBJECT (render), "changed",
-					G_CALLBACK (key_dialog_combo_changed), combostore);
-	gtk_tree_view_insert_column_with_attributes (GTK_TREE_VIEW (view), ACTION_COLUMN,
-													"Action", render,
-													"text", ACTION_COLUMN,
-													"editable", CUSTOM_COLUMN,
-													NULL);
-
-	render = gtk_cell_renderer_text_new ();
-	g_object_set (render, "editable", TRUE, NULL);
-	g_signal_connect (G_OBJECT (render), "edited",
-				G_CALLBACK (key_dialog_entry_edited), GINT_TO_POINTER (D1_COLUMN));
-	gtk_tree_view_insert_column_with_attributes (
-							GTK_TREE_VIEW (view), D1_COLUMN,
-							"Data1", render,
-							"text", D1_COLUMN,
-							"editable", CUSTOM_COLUMN,
-							NULL);
-
-	render = gtk_cell_renderer_text_new ();
-	g_object_set (render, "editable", TRUE, NULL);
-	g_signal_connect (G_OBJECT (render), "edited",
-				G_CALLBACK (key_dialog_entry_edited), GINT_TO_POINTER (D2_COLUMN));
-	gtk_tree_view_insert_column_with_attributes (
-							GTK_TREE_VIEW (view), D2_COLUMN,
-							"Data2", render,
-							"text", D2_COLUMN,
-							"editable", CUSTOM_COLUMN,
-							NULL);
-
-	col = gtk_tree_view_get_column (GTK_TREE_VIEW (view), KEY_COLUMN);
-	gtk_tree_view_column_set_fixed_width (col, 200);
-	gtk_tree_view_column_set_resizable (col, TRUE);
-	col = gtk_tree_view_get_column (GTK_TREE_VIEW (view), ACCEL_COLUMN);
-	gtk_tree_view_column_set_visible (col, FALSE);
-	col = gtk_tree_view_get_column (GTK_TREE_VIEW (view), ACTION_COLUMN);
-	gtk_tree_view_column_set_fixed_width (col, 160);
-	col = gtk_tree_view_get_column (GTK_TREE_VIEW (view), D1_COLUMN);
-	gtk_tree_view_column_set_sizing (col, GTK_TREE_VIEW_COLUMN_AUTOSIZE);
-	gtk_tree_view_column_set_min_width (col, 80);
-	gtk_tree_view_column_set_resizable (col, TRUE);
-	col = gtk_tree_view_get_column (GTK_TREE_VIEW (view), D2_COLUMN);
-	gtk_tree_view_column_set_sizing (col, GTK_TREE_VIEW_COLUMN_AUTOSIZE);
-	gtk_tree_view_column_set_min_width (col, 80);
-	gtk_tree_view_column_set_resizable (col, TRUE);
-
-	gtk_container_add (GTK_CONTAINER (scroll), view);
-	gtk_box_pack_start (GTK_BOX (box), scroll, TRUE, TRUE, 0);
-
-	return view;
-}
-
-static void
 key_dialog_load (GtkListStore *store)
 {
-	struct key_binding *kb = NULL;
-	char *label_text, *accel_text;
-	GtkTreeIter iter;
-	GSList *list = keybind_list;
+        GHashTable *defaults = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
+        GHashTable *seen = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
+        GSList *reference = NULL;
+        key_load_kbs_from_buffer (g_strdup (default_kb_cfg), strlen (default_kb_cfg), &reference);
+        for (GSList *item = reference; item; item = item->next)
+        {
+                struct key_binding *kb = item->data;
+                key_dialog_reset_increment (defaults, key_binding_signature (key_actions[kb->action].name, kb->data1, kb->data2));
+        }
+        /* Protect only the built-in number of occurrences of an action and its
+         * parameters. Extra copies remain custom after save/reload, including
+         * copies whose only difference is their key. No runtime order changes. */
+        for (GSList *item = keybind_list; item; item = item->next)
+        {
+                struct key_binding *kb = item->data;
+                GtkTreeIter iter;
+                char *signature = key_binding_signature (key_actions[kb->action].name, kb->data1, kb->data2);
+                gboolean custom = key_dialog_reset_count (seen, signature) >= key_dialog_reset_count (defaults, signature);
+                key_dialog_reset_increment (seen, signature);
+                char *label = gtk_accelerator_get_label (kb->keyval, kb->mod);
+                char *accel = gtk_accelerator_name (kb->keyval, kb->mod);
+                gtk_list_store_append (store, &iter);
+                gtk_list_store_set (store, &iter, KEY_COLUMN, label, ACCEL_COLUMN, accel,
+                        ACTION_COLUMN, key_actions[kb->action].name, D1_COLUMN, kb->data1,
+                        D2_COLUMN, kb->data2, CUSTOM_COLUMN, custom, -1);
+                g_free (label); g_free (accel);
+        }
+        g_slist_free_full (reference, key_free);
+        g_hash_table_destroy (defaults); g_hash_table_destroy (seen);
+}
 
-	while (list)
-	{
-		kb = (struct key_binding*)list->data;
+static char *key_preferences_serialize (GtkTreeModel *model, GError **error);
 
-		label_text = gtk_accelerator_get_label (kb->keyval, kb->mod);
-		accel_text = gtk_accelerator_name (kb->keyval, kb->mod);
+static void
+key_preferences_restore (gpointer unused)
+{
+        key_dialog_reset (NULL, NULL);
+}
 
-		gtk_list_store_append (store, &iter);
-		gtk_list_store_set (store, &iter,
-							KEY_COLUMN, label_text,
-							ACCEL_COLUMN, accel_text,
-							ACTION_COLUMN, key_actions[kb->action].name,
-							D1_COLUMN, kb->data1,
-							D2_COLUMN, kb->data2,
-							CUSTOM_COLUMN, !key_binding_is_builtin (kb), -1);
-
-		g_free (accel_text);
-		g_free (label_text);
-
-		list = g_slist_next (list);
-	}
+GtkWidget *
+key_preferences_create (void)
+{
+        GtkListStore *store = gtk_list_store_new (N_COLUMNS, G_TYPE_STRING, G_TYPE_STRING,
+                G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_BOOLEAN);
+        PreferencesShortcutAction actions[KEY_MAX_ACTIONS + 1];
+        for (guint i = 0; i < G_N_ELEMENTS (actions); i++)
+        {
+                actions[i].id = key_actions[i].name;
+                actions[i].help = key_actions[i].help;
+        }
+        key_dialog_load (store);
+        key_dialog = preferences_shortcuts_page_new (store, actions, G_N_ELEMENTS (actions),
+                key_modifier_get_valid, key_preferences_restore, NULL);
+        g_object_add_weak_pointer (G_OBJECT (key_dialog), (gpointer *)&key_dialog);
+        g_object_set_data_full (G_OBJECT (key_dialog), "original-bindings",
+                key_preferences_serialize (GTK_TREE_MODEL (store), NULL), g_free);
+        g_object_unref (store);
+        return key_dialog;
 }
 
 void
 key_dialog_show (void)
 {
-	GtkWidget *vbox, *box, *pane, *scroll;
-	GtkWidget *view, *xtext, *delete_button;
-	GtkListStore *store;
-	XTextColor xtext_palette[XTEXT_COLS];
-	char buf[128];
-
-	if (key_dialog)
-	{
-		mg_bring_tofront (key_dialog);
-		return;
-	}
-
-	g_snprintf(buf, sizeof(buf), _("Keyboard Shortcuts - %s"), _(DISPLAY_NAME));
-	key_dialog = mg_create_generic_tab ("editkeys", buf, TRUE, FALSE, key_dialog_close,
-									NULL, 600, 360, &vbox, 0);
-
-	pane = gtk_paned_new (GTK_ORIENTATION_VERTICAL);
-	gtk_box_pack_start (GTK_BOX (vbox), pane, TRUE, TRUE, 0);
-	box = gtkutil_box_new (GTK_ORIENTATION_VERTICAL, FALSE, 0);
-	gtk_paned_pack1 (GTK_PANED (pane), box, TRUE, FALSE);
-	view = key_dialog_treeview_new (box);
-	scroll = gtk_scrolled_window_new (NULL, NULL);
-	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scroll),
-	                                GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
-	gtk_scrolled_window_set_min_content_height (GTK_SCROLLED_WINDOW (scroll), 80);
-	gtk_paned_pack2 (GTK_PANED (pane), scroll, TRUE, FALSE);
-	gtk_paned_set_position (GTK_PANED (pane), 220);
-	theme_get_xtext_colors (xtext_palette, XTEXT_COLS);
-	xtext = gtk_xtext_new (xtext_palette, 0);
-	gtk_container_add (GTK_CONTAINER (scroll), xtext);
-	gtk_xtext_set_font (GTK_XTEXT (xtext), prefs.hex_text_font);
-
-	g_object_set_data (G_OBJECT (key_dialog), "view", view);
-	g_object_set_data (G_OBJECT (key_dialog), "xtext", xtext);
-	g_object_set_data (G_OBJECT (key_dialog), KEY_DIALOG_THEME_LISTENER_ID_KEY,
-				   GUINT_TO_POINTER (theme_listener_register ("fkeys.window", key_dialog_theme_changed, key_dialog)));
-	g_signal_connect (G_OBJECT (key_dialog), "destroy", G_CALLBACK (key_dialog_theme_destroy_cb), NULL);
-
-	box = gtk_button_box_new (GTK_ORIENTATION_HORIZONTAL);
-	gtk_button_box_set_layout (GTK_BUTTON_BOX (box), GTK_BUTTONBOX_SPREAD);
-	gtk_box_pack_start (GTK_BOX (vbox), box, FALSE, FALSE, 2);
-	gtk_container_set_border_width (GTK_CONTAINER (box), 5);
-
-	gtkutil_button (box, ICON_FKEYS_NEW, NULL, key_dialog_add,
-					NULL, _("Add"));
-	delete_button = gtkutil_button (box, ICON_FKEYS_DELETE, NULL, key_dialog_delete,
-					NULL, _("Delete"));
-	g_object_set_data (G_OBJECT (key_dialog), "delete_button", delete_button);
-	gtk_widget_set_sensitive (delete_button, FALSE);
-	gtkutil_button (box, ICON_FKEYS_RESET, NULL, key_dialog_reset,
-					NULL, _("Reset"));
-	gtkutil_button (box, ICON_FKEYS_CANCEL, NULL, key_dialog_close,
-					NULL, _("Cancel"));
-	gtkutil_button (box, ICON_FKEYS_SAVE, NULL, key_dialog_save,
-					NULL, _("Save"));
-
-	store = GTK_LIST_STORE (gtk_tree_view_get_model (GTK_TREE_VIEW (view)));
-	key_dialog_load (store);
-
-	gtk_widget_show_all (key_dialog);
+	setup_open_page ("keyboard");
 }
 
-static int
-key_save_kbs (void)
+static char *
+key_preferences_serialize (GtkTreeModel *model, GError **error)
 {
-	int fd;
-	char buf[512];
-	char *accel_text;
-	GSList *list = keybind_list;
-	struct key_binding *kb;
-
-	fd = zoitechat_open_file ("keybindings.conf", O_CREAT | O_TRUNC | O_WRONLY,
-									 0x180, XOF_DOMODE);
-	if (fd < 0)
-		return 1;
-	write (fd, buf, g_snprintf (buf, 510, "# ZoiteChat key bindings config file\n\n"));
-
-	while (list)
+	GtkTreeIter iter;
+	GString *text = g_string_new ("# ZoiteChat key bindings config file\n\n");
+	gboolean valid = gtk_tree_model_get_iter_first (model, &iter);
+	while (valid)
 	{
-		kb = list->data;
-
-		accel_text = gtk_accelerator_name (kb->keyval, kb->mod);
-
-		g_snprintf (buf, 510, "ACCEL=%s\n%s\n", accel_text, key_actions[kb->action].name);
-		write (fd, buf, strlen (buf));
-		g_free (accel_text);
-
-		if (kb->data1 && kb->data1[0])
-			write (fd, buf, g_snprintf (buf, 510, "D1:%s\n", kb->data1));
-		else
-			write (fd, "D1!\n", 4);
-
-		if (kb->data2 && kb->data2[0])
-			write (fd, buf, g_snprintf (buf, 510, "D2:%s\n", kb->data2));
-		else
-			write (fd, "D2!\n", 4);
-
-		write (fd, "\n", 1);
-
-		list = g_slist_next (list);
+		char *accel, *action, *data1, *data2;
+		guint key;
+		GdkModifierType modifiers;
+		gtk_tree_model_get (model, &iter, ACCEL_COLUMN, &accel, ACTION_COLUMN, &action,
+			D1_COLUMN, &data1, D2_COLUMN, &data2, -1);
+		if ((!accel || !*accel) && (!action || !*action) && (!data1 || !*data1) && (!data2 || !*data2))
+			goto next;
+		gtk_accelerator_parse (accel ? accel : "", &key, &modifiers);
+		if (!key || !action || strcmp (key_actions[key_get_action_from_string (action)].name, action) != 0 ||
+			(data1 && strpbrk (data1, "\r\n")) || (data2 && strpbrk (data2, "\r\n")))
+		{
+			GtkTreeView *view = g_object_get_data (G_OBJECT (key_dialog), "view");
+			GtkTreePath *path = gtk_tree_model_get_path (model, &iter);
+			setup_reveal_widget (GTK_WIDGET (view));
+                        preferences_shortcuts_reveal_path (key_dialog, path);
+                        gtk_widget_grab_focus (GTK_WIDGET (view));
+			gtk_tree_path_free (path);
+			g_set_error_literal (error, G_FILE_ERROR, G_FILE_ERROR_INVAL,
+				_("Complete each keyboard shortcut with a key and an action. Data fields must stay on one line."));
+			g_free (accel); g_free (action); g_free (data1); g_free (data2);
+			g_string_free (text, TRUE);
+			return NULL;
+		}
+		g_string_append_printf (text, "ACCEL=%s\n%s\n", accel, action);
+		if (data1 && *data1) g_string_append_printf (text, "D1:%s\n", data1);
+		else g_string_append (text, "D1!\n");
+		if (data2 && *data2) g_string_append_printf (text, "D2:%s\n", data2);
+		else g_string_append (text, "D2!\n");
+		g_string_append_c (text, '\n');
+ next:
+		g_free (accel); g_free (action); g_free (data1); g_free (data2);
+		valid = gtk_tree_model_iter_next (model, &iter);
 	}
+	return g_string_free (text, FALSE);
+}
 
-	close (fd);
-	return 0;
+gboolean
+key_preferences_stage (GError **error)
+{
+	char *contents;
+	const char *original;
+	if (!key_dialog) return TRUE;
+	contents = key_preferences_serialize (get_store (), error);
+	if (!contents) return FALSE;
+	original = g_object_get_data (G_OBJECT (key_dialog), "original-bindings");
+	g_object_set_data_full (G_OBJECT (key_dialog), "pending-bindings", NULL, g_free);
+	if (g_strcmp0 (contents, original) != 0)
+	{
+		preferences_persistence_stage_file ("keybindings.conf", contents);
+		g_object_set_data_full (G_OBJECT (key_dialog), "pending-bindings", g_strdup (contents), g_free);
+	}
+	g_free (contents);
+	return TRUE;
+}
+
+void
+key_preferences_commit (void)
+{
+	GSList *bindings = NULL;
+	const char *contents;
+	if (!key_dialog) return;
+	contents = g_object_get_data (G_OBJECT (key_dialog), "pending-bindings");
+	if (!contents) return;
+	if (key_load_kbs_from_buffer (g_strdup (contents), strlen (contents), &bindings) == 0)
+	{
+		g_slist_free_full (keybind_list, key_free);
+		keybind_list = bindings;
+		menu_update_quit_accel ();
+	}
 }
 
 #define KBSTATE_MOD 0

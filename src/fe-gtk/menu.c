@@ -50,6 +50,7 @@
 #include "banlist.h"
 #include "chanlist.h"
 #include "editlist.h"
+#include "setup.h"
 #include "fkeys.h"
 #ifdef __APPLE__
 #include "macos-shortcuts.h"
@@ -1385,7 +1386,6 @@ menu_open_server_list (GtkWidget *wid, gpointer none)
 static void
 menu_settings (GtkWidget * wid, gpointer none)
 {
-	extern void setup_open (void);
 	setup_open ();
 }
 
@@ -1401,19 +1401,9 @@ menu_macos_minimize (GtkWidget *widget, gpointer userdata)
 #endif
 
 static void
-menu_usermenu (void)
-{
-	char buf[128];
-	g_snprintf(buf, sizeof(buf), _("User menu - %s"), _(DISPLAY_NAME));
-	editlist_gui_open (NULL, NULL, usermenu_list, buf, "usermenu", "usermenu.conf", 0);
-}
-
-static void
 usermenu_create (GtkWidget *menu)
 {
 	menu_create (menu, usermenu_list, "", FALSE);
-	menu_quick_item (0, 0, menu, XCMENU_SHADED, 0, 0);	/* sep */
-	menu_quick_item_with_callback (menu_usermenu, _("Edit This Menu" ELLIPSIS), menu, 0);
 }
 
 static void
@@ -1722,33 +1712,6 @@ menu_banlist (GtkWidget * wid, gpointer none)
 	banlist_opengui (current_sess);
 }
 
-#ifdef USE_PLUGIN
-
-static void
-menu_loadplugin (void)
-{
-	plugingui_load ();
-}
-
-static void
-menu_pluginlist (void)
-{
-	plugingui_open ();
-}
-
-#else
-
-static void
-menu_noplugin_info (void)
-{
-	fe_message (_(DISPLAY_NAME " has been build without plugin support."), FE_MSG_INFO);
-}
-
-#define menu_loadplugin menu_noplugin_info
-#define menu_pluginlist menu_noplugin_info
-
-#endif
-
 #define usercommands_help  _("User Commands - Special codes:\n\n"\
                            "%c  =  current channel\n"\
 									"%e  =  current network name\n"\
@@ -1805,73 +1768,47 @@ menu_noplugin_info (void)
                            "shell instead of ZoiteChat")
 
 static void
-menu_usercommands (void)
+menu_preferences_selector_changed (GtkComboBox *combo, GtkStack *stack)
 {
-	char buf[128];
-	g_snprintf(buf, sizeof(buf), _("User Defined Commands - %s"), _(DISPLAY_NAME));
-	editlist_gui_open (NULL, NULL, command_list, buf, "commands", "commands.conf",
-							usercommands_help);
+	const char *id = gtk_combo_box_get_active_id (combo);
+	if (id) gtk_stack_set_visible_child_name (stack, id);
 }
 
-static void
-menu_ulpopup (void)
+GtkWidget *
+menu_preferences_create (const char *id)
 {
-	char buf[128];
-	g_snprintf(buf, sizeof(buf), _("Userlist Popup menu -  %s"), _(DISPLAY_NAME));
-	editlist_gui_open (NULL, NULL, popup_list, buf, "popup", "popup.conf", ulbutton_help);
-}
-
-static void
-menu_rpopup (void)
-{
-	char buf[128];
-	g_snprintf(buf, sizeof(buf), _("Replace - %s"), _(DISPLAY_NAME));
-	editlist_gui_open (_("Text"), _("Replace with"), replace_list, buf, "replace", "replace.conf", 0);
-}
-
-static void
-menu_urlhandlers (void)
-{
-	char buf[128];
-	g_snprintf(buf, sizeof(buf), _("URL Handlers - %s"), _(DISPLAY_NAME));
-	editlist_gui_open (NULL, NULL, urlhandler_list, buf, "urlhandlers", "urlhandlers.conf", url_help);
-}
-
-static void
-menu_evtpopup (void)
-{
-	pevent_dialog_show ();
-}
-
-static void
-menu_keypopup (void)
-{
-	key_dialog_show ();
-}
-
-static void
-menu_ulbuttons (void)
-{
-	char buf[128];
-	g_snprintf(buf, sizeof(buf), _("Userlist buttons - %s"), _(DISPLAY_NAME));
-	editlist_gui_open (NULL, NULL, button_list, buf, "buttons", "buttons.conf", ulbutton_help);
-}
-
-static void
-menu_dlgbuttons (void)
-{
-	char buf[128];
-	g_snprintf(buf, sizeof(buf), _("Dialog buttons - %s"), _(DISPLAY_NAME));
-	editlist_gui_open (NULL, NULL, dlgbutton_list, buf, "dlgbuttons", "dlgbuttons.conf",
-							 dlgbutton_help);
-}
-
-static void
-menu_ctcpguiopen (void)
-{
-	char buf[128];
-	g_snprintf(buf, sizeof(buf), _("CTCP Replies - %s"), _(DISPLAY_NAME));
-	editlist_gui_open (NULL, NULL, ctcp_list, buf, "ctcpreply", "ctcpreply.conf", ctcp_help);
+	if (!strcmp (id, "replace"))
+		return editlist_preferences_create (&replace_list, "replace.conf", _("Text"), _("Replace with"), NULL);
+	if (!strcmp (id, "commands"))
+		return editlist_preferences_create (&command_list, "commands.conf", _("Command"), _("Expansion"), usercommands_help);
+	if (!strcmp (id, "urls"))
+		return editlist_preferences_create (&urlhandler_list, "urlhandlers.conf", _("Name"), _("Command"), url_help);
+	if (!strcmp (id, "ctcp"))
+		return editlist_preferences_create (&ctcp_list, "ctcpreply.conf", _("Request"), _("Reply"), ctcp_help);
+	{
+		GtkWidget *box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 10);
+		GtkWidget *selector = gtk_combo_box_text_new ();
+		GtkWidget *stack = gtk_stack_new ();
+		const char *ids[] = {"buttons", "popup", "dlgbuttons", "usermenu"};
+		const char *names[] = {N_("User list buttons"), N_("User list popup"), N_("Dialog buttons"), N_("User menu")};
+		const char *files[] = {"buttons.conf", "popup.conf", "dlgbuttons.conf", "usermenu.conf"};
+		GSList **lists[] = {&button_list, &popup_list, &dlgbutton_list, &usermenu_list};
+		const char *help[] = {ulbutton_help, ulbutton_help, dlgbutton_help, ulbutton_help};
+		int i;
+		gtk_box_pack_start (GTK_BOX (box), selector, FALSE, FALSE, 0);
+		gtk_box_pack_start (GTK_BOX (box), stack, TRUE, TRUE, 0);
+		gtk_stack_set_homogeneous (GTK_STACK (stack), FALSE);
+		for (i = 0; i < 4; i++)
+		{
+			gtk_combo_box_text_append (GTK_COMBO_BOX_TEXT (selector), ids[i], _(names[i]));
+			gtk_stack_add_named (GTK_STACK (stack), editlist_preferences_create (lists[i], files[i], _("Name"), _("Command"), help[i]), ids[i]);
+		}
+		g_signal_connect (selector, "changed", G_CALLBACK (menu_preferences_selector_changed), stack);
+		gtk_combo_box_set_active (GTK_COMBO_BOX (selector), 0);
+		g_object_set_data (G_OBJECT (box), "menus-selector", selector);
+		g_object_set_data (G_OBJECT (stack), "preferences-selector", selector);
+		return box;
+	}
 }
 
 static char *
@@ -2105,7 +2042,7 @@ menu_about (GtkWidget *wid, gpointer sess)
 
 static struct mymenu mymenu[] = {
 	{N_("_ZoiteChat"), 0, 0, M_NEWMENU, MENU_ID_ZOITECHAT, 0, 1},
-	{N_("Network Li_st"), menu_open_server_list, 0, M_MENUITEM, 0, 0, 1},
+	{N_("Network Li_st" ELLIPSIS), menu_open_server_list, 0, M_MENUITEM, 0, 0, 1},
 	{0, 0, 0, M_SEP, 0, 0, 0},
 
 	{N_("_New"), 0, 0, M_MENUSUB, 0, 0, 1},
@@ -2116,14 +2053,14 @@ static struct mymenu mymenu[] = {
 		{0, 0, 0, M_END, 0, 0, 0},
 	{0, 0, 0, M_SEP, 0, 0, 0},
 
-	{N_("_Load Plugin or Script" ELLIPSIS), menu_loadplugin, 0, M_MENUITEM, 0, 0, 1},
-	{0, 0, 0, M_SEP, 0, 0, 0},	/* 11 */
-#define DETACH_OFFSET (12)
-	{0, menu_detach, 0, M_MENUITEM, 0, 0, 1},	/* 12 */
-#define CLOSE_OFFSET (13)
+#define DETACH_OFFSET (10)
+	{0, menu_detach, 0, M_MENUITEM, 0, 0, 1},
+#define CLOSE_OFFSET (11)
 	{0, menu_close, 0, M_MENUITEM, 0, 0, 1},
 	{0, 0, 0, M_SEP, 0, 0, 0},
-	{N_("_Quit"), menu_quit, 0, M_MENUITEM, MENU_ID_QUIT, 0, 1},	/* 15 */
+	{N_("_Preferences" ELLIPSIS), menu_settings, 0, M_MENUITEM, 0, 0, 1},
+	{0, 0, 0, M_SEP, 0, 0, 0},
+	{N_("_Quit"), menu_quit, 0, M_MENUITEM, MENU_ID_QUIT, 0, 1},
 
 	{N_("_View"), 0, 0, M_NEWMENU, 0, 0, 1},
 #define MENUBAR_OFFSET (17)
@@ -2133,18 +2070,18 @@ static struct mymenu mymenu[] = {
 	{N_("U_ser List Buttons"), menu_ulbuttons_toggle, 0, M_MENUTOG, MENU_ID_ULBUTTONS, 0, 1},
 	{N_("M_ode Buttons"), menu_cmbuttons_toggle, 0, M_MENUTOG, MENU_ID_MODEBUTTONS, 0, 1},
 	{0, 0, 0, M_SEP, 0, 0, 0},
-	{N_("_Channel Switcher"), 0, 0, M_MENUSUB, 0, 0, 1},	/* 23 */
+	{N_("_Channel Switcher"), 0, 0, M_MENUSUB, 0, 0, 1},
 #define TABS_OFFSET (24)
 		{N_("_Tabs"), menu_layout_cb, 0, M_MENURADIO, MENU_ID_LAYOUT_TABS, 0, 1},
 		{N_("T_ree"), 0, 0, M_MENURADIO, MENU_ID_LAYOUT_TREE, 0, 1},
 		{0, 0, 0, M_END, 0, 0, 0},
-	{N_("_Network Meters"), 0, 0, M_MENUSUB, 0, 0, 1},	/* 27 */
+	{N_("_Network Meters"), 0, 0, M_MENUSUB, 0, 0, 1},
 #define METRE_OFFSET (28)
 		{N_("Off"), menu_metres_off, 0, M_MENURADIO, 0, 0, 1},
 		{N_("Graph"), menu_metres_graph, 0, M_MENURADIO, 0, 0, 1},
 		{N_("Text"), menu_metres_text, 0, M_MENURADIO, 0, 0, 1},
 		{N_("Both"), menu_metres_both, 0, M_MENURADIO, 0, 0, 1},
-		{0, 0, 0, M_END, 0, 0, 0},	/* 32 */
+		{0, 0, 0, M_END, 0, 0, 0},
 	{ 0, 0, 0, M_SEP, 0, 0, 0 },
 	{N_ ("_Fullscreen"), menu_fullscreen_toggle, 0, M_MENUTOG, MENU_ID_FULLSCREEN, 0, 1},
 
@@ -2157,20 +2094,7 @@ static struct mymenu mymenu[] = {
 #define AWAY_OFFSET (41)
 	{N_("Marked _Away"), menu_away_toggle, 0, M_MENUITEM, MENU_ID_AWAY, 0, 1},
 
-	{N_("_Usermenu"), 0, 0, M_NEWMENU, MENU_ID_USERMENU, 0, 1},	/* 40 */
-
-	{N_("S_ettings"), 0, 0, M_NEWMENU, 0, 0, 1},
-	{N_("_Preferences"), menu_settings, 0, M_MENUITEM, 0, 0, 1},
-	{0, 0, 0, M_SEP, 0, 0, 0},
-	{N_("Auto Replace"), menu_rpopup, 0, M_MENUITEM, 0, 0, 1},
-	{N_("CTCP Replies"), menu_ctcpguiopen, 0, M_MENUITEM, 0, 0, 1},
-	{N_("Dialog Buttons"), menu_dlgbuttons, 0, M_MENUITEM, 0, 0, 1},
-	{N_("Keyboard Shortcuts"), menu_keypopup, 0, M_MENUITEM, 0, 0, 1},
-	{N_("Text Events"), menu_evtpopup, 0, M_MENUITEM, 0, 0, 1},
-	{N_("URL Handlers"), menu_urlhandlers, 0, M_MENUITEM, 0, 0, 1},
-	{N_("User Commands"), menu_usercommands, 0, M_MENUITEM, 0, 0, 1},
-	{N_("User List Buttons"), menu_ulbuttons, 0, M_MENUITEM, 0, 0, 1},
-	{N_("User List Popup"), menu_ulpopup, 0, M_MENUITEM, 0, 0, 1},	/* 52 */
+	{N_("_Usermenu"), 0, 0, M_NEWMENU, MENU_ID_USERMENU, 0, 1},
 
 	{N_("_Window"), 0, 0, M_NEWMENU, 0, 0, 1},
 	{N_("_Ban List"), menu_banlist, 0, M_MENUITEM, 0, 0, 1},
@@ -2178,9 +2102,7 @@ static struct mymenu mymenu[] = {
 	{N_("Direct Chat"), menu_dcc_chat_win, 0, M_MENUITEM, 0, 0, 1},
 	{N_("File _Transfers"), menu_dcc_win, 0, M_MENUITEM, 0, 0, 1},
 	{N_("Friends List"), notify_opengui, 0, M_MENUITEM, 0, 0, 1},
-	{N_("Ignore List"), ignore_gui_open, 0, M_MENUITEM, 0, 0, 1},
-	{N_("_Plugins and Scripts"), menu_pluginlist, 0, M_MENUITEM, 0, 0, 1},
-	{N_("_Raw Log"), menu_rawlog, 0, M_MENUITEM, 0, 0, 1},	/* 61 */
+	{N_("_Raw Log"), menu_rawlog, 0, M_MENUITEM, 0, 0, 1},
 	{N_("_URL Grabber"), url_opengui, 0, M_MENUITEM, 0, 0, 1},
 	{0, 0, 0, M_SEP, 0, 0, 0},
 	{N_("Reset Marker Line"), menu_resetmarker, 0, M_MENUITEM, 0, 0, 1},
@@ -2188,14 +2110,14 @@ static struct mymenu mymenu[] = {
 	{N_("_Copy Selection"), menu_copy_selection, 0, M_MENUITEM, 0, 0, 1},
 	{N_("C_lear Text"), menu_flushbuffer, 0, M_MENUITEM, 0, 0, 1},
 	{N_("Save Text" ELLIPSIS), menu_savebuffer, 0, M_MENUITEM, 0, 0, 1},
-#define SEARCH_OFFSET (71)
+#define SEARCH_OFFSET (57)
 	{N_("Search"), 0, 0, M_MENUSUB, 0, 0, 1},
 		{N_("Search Text" ELLIPSIS), menu_search, 0, M_MENUITEM, 0, 0, 1},
 		{N_("Search Next"   ), menu_search_next, 0, M_MENUITEM, 0, 0, 1},
 		{N_("Search Previous"   ), menu_search_prev, 0, M_MENUITEM, 0, 0, 1},
 		{0, 0, 0, M_END, 0, 0, 0},
 
-	{N_("_Help"), 0, 0, M_NEWMENU, 0, 0, 1},	/* 74 */
+	{N_("_Help"), 0, 0, M_NEWMENU, 0, 0, 1},
 	{N_("_Contents"), menu_docs, 0, M_MENUITEM, 0, 0, 1},
 	{N_("_About"), menu_about, 0, M_MENUITEM, 0, 0, 1},
 
@@ -2205,42 +2127,24 @@ static struct mymenu mymenu[] = {
 static const char *
 menu_get_key_action_name (int index)
 {
-	switch (index)
-	{
-	case 1:
-		return "network-list";
-	case 4:
-		return "new-server-tab";
-	case 6:
-		return "new-server-window";
-	case CLOSE_OFFSET:
-		return "close";
-	case 15:
-		return "quit";
-	case MENUBAR_OFFSET:
-		return "menu-toggle";
-	case MENUBAR_OFFSET + 2:
-		return "user-list-toggle";
-	case 34:
-		return "fullscreen-toggle";
-	case AWAY_OFFSET:
-		return "away-toggle";
-	case 66:
-		return "reset-marker";
-	case 67:
-		return "move-marker";
-	case 68:
-		return "copy-selection";
-	case SEARCH_OFFSET + 1:
-		return "search-text";
-	case SEARCH_OFFSET + 2:
-		return "search-next";
-	case SEARCH_OFFSET + 3:
-		return "search-previous";
-	case 77:
-		return "contents";
-	}
-
+	/* Bind accelerators to actions rather than positions in the menu. */
+	void *callback = mymenu[index].callback;
+	if (callback == menu_open_server_list) return "network-list";
+	if (callback == menu_newserver_tab) return "new-server-tab";
+	if (callback == menu_newserver_window) return "new-server-window";
+	if (callback == menu_close) return "close";
+	if (callback == menu_quit) return "quit";
+	if (callback == menu_bar_toggle_cb) return "menu-toggle";
+	if (callback == menu_userlist_toggle) return "user-list-toggle";
+	if (callback == menu_fullscreen_toggle) return "fullscreen-toggle";
+	if (callback == menu_away_toggle) return "away-toggle";
+	if (callback == menu_resetmarker) return "reset-marker";
+	if (callback == menu_movetomarker) return "move-marker";
+	if (callback == menu_copy_selection) return "copy-selection";
+	if (callback == menu_search) return "search-text";
+	if (callback == menu_search_next) return "search-next";
+	if (callback == menu_search_prev) return "search-previous";
+	if (callback == menu_docs) return "contents";
 	return NULL;
 }
 
@@ -3113,7 +3017,7 @@ togitem:
 
 #ifdef HAVE_GTK_MAC
 		/* We want ZoiteChat to be the app menu, not including Quit or ZoiteChat itself */
-		if (bar && item && i <= CLOSE_OFFSET + 1 && mymenu[i].id != MENU_ID_ZOITECHAT)
+		if (bar && item && (i <= CLOSE_OFFSET + 1 || mymenu[i].callback == menu_settings) && mymenu[i].id != MENU_ID_ZOITECHAT)
 		{
 			if (!submenu || mymenu[i].type == M_MENUSUB)
 				gtkosx_application_insert_app_menu_item (osx_app, item, appmenu_offset++);

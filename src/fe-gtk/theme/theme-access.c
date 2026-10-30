@@ -207,6 +207,14 @@ theme_access_get_gtk_palette_map (GtkWidget *widget, ThemeGtkPaletteMap *out_map
 }
 
 gboolean
+theme_get_default_color_for_widget (GtkWidget *widget, ThemeSemanticToken token, GdkRGBA *color)
+{
+	ThemeGtkPaletteMap map = { 0 };
+	theme_access_get_gtk_palette_map (widget, &map);
+	return theme_runtime_get_default_color (token, &map, color);
+}
+
+gboolean
 theme_get_color (ThemeSemanticToken token, GdkRGBA *out_rgba)
 {
 	return theme_runtime_get_color (token, out_rgba);

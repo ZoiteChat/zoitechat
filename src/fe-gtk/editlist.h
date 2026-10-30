@@ -21,5 +21,10 @@
 #define ZOITECHAT_EDITLIST_H
 
 void editlist_gui_open (char *title1, char *title2, GSList * list, char *title, char *wmclass, char *file, char *help);
+GtkWidget *editlist_preferences_create (GSList **list, const char *file,
+                                      const char *title1, const char *title2,
+                                      const char *help);
+gboolean editlist_preferences_stage (GError **error);
+void editlist_preferences_commit (void);
 
 #endif

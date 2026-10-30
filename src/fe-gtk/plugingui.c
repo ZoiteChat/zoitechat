@@ -35,6 +35,8 @@ typedef struct session zoitechat_context;
 #include "../common/cfgfiles.h"
 #include "gtkutil.h"
 #include "maingui.h"
+#include "setup.h"
+#include "plugingui.h"
 
 /* model for the plugin treeview */
 enum
@@ -357,24 +359,15 @@ plugingui_reloadbutton_cb (GtkWidget *wid, GtkTreeView *view)
 	}
 }
 
-void
-plugingui_open (void)
+GtkWidget *
+plugingui_preferences_create (void)
 {
 	GtkWidget *view;
 	GtkWidget *view_scroll;
 	GtkWidget *vbox, *hbox;
-	char buf[128];
-
-	if (plugin_window)
-	{
-		mg_bring_tofront (plugin_window);
-		return;
-	}
-
-	g_snprintf(buf, sizeof(buf), _("Plugins and Scripts - %s"), _(DISPLAY_NAME));
-	plugin_window = mg_create_generic_tab ("Addons", buf, FALSE, TRUE, plugingui_close, NULL,
-														 700, 300, &vbox, 0);
-	gtkutil_destroy_on_esc (plugin_window);
+	vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 10);
+	plugin_window = vbox;
+	g_signal_connect (vbox, "destroy", G_CALLBACK (plugingui_close), NULL);
 
 	view = plugingui_treeview_new (vbox);
 	view_scroll = gtk_widget_get_parent (view);
@@ -404,4 +397,11 @@ plugingui_open (void)
 	fe_pluginlist_update ();
 
 	gtk_widget_show_all (plugin_window);
+	return vbox;
+}
+
+void
+plugingui_open (void)
+{
+	setup_open_page ("plugins");
 }

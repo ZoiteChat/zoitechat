@@ -26,5 +26,9 @@ void PrintTextRaw (void *xtbuf, unsigned char *text, int indent, time_t stamp);
 void PrintTextRawWithMessage (void *xtbuf, unsigned char *text, int indent, time_t stamp,
 									  const struct reply_item *message);
 void pevent_dialog_show (void);
+GtkWidget *pevent_preferences_create (void);
+gboolean pevent_preferences_import_text (const char *contents, GError **error);
+gboolean pevent_preferences_stage (GError **error);
+void pevent_preferences_commit (void);
 
 #endif

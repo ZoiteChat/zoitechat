@@ -31,6 +31,7 @@
 #include "../common/fe.h"
 #include "gtkutil.h"
 #include "maingui.h"
+#include "setup.h"
 
 #define ICON_IGNORE_NEW "document-new"
 #define ICON_IGNORE_DELETE "edit-delete"
@@ -234,6 +235,8 @@ ignore_delete_entry_clicked (GtkWidget * wid, struct session *sess)
 static void
 ignore_store_new (int cancel, char *mask, gpointer data)
 {
+	if (cancel || !ignorewin)
+		return;
 	GtkTreeView *view = g_object_get_data (G_OBJECT (ignorewin), "view");
 	GtkListStore *store = GTK_LIST_STORE (get_store ());
 	GtkTreeIter iter;
@@ -265,6 +268,11 @@ ignore_store_new (int cancel, char *mask, gpointer data)
 static void
 ignore_clear_cb (GtkDialog *dialog, gint response)
 {
+	if (!ignorewin)
+	{
+		gtk_widget_destroy (GTK_WIDGET (dialog));
+		return;
+	}
 	GtkListStore *store = GTK_LIST_STORE (get_store ());
 	GtkTreeIter iter;
 	char *mask;
@@ -293,7 +301,7 @@ ignore_clear_entry_clicked (GtkWidget * wid)
 {
 	GtkWidget *dialog;
 
-	dialog = gtk_message_dialog_new (NULL, 0,
+	dialog = gtk_message_dialog_new (GTK_WINDOW (gtk_widget_get_toplevel (ignorewin)), GTK_DIALOG_DESTROY_WITH_PARENT,
 								GTK_MESSAGE_QUESTION, GTK_BUTTONS_OK_CANCEL,
 					_("Are you sure you want to remove all ignores?"));
 	theme_manager_attach_window (dialog);
@@ -335,8 +343,8 @@ ignore_stats_entry (GtkWidget * box, char *label, int value)
 	return wid;
 }
 
-void
-ignore_gui_open (void)
+GtkWidget *
+ignore_preferences_create (void)
 {
 	GtkWidget *vbox, *box, *stat_box, *frame;
 	GtkWidget *view;
@@ -345,20 +353,9 @@ ignore_gui_open (void)
 	GSList *temp = ignore_list;
 	char *mask;
 	gboolean private, chan, notice, ctcp, dcc, invite, unignore;
-	char buf[128];
-
-	if (ignorewin)
-	{
-		mg_bring_tofront (ignorewin);
-		return;
-	}
-
-	g_snprintf(buf, sizeof(buf), _("Ignore list - %s"), _(DISPLAY_NAME));
-	ignorewin =
-			  mg_create_generic_tab ("IgnoreList", buf, FALSE, TRUE,
-											close_ignore_gui_callback,
-											NULL, 700, 300, &vbox, 0);
-	gtkutil_destroy_on_esc (ignorewin);
+	vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 10);
+	ignorewin = vbox;
+	g_signal_connect (vbox, "destroy", G_CALLBACK (close_ignore_gui_callback), NULL);
 
 	view = ignore_treeview_new (vbox);
 	g_object_set_data (G_OBJECT (ignorewin), "view", view);
@@ -421,7 +418,14 @@ ignore_gui_open (void)
 		
 		temp = temp->next;
 	}
-	gtk_widget_show (ignorewin);
+	gtk_widget_show_all (ignorewin);
+	return vbox;
+}
+
+void
+ignore_gui_open (void)
+{
+	setup_open_page ("ignore");
 }
 
 void

@@ -33,6 +33,7 @@
 #include "../common/util.h"
 #include "../common/zoitechatc.h"
 #include "../common/outbound.h"
+#include "../common/servlist.h"
 #include "fe-gtk.h"
 #include "theme/theme-manager.h"
 #include "theme/theme-preferences.h"
@@ -41,6 +42,16 @@
 #include "pixmaps.h"
 #include "menu.h"
 #include "preferences-persistence.h"
+#include "preferences-pages.h"
+#include "setup.h"
+#include "editlist.h"
+#include "fkeys.h"
+#include "textgui.h"
+#ifdef USE_PLUGIN
+#include "plugingui.h"
+#endif
+
+GtkWidget *ignore_preferences_create (void);
 #include "plugin-tray.h"
 #include "notifications/notification-backend.h"
 
@@ -49,10 +60,9 @@
 #endif
 #include "sexy-spell-entry.h"
 
-#define LABEL_INDENT 12
+#define LABEL_INDENT 0
 
 static GtkWidget *setup_window = NULL;
-static int last_selected_page = 0;
 static int last_selected_row = 0; /* sound row */
 static gboolean color_change;
 static struct zoitechatprefs setup_prefs;
@@ -93,11 +103,30 @@ typedef struct
 
 typedef GtkWidget *(*setup_page_factory) (const setting *settings);
 
-#define SETUP_MAX_PAGES 12
-static setup_page_factory setup_page_factories[SETUP_MAX_PAGES];
-static const setting *setup_page_settings[SETUP_MAX_PAGES];
-static GtkWidget *setup_page_containers[SETUP_MAX_PAGES];
-static int setup_page_count = 0;
+/* A page owns its navigation and search metadata. Adding a settings panel does
+ * not require another parallel category array or a fixed page limit. */
+typedef struct
+{
+        const char *id;
+        const char *group;
+        const char *title;
+        const char *description;
+        setup_page_factory factory;
+        const setting *settings;
+        GtkWidget *container;
+        GtkWidget *body;
+        GtkWidget *row;
+        char *search_text;
+} setup_page;
+
+static GArray *setup_pages;
+static GtkWidget *setup_book;
+static GtkWidget *setup_sidebar;
+static GtkWidget *setup_search;
+static GtkWidget *setup_empty;
+static GtkWidget *setup_error_bar;
+static GtkWidget *setup_error_label;
+static char *setup_query;
 
 #ifdef WIN32
 static const char *const langsmenu[] =
@@ -341,7 +370,9 @@ static const char *const swtype[] =
 
 static const setting tabs_settings[] =
 {
+        {ST_HEADER, N_("Channel Switcher"), 0, 0, 0},
         {ST_RADIO,  N_("Switcher type:"),P_OFFINTNL(hex_gui_tab_layout), 0, swtype, 0},
+        {ST_HEADER, N_("Tab Behavior"), 0, 0, 0},
         {ST_TOGGLE, N_("Open an extra tab for server messages"), P_OFFINTNL(hex_gui_tab_server), 0, 0, 0},
         {ST_TOGGLE, N_("Open a new tab when you receive a private message"), P_OFFINTNL(hex_gui_autoopen_dialog), 0, 0, 0},
         {ST_TOGGLE, N_("Sort tabs in alphabetical order"), P_OFFINTNL(hex_gui_tab_sort), 0, 0, 0},
@@ -350,6 +381,7 @@ static const setting tabs_settings[] =
         {ST_TOGGLE, N_("Scroll mouse-wheel to change tabs"), P_OFFINTNL (hex_gui_tab_scrollchans), 0, 0, 0},
         {ST_TOGGLE, N_("Show close button on tabs"), P_OFFINTNL(hex_gui_tab_closebuttons), 0, 0, 0},
         {ST_TOGGLE, N_("Middle click to close tab"), P_OFFINTNL(hex_gui_tab_middleclose), 0, 0, 0},
+        {ST_HEADER, N_("Fonts & Placement"), 0, 0, 0},
         {ST_TOGGLE, N_("Smaller text"), P_OFFINTNL(hex_gui_tab_small), 0, 0, 0},
         {ST_EFONT,  N_("Tab font:"), P_OFFSETNL(hex_gui_tab_font),
                 N_("Font for server and channel tabs in the Tabs layout. Leave blank to use the theme font. Smaller text still applies."),
@@ -601,7 +633,6 @@ static const setting advanced_settings[] =
                                                 "while selecting."), 0, 0},
 
         {ST_HEADER,     N_("Miscellaneous"), 0, 0, 0},
-        {ST_ENTRY,  N_("Real name:"), P_OFFSETNL(hex_irc_real_name), 0, 0, sizeof prefs.hex_irc_real_name},
 #ifdef WIN32
         {ST_ENTRY,  N_("Alternative fonts:"), P_OFFSETNL(hex_text_font_alternative), N_("Separate multiple entries with commas without spaces before or after."), 0, sizeof prefs.hex_text_font_alternative},
 #endif
@@ -817,6 +848,11 @@ setup_create_3oggle (GtkWidget *tab, int row, const setting *set)
         wid = gtk_check_button_new ();
         gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (wid),
                                                                                         setup_get_int3 (&setup_prefs, offsets[0]));
+        {
+                char *name = g_strdup_printf ("%s %s", _(set->label), _("Channel Message"));
+                atk_object_set_name (gtk_widget_get_accessible (wid), name);
+                g_free (name);
+        }
         g_signal_connect (G_OBJECT (wid), "toggled",
                                                         G_CALLBACK (setup_3oggle_cb), ((int *)&setup_prefs) + offsets[0]);
         setup_table_attach (tab, wid, 3, 4, row, row + 1, FALSE, FALSE,
@@ -825,6 +861,11 @@ setup_create_3oggle (GtkWidget *tab, int row, const setting *set)
         wid = gtk_check_button_new ();
         gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (wid),
                                                                                         setup_get_int3 (&setup_prefs, offsets[1]));
+        {
+                char *name = g_strdup_printf ("%s %s", _(set->label), _("Private Message"));
+                atk_object_set_name (gtk_widget_get_accessible (wid), name);
+                g_free (name);
+        }
         g_signal_connect (G_OBJECT (wid), "toggled",
                                                         G_CALLBACK (setup_3oggle_cb), ((int *)&setup_prefs) + offsets[1]);
         setup_table_attach (tab, wid, 4, 5, row, row + 1, FALSE, FALSE,
@@ -833,6 +874,11 @@ setup_create_3oggle (GtkWidget *tab, int row, const setting *set)
         wid = gtk_check_button_new ();
         gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (wid),
                                                                                         setup_get_int3 (&setup_prefs, offsets[2]));
+        {
+                char *name = g_strdup_printf ("%s %s", _(set->label), _("Highlighted Message"));
+                atk_object_set_name (gtk_widget_get_accessible (wid), name);
+                g_free (name);
+        }
         g_signal_connect (G_OBJECT (wid), "toggled",
                                                         G_CALLBACK (setup_3oggle_cb), ((int *)&setup_prefs) + offsets[2]);
         setup_table_attach (tab, wid, 5, 6, row, row + 1, FALSE, FALSE,
@@ -886,12 +932,15 @@ setup_text_indent_toggled_cb (GtkToggleButton *but, gpointer userdata)
                 gtk_widget_set_sensitive (setup_wrap_align_combo, sens);
 }
 
-static void
-setup_create_toggleR (GtkWidget *tab, int row, const setting *set)
+static GtkWidget *
+setup_create_toggleL (GtkWidget *tab, int row, const setting *set)
 {
-        GtkWidget *wid;
+        GtkWidget *wid, *label;
 
         wid = gtk_check_button_new_with_label (_(set->label));
+        label = gtk_bin_get_child (GTK_BIN (wid));
+        gtk_label_set_line_wrap (GTK_LABEL (label), TRUE);
+        gtk_label_set_max_width_chars (GTK_LABEL (label), 60);
         gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (wid),
                                                                                         setup_get_int (&setup_prefs, set));
         g_signal_connect (G_OBJECT (wid), "toggled",
@@ -899,22 +948,6 @@ setup_create_toggleR (GtkWidget *tab, int row, const setting *set)
         if (set->offset == STRUCT_OFFSET_INT (struct zoitechatprefs, hex_text_indent))
                 g_signal_connect (G_OBJECT (wid), "toggled",
                                                         G_CALLBACK (setup_text_indent_toggled_cb), NULL);
-        if (set->tooltip)
-                gtk_widget_set_tooltip_text (wid, _(set->tooltip));
-        setup_table_attach (tab, wid, 4, 5, row, row + 1, TRUE, FALSE,
-                            SETUP_ALIGN_FILL, SETUP_ALIGN_FILL, 0, 0);
-}
-
-static GtkWidget *
-setup_create_toggleL (GtkWidget *tab, int row, const setting *set)
-{
-        GtkWidget *wid;
-
-        wid = gtk_check_button_new_with_label (_(set->label));
-        gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (wid),
-                                                                                        setup_get_int (&setup_prefs, set));
-        g_signal_connect (G_OBJECT (wid), "toggled",
-                                                        G_CALLBACK (setup_toggle_cb), (gpointer)set);
         if (set->offset == STRUCT_OFFSET_INT (struct zoitechatprefs, hex_gui_mode_buttons_inline))
                 g_signal_connect (G_OBJECT (wid), "toggled",
                                                         G_CALLBACK (setup_topicbar_inline_toggled_cb), NULL);
@@ -925,7 +958,7 @@ setup_create_toggleL (GtkWidget *tab, int row, const setting *set)
         }
         if (set->tooltip)
                 gtk_widget_set_tooltip_text (wid, _(set->tooltip));
-        setup_table_attach (tab, wid, 2, row==6 ? 6 : 4, row, row + 1, FALSE, FALSE,
+        setup_table_attach (tab, wid, 2, 6, row, row + 1, FALSE, FALSE,
                             SETUP_ALIGN_FILL, SETUP_ALIGN_FILL, LABEL_INDENT, 0);
 
         return wid;
@@ -935,12 +968,16 @@ static GtkWidget *
 setup_create_italic_label (char *text)
 {
         GtkWidget *label;
-        char buf[256];
+        char *markup;
 
         label = gtk_label_new (NULL);
-        g_snprintf (buf, sizeof (buf), "<i><span size=\"smaller\">%s</span></i>", text);
-        gtk_label_set_markup (GTK_LABEL (label), buf);
-        gtk_label_set_justify (GTK_LABEL (label), GTK_JUSTIFY_CENTER);
+        markup = g_markup_printf_escaped ("<span size=\"smaller\">%s</span>", text);
+        gtk_label_set_markup (GTK_LABEL (label), markup);
+        g_free (markup);
+        gtk_label_set_xalign (GTK_LABEL (label), 0);
+        gtk_label_set_line_wrap (GTK_LABEL (label), TRUE);
+        gtk_label_set_max_width_chars (GTK_LABEL (label), 52);
+        gtk_style_context_add_class (gtk_widget_get_style_context (label), "dim-label");
 
         return label;
 }
@@ -1033,6 +1070,7 @@ setup_create_spin (GtkWidget *table, int row, const setting *set)
 
         wid = gtk_spin_button_new_with_range (0, set->extra, 1);
         g_object_set_data (G_OBJECT (wid), "lbl", label);
+        gtk_label_set_mnemonic_widget (GTK_LABEL (label), wid);
         if (set->tooltip)
                 gtk_widget_set_tooltip_text (wid, _(set->tooltip));
         if (setup_is_dcc_speed_setting (set))
@@ -1300,6 +1338,7 @@ setup_create_menu (GtkWidget *table, int row, const setting *set)
                             LABEL_INDENT, 0);
 
         cbox = gtk_combo_box_text_new ();
+        gtk_label_set_mnemonic_widget (GTK_LABEL (wid), cbox);
 
         for (i = 0; text[i]; i++)
                 gtk_combo_box_text_append_text (GTK_COMBO_BOX_TEXT (cbox), _(text[i]));
@@ -1477,7 +1516,7 @@ static void
 setup_create_label (GtkWidget *table, int row, const setting *set)
 {
         setup_table_attach (table, setup_create_italic_label (_(set->label)),
-                            set->extra ? 1 : 3, 5, row, row + 1, FALSE, FALSE,
+                            2, 6, row, row + 1, FALSE, FALSE,
                             SETUP_ALIGN_FILL, SETUP_ALIGN_FILL, 0, 0);
 }
 
@@ -1496,6 +1535,7 @@ setup_create_entry (GtkWidget *table, int row, const setting *set)
 
         wid = gtk_entry_new ();
         g_object_set_data (G_OBJECT (wid), "lbl", label);
+        gtk_label_set_mnemonic_widget (GTK_LABEL (label), wid);
         if (set->list)
                 gtk_entry_set_visibility (GTK_ENTRY (wid), FALSE);
         if (set->tooltip)
@@ -1541,25 +1581,6 @@ setup_create_entry (GtkWidget *table, int row, const setting *set)
 }
 
 static void
-setup_create_header (GtkWidget *table, int row, char *labeltext)
-{
-        GtkWidget *label;
-        char buf[128];
-
-        if (row == 0)
-                g_snprintf (buf, sizeof (buf), "<b>%s</b>", _(labeltext));
-        else
-                g_snprintf (buf, sizeof (buf), "\n<b>%s</b>", _(labeltext));
-
-        label = gtk_label_new (NULL);
-        gtk_label_set_markup (GTK_LABEL (label), buf);
-        gtk_widget_set_halign (label, GTK_ALIGN_START);
-        gtk_widget_set_valign (label, GTK_ALIGN_CENTER);
-        setup_table_attach (table, label, 0, 4, row, row + 1, FALSE, FALSE,
-                            SETUP_ALIGN_START, SETUP_ALIGN_CENTER, 0, 5);
-}
-
-static void
 setup_create_button (GtkWidget *table, int row, char *label, GCallback callback)
 {
         GtkWidget *but = gtk_button_new_with_label (label);
@@ -1574,9 +1595,9 @@ setup_create_frame (void)
         GtkWidget *tab;
 
         tab = gtkutil_grid_new (3, 2, FALSE);
-        gtk_container_set_border_width (GTK_CONTAINER (tab), 6);
-        gtk_grid_set_row_spacing (GTK_GRID (tab), 2);
-        gtk_grid_set_column_spacing (GTK_GRID (tab), 3);
+        gtk_widget_set_margin_start (tab, 12);
+        gtk_grid_set_row_spacing (GTK_GRID (tab), 8);
+        gtk_grid_set_column_spacing (GTK_GRID (tab), 12);
 
         return tab;
 }
@@ -1591,20 +1612,36 @@ static GtkWidget *
 setup_create_page (const setting *set)
 {
         int i, row, do_disable;
-        GtkWidget *tab;
+        GtkWidget *tab = NULL, *box, *frame, *label;
         GtkWidget *wid = NULL, *parentwid = NULL;
 
-        tab = setup_create_frame ();
-        gtk_container_set_border_width (GTK_CONTAINER (tab), 6);
-
+        box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 20);
+        gtk_widget_set_valign (box, GTK_ALIGN_START);
         i = row = do_disable = 0;
         while (set[i].type != ST_END)
         {
                 switch (set[i].type)
                 {
                 case ST_HEADER:
-                        setup_create_header (tab, row, set[i].label);
+                {
+                        GtkWidget *heading = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 10);
+                        GtkWidget *line = gtk_separator_new (GTK_ORIENTATION_HORIZONTAL);
+                        char *markup = g_markup_printf_escaped ("<b>%s</b>", _(set[i].label));
+                        label = gtk_label_new (NULL);
+                        gtk_label_set_markup (GTK_LABEL (label), markup);
+                        g_free (markup);
+                        gtk_widget_set_halign (label, GTK_ALIGN_START);
+                        frame = gtk_box_new (GTK_ORIENTATION_VERTICAL, 8);
+                        gtk_box_pack_start (GTK_BOX (heading), label, FALSE, FALSE, 0);
+                        gtk_widget_set_valign (line, GTK_ALIGN_CENTER);
+                        gtk_box_pack_start (GTK_BOX (heading), line, TRUE, TRUE, 0);
+                        gtk_box_pack_start (GTK_BOX (frame), heading, FALSE, FALSE, 0);
+                        tab = setup_create_frame ();
+                        gtk_box_pack_start (GTK_BOX (frame), tab, FALSE, FALSE, 0);
+                        gtk_box_pack_start (GTK_BOX (box), frame, FALSE, FALSE, 0);
+                        row = -1;
                         break;
+                }
                 case ST_EFONT:
                 case ST_ENTRY:
                 case ST_EFILE:
@@ -1612,9 +1649,6 @@ setup_create_page (const setting *set)
                         wid = setup_create_entry (tab, row, &set[i]);
                         break;
                 case ST_TOGGLR:
-                        row--;
-                        setup_create_toggleR (tab, row, &set[i]);
-                        break;
                 case ST_TOGGLE:
                         wid = setup_create_toggleL (tab, row, &set[i]);
                         if (set[i].extra)
@@ -1627,7 +1661,7 @@ setup_create_page (const setting *set)
                         setup_create_menu (tab, row, &set[i]);
                         break;
                 case ST_RADIO:
-                        row += setup_create_radio (tab, row, &set[i]);
+                        setup_create_radio (tab, row, &set[i]);
                         break;
                 case ST_NUMBER:
                         wid = setup_create_spin (tab, row, &set[i]);
@@ -1665,7 +1699,7 @@ setup_create_page (const setting *set)
                 setup_create_button (tab, row, _("Open Data Folder"), G_CALLBACK(open_data_cb));
         }
 
-        return tab;
+        return box;
 }
 
 static GtkWidget *
@@ -1676,48 +1710,77 @@ setup_create_theme_page (void)
                                                     &color_change);
 }
 
-static GtkWidget *
-setup_create_appearance_page (void)
-{
-        GtkWidget *box;
-        GtkWidget *appearance_page;
-        GtkWidget *theme_label;
-        GtkWidget *theme_page;
-        GtkWidget *advanced_page;
-
-        box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 6);
-        appearance_page = setup_create_page (appearance_settings);
-        theme_label = gtk_label_new (NULL);
-        theme_page = setup_create_theme_page ();
-        advanced_page = setup_create_page (appearance_advanced_settings);
-
-        {
-                char *markup = g_markup_printf_escaped ("<b>%s</b>", _("GTK3 Theme"));
-                gtk_label_set_markup (GTK_LABEL (theme_label), markup);
-                g_free (markup);
-        }
-        gtk_widget_set_halign (theme_label, GTK_ALIGN_START);
-        gtk_widget_set_valign (theme_label, GTK_ALIGN_CENTER);
-        gtk_widget_set_margin_start (theme_label, 2);
-        gtk_widget_set_margin_end (theme_label, 2);
-        gtk_widget_set_margin_top (theme_label, 1);
-        gtk_widget_set_margin_bottom (theme_label, 1);
-
-        gtk_box_pack_start (GTK_BOX (box), appearance_page, FALSE, FALSE, 0);
-        gtk_box_pack_start (GTK_BOX (box), theme_label, FALSE, FALSE, 2);
-        gtk_box_pack_start (GTK_BOX (box), theme_page, FALSE, FALSE, 0);
-        gtk_box_pack_start (GTK_BOX (box), advanced_page, FALSE, FALSE, 0);
-
-        return box;
-}
-
 /* === GLOBALS for sound GUI === */
 
 static GtkWidget *sndfile_entry;
+static GtkWidget *setup_sound_tree;
 static int ignore_changed = FALSE;
 
 extern struct text_event te[]; /* text.c */
 extern char *sound_files[];
+static char *setup_sound_files[NUM_XP];
+static char *setup_sound_original[NUM_XP];
+static gboolean setup_sound_created;
+static gboolean setup_sound_pending;
+
+static void
+setup_sounds_ensure_created (void)
+{
+        if (setup_sound_created) return;
+        for (int i = 0; i < NUM_XP; i++)
+        {
+                setup_sound_files[i] = g_strdup (sound_files[i]);
+                setup_sound_original[i] = g_strdup (sound_files[i]);
+        }
+        setup_sound_created = TRUE;
+}
+
+static void
+setup_alert_sound_refresh (void)
+{
+        for (guint i = 0; setup_pages && i < setup_pages->len; i++)
+        {
+                setup_page *page = &g_array_index (setup_pages, setup_page, i);
+                if (!strcmp (page->id, "notifications") && page->body)
+                        preferences_notifications_refresh_sound (page->body);
+        }
+}
+
+/* Notifications and Sounds edit the same staged Beep event, even when both
+ * pages have already been created. Neither page may reinitialize the snapshot. */
+static void
+setup_alert_sound_changed (gpointer unused)
+{
+        GtkTreeModel *model;
+        GtkTreeIter iter;
+        GtkTreeSelection *selection;
+        int event;
+        if (!setup_sound_tree) return;
+        model = gtk_tree_view_get_model (GTK_TREE_VIEW (setup_sound_tree));
+        if (!gtk_tree_model_get_iter_first (model, &iter)) return;
+        do
+        {
+                gtk_tree_model_get (model, &iter, 2, &event, -1);
+                if (event == XP_TE_BEEP)
+                {
+                        gtk_list_store_set (GTK_LIST_STORE (model), &iter, 1,
+                                setup_sound_files[XP_TE_BEEP] ? setup_sound_files[XP_TE_BEEP] : "", -1);
+                        break;
+                }
+        } while (gtk_tree_model_iter_next (model, &iter));
+        selection = gtk_tree_view_get_selection (GTK_TREE_VIEW (setup_sound_tree));
+        if (gtk_tree_selection_get_selected (selection, NULL, &iter))
+        {
+                gtk_tree_model_get (model, &iter, 2, &event, -1);
+                if (event == XP_TE_BEEP)
+                {
+                        ignore_changed = TRUE;
+                        gtk_entry_set_text (GTK_ENTRY (sndfile_entry),
+                                setup_sound_files[XP_TE_BEEP] ? setup_sound_files[XP_TE_BEEP] : "");
+                        ignore_changed = FALSE;
+                }
+        }
+}
 
 static void
 setup_snd_populate (GtkTreeView * treeview)
@@ -1734,8 +1797,8 @@ setup_snd_populate (GtkTreeView * treeview)
         for (i = NUM_XP-1; i >= 0; i--)
         {
                 gtk_list_store_prepend (store, &iter);
-                if (sound_files[i])
-                        gtk_list_store_set (store, &iter, 0, te[i].name, 1, sound_files[i], 2, i, -1);
+                if (setup_sound_files[i])
+                        gtk_list_store_set (store, &iter, 0, te[i].name, 1, setup_sound_files[i], 2, i, -1);
                 else
                         gtk_list_store_set (store, &iter, 0, te[i].name, 1, "", 2, i, -1);
                 if (i == last_selected_row)
@@ -1777,8 +1840,8 @@ setup_snd_row_cb (GtkTreeSelection *sel, gpointer user_data)
         last_selected_row = n;
 
         ignore_changed = TRUE;
-        if (sound_files[n])
-                gtk_entry_set_text (GTK_ENTRY (sndfile_entry), sound_files[n]);
+        if (setup_sound_files[n])
+                gtk_entry_set_text (GTK_ENTRY (sndfile_entry), setup_sound_files[n]);
         else
                 gtk_entry_set_text (GTK_ENTRY (sndfile_entry), "");
         ignore_changed = FALSE;
@@ -1808,30 +1871,33 @@ setup_snd_add_columns (GtkTreeView * treeview)
 }
 
 static void
-setup_snd_filereq_cb (GtkWidget *entry, char *file)
+setup_snd_filereq_cb (GWeakRef *reference, char *file)
 {
-        if (file)
+        GtkWidget *entry;
+        if (!file)
         {
-                if (file[0])
-                {
-                        /* Use just the filename if the given sound file is in the default <config>/sounds directory.
-                         * We're comparing absolute paths so this won't work in portable mode which uses a relative path.
-                         */
-                        if (!strcmp (g_path_get_dirname (file), g_build_filename (get_xdir (), ZOITECHAT_SOUND_DIR, NULL)))
-                        {
-                                gtk_entry_set_text (GTK_ENTRY (entry), g_path_get_basename (file));
-                        }
-                        else
-                        {
-                                gtk_entry_set_text (GTK_ENTRY (entry), file);
-                        }
-                }
+                g_weak_ref_clear (reference);
+                g_free (reference);
+                return;
         }
+        entry = g_weak_ref_get (reference);
+        if (entry && entry == sndfile_entry && setup_sound_created && file[0])
+        {
+                char *directory = g_path_get_dirname (file);
+                char *sounds = g_build_filename (get_xdir (), ZOITECHAT_SOUND_DIR, NULL);
+                char *basename = g_path_get_basename (file);
+                gtk_entry_set_text (GTK_ENTRY (entry), !strcmp (directory, sounds) ? basename : file);
+                g_free (directory);
+                g_free (sounds);
+                g_free (basename);
+        }
+        if (entry) g_object_unref (entry);
 }
 
 static void
 setup_snd_browse_cb (GtkWidget *button, GtkEntry *entry)
 {
+        GWeakRef *reference = g_new0 (GWeakRef, 1);
         char *sounds_dir = g_build_filename (get_xdir (), ZOITECHAT_SOUND_DIR, NULL);
         char *filter = NULL;
         int filter_type;
@@ -1843,7 +1909,8 @@ setup_snd_browse_cb (GtkWidget *button, GtkEntry *entry)
         filter_type = FRF_MIMETYPES;
 #endif
 
-        gtkutil_file_req (GTK_WINDOW (setup_window), _("Select a sound file"), setup_snd_filereq_cb, entry,
+        g_weak_ref_init (reference, entry);
+        gtkutil_file_req (GTK_WINDOW (setup_window), _("Select a sound file"), setup_snd_filereq_cb, reference,
                                                 sounds_dir, filter, FRF_MODAL|FRF_FILTERISINITIAL|filter_type);
         g_free (sounds_dir);
 }
@@ -1871,14 +1938,13 @@ setup_snd_changed_cb (GtkEntry *ent, GtkTreeView *tree)
                 return;
 
         /* get the new sound file */
-        g_free (sound_files[n]);
-        sound_files[n] = g_strdup (gtk_entry_get_text (GTK_ENTRY (ent)));
+        g_free (setup_sound_files[n]);
+        setup_sound_files[n] = g_strdup (gtk_entry_get_text (GTK_ENTRY (ent)));
 
         /* update the TreeView list */
         store = (GtkListStore *)gtk_tree_view_get_model (tree);
-        gtk_list_store_set (store, &iter, 1, sound_files[n], -1);
-
-        gtk_widget_set_sensitive (cancel_button, FALSE);
+        gtk_list_store_set (store, &iter, 1, setup_sound_files[n], -1);
+        if (n == XP_TE_BEEP) setup_alert_sound_refresh ();
 }
 
 static GtkWidget *
@@ -1894,6 +1960,7 @@ setup_create_sound_page (void)
         GtkWidget *sound_play;
         GtkTreeSelection *sel;
 
+        setup_sounds_ensure_created ();
         vbox1 = gtkutil_box_new (GTK_ORIENTATION_VERTICAL, FALSE, 0);
         gtk_container_set_border_width (GTK_CONTAINER (vbox1), 6);
         gtk_widget_show (vbox1);
@@ -1911,6 +1978,7 @@ setup_create_sound_page (void)
                                                                                                          GTK_SHADOW_IN);
 
         sound_tree = gtk_tree_view_new ();
+        setup_sound_tree = sound_tree;
         sel = gtk_tree_view_get_selection (GTK_TREE_VIEW (sound_tree));
         gtk_tree_selection_set_mode (sel, GTK_SELECTION_SINGLE);
         setup_snd_add_columns (GTK_TREE_VIEW (sound_tree));
@@ -1965,10 +2033,128 @@ setup_page_from_settings (const setting *settings)
 }
 
 static GtkWidget *
-setup_page_from_appearance (const setting *settings)
+setup_page_from_text (const setting *settings)
+{
+        (void) settings;
+        return preferences_text_page_new (&setup_prefs,
+#ifdef WIN32
+                langsmenu
+#else
+                NULL
+#endif
+        );
+}
+
+static GtkWidget *
+setup_page_from_tabs (const setting *settings)
+{
+        (void) settings;
+        return preferences_tabs_page_new (&setup_prefs);
+}
+
+static GtkWidget *
+setup_page_from_history (const setting *settings)
+{
+        (void) settings;
+        return preferences_history_page_new (&setup_prefs, get_xdir ());
+}
+
+static void
+setup_typing_preview_update (GtkWidget *widget, const struct zoitechatprefs *staged)
+{
+        SexySpellEntry *entry = SEXY_SPELL_ENTRY (widget);
+        const char *previous = g_object_get_data (G_OBJECT (widget), "preview-spelling-languages");
+        if (g_strcmp0 (previous, staged->hex_text_spell_langs))
+        {
+                GSList *available = sexy_spell_entry_get_languages (entry);
+                char **tokens = g_strsplit_set (staged->hex_text_spell_langs, ", \t", -1);
+                gboolean loaded = FALSE;
+                sexy_spell_entry_deactivate_language (entry, NULL);
+                for (int i = 0; tokens[i]; i++)
+                        for (GSList *item = available; item; item = item->next)
+                                if (!strcmp (item->data, tokens[i]))
+                                        loaded |= sexy_spell_entry_activate_language (entry, tokens[i], NULL);
+                if (!loaded)
+                        sexy_spell_entry_activate_language (entry, "en", NULL);
+                g_slist_free_full (available, g_free);
+                g_strfreev (tokens);
+                g_object_set_data_full (G_OBJECT (widget), "preview-spelling-languages", g_strdup (staged->hex_text_spell_langs), g_free);
+        }
+        sexy_spell_entry_set_checked (entry, staged->hex_gui_input_spell);
+        sexy_spell_entry_set_parse_attributes (entry, staged->hex_gui_input_attr);
+}
+
+static gint
+setup_spell_language_compare (gconstpointer a, gconstpointer b)
+{
+        const PreferencesSpellLanguage *left = a, *right = b;
+        return g_utf8_collate (left->name, right->name);
+}
+
+static GtkWidget *
+setup_page_from_typing (const setting *settings)
+{
+        (void) settings;
+        GtkWidget *preview = sexy_spell_entry_new ();
+        GSList *available = sexy_spell_entry_get_languages (SEXY_SPELL_ENTRY (preview));
+        GArray *languages = g_array_new (FALSE, FALSE, sizeof (PreferencesSpellLanguage));
+        GHashTable *seen = g_hash_table_new (g_str_hash, g_str_equal);
+        for (GSList *item = available; item; item = item->next)
+        {
+                if (g_hash_table_contains (seen, item->data)) continue;
+                PreferencesSpellLanguage language = {g_strdup (item->data),
+                        sexy_spell_entry_get_language_name (SEXY_SPELL_ENTRY (preview), item->data)};
+                if (!language.name || !*language.name)
+                {
+                        g_free ((char *)language.name);
+                        language.name = g_strdup (item->data);
+                }
+                g_hash_table_add (seen, (gpointer)language.code);
+                g_array_append_val (languages, language);
+        }
+        g_array_sort (languages, setup_spell_language_compare);
+        GtkWidget *page = preferences_typing_page_new (&setup_prefs, preview,
+                (PreferencesSpellLanguage *)languages->data, languages->len, setup_typing_preview_update);
+        g_hash_table_destroy (seen);
+        for (guint i = 0; i < languages->len; i++)
+        {
+                PreferencesSpellLanguage *language = &g_array_index (languages, PreferencesSpellLanguage, i);
+                g_free ((char *)language->code); g_free ((char *)language->name);
+        }
+        g_array_unref (languages);
+        g_slist_free_full (available, g_free);
+        return page;
+}
+
+static GtkWidget *
+setup_page_from_notifications (const setting *settings)
+{
+        PreferencesAlertCapabilities capabilities = 0;
+        /* Keep the established platform/backend capability decisions and the
+         * legacy descriptors for search aliases, without duplicating policy. */
+        for (int i = 0; settings[i].type != ST_END; i++)
+        {
+                if (settings[i].type == ST_3OGGLE)
+                {
+                        if (settings[i].list == (void *)balloonlist) capabilities |= PREFERENCES_ALERT_DESKTOP;
+                        if (settings[i].list == (void *)trayblinklist) capabilities |= PREFERENCES_ALERT_TRAY;
+                        if (settings[i].list == (void *)taskbarlist) capabilities |= PREFERENCES_ALERT_ATTENTION;
+                }
+                if (settings[i].type == ST_TOGGLE && settings[i].offset == P_OFFINTNL(hex_gui_tray))
+                        capabilities |= PREFERENCES_ALERT_TRAY_BEHAVIOR;
+                if (settings[i].type == ST_TOGGLE && settings[i].offset == P_OFFINTNL(hex_gui_tray_quiet))
+                        capabilities |= PREFERENCES_ALERT_HIDDEN_ONLY;
+        }
+        setup_sounds_ensure_created ();
+        return preferences_notifications_page_new (&setup_prefs, capabilities,
+                &setup_sound_files[XP_TE_BEEP], setup_alert_sound_changed, NULL);
+}
+
+static GtkWidget *
+setup_page_from_theme (const setting *settings)
 {
         (void)settings;
-        return setup_create_appearance_page ();
+        return setup_create_theme_page ();
 }
 
 static GtkWidget *
@@ -1979,271 +2165,485 @@ setup_page_from_sound (const setting *settings)
 }
 
 static void
-setup_add_page (const char *title, GtkWidget *book, GtkWidget *tab)
+setup_search_append (GString *text, const char *value)
 {
-        GtkWidget *label, *vvbox, *viewport;
-        GtkScrolledWindow *sw;
-        char buf[128];
-
-        vvbox = gtkutil_box_new (GTK_ORIENTATION_VERTICAL, FALSE, 0);
-
-        /* label */
-        label = gtk_label_new (NULL);
-        g_snprintf (buf, sizeof (buf), "<b><big>%s</big></b>", _(title));
-        gtk_label_set_markup (GTK_LABEL (label), buf);
-        gtk_widget_set_halign (label, GTK_ALIGN_START);
-        gtk_widget_set_valign (label, GTK_ALIGN_CENTER);
-        gtk_widget_set_margin_start (label, 2);
-        gtk_widget_set_margin_end (label, 2);
-        gtk_widget_set_margin_top (label, 1);
-        gtk_widget_set_margin_bottom (label, 1);
-        gtk_box_pack_start (GTK_BOX (vvbox), label, FALSE, FALSE, 2);
-
-        gtk_box_pack_start (GTK_BOX (vvbox), tab, TRUE, TRUE, 0);
-
-        sw = GTK_SCROLLED_WINDOW(gtk_scrolled_window_new (NULL, NULL));
-        gtk_scrolled_window_set_shadow_type (sw, GTK_SHADOW_IN);
-        gtk_scrolled_window_set_policy (sw, GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
-        gtk_scrolled_window_set_propagate_natural_width (sw, TRUE);
-        gtk_container_add (GTK_CONTAINER (sw), vvbox);
-
-        viewport = gtk_bin_get_child (GTK_BIN(sw));
-        gtk_viewport_set_shadow_type (GTK_VIEWPORT(viewport), GTK_SHADOW_NONE);
-
-        gtk_notebook_append_page (GTK_NOTEBOOK (book), GTK_WIDGET(sw), NULL);
-}
-
-static void
-setup_register_page (const char *title, GtkWidget *book, setup_page_factory factory, const setting *settings)
-{
-        GtkWidget *container;
-
-        if (setup_page_count >= SETUP_MAX_PAGES)
-                return;
-
-        setup_page_factories[setup_page_count] = factory;
-        setup_page_settings[setup_page_count] = settings;
-        container = gtkutil_box_new (GTK_ORIENTATION_VERTICAL, FALSE, 0);
-        setup_page_containers[setup_page_count] = container;
-        setup_add_page (title, book, container);
-        setup_page_count++;
-}
-
-static void
-setup_ensure_page_created (int page)
-{
-        GList *children;
-        GtkWidget *page_widget;
-        GtkWidget *container;
-
-        if (page < 0 || page >= setup_page_count)
-                return;
-
-        container = setup_page_containers[page];
-        children = gtk_container_get_children (GTK_CONTAINER (container));
-        if (children != NULL)
+        if (value)
         {
-                g_list_free (children);
-                return;
+                g_string_append_c (text, ' ');
+                g_string_append (text, _(value));
         }
-
-        page_widget = setup_page_factories[page] (setup_page_settings[page]);
-        /* Lazy pages must pass the notebook's spare space to their content,
-           particularly the independently scrolling Sounds list. */
-        gtk_box_pack_start (GTK_BOX (container), page_widget, TRUE, TRUE, 0);
-        gtk_widget_show_all (container);
 }
 
-static const char *const cata_interface[] =
+static char *
+setup_search_normalize (const char *text)
 {
-        N_("Appearance"),
-        N_("Input box"),
-        N_("User list"),
-        N_("Channel switcher"),
-        NULL
-};
+        char *folded = g_utf8_casefold (text, -1);
+        char *normalized = g_utf8_normalize (folded, -1, G_NORMALIZE_ALL_COMPOSE);
+        g_free (folded);
+        return normalized;
+}
 
-static const char *const cata_chatting[] =
+static void
+setup_register_page (const char *id, const char *group, const char *title, const char *description,
+                     setup_page_factory factory, const setting *settings,
+                     const char *keywords)
 {
-        N_("General"),
-        N_("Alerts"),
-        N_("Sounds"),
-        N_("Logging"),
-        N_("Advanced"),
-        NULL
-};
+        setup_page page = {0};
+        GtkWidget *box, *heading, *label, *sw;
+        GString *text = g_string_new ("");
+        char *markup;
+        int i, j;
 
-static const char *const cata_network[] =
+        page.id = id;
+        page.group = group;
+        page.title = title;
+        page.description = description;
+        page.factory = factory;
+        page.settings = settings;
+        setup_search_append (text, group);
+        setup_search_append (text, title);
+        setup_search_append (text, description);
+        setup_search_append (text, keywords);
+        for (i = 0; settings && settings[i].type != ST_END; i++)
+        {
+                setup_search_append (text, settings[i].label);
+                setup_search_append (text, settings[i].tooltip);
+                if (settings[i].type == ST_MENU || settings[i].type == ST_RADIO)
+                        for (j = 0; settings[i].list && settings[i].list[j]; j++)
+                                setup_search_append (text, settings[i].list[j]);
+        }
+        page.search_text = setup_search_normalize (text->str);
+        g_string_free (text, TRUE);
+
+        box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 12);
+        gtk_container_set_border_width (GTK_CONTAINER (box), 16);
+        heading = gtk_box_new (GTK_ORIENTATION_VERTICAL, 4);
+        gtk_box_pack_start (GTK_BOX (box), heading, FALSE, FALSE, 0);
+        label = gtk_label_new (NULL);
+        markup = g_markup_printf_escaped ("<b><big>%s</big></b>", _(title));
+        gtk_label_set_markup (GTK_LABEL (label), markup);
+        g_free (markup);
+        gtk_widget_set_halign (label, GTK_ALIGN_START);
+        gtk_widget_set_tooltip_text (label, _(description));
+        gtk_box_pack_start (GTK_BOX (heading), label, FALSE, FALSE, 0);
+        label = gtk_label_new (_(description));
+        gtk_label_set_xalign (GTK_LABEL (label), 0);
+        gtk_label_set_line_wrap (GTK_LABEL (label), TRUE);
+        gtk_label_set_max_width_chars (GTK_LABEL (label), 64);
+        gtk_style_context_add_class (gtk_widget_get_style_context (label), "dim-label");
+        gtk_box_pack_start (GTK_BOX (heading), label, FALSE, FALSE, 0);
+        page.container = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
+        gtk_box_pack_start (GTK_BOX (box), page.container, TRUE, TRUE, 0);
+
+        sw = gtk_scrolled_window_new (NULL, NULL);
+        gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (sw), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+        gtk_container_add (GTK_CONTAINER (sw), box);
+        gtk_notebook_append_page (GTK_NOTEBOOK (setup_book), sw, NULL);
+        g_array_append_val (setup_pages, page);
+}
+
+static void
+setup_ensure_page_created (int index)
 {
-        N_("Network setup"),
-        N_("File transfers"),
-        N_("Identd"),
-        NULL
-};
+        setup_page *page;
+        GtkWidget *widget;
+        if (index < 0 || index >= (int)setup_pages->len)
+                return;
+        page = &g_array_index (setup_pages, setup_page, index);
+        if (g_object_get_data (G_OBJECT (page->container), "setup-created"))
+                return;
+        widget = page->factory (page->settings);
+        page->body = widget;
+        gtk_box_pack_start (GTK_BOX (page->container), widget, TRUE, TRUE, 0);
+        g_object_set_data (G_OBJECT (page->container), "setup-created", GINT_TO_POINTER (1));
+        gtk_widget_show_all (page->container);
+}
+
+static GtkWidget *
+setup_page_from_keyboard (const setting *settings)
+{
+        (void)settings;
+        return key_preferences_create ();
+}
+
+static GtkWidget *
+setup_page_from_events (const setting *settings)
+{
+        (void)settings;
+        return pevent_preferences_create ();
+}
+
+static GtkWidget *
+setup_page_from_replace (const setting *settings)
+{
+        (void)settings;
+        return menu_preferences_create ("replace");
+}
+
+static GtkWidget *
+setup_page_from_menus (const setting *settings)
+{
+        (void)settings;
+        return menu_preferences_create ("menus");
+}
+
+static GtkWidget *
+setup_page_from_commands (const setting *settings)
+{
+        (void)settings;
+        return menu_preferences_create ("commands");
+}
+
+static GtkWidget *
+setup_page_from_urls (const setting *settings)
+{
+        (void)settings;
+        return menu_preferences_create ("urls");
+}
+
+static GtkWidget *
+setup_page_from_ctcp (const setting *settings)
+{
+        (void)settings;
+        return menu_preferences_create ("ctcp");
+}
+
+static GtkWidget *
+setup_page_from_ignore (const setting *settings)
+{
+        (void)settings;
+        return ignore_preferences_create ();
+}
+
+#ifdef USE_PLUGIN
+static GtkWidget *
+setup_page_from_plugins (const setting *settings)
+{
+        (void)settings;
+        return plugingui_preferences_create ();
+}
+#endif
 
 static GtkWidget *
 setup_create_pages (GtkWidget *box)
 {
-        GtkWidget *book;
-        GtkWindow *win = GTK_WINDOW (setup_window);
+        const setting *alerts;
+        gboolean tray = gtkutil_tray_icon_supported (GTK_WINDOW (setup_window));
+        gboolean notifications = notification_backend_supported ();
 
-        (void)box;
-        book = gtk_notebook_new ();
+        setup_pages = g_array_new (FALSE, TRUE, sizeof (setup_page));
+        setup_book = gtk_notebook_new ();
+        gtk_notebook_set_show_tabs (GTK_NOTEBOOK (setup_book), FALSE);
+        gtk_notebook_set_show_border (GTK_NOTEBOOK (setup_book), FALSE);
+        gtk_box_pack_start (GTK_BOX (box), setup_book, TRUE, TRUE, 0);
 
-        memset (setup_page_factories, 0, sizeof (setup_page_factories));
-        memset (setup_page_settings, 0, sizeof (setup_page_settings));
-        memset (setup_page_containers, 0, sizeof (setup_page_containers));
-        setup_page_count = 0;
+        setup_register_page ("text", N_("Interface"), N_("Text & layout"),
+                N_("Fonts, conversation text, timestamps and window information."),
+                setup_page_from_text, appearance_settings, N_("Conversation preview timestamp time style 24-hour 12-hour custom format unread nickname alignment"));
+        setup_register_page ("appearance", N_("Interface"), N_("Appearance"),
+                N_("Application theme, chat colours and message formatting."),
+                setup_page_from_theme, NULL, N_("Themes appearance conversation colors colours palette GTK3 import remove colors.conf dark light contrast nickname text background foreground hex reset"));
+        setup_register_page ("effects", N_("Interface"), N_("Effects & scrolling"),
+                N_("Background images, window opacity and mouse wheel behavior."),
+                setup_page_from_settings, appearance_advanced_settings, NULL);
+        setup_register_page ("typing", N_("Interface"), N_("Typing & spelling"),
+                N_("The message input, spell checking and nickname completion."),
+                setup_page_from_typing, inputbox_settings, N_("Language dictionaries installed unavailable codes search typing preview completion example suffix threshold matching names"));
+        setup_register_page ("user-list", N_("Interface"), N_("User list"),
+                N_("How people are displayed and sorted in a channel."),
+                setup_page_from_settings, userlist_settings, NULL);
+        setup_register_page ("tabs", N_("Interface"), N_("Channels & tabs"),
+                N_("Channel navigation, tab placement and activity indicators."),
+                setup_page_from_tabs, tabs_settings, N_("Sidebar tree navigation placement preview opening closing conversations"));
 
-        setup_register_page (cata_interface[0], book, setup_page_from_appearance, NULL);
-        setup_register_page (cata_interface[1], book, setup_page_from_settings, inputbox_settings);
-        setup_register_page (cata_interface[2], book, setup_page_from_settings, userlist_settings);
-        setup_register_page (cata_interface[3], book, setup_page_from_settings, tabs_settings);
+        setup_register_page ("keyboard", N_("Interface"), N_("Keyboard shortcuts"),
+                N_("Keyboard shortcuts and the actions they run."),
+                setup_page_from_keyboard, NULL, N_("Key accelerator action data reset add delete binding shortcuts search category record duplicate shared chain order parameters"));
+        setup_register_page ("menus", N_("Interface"), N_("Menus & buttons"),
+                N_("Customize user list buttons, context menus, dialog buttons and the user menu."),
+                setup_page_from_menus, NULL, N_("Popup command add delete reorder formatting"));
 
-        setup_register_page (cata_chatting[0], book, setup_page_from_settings, general_settings);
+        setup_register_page ("messages", N_("Chatting"), N_("Messages & away"),
+                N_("Default messages, away behavior and channel events."),
+                setup_page_from_settings, general_settings, NULL);
+        alerts = tray ? (notifications ? alert_settings : alert_settings_nonotifications)
+                      : (notifications ? alert_settings_unity : alert_settings_unityandnonotifications);
+        setup_register_page ("replace", N_("Chatting"), N_("Text replacements"),
+                N_("Automatically replace words as you type. Add, edit or reorder your replacements."),
+                setup_page_from_replace, NULL, N_("Auto replace text expansion"));
+        setup_register_page ("events", N_("Chatting"), N_("Message formatting"),
+                N_("Edit text event templates with argument help, import/export and a preview."),
+                setup_page_from_events, NULL, N_("Text events format message join part quit highlight load save test"));
+        setup_register_page ("notifications", N_("Chatting"), N_("Notifications"),
+                N_("Highlights, desktop alerts and system tray behavior."),
+                setup_page_from_notifications, alerts, N_("Mentions quiet rules test notification alert system sound beep file"));
+        setup_register_page ("sounds", N_("Chatting"), N_("Sounds"),
+                N_("Assign and preview a sound for each chat event."),
+                setup_page_from_sound, NULL, N_("Sound file browse play"));
+        setup_register_page ("logging", N_("Chatting"), N_("History & logging"),
+                N_("Saved conversations, scrollback and collected links."),
+                setup_page_from_history, logging_settings, N_("Conversation history buffer restore saved logs folder location filename format daily monthly date timestamp preview collected links URL grabber unlimited"));
+        setup_register_page ("advanced", N_("Chatting"), N_("Behavior & timing"),
+                N_("Clipboard behavior, display options and connection timing."),
+                setup_page_from_settings, advanced_settings, NULL);
 
-        if (!gtkutil_tray_icon_supported (win) && !notification_backend_supported ())
-        {
-                setup_register_page (cata_chatting[1], book, setup_page_from_settings, alert_settings_unityandnonotifications);
-        }
-        else if (!gtkutil_tray_icon_supported (win))
-        {
-                setup_register_page (cata_chatting[1], book, setup_page_from_settings, alert_settings_unity);
-        }
-        else if (!notification_backend_supported ())
-        {
-                setup_register_page (cata_chatting[1], book, setup_page_from_settings, alert_settings_nonotifications);
-        }
-        else
-        {
-                setup_register_page (cata_chatting[1], book, setup_page_from_settings, alert_settings);
-        }
-
-        setup_register_page (cata_chatting[2], book, setup_page_from_sound, NULL);
-        setup_register_page (cata_chatting[3], book, setup_page_from_settings, logging_settings);
-        setup_register_page (cata_chatting[4], book, setup_page_from_settings, advanced_settings);
-
-        setup_register_page (cata_network[0], book, setup_page_from_settings, network_settings);
-        setup_register_page (cata_network[1], book, setup_page_from_settings, filexfer_settings);
-        setup_register_page (cata_network[2], book, setup_page_from_settings, identd_settings);
-
-        gtk_notebook_set_show_tabs (GTK_NOTEBOOK (book), FALSE);
-        gtk_notebook_set_show_border (GTK_NOTEBOOK (book), FALSE);
-        gtk_box_pack_start (GTK_BOX (box), book, TRUE, TRUE, 0);
-
-        return book;
+        setup_register_page ("connection", N_("Network"), N_("Connection"),
+                N_("Your address, proxy, connection health and remote media."),
+                setup_page_from_settings, network_settings, NULL);
+        setup_register_page ("transfers", N_("Network"), N_("File transfers"),
+                N_("Download folders, incoming files and transfer speed limits."),
+                setup_page_from_settings, filexfer_settings, NULL);
+        setup_register_page ("identd", N_("Network"), N_("Identd"),
+                N_("The optional identification server and its listening port."),
+                setup_page_from_settings, identd_settings, NULL);
+        setup_register_page ("ignore", N_("Privacy"), N_("Ignore rules"),
+                N_("Manage ignored masks and message types. Ignore changes apply immediately."),
+                setup_page_from_ignore, NULL, N_("Ignore list mask private channel CTCP DCC notice invite stats"));
+        setup_register_page ("commands", N_("Advanced"), N_("Commands & aliases"),
+                N_("Define your own commands and expansions using the documented formatting codes."),
+                setup_page_from_commands, NULL, N_("User commands name expansion special codes"));
+        setup_register_page ("urls", N_("Advanced"), N_("Link handling"),
+                N_("Choose commands and applications used to open links."),
+                setup_page_from_urls, NULL, N_("URL handlers shell browser command"));
+        setup_register_page ("ctcp", N_("Advanced"), N_("CTCP replies"),
+                N_("Customize replies to client-to-client requests."),
+                setup_page_from_ctcp, NULL, N_("CTCP VERSION PING TIME reply request"));
+#ifdef USE_PLUGIN
+        setup_register_page ("plugins", N_("Extensions"), N_("Plugins & scripts"),
+                N_("Load, unload and reload extensions. These actions take effect immediately."),
+                setup_page_from_plugins, NULL, N_("Plugins scripts addons Python Perl Lua load unload reload"));
+#endif
+        return setup_book;
 }
 
 static void
-setup_tree_cb (GtkTreeView *treeview, GtkWidget *book)
+setup_scroll_selected_row (GtkWidget *widget, gpointer data)
 {
-        GtkTreeSelection *selection = gtk_tree_view_get_selection (treeview);
-        GtkTreeIter iter;
-        GtkTreeModel *model;
-        int page;
+        GtkListBoxRow *row;
+        GtkWidget *scroll;
+        GtkAdjustment *adjustment;
+        int x, y;
+        (void)widget;
+        (void)data;
+        if (!setup_sidebar || !gtk_widget_get_mapped (setup_sidebar)) return;
+        row = gtk_list_box_get_selected_row (GTK_LIST_BOX (setup_sidebar));
+        if (!row || !gtk_widget_get_child_visible (GTK_WIDGET (row))) return;
+        scroll = gtk_widget_get_ancestor (setup_sidebar, GTK_TYPE_SCROLLED_WINDOW);
+        if (!scroll || !gtk_widget_translate_coordinates (GTK_WIDGET (row), setup_sidebar, 0, 0, &x, &y)) return;
+        adjustment = gtk_scrolled_window_get_vadjustment (GTK_SCROLLED_WINDOW (scroll));
+        gtk_adjustment_clamp_page (adjustment, y, y + gtk_widget_get_allocated_height (GTK_WIDGET (row)));
+}
 
-        if (gtk_tree_selection_get_selected (selection, &model, &iter))
+static void
+setup_sidebar_size_allocate (GtkWidget *widget, GtkAllocation *allocation, gpointer data)
+{
+        setup_scroll_selected_row (widget, data);
+}
+
+static void
+setup_sidebar_selected (GtkListBox *list, GtkListBoxRow *row, gpointer data)
+{
+        int page;
+        (void)list;
+        (void)data;
+        if (!row)
+                return;
+        page = gtk_list_box_row_get_index (row);
+        setup_ensure_page_created (page);
+        gtk_notebook_set_current_page (GTK_NOTEBOOK (setup_book), page);
+        setup_scroll_selected_row (GTK_WIDGET (list), NULL);
+}
+
+void
+setup_reveal_widget (GtkWidget *widget)
+{
+        guint i;
+        GtkWidget *child, *parent;
+        if (!setup_pages || !widget) return;
+        for (i = 0; i < setup_pages->len; i++)
         {
-                gtk_tree_model_get (model, &iter, 1, &page, -1);
-                if (page != -1)
+                setup_page *page = &g_array_index (setup_pages, setup_page, i);
+                if (widget == page->container || gtk_widget_is_ancestor (widget, page->container))
                 {
-                        setup_ensure_page_created (page);
-                        gtk_notebook_set_current_page (GTK_NOTEBOOK (book), page);
-                        last_selected_page = page;
+                        gtk_entry_set_text (GTK_ENTRY (setup_search), "");
+                        gtk_list_box_select_row (GTK_LIST_BOX (setup_sidebar), GTK_LIST_BOX_ROW (page->row));
+                        for (child = widget; (parent = gtk_widget_get_parent (child)); child = parent)
+                        {
+                                if (GTK_IS_EXPANDER (parent))
+                                        gtk_expander_set_expanded (GTK_EXPANDER (parent), TRUE);
+                                if (GTK_IS_STACK (parent))
+                                {
+                                        GtkWidget *selector = g_object_get_data (G_OBJECT (parent), "preferences-selector");
+                                        if (selector)
+                                        {
+                                                char *name;
+                                                gtk_container_child_get (GTK_CONTAINER (parent), child, "name", &name, NULL);
+                                                gtk_combo_box_set_active_id (GTK_COMBO_BOX (selector), name);
+                                                g_free (name);
+                                        }
+                                        else gtk_stack_set_visible_child (GTK_STACK (parent), child);
+                                }
+                        }
+                        setup_scroll_selected_row (setup_sidebar, NULL);
+                        return;
                 }
         }
 }
 
 static gboolean
-setup_tree_select_filter (GtkTreeSelection *selection, GtkTreeModel *model,
-                                                                  GtkTreePath *path, gboolean path_selected,
-                                                                  gpointer data)
+setup_sidebar_filter (GtkListBoxRow *row, gpointer data)
 {
-        if (gtk_tree_path_get_depth (path) > 1)
+        setup_page *page = &g_array_index (setup_pages, setup_page, gtk_list_box_row_get_index (row));
+        char **words;
+        gboolean matches = TRUE;
+        int i;
+        (void)data;
+        if (!setup_query || !*setup_query)
                 return TRUE;
+        words = g_strsplit_set (setup_query, " \t\r\n", -1);
+        for (i = 0; words[i]; i++)
+                if (*words[i] && !strstr (page->search_text, words[i]))
+                        matches = FALSE;
+        g_strfreev (words);
+        return matches;
+}
+
+static void
+setup_sidebar_header (GtkListBoxRow *row, GtkListBoxRow *before, gpointer data)
+{
+        setup_page *page = &g_array_index (setup_pages, setup_page, gtk_list_box_row_get_index (row));
+        setup_page *previous = before ? &g_array_index (setup_pages, setup_page, gtk_list_box_row_get_index (before)) : NULL;
+        GtkWidget *label;
+        char *markup;
+        (void)data;
+        gtk_list_box_row_set_header (row, NULL);
+        if (previous && !strcmp (page->group, previous->group))
+                return;
+        label = gtk_label_new (NULL);
+        markup = g_markup_printf_escaped ("<b>%s</b>", _(page->group));
+        gtk_label_set_markup (GTK_LABEL (label), markup);
+        g_free (markup);
+        gtk_label_set_xalign (GTK_LABEL (label), 0);
+        gtk_widget_set_margin_start (label, 12);
+        gtk_widget_set_margin_top (label, before ? 18 : 10);
+        gtk_widget_set_margin_bottom (label, 6);
+        gtk_style_context_add_class (gtk_widget_get_style_context (label), "dim-label");
+        gtk_widget_show (label);
+        gtk_list_box_row_set_header (row, label);
+}
+
+static void
+setup_search_changed (GtkEditable *entry, gpointer data)
+{
+        GtkListBoxRow *selected;
+        GtkListBoxRow *first = NULL;
+        guint i;
+        (void)data;
+        g_free (setup_query);
+        setup_query = setup_search_normalize (gtk_entry_get_text (GTK_ENTRY (entry)));
+        gtk_list_box_invalidate_filter (GTK_LIST_BOX (setup_sidebar));
+        selected = gtk_list_box_get_selected_row (GTK_LIST_BOX (setup_sidebar));
+        for (i = 0; i < setup_pages->len; i++)
+        {
+                GtkListBoxRow *row = GTK_LIST_BOX_ROW (g_array_index (setup_pages, setup_page, i).row);
+                if (setup_sidebar_filter (row, NULL) && !first)
+                        first = row;
+        }
+        gtk_widget_set_visible (setup_book, first != NULL);
+        gtk_widget_set_visible (setup_empty, first == NULL);
+        if (first && (!selected || !setup_sidebar_filter (selected, NULL)))
+                gtk_list_box_select_row (GTK_LIST_BOX (setup_sidebar), first);
+}
+
+static void
+setup_search_activate (GtkEntry *entry, gpointer data)
+{
+        GtkListBoxRow *row = gtk_list_box_get_selected_row (GTK_LIST_BOX (setup_sidebar));
+        (void)entry;
+        (void)data;
+        if (row && setup_sidebar_filter (row, NULL))
+                gtk_widget_child_focus (setup_book, GTK_DIR_TAB_FORWARD);
+}
+
+static void
+setup_search_clear (GtkButton *button, gpointer data)
+{
+        (void)button;
+        (void)data;
+        gtk_entry_set_text (GTK_ENTRY (setup_search), "");
+        gtk_widget_grab_focus (setup_search);
+}
+
+static gboolean
+setup_key_press (GtkWidget *win, GdkEventKey *event, gpointer data)
+{
+        (void)data;
+        if ((event->state & GDK_CONTROL_MASK) &&
+            (event->keyval == GDK_KEY_f || event->keyval == GDK_KEY_F))
+        {
+                gtk_widget_grab_focus (setup_search);
+                gtk_editable_select_region (GTK_EDITABLE (setup_search), 0, -1);
+                return TRUE;
+        }
+        if (event->keyval == GDK_KEY_Escape)
+        {
+                if (*gtk_entry_get_text (GTK_ENTRY (setup_search)))
+                        setup_search_clear (NULL, NULL);
+                else if (gtk_widget_get_sensitive (cancel_button))
+                        gtk_widget_destroy (win);
+                return TRUE;
+        }
         return FALSE;
 }
 
 static void
-setup_create_tree (GtkWidget *box, GtkWidget *book)
+setup_create_sidebar (GtkWidget *box)
 {
-        GtkWidget *tree;
-        GtkWidget *frame;
-        GtkTreeStore *model;
-        GtkTreeIter iter;
-        GtkTreeIter child_iter;
-        GtkTreeIter *sel_iter = NULL;
-        GtkCellRenderer *renderer;
-        GtkTreeSelection *sel;
-        int i, page;
-
-        model = gtk_tree_store_new (2, G_TYPE_STRING, G_TYPE_INT);
-
-        page = 0;
-
-        gtk_tree_store_append (model, &iter, NULL);
-        gtk_tree_store_set (model, &iter, 0, _("Interface"), 1, -1, -1);
-        for (i = 0; cata_interface[i]; i++)
+        GtkWidget *sidebar, *sw, *label, *separator;
+        guint i;
+        sidebar = gtk_box_new (GTK_ORIENTATION_VERTICAL, 8);
+        gtk_container_set_border_width (GTK_CONTAINER (sidebar), 10);
+        gtk_widget_set_size_request (sidebar, 220, -1);
+        setup_search = gtk_search_entry_new ();
+        gtk_entry_set_placeholder_text (GTK_ENTRY (setup_search), _("Search settings"));
+        gtk_widget_set_tooltip_text (setup_search, _("Search page names, settings and help text. Ctrl+F to search."));
+        atk_object_set_name (gtk_widget_get_accessible (setup_search), _("Search settings"));
+        gtk_box_pack_start (GTK_BOX (sidebar), setup_search, FALSE, FALSE, 0);
+        setup_sidebar = gtk_list_box_new ();
+        gtk_list_box_set_selection_mode (GTK_LIST_BOX (setup_sidebar), GTK_SELECTION_BROWSE);
+        gtk_list_box_set_header_func (GTK_LIST_BOX (setup_sidebar), setup_sidebar_header, NULL, NULL);
+        gtk_list_box_set_filter_func (GTK_LIST_BOX (setup_sidebar), setup_sidebar_filter, NULL, NULL);
+        gtk_style_context_add_class (gtk_widget_get_style_context (setup_sidebar), "sidebar");
+        atk_object_set_name (gtk_widget_get_accessible (setup_sidebar), _("Preferences pages"));
+        for (i = 0; i < setup_pages->len; i++)
         {
-                gtk_tree_store_append (model, &child_iter, &iter);
-                gtk_tree_store_set (model, &child_iter, 0, _(cata_interface[i]), 1, page, -1);
-                if (page == last_selected_page)
-                        sel_iter = gtk_tree_iter_copy (&child_iter);
-                page++;
+                setup_page *page = &g_array_index (setup_pages, setup_page, i);
+                page->row = gtk_list_box_row_new ();
+                label = gtk_label_new (_(page->title));
+                gtk_label_set_xalign (GTK_LABEL (label), 0);
+                gtk_widget_set_margin_start (label, 12);
+                gtk_widget_set_margin_end (label, 12);
+                gtk_widget_set_margin_top (label, 9);
+                gtk_widget_set_margin_bottom (label, 9);
+                gtk_container_add (GTK_CONTAINER (page->row), label);
+                gtk_container_add (GTK_CONTAINER (setup_sidebar), page->row);
         }
-
-        gtk_tree_store_append (model, &iter, NULL);
-        gtk_tree_store_set (model, &iter, 0, _("Chatting"), 1, -1, -1);
-        for (i = 0; cata_chatting[i]; i++)
-        {
-                gtk_tree_store_append (model, &child_iter, &iter);
-                gtk_tree_store_set (model, &child_iter, 0, _(cata_chatting[i]), 1, page, -1);
-                if (page == last_selected_page)
-                        sel_iter = gtk_tree_iter_copy (&child_iter);
-                page++;
-        }
-
-        gtk_tree_store_append (model, &iter, NULL);
-        gtk_tree_store_set (model, &iter, 0, _("Network"), 1, -1, -1);
-        for (i = 0; cata_network[i]; i++)
-        {
-                gtk_tree_store_append (model, &child_iter, &iter);
-                gtk_tree_store_set (model, &child_iter, 0, _(cata_network[i]), 1, page, -1);
-                if (page == last_selected_page)
-                        sel_iter = gtk_tree_iter_copy (&child_iter);
-                page++;
-        }
-
-        tree = gtk_tree_view_new_with_model (GTK_TREE_MODEL (model));
-        g_object_unref (G_OBJECT (model));
-        sel = gtk_tree_view_get_selection (GTK_TREE_VIEW (tree));
-        gtk_tree_selection_set_mode (sel, GTK_SELECTION_BROWSE);
-        gtk_tree_selection_set_select_function (sel, setup_tree_select_filter,
-                                                                                                                 NULL, NULL);
-        g_signal_connect (G_OBJECT (tree), "cursor-changed",
-                                                        G_CALLBACK (setup_tree_cb), book);
-
-        renderer = gtk_cell_renderer_text_new ();
-        gtk_tree_view_insert_column_with_attributes (GTK_TREE_VIEW (tree),
-                                                            -1, _("Categories"), renderer, "text", 0, NULL);
-        gtk_tree_view_expand_all (GTK_TREE_VIEW (tree));
-
-        frame = gtk_scrolled_window_new (NULL, NULL);
-        gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (frame),
-                                       GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
-        gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (frame), GTK_SHADOW_IN);
-        gtk_scrolled_window_set_propagate_natural_width (GTK_SCROLLED_WINDOW (frame), TRUE);
-        gtk_widget_set_vexpand (frame, TRUE);
-        gtk_container_add (GTK_CONTAINER (frame), tree);
-        gtk_box_pack_start (GTK_BOX (box), frame, FALSE, TRUE, 0);
-        gtk_box_reorder_child (GTK_BOX (box), frame, 0);
-
-        if (sel_iter)
-        {
-                gtk_tree_selection_select_iter (sel, sel_iter);
-                gtk_tree_iter_free (sel_iter);
-                setup_tree_cb (GTK_TREE_VIEW (tree), book);
-        }
+        sw = gtk_scrolled_window_new (NULL, NULL);
+        gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (sw), GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
+        gtk_container_add (GTK_CONTAINER (sw), setup_sidebar);
+        gtk_box_pack_start (GTK_BOX (sidebar), sw, TRUE, TRUE, 0);
+        gtk_box_pack_start (GTK_BOX (box), sidebar, FALSE, FALSE, 0);
+        gtk_box_reorder_child (GTK_BOX (box), sidebar, 0);
+        separator = gtk_separator_new (GTK_ORIENTATION_VERTICAL);
+        gtk_box_pack_start (GTK_BOX (box), separator, FALSE, FALSE, 0);
+        gtk_box_reorder_child (GTK_BOX (box), separator, 1);
+        g_signal_connect (setup_sidebar, "row-selected", G_CALLBACK (setup_sidebar_selected), NULL);
+        g_signal_connect (setup_sidebar, "map", G_CALLBACK (setup_scroll_selected_row), NULL);
+        g_signal_connect (setup_sidebar, "size-allocate", G_CALLBACK (setup_sidebar_size_allocate), NULL);
+        g_signal_connect (setup_search, "changed", G_CALLBACK (setup_search_changed), NULL);
+        g_signal_connect (setup_search, "activate", G_CALLBACK (setup_search_activate), NULL);
+        gtk_list_box_select_row (GTK_LIST_BOX (setup_sidebar),
+                gtk_list_box_get_row_at_index (GTK_LIST_BOX (setup_sidebar), 0));
 }
 
 static void
@@ -2472,12 +2872,135 @@ setup_apply (struct zoitechatprefs *pr)
 #endif
 }
 
+static gboolean
+setup_sounds_stage (GError **error)
+{
+        GString *text;
+        int i;
+        setup_sound_pending = FALSE;
+        if (!setup_sound_created) return TRUE;
+        text = g_string_new ("");
+        for (i = 0; i < NUM_XP; i++)
+        {
+                if (setup_sound_files[i] && strpbrk (setup_sound_files[i], "\r\n"))
+                {
+                        g_set_error_literal (error, G_FILE_ERROR, G_FILE_ERROR_INVAL, _("Sound filenames must stay on one line."));
+                        g_string_free (text, TRUE);
+                        return FALSE;
+                }
+                if (g_strcmp0 (setup_sound_files[i], setup_sound_original[i]) != 0) setup_sound_pending = TRUE;
+                if (setup_sound_files[i] && *setup_sound_files[i])
+                        g_string_append_printf (text, "event=%s\nsound=%s\n\n", te[i].name, setup_sound_files[i]);
+        }
+        if (setup_sound_pending)
+        {
+                for (i = 0; i < NUM_XP; i++)
+                        if (g_strcmp0 (sound_files[i], setup_sound_original[i]) != 0)
+                        {
+                                g_set_error_literal (error, G_FILE_ERROR, G_FILE_ERROR_AGAIN, _("Sounds changed outside Preferences. Reopen Preferences before editing them."));
+                                g_string_free (text, TRUE);
+                                return FALSE;
+                        }
+                preferences_persistence_stage_file ("sound.conf", text->str);
+        }
+        g_string_free (text, TRUE);
+        return TRUE;
+}
+
+/* Cell editors can still be active when Save is activated from the keyboard.
+ * Finish the GtkCellEditable before serializing any list model. */
+static void
+setup_finish_cell_edits (GtkWidget *widget)
+{
+        GList *children, *entry;
+        if (!GTK_IS_CONTAINER (widget)) return;
+        children = gtk_container_get_children (GTK_CONTAINER (widget));
+        for (entry = children; entry; entry = entry->next)
+        {
+                GtkWidget *child = entry->data;
+                if (GTK_IS_TREE_VIEW (widget) && GTK_IS_CELL_EDITABLE (child))
+                {
+                        g_object_ref (child);
+                        gtk_cell_editable_editing_done (GTK_CELL_EDITABLE (child));
+                        gtk_cell_editable_remove_widget (GTK_CELL_EDITABLE (child));
+                        g_object_unref (child);
+                }
+                else setup_finish_cell_edits (child);
+        }
+        g_list_free (children);
+}
+
+static void
+setup_show_error (const char *message)
+{
+        gtk_label_set_text (GTK_LABEL (setup_error_label), message);
+        gtk_widget_show (setup_error_bar);
+}
+
+static void
+setup_error_dismiss (GtkInfoBar *bar, int response, gpointer data)
+{
+        gtk_widget_hide (GTK_WIDGET (bar));
+}
+
 static void
 setup_ok_cb (GtkWidget *but, GtkWidget *win)
 {
         PreferencesPersistenceResult save_result;
         struct zoitechatprefs old_prefs;
         char buffer[192];
+        GError *error = NULL;
+        guint page_index;
+
+        gtk_widget_hide (setup_error_bar);
+        setup_finish_cell_edits (win);
+        for (page_index = 0; page_index < setup_pages->len; page_index++)
+        {
+                setup_page *page = &g_array_index (setup_pages, setup_page, page_index);
+                if (!strcmp (page->id, "typing") && page->body &&
+                    !preferences_typing_page_stage (page->body, &error))
+                {
+                        setup_show_error (error->message);
+                        g_clear_error (&error);
+                        return;
+                }
+                if (!strcmp (page->id, "logging") && page->body &&
+                    !preferences_history_page_stage (page->body, &error))
+                {
+                        setup_reveal_widget (page->body);
+                        setup_show_error (error->message);
+                        g_clear_error (&error);
+                        return;
+                }
+                if (!strcmp (page->id, "appearance") && page->body &&
+                    !theme_preferences_color_editor_stage (page->body, &error))
+                {
+                        setup_show_error (error->message);
+                        g_clear_error (&error);
+                        return;
+                }
+        }
+
+        /* Move focus out of cell editors before serializing their models. */
+        gtk_widget_grab_focus (but ? but : cancel_button);
+        preferences_persistence_clear_staged_files ();
+        if (!editlist_preferences_stage (&error) ||
+            !key_preferences_stage (&error) || !pevent_preferences_stage (&error) || !setup_sounds_stage (&error))
+        {
+                setup_show_error (error ? error->message : _("Could not validate preferences."));
+                g_clear_error (&error);
+                return;
+        }
+
+        /* Network List owns identity and list state independently of this window. */
+        g_strlcpy (setup_prefs.hex_irc_nick1, prefs.hex_irc_nick1, sizeof setup_prefs.hex_irc_nick1);
+        g_strlcpy (setup_prefs.hex_irc_nick2, prefs.hex_irc_nick2, sizeof setup_prefs.hex_irc_nick2);
+        g_strlcpy (setup_prefs.hex_irc_nick3, prefs.hex_irc_nick3, sizeof setup_prefs.hex_irc_nick3);
+        g_strlcpy (setup_prefs.hex_irc_user_name, prefs.hex_irc_user_name, sizeof setup_prefs.hex_irc_user_name);
+        g_strlcpy (setup_prefs.hex_irc_real_name, prefs.hex_irc_real_name, sizeof setup_prefs.hex_irc_real_name);
+        setup_prefs.hex_gui_slist_select = prefs.hex_gui_slist_select;
+        setup_prefs.hex_gui_slist_fav = prefs.hex_gui_slist_fav;
+        setup_prefs.hex_gui_slist_skip = prefs.hex_gui_slist_skip;
 
         memcpy (&old_prefs, &prefs, sizeof (prefs));
         setup_apply (&setup_prefs);
@@ -2485,6 +3008,16 @@ setup_ok_cb (GtkWidget *but, GtkWidget *win)
         save_result = preferences_persistence_save_all ();
         if (save_result.success)
         {
+                int i;
+                editlist_preferences_commit ();
+                key_preferences_commit ();
+                pevent_preferences_commit ();
+                if (setup_sound_pending)
+                        for (i = 0; i < NUM_XP; i++)
+                        {
+                                g_free (sound_files[i]);
+                                sound_files[i] = g_strdup (setup_sound_files[i]);
+                        }
                 theme_preferences_stage_commit ();
                 /* the previewed values were accepted, so the close handler
                    must not revert them */
@@ -2493,42 +3026,84 @@ setup_ok_cb (GtkWidget *but, GtkWidget *win)
                 return;
         }
 
-        memcpy (&prefs, &old_prefs, sizeof (prefs));
-        theme_preferences_stage_discard ();
+        setup_apply (&old_prefs);
+        theme_preferences_stage_revert_runtime ();
 
         if (save_result.partial_failure)
         {
-                fe_message (_("Preferences were partially saved. zoitechat.conf succeeded, colors.conf failed. Retry is possible."), FE_MSG_ERROR);
+                setup_show_error (_("Some preference files could not be restored after a save failure. Recovery copies remain in the configuration folder. Retry is possible."));
                 return;
         }
 
         g_snprintf (buffer, sizeof (buffer), _("Could not save preferences (%s). Retry is possible."), save_result.failed_file ? save_result.failed_file : _("unknown file"));
-        fe_message (buffer, FE_MSG_ERROR);
+        setup_show_error (buffer);
 }
 
 static GtkWidget *
 setup_window_open (void)
 {
         GtkWidget *wid, *win, *vbox, *hbox, *hbbox;
+        GdkDisplay *display;
+        GdkMonitor *monitor;
         char buf[128];
 
         g_snprintf(buf, sizeof(buf), _("Preferences - %s"), _(DISPLAY_NAME));
-        win = gtkutil_window_new (buf, "prefs", 0, 600, 2);
+        win = gtkutil_window_new (buf, "prefs", 940, 700, 2);
         setup_window = win;
+        display = gtk_widget_get_display (win);
+        monitor = parent_window && gtk_widget_get_window (parent_window)
+                ? gdk_display_get_monitor_at_window (display, gtk_widget_get_window (parent_window))
+                : gdk_display_get_primary_monitor (display);
+        if (!monitor)
+                monitor = gdk_display_get_monitor (display, 0);
+        if (monitor)
+        {
+                GdkRectangle area;
+                gdk_monitor_get_workarea (monitor, &area);
+                gtk_window_set_default_size (GTK_WINDOW (win),
+                        MIN (940, MAX (1, area.width - 48)),
+                        MIN (700, MAX (1, area.height - 48)));
+        }
 
         vbox = gtkutil_box_new (GTK_ORIENTATION_VERTICAL, FALSE, 5);
-        gtk_container_set_border_width (GTK_CONTAINER (vbox), 6);
+        gtk_container_set_border_width (GTK_CONTAINER (vbox), 0);
         gtk_container_add (GTK_CONTAINER (win), vbox);
 
         hbox = gtkutil_box_new (GTK_ORIENTATION_HORIZONTAL, FALSE, 4);
         gtk_box_pack_start (GTK_BOX (vbox), hbox, TRUE, TRUE, 0);
 
-        setup_create_tree (hbox, setup_create_pages (hbox));
+        setup_create_pages (hbox);
+        setup_empty = gtk_box_new (GTK_ORIENTATION_VERTICAL, 12);
+        gtk_widget_set_halign (setup_empty, GTK_ALIGN_CENTER);
+        gtk_widget_set_valign (setup_empty, GTK_ALIGN_CENTER);
+        gtk_box_pack_start (GTK_BOX (setup_empty), gtk_label_new (_("No matching settings")), FALSE, FALSE, 0);
+        wid = gtk_button_new_with_mnemonic (_("_Clear search"));
+        g_signal_connect (wid, "clicked", G_CALLBACK (setup_search_clear), NULL);
+        gtk_box_pack_start (GTK_BOX (setup_empty), wid, FALSE, FALSE, 0);
+        gtk_box_pack_start (GTK_BOX (hbox), setup_empty, TRUE, TRUE, 0);
+        setup_create_sidebar (hbox);
+        g_signal_connect (win, "key-press-event", G_CALLBACK (setup_key_press), NULL);
+
+        setup_error_bar = gtk_info_bar_new ();
+        gtk_info_bar_set_message_type (GTK_INFO_BAR (setup_error_bar), GTK_MESSAGE_ERROR);
+        gtk_info_bar_set_show_close_button (GTK_INFO_BAR (setup_error_bar), TRUE);
+        setup_error_label = gtk_label_new (NULL);
+        gtk_label_set_xalign (GTK_LABEL (setup_error_label), 0);
+        gtk_label_set_line_wrap (GTK_LABEL (setup_error_label), TRUE);
+        gtk_label_set_max_width_chars (GTK_LABEL (setup_error_label), 72);
+        gtk_label_set_selectable (GTK_LABEL (setup_error_label), TRUE);
+        gtk_widget_set_hexpand (setup_error_label, TRUE);
+        gtk_container_add (GTK_CONTAINER (gtk_info_bar_get_content_area (GTK_INFO_BAR (setup_error_bar))), setup_error_label);
+        g_signal_connect (setup_error_bar, "response", G_CALLBACK (setup_error_dismiss), NULL);
+        gtk_box_pack_start (GTK_BOX (vbox), setup_error_bar, FALSE, FALSE, 0);
+
+        gtk_box_pack_start (GTK_BOX (vbox), gtk_separator_new (GTK_ORIENTATION_HORIZONTAL), FALSE, FALSE, 0);
 
         /* prepare the button box */
         hbbox = gtk_button_box_new (GTK_ORIENTATION_HORIZONTAL);
         gtk_button_box_set_layout (GTK_BUTTON_BOX (hbbox), GTK_BUTTONBOX_END);
-        gtk_box_set_spacing (GTK_BOX (hbbox), 4);
+        gtk_box_set_spacing (GTK_BOX (hbbox), 8);
+        gtk_container_set_border_width (GTK_CONTAINER (hbbox), 12);
         gtk_box_pack_end (GTK_BOX (vbox), hbbox, FALSE, FALSE, 0);
 
         cancel_button = wid = gtkutil_button_new_from_stock ("gtk-cancel", _("_Cancel"));
@@ -2536,12 +3111,15 @@ setup_window_open (void)
                                                         G_CALLBACK (gtkutil_destroy), win);
         gtk_box_pack_start (GTK_BOX (hbbox), wid, FALSE, FALSE, 0);
 
-        wid = gtkutil_button_new_from_stock ("gtk-ok", _("_OK"));
+        wid = gtkutil_button_new_from_stock ("gtk-ok", _("_Save"));
+        gtk_style_context_add_class (gtk_widget_get_style_context (wid), "suggested-action");
         g_signal_connect (G_OBJECT (wid), "clicked",
                                                         G_CALLBACK (setup_ok_cb), win);
         gtk_box_pack_start (GTK_BOX (hbbox), wid, FALSE, FALSE, 0);
 
         gtk_widget_show_all (win);
+        gtk_widget_hide (setup_empty);
+        gtk_widget_hide (setup_error_bar);
 
         return win;
 }
@@ -2549,7 +3127,26 @@ setup_window_open (void)
 static void
 setup_close_cb (GtkWidget *win, GtkWidget **swin)
 {
+        guint i;
         *swin = NULL;
+        for (i = 0; setup_pages && i < setup_pages->len; i++)
+                g_free (g_array_index (setup_pages, setup_page, i).search_text);
+        if (setup_pages)
+                g_array_free (setup_pages, TRUE);
+        setup_pages = NULL;
+        g_clear_pointer (&setup_query, g_free);
+        setup_book = setup_sidebar = setup_search = setup_empty = NULL;
+        setup_error_bar = setup_error_label = NULL;
+        setup_topicbar_multiline_toggle = NULL;
+        for (i = 0; i < NUM_XP; i++)
+        {
+                g_clear_pointer (&setup_sound_files[i], g_free);
+                g_clear_pointer (&setup_sound_original[i], g_free);
+        }
+        setup_sound_created = setup_sound_pending = FALSE;
+        sndfile_entry = NULL;
+        setup_sound_tree = NULL;
+        preferences_persistence_clear_staged_files ();
 
         /* drop any pending transparency preview and undo the previewed
            opacity when the dialog is cancelled; after OK the snapshot
@@ -2596,4 +3193,35 @@ setup_open (void)
 
         g_signal_connect (G_OBJECT (setup_window), "destroy",
                                                         G_CALLBACK (setup_close_cb), &setup_window);
+}
+
+void
+setup_open_page (const char *id)
+{
+        guint i;
+        const char *page_id = id;
+        gboolean menu_editor;
+        if (!id) { setup_open (); return; }
+        if (!strcmp (id, "themes") || !strcmp (id, "colors")) page_id = "appearance";
+        if (!strcmp (id, "completion-shortcuts")) page_id = "keyboard";
+        menu_editor = !strcmp (id, "buttons") || !strcmp (id, "popup") ||
+                      !strcmp (id, "dlgbuttons") || !strcmp (id, "usermenu");
+        if (menu_editor) page_id = "menus";
+        setup_open ();
+        gtk_entry_set_text (GTK_ENTRY (setup_search), "");
+        for (i = 0; i < setup_pages->len; i++)
+        {
+                setup_page *page = &g_array_index (setup_pages, setup_page, i);
+                if (strcmp (page->id, page_id)) continue;
+                gtk_list_box_select_row (GTK_LIST_BOX (setup_sidebar), GTK_LIST_BOX_ROW (page->row));
+                if (!strcmp (id, "completion-shortcuts"))
+                        preferences_shortcuts_find_action (page->body, "Complete nick/command");
+                if (menu_editor)
+                {
+                        GtkWidget *selector = g_object_get_data (G_OBJECT (page->body), "menus-selector");
+                        gtk_combo_box_set_active_id (GTK_COMBO_BOX (selector), id);
+                }
+                break;
+        }
+        gtk_window_present (GTK_WINDOW (setup_window));
 }

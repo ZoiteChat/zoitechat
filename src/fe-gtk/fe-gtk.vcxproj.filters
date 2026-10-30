@@ -57,6 +57,9 @@
     <ClInclude Include="preferences-persistence.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="preferences-pages.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="menu.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -192,6 +195,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="preferences-persistence.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="preferences-pages.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="plugingui.c">

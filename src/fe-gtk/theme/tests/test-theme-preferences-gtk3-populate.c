@@ -25,6 +25,7 @@
 #include "../../../common/gtk3-theme-service.h"
 #include "../theme-gtk3.h"
 #include "../theme-manager.h"
+#include "../theme-runtime.h"
 
 struct session *current_sess;
 struct session *current_tab;
@@ -37,6 +38,61 @@ static int set_token_color_calls;
 static char applied_theme_id[256];
 static ThemeGtk3Variant applied_variant;
 static gboolean removed_selected;
+
+static gboolean custom_tokens[THEME_TOKEN_COUNT];
+static GdkRGBA custom_colors[THEME_TOKEN_COUNT];
+
+gboolean
+theme_runtime_get_user_color (ThemeSemanticToken token, GdkRGBA *color)
+{
+        if (!custom_tokens[token]) return FALSE;
+        *color = custom_colors[token];
+        return TRUE;
+}
+
+gboolean
+theme_runtime_get_default_color (ThemeSemanticToken token, const ThemeGtkPaletteMap *map, GdkRGBA *color)
+{
+        (void)map;
+        return gdk_rgba_parse (color, token == THEME_TOKEN_TEXT_BACKGROUND || token == THEME_TOKEN_SELECTION_FOREGROUND ? "#ffffff" :
+                token == THEME_TOKEN_SELECTION_BACKGROUND ? "#336699" : "#000000");
+}
+
+gboolean
+theme_get_default_color_for_widget (GtkWidget *widget, ThemeSemanticToken token, GdkRGBA *color)
+{
+        (void)widget;
+        theme_runtime_get_default_color (token, NULL, color);
+        if (token == THEME_TOKEN_TEXT_BACKGROUND && prefs.hex_gui_dark_mode == ZOITECHAT_DARK_MODE_DARK)
+                gdk_rgba_parse (color, "#181818");
+        return TRUE;
+}
+
+void theme_runtime_reset_user_color (ThemeSemanticToken token) { custom_tokens[token] = FALSE; }
+void theme_runtime_user_set_color (ThemeSemanticToken token, const GdkRGBA *color)
+{ custom_tokens[token] = TRUE; custom_colors[token] = *color; }
+
+gboolean theme_manager_apply_mode (unsigned int mode, gboolean *changed)
+{ (void)mode; if (changed) *changed = FALSE; return FALSE; }
+void theme_manager_apply_and_dispatch (unsigned int mode, ThemeChangedReason reasons, gboolean *changed)
+{ (void)mode; (void)reasons; if (changed) *changed = FALSE; }
+guint theme_listener_register (const char *id, ThemeChangedCallback callback, gpointer data)
+{ (void)id; (void)callback; (void)data; return 0; }
+void theme_listener_unregister (guint id) { (void)id; }
+gboolean pevent_preferences_import_text (const char *contents, GError **error)
+{ (void)contents; (void)error; return TRUE; }
+
+void
+setup_open_page (const char *id)
+{
+        (void)id;
+}
+
+void
+setup_reveal_widget (GtkWidget *widget)
+{
+        (void)widget;
+}
 
 GtkWidget *
 gtkutil_box_new (GtkOrientation orientation, gboolean homogeneous, gint spacing)
@@ -106,6 +162,7 @@ theme_manager_set_token_color (unsigned int dark_mode, ThemeSemanticToken token,
         (void)token;
         (void)color;
         set_token_color_calls++;
+        theme_runtime_user_set_color (token, color);
         if (changed)
                 *changed = FALSE;
 }
@@ -458,6 +515,154 @@ test_select_theme_does_not_pin_palette_tokens (void)
         gtk_widget_destroy (page);
 }
 
+static void
+test_embedded_color_editor (void)
+{
+        GtkWidget *window, *editor;
+        theme_color_manager_ui *ui;
+        theme_color_manager_row *row;
+        GError *error = NULL;
+        if (!gtk_available)
+        {
+                g_test_message ("GTK display not available");
+                return;
+        }
+        memset (&prefs, 0, sizeof prefs);
+        theme_preferences_stage_begin ();
+        window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
+        editor = theme_preferences_create_color_editor (GTK_WINDOW (window), NULL);
+        gtk_container_add (GTK_CONTAINER (window), editor);
+        ui = g_object_get_data (G_OBJECT (editor), "zoitechat-theme-color-manager");
+        row = g_ptr_array_index (ui->rows, 0);
+        set_token_color_calls = 0;
+        theme_preferences_manager_entry_commit (row);
+        g_assert_true (theme_preferences_color_editor_stage (editor, &error));
+        g_assert_no_error (error);
+        theme_preferences_stage_apply ();
+        g_assert_cmpint (set_token_color_calls, ==, 0);
+        gtk_entry_set_text (GTK_ENTRY (row->entry), "#123456");
+        g_assert_true (theme_preferences_color_editor_stage (editor, &error));
+        g_assert_no_error (error);
+        /* A typed edit previews its token, then Save reapplies that token. */
+        g_assert_cmpint (set_token_color_calls, ==, 1);
+        theme_preferences_stage_apply ();
+        g_assert_cmpint (set_token_color_calls, ==, 2);
+        gtk_entry_set_text (GTK_ENTRY (row->entry), "invalid");
+        g_assert_false (theme_preferences_color_editor_stage (editor, &error));
+        g_assert_error (error, G_FILE_ERROR, G_FILE_ERROR_INVAL);
+        g_clear_error (&error);
+        gtk_widget_show_all (window);
+        gtk_button_clicked (GTK_BUTTON (row->button));
+        gtk_widget_destroy (window);
+        theme_preferences_stage_discard ();
+}
+
+static void
+test_appearance_schemes_and_cancel (void)
+{
+        if (!gtk_available) { g_test_message ("GTK display not available"); return; }
+        memset (&prefs, 0, sizeof prefs); memset (custom_tokens, 0, sizeof custom_tokens);
+        GdkRGBA original, restored;
+        gdk_rgba_parse (&original, "#345678");
+        theme_runtime_user_set_color (THEME_TOKEN_TEXT_FOREGROUND, &original);
+        theme_preferences_stage_begin ();
+        struct zoitechatprefs staged = prefs;
+        GtkWidget *page = theme_preferences_create_page (NULL, &staged, NULL);
+        theme_preferences_ui *appearance = g_object_get_data (G_OBJECT (page), "theme-preferences-ui");
+        theme_color_manager_ui *ui = g_object_get_data (G_OBJECT (appearance->color_editor), "zoitechat-theme-color-manager");
+        gtk_button_clicked (GTK_BUTTON (ui->scheme_buttons[2]));
+        g_assert_true (theme_preferences_stage.changed);
+        g_assert_true (theme_preferences_stage.staged_custom[THEME_TOKEN_TEXT_BACKGROUND]);
+        gtk_button_clicked (GTK_BUTTON (appearance->style_buttons[2]));
+        g_assert_cmpint (prefs.hex_gui_dark_mode, ==, ZOITECHAT_DARK_MODE_DARK);
+        theme_preferences_stage_discard ();
+        g_assert_cmpint (prefs.hex_gui_dark_mode, ==, ZOITECHAT_DARK_MODE_AUTO);
+        g_assert_true (theme_runtime_get_user_color (THEME_TOKEN_TEXT_FOREGROUND, &restored));
+        g_assert_true (gdk_rgba_equal (&original, &restored));
+        for (int token = 0; token < THEME_TOKEN_COUNT; token++)
+                if (token != THEME_TOKEN_TEXT_FOREGROUND) g_assert_false (custom_tokens[token]);
+        gtk_widget_destroy (page);
+}
+
+static void
+test_individual_reset_preserves_other_overrides (void)
+{
+        if (!gtk_available) { g_test_message ("GTK display not available"); return; }
+        memset (&prefs, 0, sizeof prefs); memset (custom_tokens, 0, sizeof custom_tokens);
+        theme_preferences_stage_begin ();
+        GtkWidget *editor = theme_preferences_create_color_editor (NULL, NULL);
+        theme_color_manager_ui *ui = g_object_get_data (G_OBJECT (editor), "zoitechat-theme-color-manager");
+        gtk_button_clicked (GTK_BUTTON (ui->scheme_buttons[2]));
+        theme_color_manager_row *row = g_ptr_array_index (ui->rows, THEME_TOKEN_TEXT_BACKGROUND);
+        gtk_button_clicked (GTK_BUTTON (row->reset));
+        g_assert_false (theme_preferences_stage.staged_custom[THEME_TOKEN_TEXT_BACKGROUND]);
+        g_assert_true (theme_preferences_stage.staged_custom[THEME_TOKEN_TEXT_FOREGROUND]);
+        g_assert_cmpstr (gtk_label_get_text (GTK_LABEL (row->status)), ==, "Theme");
+        GdkRGBA light, dark;
+        theme_preferences_staged_get_color (THEME_TOKEN_TEXT_BACKGROUND, &light);
+        prefs.hex_gui_dark_mode = ZOITECHAT_DARK_MODE_DARK;
+        theme_preferences_staged_get_color (THEME_TOKEN_TEXT_BACKGROUND, &dark);
+        g_assert_false (gdk_rgba_equal (&light, &dark));
+        theme_preferences_stage_commit ();
+        g_assert_false (custom_tokens[THEME_TOKEN_TEXT_BACKGROUND]);
+        g_assert_true (custom_tokens[THEME_TOKEN_TEXT_FOREGROUND]);
+        gtk_widget_destroy (editor);
+}
+
+static void
+test_contrast_suggestion_and_preview_navigation (void)
+{
+        if (!gtk_available) { g_test_message ("GTK display not available"); return; }
+        memset (&prefs, 0, sizeof prefs); memset (custom_tokens, 0, sizeof custom_tokens);
+        theme_preferences_stage_begin ();
+        GtkWidget *editor = theme_preferences_create_color_editor (NULL, NULL);
+        theme_color_manager_ui *ui = g_object_get_data (G_OBJECT (editor), "zoitechat-theme-color-manager");
+        theme_color_manager_row *row = g_ptr_array_index (ui->rows, THEME_TOKEN_TEXT_FOREGROUND);
+        GdkRGBA white, black, gray;
+        gdk_rgba_parse (&white, "#ffffff"); gdk_rgba_parse (&black, "#000000"); gdk_rgba_parse (&gray, "#dddddd");
+        g_assert_cmpfloat_with_epsilon (theme_preferences_contrast_ratio (&white, &black), 21.0, 0.001);
+        theme_preferences_manager_row_commit (row, &gray);
+        g_assert_true (gtk_widget_get_visible (ui->contrast_fix));
+        gtk_button_clicked (GTK_BUTTON (ui->contrast_fix));
+        theme_preferences_staged_get_color (THEME_TOKEN_TEXT_FOREGROUND, &gray);
+        g_assert_cmpfloat (theme_preferences_contrast_ratio (&gray, &white), >=, 4.5);
+        theme_preferences_manager_focus_color (ui, THEME_TOKEN_MIRC_12);
+        g_assert_true (gtk_expander_get_expanded (GTK_EXPANDER (ui->advanced)));
+        gtk_entry_set_text (GTK_ENTRY (row->entry), "invalid");
+        theme_preferences_manager_entry_commit (row);
+        g_assert_cmpstr (gtk_entry_get_text (GTK_ENTRY (row->entry)), ==, "invalid");
+        GError *error = NULL;
+        g_assert_false (theme_preferences_color_editor_stage (editor, &error));
+        g_assert_error (error, G_FILE_ERROR, G_FILE_ERROR_INVAL); g_clear_error (&error);
+        theme_preferences_stage_discard (); gtk_widget_destroy (editor);
+}
+
+static void
+test_picker_cancel_restores_inheritance (void)
+{
+        if (!gtk_available) { g_test_message ("GTK display not available"); return; }
+        memset (&prefs, 0, sizeof prefs); memset (custom_tokens, 0, sizeof custom_tokens);
+        theme_preferences_stage_begin ();
+        GtkWidget *window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
+        GtkWidget *editor = theme_preferences_create_color_editor (GTK_WINDOW (window), NULL);
+        gtk_container_add (GTK_CONTAINER (window), editor);
+        theme_color_manager_ui *ui = g_object_get_data (G_OBJECT (editor), "zoitechat-theme-color-manager");
+        theme_color_manager_row *row = g_ptr_array_index (ui->rows, THEME_TOKEN_MIRC_12);
+        gtk_button_clicked (GTK_BUTTON (row->button));
+        GList *windows = gtk_window_list_toplevels ();
+        GtkWidget *picker = NULL;
+        for (GList *i = windows; i; i = i->next) if (GTK_IS_COLOR_CHOOSER_DIALOG (i->data)) picker = i->data;
+        g_assert_nonnull (picker);
+        GdkRGBA color; gdk_rgba_parse (&color, "#aabbcc");
+        gtk_color_chooser_set_rgba (GTK_COLOR_CHOOSER (picker), &color);
+        g_assert_true (theme_preferences_stage.staged_custom[row->token]);
+        gtk_dialog_response (GTK_DIALOG (picker), GTK_RESPONSE_CANCEL);
+        g_assert_false (theme_preferences_stage.staged_custom[row->token]);
+        g_assert_false (custom_tokens[row->token]);
+        g_list_free (windows);
+        theme_preferences_stage_discard (); gtk_widget_destroy (window);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -471,5 +676,10 @@ main (int argc, char **argv)
                          test_select_none_resets_theme_and_applies);
         g_test_add_func ("/theme/preferences/gtk3_select_theme_does_not_pin_palette_tokens",
                          test_select_theme_does_not_pin_palette_tokens);
+        g_test_add_func ("/theme/preferences/embedded_color_editor", test_embedded_color_editor);
+        g_test_add_func ("/theme/preferences/appearance_schemes_cancel", test_appearance_schemes_and_cancel);
+        g_test_add_func ("/theme/preferences/individual_reset_inherits", test_individual_reset_preserves_other_overrides);
+        g_test_add_func ("/theme/preferences/contrast_and_navigation", test_contrast_suggestion_and_preview_navigation);
+        g_test_add_func ("/theme/preferences/picker_cancel_inherits", test_picker_cancel_restores_inheritance);
         return g_test_run ();
 }

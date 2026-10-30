@@ -41,6 +41,8 @@
 #include "gtkutil.h"
 #include "maingui.h"
 #include "editlist.h"
+#include "preferences-persistence.h"
+#include "setup.h"
 
 #define ICON_EDITLIST_NEW "document-new"
 #define ICON_EDITLIST_DELETE "edit-delete"
@@ -372,4 +374,302 @@ editlist_gui_open (char *title1, char *title2, GSList *list, char *title, char *
 	editlist_load (store, list);
 
 	gtk_widget_show (editlist_win);
+}
+
+/* Preferences editors are independent instances: several lists may be open
+ * at once, and their models must never share the legacy dialog globals. */
+typedef struct
+{
+        GtkWidget *view;
+        GtkWidget *delete_button;
+        GtkWidget *up_button;
+        GtkWidget *down_button;
+        GSList **target;
+        const char *file;
+        char *original;
+        char *pending;
+} PreferencesList;
+
+static GSList *preferences_lists;
+
+static void
+preferences_list_update_buttons (PreferencesList *editor)
+{
+        GtkTreeModel *model;
+        GtkTreeIter iter, next;
+        GtkTreePath *path;
+        gboolean selected = gtk_tree_selection_get_selected (
+                gtk_tree_view_get_selection (GTK_TREE_VIEW (editor->view)), &model, &iter);
+        gboolean up = FALSE, down = FALSE;
+        if (selected)
+        {
+                path = gtk_tree_model_get_path (model, &iter);
+                up = gtk_tree_path_get_indices (path)[0] > 0;
+                gtk_tree_path_free (path);
+                next = iter;
+                down = gtk_tree_model_iter_next (model, &next);
+        }
+        gtk_widget_set_sensitive (editor->delete_button, selected);
+        gtk_widget_set_sensitive (editor->up_button, up);
+        gtk_widget_set_sensitive (editor->down_button, down);
+}
+
+static void
+preferences_list_selection_changed (GtkTreeSelection *selection, PreferencesList *editor)
+{
+        preferences_list_update_buttons (editor);
+}
+
+static void
+preferences_list_rows_reordered (GtkTreeModel *model, GtkTreePath *path, GtkTreeIter *iter,
+                                gint *order, PreferencesList *editor)
+{
+        preferences_list_update_buttons (editor);
+}
+
+static char *
+preferences_list_serialize (GSList *list)
+{
+        GString *text = g_string_new ("");
+        for (; list; list = list->next)
+        {
+                struct popup *item = list->data;
+                g_string_append_printf (text, "NAME %s\nCMD %s\n\n", item->name, item->cmd);
+        }
+        return g_string_free (text, FALSE);
+}
+
+static void
+preferences_list_free (gpointer data)
+{
+        PreferencesList *editor = data;
+        preferences_lists = g_slist_remove (preferences_lists, editor);
+        g_free (editor->original);
+        g_free (editor->pending);
+        g_free (editor);
+}
+
+static void
+preferences_list_edited (GtkCellRenderer *renderer, char *path, char *text, PreferencesList *editor)
+{
+        GtkTreeIter iter;
+        GtkTreeModel *model = gtk_tree_view_get_model (GTK_TREE_VIEW (editor->view));
+        if (gtk_tree_model_get_iter_from_string (model, &iter, path))
+                gtk_list_store_set (GTK_LIST_STORE (model), &iter,
+                        GPOINTER_TO_INT (g_object_get_data (G_OBJECT (renderer), "column")), text, -1);
+}
+
+static void
+preferences_list_add (GtkButton *button, PreferencesList *editor)
+{
+        GtkTreeIter iter;
+        GtkTreePath *path;
+        GtkTreeView *view = GTK_TREE_VIEW (editor->view);
+        GtkListStore *store = GTK_LIST_STORE (gtk_tree_view_get_model (view));
+        (void)button;
+        gtk_list_store_insert_with_values (store, &iter, -1, NAME_COLUMN, "", CMD_COLUMN, "", -1);
+        path = gtk_tree_model_get_path (GTK_TREE_MODEL (store), &iter);
+        gtk_tree_view_set_cursor (view, path, gtk_tree_view_get_column (view, 0), TRUE);
+        gtk_tree_view_scroll_to_cell (view, path, NULL, FALSE, 0, 0);
+        gtk_tree_path_free (path);
+        preferences_list_update_buttons (editor);
+}
+
+static void
+preferences_list_delete (GtkButton *button, PreferencesList *editor)
+{
+        GtkTreeIter iter;
+        GtkTreeModel *model;
+        (void)button;
+        if (gtk_tree_selection_get_selected (gtk_tree_view_get_selection (GTK_TREE_VIEW (editor->view)), &model, &iter))
+                gtk_list_store_remove (GTK_LIST_STORE (model), &iter);
+}
+
+static void
+preferences_list_move (GtkButton *button, PreferencesList *editor)
+{
+        GtkTreeModel *model;
+        GtkTreeIter iter, other;
+        GtkTreePath *path;
+        gboolean valid;
+        if (!gtk_tree_selection_get_selected (gtk_tree_view_get_selection (GTK_TREE_VIEW (editor->view)), &model, &iter))
+                return;
+        path = gtk_tree_model_get_path (model, &iter);
+        if (GPOINTER_TO_INT (g_object_get_data (G_OBJECT (button), "direction")) < 0)
+                valid = gtk_tree_path_prev (path);
+        else { gtk_tree_path_next (path); valid = TRUE; }
+        if (valid && gtk_tree_model_get_iter (model, &other, path))
+        {
+                gtk_list_store_swap (GTK_LIST_STORE (model), &iter, &other);
+                gtk_tree_view_scroll_to_cell (GTK_TREE_VIEW (editor->view), path, NULL, FALSE, 0, 0);
+        }
+        gtk_tree_path_free (path);
+}
+
+static gboolean
+preferences_list_key (GtkWidget *view, GdkEventKey *event, PreferencesList *editor)
+{
+        GtkWidget *button;
+        int direction;
+        (void)view;
+        if (!(event->state & GDK_SHIFT_MASK) || (event->keyval != GDK_KEY_Up && event->keyval != GDK_KEY_Down))
+                return FALSE;
+        direction = event->keyval == GDK_KEY_Up ? -1 : 1;
+        button = gtk_button_new ();
+        g_object_ref_sink (button);
+        g_object_set_data (G_OBJECT (button), "direction", GINT_TO_POINTER (direction));
+        preferences_list_move (GTK_BUTTON (button), editor);
+        g_object_unref (button);
+        return TRUE;
+}
+
+GtkWidget *
+editlist_preferences_create (GSList **list, const char *file, const char *title1,
+                             const char *title2, const char *help)
+{
+        PreferencesList *editor = g_new0 (PreferencesList, 1);
+        GtkWidget *box, *scroll, *buttons, *button;
+        GtkListStore *store;
+        GtkCellRenderer *renderer;
+        int column;
+        box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 10);
+        editor->target = list;
+        editor->file = file;
+        editor->original = preferences_list_serialize (*list);
+        preferences_lists = g_slist_append (preferences_lists, editor);
+        g_object_set_data_full (G_OBJECT (box), "preferences-list", editor, preferences_list_free);
+        store = gtk_list_store_new (N_COLUMNS, G_TYPE_STRING, G_TYPE_STRING);
+        editor->view = gtk_tree_view_new_with_model (GTK_TREE_MODEL (store));
+        gtk_tree_view_set_reorderable (GTK_TREE_VIEW (editor->view), TRUE);
+        gtk_tree_view_set_search_column (GTK_TREE_VIEW (editor->view), NAME_COLUMN);
+        for (column = 0; column < N_COLUMNS; column++)
+        {
+                GtkTreeViewColumn *col;
+                renderer = gtk_cell_renderer_text_new ();
+                g_object_set (renderer, "editable", TRUE, NULL);
+                g_object_set_data (G_OBJECT (renderer), "column", GINT_TO_POINTER (column));
+                g_signal_connect (renderer, "edited", G_CALLBACK (preferences_list_edited), editor);
+                col = gtk_tree_view_column_new_with_attributes (column ? title2 : title1, renderer, "text", column, NULL);
+                gtk_tree_view_column_set_resizable (col, TRUE);
+                gtk_tree_view_column_set_min_width (col, column ? 240 : 140);
+                gtk_tree_view_column_set_expand (col, column != 0);
+                gtk_tree_view_append_column (GTK_TREE_VIEW (editor->view), col);
+        }
+        editlist_load (store, *list);
+        g_object_unref (store);
+        g_signal_connect (editor->view, "key-press-event", G_CALLBACK (preferences_list_key), editor);
+        scroll = gtk_scrolled_window_new (NULL, NULL);
+        gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scroll), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+        gtk_scrolled_window_set_min_content_height (GTK_SCROLLED_WINDOW (scroll), 220);
+        gtk_container_add (GTK_CONTAINER (scroll), editor->view);
+        gtk_box_pack_start (GTK_BOX (box), scroll, TRUE, TRUE, 0);
+        buttons = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 8);
+        gtk_box_pack_start (GTK_BOX (box), buttons, FALSE, FALSE, 0);
+        button = gtk_button_new_with_mnemonic (_("_Add"));
+        g_signal_connect (button, "clicked", G_CALLBACK (preferences_list_add), editor);
+        gtk_box_pack_start (GTK_BOX (buttons), button, FALSE, FALSE, 0);
+        button = gtk_button_new_with_mnemonic (_("_Delete"));
+        editor->delete_button = button;
+        g_signal_connect (button, "clicked", G_CALLBACK (preferences_list_delete), editor);
+        gtk_box_pack_start (GTK_BOX (buttons), button, FALSE, FALSE, 0);
+        for (column = -1; column <= 1; column += 2)
+        {
+                button = gtk_button_new_with_label (column < 0 ? _("Move up") : _("Move down"));
+                if (column < 0) editor->up_button = button;
+                else editor->down_button = button;
+                g_object_set_data (G_OBJECT (button), "direction", GINT_TO_POINTER (column));
+                g_signal_connect (button, "clicked", G_CALLBACK (preferences_list_move), editor);
+                gtk_box_pack_start (GTK_BOX (buttons), button, FALSE, FALSE, 0);
+        }
+        g_signal_connect (gtk_tree_view_get_selection (GTK_TREE_VIEW (editor->view)), "changed",
+                G_CALLBACK (preferences_list_selection_changed), editor);
+        g_signal_connect (gtk_tree_view_get_model (GTK_TREE_VIEW (editor->view)), "rows-reordered",
+                G_CALLBACK (preferences_list_rows_reordered), editor);
+        preferences_list_update_buttons (editor);
+        if (help)
+        {
+                GtkWidget *expander = gtk_expander_new (_("Formatting codes and examples"));
+                GtkWidget *label = gtk_label_new (help);
+                gtk_label_set_xalign (GTK_LABEL (label), 0);
+                gtk_label_set_line_wrap (GTK_LABEL (label), TRUE);
+                gtk_label_set_selectable (GTK_LABEL (label), TRUE);
+                gtk_label_set_max_width_chars (GTK_LABEL (label), 60);
+                gtk_widget_set_margin_top (label, 10);
+                gtk_container_add (GTK_CONTAINER (expander), label);
+                gtk_box_pack_start (GTK_BOX (box), expander, FALSE, FALSE, 0);
+        }
+        return box;
+}
+
+gboolean
+editlist_preferences_stage (GError **error)
+{
+        GSList *entry;
+        for (entry = preferences_lists; entry; entry = entry->next)
+        {
+                PreferencesList *editor = entry->data;
+                GtkTreeModel *model = gtk_tree_view_get_model (GTK_TREE_VIEW (editor->view));
+                GtkTreeIter iter;
+                GString *text = g_string_new ("");
+                gboolean valid = gtk_tree_model_get_iter_first (model, &iter);
+                char *live;
+                g_clear_pointer (&editor->pending, g_free);
+                while (valid)
+                {
+                        char *name, *cmd;
+                        gtk_tree_model_get (model, &iter, NAME_COLUMN, &name, CMD_COLUMN, &cmd, -1);
+                        if ((name && strpbrk (name, "\r\n")) || (cmd && strpbrk (cmd, "\r\n")) ||
+                            ((!name || !*name) && cmd && *cmd))
+                        {
+                                GtkTreePath *path = gtk_tree_model_get_path (model, &iter);
+                                int column = !name || !*name || strpbrk (name, "\r\n") ? NAME_COLUMN : CMD_COLUMN;
+                                setup_reveal_widget (editor->view);
+                                gtk_widget_grab_focus (editor->view);
+                                gtk_tree_view_set_cursor (GTK_TREE_VIEW (editor->view), path,
+                                        gtk_tree_view_get_column (GTK_TREE_VIEW (editor->view), column), TRUE);
+                                gtk_tree_path_free (path);
+                                g_set_error_literal (error, G_FILE_ERROR, G_FILE_ERROR_INVAL,
+                                        _("Give this entry a name and keep each field on one line."));
+                                g_free (name); g_free (cmd); g_string_free (text, TRUE);
+                                return FALSE;
+                        }
+                        if (name && *name)
+                                g_string_append_printf (text, "NAME %s\nCMD %s\n\n", name, cmd ? cmd : "");
+                        g_free (name); g_free (cmd);
+                        valid = gtk_tree_model_iter_next (model, &iter);
+                }
+                if (strcmp (text->str, editor->original) == 0) { g_string_free (text, TRUE); continue; }
+                live = preferences_list_serialize (*editor->target);
+                if (strcmp (live, editor->original) != 0)
+                {
+                        setup_reveal_widget (editor->view);
+                        g_set_error_literal (error, G_FILE_ERROR, G_FILE_ERROR_AGAIN,
+                                _("These entries changed outside Preferences. Reopen Preferences before editing them."));
+                        g_free (live); g_string_free (text, TRUE);
+                        return FALSE;
+                }
+                g_free (live);
+                editor->pending = g_string_free (text, FALSE);
+                preferences_persistence_stage_file (editor->file, editor->pending);
+        }
+        return TRUE;
+}
+
+void
+editlist_preferences_commit (void)
+{
+        GSList *entry, *sessions;
+        for (entry = preferences_lists; entry; entry = entry->next)
+        {
+                PreferencesList *editor = entry->data;
+                if (!editor->pending) continue;
+                list_free (editor->target);
+                list_loadconf ((char *)editor->file, editor->target, NULL);
+                if (editor->target == &usermenu_list) usermenu_update ();
+                for (sessions = sess_list; sessions; sessions = sessions->next)
+                {
+                        if (editor->target == &button_list) fe_buttons_update (sessions->data);
+                        if (editor->target == &dlgbutton_list) fe_dlgbuttons_update (sessions->data);
+                }
+        }
 }

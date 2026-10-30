@@ -32,6 +32,7 @@ zoitechat_gtk_sources = [
   'notifygui.c',
   'pixmaps.c',
   'preferences-persistence.c',
+  'preferences-pages.c',
   'plugin-tray.c',
   'plugin-notification.c',
   'rawlog.c',
@@ -62,7 +63,8 @@ if host_machine.system() == 'darwin' and gtk_mac_dep.found()
   gtk_dep = declare_dependency(dependencies: [gtk_dep, gtk_mac_dep])
 endif
 
-zoitechat_theme_deps = [gtk_dep, zoitechat_common_dep]
+theme_math_dep = cc.find_library('m', required: false)
+zoitechat_theme_deps = [gtk_dep, zoitechat_common_dep, theme_math_dep]
 
 if host_machine.system() != 'windows'
   appindicator_opt = get_option('appindicator')
@@ -243,6 +245,50 @@ theme_runtime_tests = executable('theme_runtime_persistence_tests',
   link_with: zoitechat_theme_lib,
 )
 
+preferences_persistence_tests = executable('preferences_persistence_tests',
+  'tests/test-preferences-persistence.c',
+  include_directories: [config_h_include],
+  dependencies: [gtk_dep],
+)
+
+test('Preferences Persistence Tests', preferences_persistence_tests,
+  protocol: 'tap',
+  timeout: 120,
+)
+
+# g_test_skip() was added in GLib 2.38, below GTK 3.22's minimum GLib
+# requirement. Allow it in this test target without changing the app's API
+# ceiling or lowering macOS's existing 2.60 ceiling.
+preferences_pages_test_cflags = []
+if host_machine.system() != 'darwin'
+  preferences_pages_test_cflags = [
+    '-UGLIB_VERSION_MAX_ALLOWED',
+    '-DGLIB_VERSION_MAX_ALLOWED=GLIB_VERSION_2_38',
+  ]
+endif
+
+preferences_pages_tests = executable('preferences_pages_tests',
+  [textevents, 'tests/test-preferences-pages.c', 'preferences-pages.c'],
+  include_directories: [config_h_include, include_directories('../common')],
+  dependencies: [gtk_dep],
+  c_args: preferences_pages_test_cflags,
+)
+test('Preferences Pages Tests', preferences_pages_tests,
+  protocol: 'tap',
+  timeout: 120,
+)
+
+spell_entry_tests = executable('spell_entry_tests',
+  [marshal, 'tests/test-spell-entry.c'],
+  include_directories: [config_h_include, include_directories('../common')],
+  dependencies: [gtk_dep, libgmodule_dep],
+  c_args: preferences_pages_test_cflags,
+)
+test('Spell Entry Tests', spell_entry_tests,
+  protocol: 'tap',
+  timeout: 120,
+)
+
 test('Theme Runtime Persistence Tests', theme_runtime_tests,
   protocol: 'tap',
   timeout: 120,
@@ -277,7 +323,7 @@ test('Theme GTK3 Settings Tests', theme_gtk3_settings_tests,
 theme_preferences_gtk3_populate_tests = executable('theme_preferences_gtk3_populate_tests',
   'theme/tests/test-theme-preferences-gtk3-populate.c',
   include_directories: [config_h_include],
-  dependencies: [gtk_dep],
+  dependencies: [gtk_dep, theme_math_dep],
 )
 
 test('Theme Preferences GTK3 Populate Tests', theme_preferences_gtk3_populate_tests,

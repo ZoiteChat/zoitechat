@@ -68,7 +68,7 @@ static ca_context *ca_con;
 #define SCROLLBACK_MAX 32000
 
 static void mkdir_p (char *filename);
-static char *log_create_filename (char *channame);
+static char *log_create_filename (const char *channame);
 
 static char *
 scrollback_get_filename (session *sess)
@@ -396,7 +396,7 @@ mkdir_p (char *filename)
 }
 
 static char *
-log_create_filename (char *channame)
+log_create_filename (const char *channame)
 {
 	char *tmp, *ret;
 	int mbl;
@@ -453,7 +453,7 @@ log_escape_strcpy (char *dest, char *src, char *end)
 /* substitutes %c %n %s into buffer */
 
 static void
-log_insert_vars (char *buf, int bufsize, char *fmt, char *c, char *n, char *s)
+log_insert_vars (char *buf, int bufsize, const char *fmt, char *c, char *n, char *s)
 {
 	char *end = buf + bufsize;
 
@@ -466,6 +466,14 @@ log_insert_vars (char *buf, int bufsize, char *fmt, char *c, char *n, char *s)
 			return;
 
 		case '%':
+			/* A partially typed custom format can end in a literal percent. */
+			if (!fmt[1])
+			{
+				buf[0] = '%';
+				if (buf + 1 < end) buf[1] = 0;
+				else buf[0] = 0;
+				return;
+			}
 			fmt++;
 			switch (fmt[0])
 			{
@@ -479,6 +487,11 @@ log_insert_vars (char *buf, int bufsize, char *fmt, char *c, char *n, char *s)
 				buf = log_escape_strcpy (buf, s, end);
 				break;
 			default:
+				if (buf + 1 == end)
+				{
+					buf[0] = 0;
+					return;
+				}
 				buf[0] = '%';
 				buf++;
 				buf[0] = fmt[0];
@@ -500,59 +513,72 @@ log_insert_vars (char *buf, int bufsize, char *fmt, char *c, char *n, char *s)
 	}
 }
 
-static char *
-log_create_pathname (char *servname, char *channame, char *netname)
+char *
+log_build_pathname (const char *mask, const char *config_dir,
+                    const char *servname, const char *channame,
+                    const char *netname, time_t now)
 {
 	char fname[384];
 	char fnametime[384];
-	time_t now;
+	char *safe_channel, *safe_network, *safe_server;
+
+	if (!mask || !*mask || !config_dir || !servname || !channame ||
+	    !g_utf8_validate (mask, -1, NULL))
+		return NULL;
 
 	if (!netname)
 	{
-		netname = g_strdup ("NETWORK");
+		safe_network = g_strdup ("NETWORK");
 	}
 	else
 	{
-		netname = log_create_filename (netname);
+		safe_network = log_create_filename (netname);
 	}
 
 	/* first, everything is in UTF-8 */
 	if (!rfc_casecmp (channame, servname))
 	{
-		channame = g_strdup ("server");
+		safe_channel = g_strdup ("server");
 	}
 	else
 	{
-		channame = log_create_filename (channame);
+		safe_channel = log_create_filename (channame);
 	}
 
-	servname = log_create_filename (servname);
+	safe_server = log_create_filename (servname);
 
-	log_insert_vars (fname, sizeof (fname), prefs.hex_irc_logmask, channame, netname, servname);
-	g_free (channame);
-	g_free (netname);
-	g_free (servname);
+	log_insert_vars (fname, sizeof (fname), mask, safe_channel, safe_network, safe_server);
+	g_free (safe_channel);
+	g_free (safe_network);
+	g_free (safe_server);
 
 	/* insert time/date */
-	now = time (NULL);
-	strftime_utf8 (fnametime, sizeof (fnametime), fname, now);
+	if (!g_utf8_validate (fname, -1, NULL) ||
+	    !strftime_utf8 (fnametime, sizeof (fnametime), fname, now))
+		return NULL;
 
 	/* If one uses log mask variables, such as "%c/...", %c will be empty upon
 	 * connecting since there's no channel name yet, so we have to make sure
 	 * we won't try to write to the FS root. */
-	if (g_path_is_absolute (prefs.hex_irc_logmask))
+	if (g_path_is_absolute (mask))
 	{
 		g_snprintf (fname, sizeof (fname), "%s", fnametime);
 	}
 	else	/* relative path */
 	{
-		g_snprintf (fname, sizeof (fname), "%s" G_DIR_SEPARATOR_S "logs" G_DIR_SEPARATOR_S "%s", get_xdir (), fnametime);
+		g_snprintf (fname, sizeof (fname), "%s" G_DIR_SEPARATOR_S "logs" G_DIR_SEPARATOR_S "%s", config_dir, fnametime);
 	}
 
-	/* create all the subdirectories */
-	mkdir_p (fname);
-
 	return g_strdup (fname);
+}
+
+static char *
+log_create_pathname (char *servname, char *channame, char *netname)
+{
+	char *filename = log_build_pathname (prefs.hex_irc_logmask, get_xdir (),
+	                                    servname, channame, netname, time (NULL));
+	if (filename) mkdir_p (filename);
+	return filename;
 }
 
 static int
