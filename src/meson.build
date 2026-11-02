@@ -7,3 +7,7 @@ endif
 if get_option('text-frontend')
   subdir('fe-text')
 endif
+
+if get_option('qt-frontend')
+  subdir('fe-qt')
+endif

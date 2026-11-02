@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=ZoiteChat (Qt)
+Comment=IRC client with a Qt frontend
+Exec=zoitechat-qt %U
+Icon=net.zoite.Zoitechat
+Terminal=false
+Type=Application
+Categories=Network;IRCClient;
+MimeType=x-scheme-handler/irc;x-scheme-handler/ircs;
+StartupNotify=true

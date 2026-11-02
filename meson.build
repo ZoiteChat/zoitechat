@@ -3,10 +3,15 @@ project('zoitechat', 'c',
   meson_version: '>= 0.59.0',
   default_options: [
     'c_std=c17',
+    'cpp_std=c++17',
     'buildtype=debugoptimized',
     'warning_level=1',
   ]
 )
+
+if get_option('qt-frontend')
+  add_languages('cpp', native: false, required: true)
+endif
 
 i18n = import('i18n')
 gnome = import('gnome')
@@ -233,6 +238,7 @@ summary({
 }, section: 'Directories')
 
 summary({
+  'Qt Frontend': get_option('qt-frontend'),
   'GTK Frontend': get_option('gtk-frontend') ? 'enabled (GTK+ 3.22+)' : 'disabled',
   'TLS (openssl)': libssl_dep.found(),
   'Plugin Support': get_option('plugin'),

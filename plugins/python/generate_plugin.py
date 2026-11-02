@@ -39,7 +39,7 @@ extern "Python" int _on_server_hook(char **, char **, void *);
 extern "Python" int _on_server_attrs_hook(char **, char **, zoitechat_event_attrs *, void *);
 extern "Python" int _on_timer_hook(void *);
 
-extern "Python" int _on_plugin_init(char **, char **, char **, char *, char *);
+extern "Python" int _on_plugin_init(char **, char **, char **, char *, const char *);
 extern "Python" int _on_plugin_deinit(void);
 
 static zoitechat_plugin *ph;
@@ -64,7 +64,7 @@ builder.set_source('_zoitechat_embedded', '''
 #endif
 
 static zoitechat_plugin *ph;
-CFFI_DLLEXPORT int _on_plugin_init(char **, char **, char **, char *, char *);
+CFFI_DLLEXPORT int _on_plugin_init(char **, char **, char **, char *, const char *);
 CFFI_DLLEXPORT int _on_plugin_deinit(void);
 
 int zoitechat_plugin_init(zoitechat_plugin *plugin_handle,
@@ -92,7 +92,10 @@ int zoitechat_plugin_init(zoitechat_plugin *plugin_handle,
     }
 
     ph = plugin_handle;
-    return _on_plugin_init(name_out, description_out, version_out, arg, ZOITECHATLIBDIR);
+    /* Honor relocated installations and the core's runtime plugin directory. */
+    const char *libdir = zoitechat_get_info(plugin_handle, "libdirfs");
+    return _on_plugin_init(name_out, description_out, version_out, arg,
+                           libdir ? libdir : ZOITECHATLIBDIR);
 }
 
 int zoitechat_plugin_deinit(void)

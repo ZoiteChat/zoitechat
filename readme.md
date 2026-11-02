@@ -62,3 +62,15 @@ provide binary packages linked to the OpenSSL libraries, provided that
 all other requirements of the GPL are met.
 See file COPYING for details.
 </sub>
+
+## Experimental Qt 6 frontend
+
+An optional Qt 6 Widgets frontend is available as `zoitechat-qt`, alongside the
+GTK frontend. See [the Qt frontend guide](src/fe-qt/README.md) for dependencies,
+features and tests. To build only Qt without plugins:
+
+```sh
+meson setup build-qt -Dqt-frontend=true -Dgtk-frontend=false -Dplugin=false
+meson compile -C build-qt
+./build-qt/src/fe-qt/zoitechat-qt
+```

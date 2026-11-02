@@ -112,3 +112,11 @@ if get_option('plugin')
 
   endforeach
 endif
+
+if get_option('qt-frontend')
+  install_data('net.zoite.Zoitechat.Qt.desktop', install_dir: appdir)
+  if desktop_utils.found()
+    test('Validate Qt desktop file', desktop_utils,
+      args: [files('net.zoite.Zoitechat.Qt.desktop')])
+  endif
+endif

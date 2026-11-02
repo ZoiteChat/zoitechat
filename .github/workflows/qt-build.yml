@@ -1,0 +1,33 @@
+name: Qt Frontend
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [master, 'release/**']
+  pull_request:
+    branches: [master]
+
+permissions:
+  contents: read
+
+jobs:
+  qt:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential pkg-config meson ninja-build gettext \
+            qt6-base-dev qt6-base-dev-tools libpango1.0-dev libenchant-2-dev \
+            libglib2.0-dev libssl-dev libarchive-dev python3-dev python3-cffi desktop-file-utils publicsuffix openssl ca-certificates
+      - name: Configure Qt frontend
+        run: >-
+          meson setup build -Dqt-frontend=true -Dgtk-frontend=false
+          -Dwith-fishlim=false -Dwith-lua=false -Dwith-perl=false
+          -Dwith-python=python3 -Dwith-sysinfo=false -Dlibcanberra=disabled
+          -Dpublic-suffix-list=/usr/share/publicsuffix/public_suffix_list.dat
+      - name: Build
+        run: meson compile -C build
+      - name: Test
+        run: meson test -C build --print-errorlogs

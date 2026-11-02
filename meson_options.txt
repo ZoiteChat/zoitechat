@@ -80,3 +80,6 @@ option('with-perl-legacy-api', type: 'boolean', value: false,
 option('public-suffix-list', type: 'string', value: '',
   description: 'Path to a local public_suffix_list.dat to generate the URL detection rules from instead of downloading it'
 )
+
+option('qt-frontend', type: 'boolean', value: false, description: 'Qt 6 graphical frontend (zoitechat-qt)')
+option('qt-spellchecking', type: 'feature', value: 'auto', description: 'Enchant spell checking in the Qt message input')

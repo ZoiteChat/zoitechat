@@ -257,7 +257,7 @@ process_server_final (scram_session *session, const char *data)
 	unsigned int server_key_len = 0, server_signature_len = 0;
 	gsize verifier_len = 0;
 
-	if (strlen (data) < 3 || (data[0] != 'v' && data[1] != '='))
+	if (strlen (data) < 3 || (data[0] != 'v' || data[1] != '='))
 	{
 		return SCRAM_ERROR;
 	}

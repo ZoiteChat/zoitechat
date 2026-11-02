@@ -15,7 +15,7 @@ fishlim_sources = [
 ]
 
 shared_module('fishlim', fishlim_sources,
-  dependencies: [libgio_dep, gtk_dep, zoitechat_plugin_dep, libssl_dep],
+  dependencies: [libgio_dep, dependency('gtk+-3.0', version: '>= 3.22.0'), zoitechat_plugin_dep, libssl_dep],
   c_args: ['-DOPENSSL_API_COMPAT=0x10100000L'],
   install: true,
   install_dir: plugindir,
