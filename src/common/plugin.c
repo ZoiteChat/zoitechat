@@ -99,6 +99,9 @@ struct _zoitechat_hook
 	int tag;				/* for timers & FDs only */
 	int type;			/* HOOK_* */
 	int pri;	/* fd */	/* priority / fd for HOOK_FD only */
+	int connection_filter;
+	char *channel_filter;
+	gboolean context_filtered;
 };
 
 struct _zoitechat_list
@@ -176,6 +179,7 @@ enum
 
 GSList *plugin_list = NULL;	/* export for plugingui.c */
 static GSList *hook_list = NULL;
+static unsigned int plugin_dispatch_depth;
 
 extern const struct prefs vars[];	/* cfgfiles.c */
 
@@ -243,7 +247,7 @@ plugin_list_add (zoitechat_context *ctx, char *filename, const char *name,
 {
 	zoitechat_plugin *pl;
 
-	pl = g_new (zoitechat_plugin, 1);
+	pl = g_new0 (zoitechat_plugin, 1);
 	pl->handle = handle;
 	pl->filename = filename;
 	pl->context = ctx;
@@ -350,6 +354,8 @@ plugin_add (session *sess, char *filename, void *handle, void *init_func,
 		pl->zoitechat_emit_print_attrs = zoitechat_emit_print_attrs;
 		pl->zoitechat_event_attrs_create = zoitechat_event_attrs_create;
 		pl->zoitechat_event_attrs_free = zoitechat_event_attrs_free;
+		pl->zoitechat_hook_server_filtered = zoitechat_hook_server_filtered;
+		pl->zoitechat_hook_print_filtered = zoitechat_hook_print_filtered;
 
 		/* run zoitechat_plugin_init, if it returns 0, close the plugin */
 		if (((zoitechat_init_func *)init_func) (pl, &pl->name, &pl->desc, &pl->version, arg) == 0)
@@ -610,6 +616,7 @@ plugin_hook_run (session *sess, char *name, char *word[], char *word_eol[],
 	zoitechat_hook *hook;
 	int ret, eat = 0;
 
+	plugin_dispatch_depth++;
 	list = hook_list;
 	while (1)
 	{
@@ -619,6 +626,15 @@ plugin_hook_run (session *sess, char *name, char *word[], char *word_eol[],
 
 		hook = list->data;
 		next = list->next;
+		if (hook->context_filtered &&
+			(!is_session (sess) ||
+			 (hook->connection_filter != -1 && hook->connection_filter != sess->server->id) ||
+			 (hook->channel_filter && sess->server->p_cmp (hook->channel_filter, sess->channel))))
+		{
+			list = next;
+			continue; /* filter in C before entering an interpreter */
+		}
+
 		hook->pl->context = sess;
 
 		/* run the plugin's callback function */
@@ -655,6 +671,10 @@ plugin_hook_run (session *sess, char *name, char *word[], char *word_eol[],
 	}
 
 xit:
+	/* Nested callbacks can unhook entries still used by an outer dispatch.
+	 * Keep both hook objects and list links alive until the outermost return. */
+	if (--plugin_dispatch_depth != 0)
+		return eat;
 	/* really remove deleted hooks now */
 	list = hook_list;
 	while (list)
@@ -806,7 +826,7 @@ plugin_insert_hook (zoitechat_hook *new_hook)
 			break;
 		case HOOK_SERVER:
 		case HOOK_SERVER_ATTRS:
-			new_hook_type = HOOK_SERVER | HOOK_PRINT_ATTRS;
+			new_hook_type = HOOK_SERVER | HOOK_SERVER_ATTRS;
 			break;
 		default:
 			new_hook_type = new_hook->type;
@@ -1018,8 +1038,43 @@ zoitechat_unhook (zoitechat_plugin *ph, zoitechat_hook *hook)
 
 	g_free (hook->name);	/* NULL for timers & fds */
 	g_free (hook->help_text);	/* NULL for non-commands */
+	g_free (hook->channel_filter);
+	hook->channel_filter = NULL;
 
 	return hook->userdata;
+}
+
+static zoitechat_hook *
+plugin_add_filtered_hook (zoitechat_plugin *ph, const char *name, int pri,
+                         int flags, int connection_id, const char *channel,
+                         int type, void *callback, void *userdata)
+{
+    zoitechat_hook *hook;
+    if (flags != 0 || connection_id < -1 || !name || !callback)
+        return NULL;
+    hook = plugin_add_hook (ph, type, pri, name, NULL, callback, 0, userdata);
+    hook->context_filtered = TRUE;
+    hook->connection_filter = connection_id;
+    hook->channel_filter = g_strdup (channel);
+    return hook;
+}
+
+zoitechat_hook *
+zoitechat_hook_server_filtered (zoitechat_plugin *ph, const char *name, int pri,
+                               int flags, int connection_id, const char *channel,
+                               zoitechat_serv_attrs_cb *callback, void *userdata)
+{
+    return plugin_add_filtered_hook (ph, name, pri, flags, connection_id, channel,
+        HOOK_SERVER_ATTRS, callback, userdata);
+}
+
+zoitechat_hook *
+zoitechat_hook_print_filtered (zoitechat_plugin *ph, const char *name, int pri,
+                              int flags, int connection_id, const char *channel,
+                              zoitechat_print_attrs_cb *callback, void *userdata)
+{
+    return plugin_add_filtered_hook (ph, name, pri, flags, connection_id, channel,
+        HOOK_PRINT_ATTRS, callback, userdata);
 }
 
 zoitechat_hook *
@@ -1180,6 +1235,9 @@ zoitechat_get_info (zoitechat_plugin *ph, const char *id)
 		if (*e == ' ') e++;	/* 2.8.0 only worked without a space */
 		return text_find_format_string (e);
 	}
+
+	if (strcmp (id, "api_context_filters") == 0)
+		return "1";
 
 	hash = str_hash (id);
 	/* do the session independant ones first */
