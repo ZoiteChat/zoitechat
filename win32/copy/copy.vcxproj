@@ -90,6 +90,7 @@
       <MSWindowsTheme Include="$(DepsRoot)\share\themes\MS-Windows\**\*" />
       <HicolorIcons Include="$(DepsRoot)\share\icons\hicolor\index.theme" />
       <HicolorIcons Include="$(DepsRoot)\share\icons\hicolor\**\*.*" />
+      <PythonAdditiveApis Include="..\..\plugins\python\_zoitechat_*.py" />
     </ItemGroup>
 
     <Copy SourceFiles="@(None)" DestinationFolder="$(ZoiteChatRel)" />
@@ -115,6 +116,7 @@
     <Copy SourceFiles="..\..\plugins\python\hexchat.py" DestinationFolder="$(ZoiteChatRel)\python" Condition="'$(Python3Enabled)'=='true' or '$(Python38Enabled)'=='true'" />
     <Copy SourceFiles="..\..\plugins\python\zoitechat.py" DestinationFolder="$(ZoiteChatRel)\python" Condition="'$(Python3Enabled)'=='true' or '$(Python38Enabled)'=='true'" />
     <Copy SourceFiles="..\..\plugins\python\_zoitechat.py" DestinationFolder="$(ZoiteChatRel)\python" Condition="'$(Python3Enabled)'=='true' or '$(Python38Enabled)'=='true'" />
+    <Copy SourceFiles="@(PythonAdditiveApis)" DestinationFolder="$(ZoiteChatRel)\python" Condition="('$(Python3Enabled)'=='true' or '$(Python38Enabled)'=='true') and '@(PythonAdditiveApis)' != ''" />
 
     <WriteLinesToFile File="$(ZoiteChatRel)portable-mode" Lines="2" Overwrite="true" />
 
