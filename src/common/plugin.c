@@ -176,6 +176,7 @@ enum
 
 GSList *plugin_list = NULL;	/* export for plugingui.c */
 static GSList *hook_list = NULL;
+static unsigned int plugin_dispatch_depth;
 
 extern const struct prefs vars[];	/* cfgfiles.c */
 
@@ -243,7 +244,7 @@ plugin_list_add (zoitechat_context *ctx, char *filename, const char *name,
 {
 	zoitechat_plugin *pl;
 
-	pl = g_new (zoitechat_plugin, 1);
+	pl = g_new0 (zoitechat_plugin, 1);
 	pl->handle = handle;
 	pl->filename = filename;
 	pl->context = ctx;
@@ -610,6 +611,7 @@ plugin_hook_run (session *sess, char *name, char *word[], char *word_eol[],
 	zoitechat_hook *hook;
 	int ret, eat = 0;
 
+	plugin_dispatch_depth++;
 	list = hook_list;
 	while (1)
 	{
@@ -655,6 +657,10 @@ plugin_hook_run (session *sess, char *name, char *word[], char *word_eol[],
 	}
 
 xit:
+	/* Nested callbacks can unhook entries still used by an outer dispatch.
+	 * Keep both hook objects and list links alive until the outermost return. */
+	if (--plugin_dispatch_depth != 0)
+		return eat;
 	/* really remove deleted hooks now */
 	list = hook_list;
 	while (list)
@@ -806,7 +812,7 @@ plugin_insert_hook (zoitechat_hook *new_hook)
 			break;
 		case HOOK_SERVER:
 		case HOOK_SERVER_ATTRS:
-			new_hook_type = HOOK_SERVER | HOOK_PRINT_ATTRS;
+			new_hook_type = HOOK_SERVER | HOOK_SERVER_ATTRS;
 			break;
 		default:
 			new_hook_type = new_hook->type;

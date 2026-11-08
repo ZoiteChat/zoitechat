@@ -193,6 +193,15 @@ struct _zoitechat_plugin
 	zoitechat_event_attrs *(*zoitechat_event_attrs_create) (zoitechat_plugin *ph);
 	void (*zoitechat_event_attrs_free) (zoitechat_plugin *ph,
 									  zoitechat_event_attrs *attrs);
+	/* Additive API slots: append only; old binary offsets are unchanged. */
+	zoitechat_hook *(*zoitechat_hook_print_after) (zoitechat_plugin *, const char *, int,
+		int, int (*)(char *[], zoitechat_event_attrs *, void *), void *);
+	zoitechat_hook *(*zoitechat_hook_server_filtered) (zoitechat_plugin *, const char *, int,
+		int, int, const char *, int (*)(char *[], char *[], zoitechat_event_attrs *, void *), void *);
+	zoitechat_hook *(*zoitechat_hook_print_filtered) (zoitechat_plugin *, const char *, int,
+		int, int, const char *, int (*)(char *[], zoitechat_event_attrs *, void *), void *);
+	zoitechat_hook *(*zoitechat_register_capability) (zoitechat_plugin *, const char *, int, int, void *);
+
 };
 #endif
 
