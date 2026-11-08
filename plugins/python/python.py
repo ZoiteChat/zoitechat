@@ -305,6 +305,28 @@ def _on_timer_hook(userdata):
 
 
 @ffi.def_extern()
+def _on_fd_hook(fd, flags, userdata):
+    hook = ffi.from_handle(userdata)
+    keep = False
+    try:
+        keep = bool(hook.callback(fd, flags, hook.userdata))
+    except Exception:
+        traceback.print_exc()
+    if not keep:
+        # The C watch removes itself on return; do not unhook it a second time.
+        try:
+            hook.is_unload = True
+            # from_handle() yields a weak proxy: id(proxy) is not id(Hook).
+            for existing in hook.plugin.hooks:
+                if existing == hook:
+                    hook.plugin.remove_hook(id(existing))
+                    break
+        except ReferenceError:
+            pass  # the callback already unhooked itself
+    return int(keep)
+
+
+@ffi.def_extern()
 def _on_say_command(word, word_eol, userdata):
     """Handle input in the special >>python<< tab.
 
@@ -590,7 +612,12 @@ def _on_plugin_deinit():
     sys.stderr = sys.__stderr__
     pydoc.help = pydoc.Helper()
 
-    for mod in ('_zoitechat', 'zoitechat', 'xchat', '_zoitechat_embedded'):
+    # CFFI callbacks keep the embedding module's ffi/lib identity for the
+    # process lifetime; deleting it creates incompatible types on reload.
+    for mod in ('_zoitechat', 'zoitechat', 'hexchat', 'xchat',
+                '_zoitechat_fd', '_zoitechat_events', '_zoitechat_async',
+                '_zoitechat_names', '_zoitechat_contexts', '_zoitechat_post',
+                '_zoitechat_filters', '_zoitechat_caps'):
         try:
             del sys.modules[mod]
 
