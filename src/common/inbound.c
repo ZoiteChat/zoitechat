@@ -41,6 +41,8 @@
 #include "network.h"
 #include "notify.h"
 #include "outbound.h"
+#include <gmodule.h>
+#include "plugin.h"
 #include "inbound.h"
 #include "server.h"
 #include "servlist.h"
@@ -1980,6 +1982,22 @@ inbound_cap_ack (server *serv, char *nick, char *extensions,
 	inbound_toggle_caps (serv, extensions, TRUE);
 }
 
+/* Keep CAP REQ tokens intact and below the existing 500-byte buffer. */
+static void
+inbound_cap_request_append (server *serv, char *buffer, gsize size,
+                            const char *name, time_t timestamp)
+{
+    if (strlen (buffer) + strlen (name) + 1 >= size)
+    {
+        EMIT_SIGNAL_TIMESTAMP (XP_TE_CAPREQ, serv->server_session,
+            buffer + 9, NULL, NULL, NULL, 0, timestamp);
+        tcp_sendf (serv, "%s\r\n", g_strchomp (buffer));
+        g_strlcpy (buffer, "CAP REQ :", size);
+    }
+    g_strlcat (buffer, name, size);
+    g_strlcat (buffer, " ", size);
+}
+
 static void inbound_request_new_caps (server *serv, const char *extensions_str,
 									 const message_tags_data *tags_data);
 
@@ -2095,6 +2113,32 @@ inbound_request_new_caps (server *serv, const char *extensions_str,
 			}
 		}
 	}
+	/* Also request plugin-owned capabilities, without repeating core requests. */
+    for (i = 0; extensions[i]; i++)
+    {
+        gsize previous;
+        gboolean builtin = FALSE;
+        for (x = 0; x < G_N_ELEMENTS (supported_caps); x++)
+        {
+            if (!strcmp (extensions[i], supported_caps[x]))
+            {
+                builtin = TRUE;
+                break;
+            }
+        }
+        if (builtin || !plugin_requests_capability (serv, extensions[i]))
+            continue;
+        for (previous = 0; previous < i; previous++)
+        {
+            if (!strcmp (extensions[previous], extensions[i]))
+                break;
+        }
+        if (previous != i)
+            continue;
+        EMIT_SIGNAL_TIMESTAMP (XP_TE_CAPREQ, serv->server_session,
+            extensions[i], NULL, NULL, NULL, 0, tags_data->timestamp);
+        tcp_sendf (serv, "CAP REQ :%s\r\n", extensions[i]);
+    }
 	g_strfreev (extensions);
 }
 
@@ -2161,6 +2205,8 @@ inbound_cap_ls (server *serv, char *nick, char *extensions_str,
 	gboolean want_cap = FALSE; /* format the CAP REQ string based on previous capabilities being requested or not */
 	gboolean sts_upgrade_triggered = FALSE;
 	char **extensions;
+	GString *requests = g_string_new (NULL);
+	GHashTable *seen = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
 	int i;
 
 	if (g_str_has_prefix (extensions_str, "* "))
@@ -2226,36 +2272,56 @@ inbound_cap_ls (server *serv, char *nick, char *extensions_str,
 			}
 			want_cap = TRUE;
 			serv->waiting_on_sasl = TRUE;
-			g_strlcat (buffer, "sasl ", sizeof(buffer));
+			if (g_hash_table_add (seen, g_strdup ("sasl")))
+				g_string_append (requests, "sasl ");
 			continue;
 		}
 
-		for (x = 0; x < G_N_ELEMENTS(supported_caps); ++x)
-		{
-			if (!g_strcmp0 (extension, supported_caps[x]))
-			{
-				g_strlcat (buffer, extension, sizeof(buffer));
-				g_strlcat (buffer, " ", sizeof(buffer));
-				want_cap = TRUE;
-			}
-		}
+		for (x = 0; x < G_N_ELEMENTS (supported_caps); ++x)
+        {
+            if (!g_strcmp0 (extension, supported_caps[x]))
+                break;
+        }
+        if (x < G_N_ELEMENTS (supported_caps) ||
+            plugin_requests_capability (serv, extension))
+        {
+            if (g_hash_table_add (seen, g_strdup (extension)))
+            {
+                g_string_append (requests, extension);
+                g_string_append_c (requests, ' ');
+                want_cap = TRUE;
+            }
+        }
 	}
 
 	g_strfreev (extensions);
 
 	if (sts_upgrade_triggered)
-	{
-		return;
-	}
+    {
+        g_hash_table_destroy (seen);
+        g_string_free (requests, TRUE);
+        return;
+    }
 
 	if (want_cap)
-	{
-		/* buffer + 9 = emit buffer without "CAP REQ :" */
-		EMIT_SIGNAL_TIMESTAMP (XP_TE_CAPREQ, serv->server_session,
-									  buffer + 9, NULL, NULL, NULL, 0,
-									  tags_data->timestamp);
-		tcp_sendf (serv, "%s\r\n", g_strchomp (buffer));
-	}
+    {
+        char **tokens = g_strsplit (requests->str, " ", 0);
+        for (i = 0; tokens[i]; i++)
+        {
+            if (tokens[i][0])
+                inbound_cap_request_append (serv, buffer, sizeof (buffer),
+                    tokens[i], tags_data->timestamp);
+        }
+        g_strfreev (tokens);
+        if (buffer[9])
+        {
+            EMIT_SIGNAL_TIMESTAMP (XP_TE_CAPREQ, serv->server_session,
+                buffer + 9, NULL, NULL, NULL, 0, tags_data->timestamp);
+            tcp_sendf (serv, "%s\r\n", g_strchomp (buffer));
+        }
+    }
+    g_hash_table_destroy (seen);
+    g_string_free (requests, TRUE);
 	if (!serv->waiting_on_sasl && !serv->waiting_on_cap)
 	{
 		/* if we use SASL, CAP END is dealt via raw numerics */
