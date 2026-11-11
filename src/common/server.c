@@ -35,6 +35,7 @@
 #include <winbase.h>
 #include <io.h>
 #else
+#define _POSIX_SOURCE
 #include <signal.h>
 #include <sys/wait.h>
 #include <unistd.h>

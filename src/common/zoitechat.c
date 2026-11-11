@@ -30,6 +30,7 @@
 #ifdef WIN32
 #include <windows.h>
 #else
+#define _POSIX_SOURCE
 #include <sys/wait.h>
 #include <signal.h>
 #include <unistd.h>

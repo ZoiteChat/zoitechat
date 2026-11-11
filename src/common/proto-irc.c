@@ -18,6 +18,7 @@
 
 /* IRC RFC1459(+commonly used extensions) protocol implementation */
 
+#define _POSIX_SOURCE
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
