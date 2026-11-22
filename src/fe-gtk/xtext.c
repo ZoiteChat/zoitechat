@@ -2003,12 +2003,34 @@ gtk_xtext_word_select_char (const unsigned char *ch)
 	return g_unichar_isalnum (uc) || uc == '_' || uc == '-';
 }
 
+static int
+gtk_xtext_color_code_len (const unsigned char *p, const unsigned char *lim)
+{
+	const unsigned char *q = p + 1;
+	int n;
+
+	if (*p == ATTR_HEXCOLOR)
+		return 1 + hexcolor_parse ((const char *)q, (int)(lim - q), NULL, NULL, NULL);
+	if (*p != ATTR_COLOR)
+		return 0;
+
+	for (n = 0; n < 2 && q < lim && g_ascii_isdigit (*q); n++)
+		q++;
+	if (n && q + 1 < lim && *q == ',' && g_ascii_isdigit (q[1]))
+	{
+		q += 2;
+		if (q < lim && g_ascii_isdigit (*q))
+			q++;
+	}
+	return (int)(q - p);
+}
+
 static gboolean
 gtk_xtext_get_word_select_range (GtkXText *xtext, int x, int y, textentry **ret_ent, int *ret_off, int *ret_len)
 {
 	textentry *ent;
 	int offset;
-	unsigned char *start, *end;
+	unsigned char *start, *end, *p, *lim;
 
 	ent = gtk_xtext_find_char (xtext, x, y, &offset, NULL);
 	if (!ent || offset < 0 || offset >= ent->str_len)
@@ -2026,6 +2048,25 @@ gtk_xtext_get_word_select_range (GtkXText *xtext, int x, int y, textentry **ret_
 			break;
 		start = prev;
 	}
+
+	/* The digits after a color code look like word characters, but they
+	   are part of the code. Move the start past any code they belong to. */
+	lim = ent->str + ent->str_len;
+	for (p = ent->str; p < start; )
+	{
+		int n = gtk_xtext_color_code_len (p, lim);
+
+		if (!n)
+		{
+			p++;
+			continue;
+		}
+		if (p + n > start)
+			start = p + n;
+		p += n;
+	}
+	if (start > ent->str + offset)
+		return FALSE;
 
 	while (end && end < ent->str + ent->str_len && gtk_xtext_word_select_char (end))
 		end = g_utf8_find_next_char (end, ent->str + ent->str_len);
