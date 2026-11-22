@@ -2029,6 +2029,8 @@ gtk_xtext_get_word_select_range (GtkXText *xtext, int x, int y, textentry **ret_
 
 	while (end && end < ent->str + ent->str_len && gtk_xtext_word_select_char (end))
 		end = g_utf8_find_next_char (end, ent->str + ent->str_len);
+	if (!end)
+		end = ent->str + ent->str_len;
 
 	if (ret_ent)
 		*ret_ent = ent;
