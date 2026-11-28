@@ -92,8 +92,13 @@ notification_backend_init (const char **error)
     char **capabilities;
     guint i;
 
+    /* We never read properties or listen for signals. Loading properties makes
+     * proxy creation block on Properties.GetAll, which some notification
+     * daemons (e.g. awesome's naughty) never answer, freezing startup until
+     * the 25 second D-Bus timeout expires. */
     fdo_notifications = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SESSION,
-                                                       G_DBUS_PROXY_FLAGS_NONE,
+                                                       G_DBUS_PROXY_FLAGS_DO_NOT_LOAD_PROPERTIES |
+                                                       G_DBUS_PROXY_FLAGS_DO_NOT_CONNECT_SIGNALS,
                                                        NULL,
                                                        "org.freedesktop.Notifications",
                                                        "/org/freedesktop/Notifications",
